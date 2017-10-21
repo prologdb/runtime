@@ -13,7 +13,7 @@ class Unification(public val variableValues: VariableBucket = VariableBucket()) 
 
     override fun toString(): String {
         return variableValues.values
-                .map { (variable, value) -> "$variable = ${value.orElse(Variable.ANONYMOUS)}" }
+                .map { (variable, value) -> "$variable = ${value ?: Variable.ANONYMOUS}" }
                 .joinToString(", ")
     }
 

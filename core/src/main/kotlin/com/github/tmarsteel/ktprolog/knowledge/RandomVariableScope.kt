@@ -1,6 +1,6 @@
 package com.github.tmarsteel.ktprolog.knowledge
 
-import com.google.common.collect.BiMap
+import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.term.Term
 import com.github.tmarsteel.ktprolog.term.Variable
 
@@ -18,13 +18,13 @@ class RandomVariableScope {
      * Replaces all the variables in the given predicate with random instances; the mapping gets stored
      * in the given map.
      */
-    fun withRandomVariables(term: Term, mappings: BiMap<Variable, Variable>): Term {
-        return term.substituteVariables { it ->
-            if (it !in mappings.inverse()) {
+    fun withRandomVariables(term: Term, mapping: VariableMapping): Term {
+        return term.substituteVariables { originalVariable ->
+            if (!mapping.hasOriginal(originalVariable)) {
                 val randomVariable = createNewRandomVariable()
-                mappings[randomVariable] = it
+                mapping.storeSubstitution(originalVariable, randomVariable)
             }
-            mappings.inverse()[it]!!
+            mapping.getSubstitution(originalVariable)!!
         }
     }
 

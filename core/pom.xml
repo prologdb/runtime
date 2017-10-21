@@ -4,24 +4,20 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.tmarsteel</groupId>
-    <artifactId>kotlin-prolog-core</artifactId>
-
     <parent>
         <groupId>com.github.tmarsteel</groupId>
         <artifactId>kotlin-prolog</artifactId>
         <version>0.5.0-SNAPSHOT</version>
     </parent>
 
+    <groupId>com.github.tmarsteel</groupId>
+    <artifactId>kotlin-prolog-core</artifactId>
+    <version>0.5.0-SNAPSHOT</version>
+
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>23.2-jre</version>
         </dependency>
         <dependency>
             <groupId>io.kotlintest</groupId>
@@ -34,10 +30,22 @@
     <build>
         <sourceDirectory>src/main/kotlin</sourceDirectory>
         <testSourceDirectory>src/test/kotlin</testSourceDirectory>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.0.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.plugin.version}</version>
+                <configuration>
+                    <experimentalCoroutines>enable</experimentalCoroutines>
+                </configuration>
                 <executions>
                     <execution>
                         <id>kotlin-jvm-compile</id>
@@ -56,7 +64,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
             </plugin>
         </plugins>

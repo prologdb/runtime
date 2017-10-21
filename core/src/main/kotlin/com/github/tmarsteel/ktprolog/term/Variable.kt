@@ -9,7 +9,6 @@ open class Variable(val name: String) : Term {
         if (rhs is Variable && rhs == this) return Unification.TRUE
 
         val vars = VariableBucket()
-        vars.define(this)
         vars.instantiate(this, rhs)
         return Unification(vars)
     }
@@ -47,7 +46,6 @@ private object AnonymousVariable : Variable("_") {
     override fun unify(rhs: Term, randomVariableScope: RandomVariableScope): Unification {
         val randomVar = randomVariableScope.createNewRandomVariable()
         val bucket = VariableBucket()
-        bucket.define(randomVar)
         bucket.instantiate(randomVar, rhs)
         return Unification(bucket)
     }

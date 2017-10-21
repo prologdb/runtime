@@ -46,7 +46,6 @@ class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
                     val vars = VariableBucket()
-                    vars.define(rhsTail)
                     vars.instantiate(rhsTail, List(this.elements.subList(index, elements.size), this.tail))
                     try {
                         return carryUnification.combineWith(Unification(vars))
@@ -126,9 +125,7 @@ class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as List
+        if (other !is List) return false
 
         if (elements != other.elements) return false
         if (tail != other.tail) return false

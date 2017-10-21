@@ -37,5 +37,13 @@ class Atom(val name: String) : Term {
         return name.hashCode()
     }
 
-    override fun toString() = if (name[0].isLowerCase()) name else "'$name'"
+    override fun toString(): String {
+        val firstChar = name[0]
+        if (firstChar.toLowerCase() == firstChar || name.contains(Regex("\\s"))) {
+            return "'$name'"
+        }
+        else {
+            return name
+        }
+    }
 }

@@ -3,7 +3,7 @@ package com.github.tmarsteel.ktprolog.term
 import com.github.tmarsteel.ktprolog.knowledge.RandomVariableScope
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
-import java.util.*
+import sensibleHashCode
 
 open class Predicate(val name: String, val arguments: Array<out Term>) : Term
 {
@@ -33,13 +33,9 @@ open class Predicate(val name: String, val arguments: Array<out Term>) : Term
                 }
 
                 for ((variable, value) in argUnification.variableValues.values) {
-                    if (!vars.isDefined(variable)) {
-                        vars.define(variable)
-                    }
-
-                    if (value.isPresent) {
+                    if (value != null) {
                         // substitute all instantiated variables for simplicity and performance
-                        val substitutedValue = value.get()!!.substituteVariables(vars.asSubstitutionMapper())
+                        val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
                         if (vars.isInstantiated(variable)) {
                             if (vars[variable] != substitutedValue && vars[variable] != value) {
                                 // instantiated to different value => no unification
@@ -77,19 +73,17 @@ open class Predicate(val name: String, val arguments: Array<out Term>) : Term
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Predicate
+        if (other !is Predicate) return false
 
         if (name != other.name) return false
-        if (!Arrays.equals(arguments, other.arguments)) return false
+        if (arguments contentDeepEquals other.arguments) return true
 
-        return true
+        return false
     }
 
     override fun hashCode(): Int {
         var result = name.hashCode()
-        result = 31 * result + Arrays.hashCode(arguments)
+        result = 31 * result + arguments.sensibleHashCode()
         return result
     }
 }

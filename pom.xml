@@ -16,10 +16,12 @@
 
     <modules>
         <module>core</module>
+        <module>corejs</module>
     </modules>
 
     <properties>
         <kotlin.version>1.1.51</kotlin.version>
+        <kotlin.plugin.version>${kotlin.version}</kotlin.plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -38,25 +40,7 @@
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>
                     <artifactId>kotlin-maven-plugin</artifactId>
-                    <version>${kotlin.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.jetbrains.kotlin</groupId>
-                    <artifactId>kotlin-maven-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <id>kotlin-jvm-compile</id>
-                            <goals>
-                                <goal>compile</goal>
-                            </goals>
-                        </execution>
-                        <execution>
-                            <id>kotlin-jvm-test-compile</id>
-                            <goals>
-                                <goal>test-compile</goal>
-                            </goals>
-                        </execution>
-                    </executions>
+                    <version>${kotlin.plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

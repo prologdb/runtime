@@ -1,20 +1,20 @@
 package com.github.tmarsteel.ktprolog.unification
 
+import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.term.Term
 import com.github.tmarsteel.ktprolog.term.Variable
-import java.util.*
 
 class VariableBucket private constructor(
         /**
          * Each known variable gets a key in this map; The value however is not present if the variable
          * has not been instantiated yet.
          */
-        private val variableMap: MutableMap<Variable,Optional<Term>>
+        private val variableMap: MutableMap<Variable, Term?>
 ) {
-    constructor() : this(HashMap<Variable, Optional<Term>>())
+    constructor() : this(mutableMapOf<Variable, Term?>())
 
     private val substitutionMapper: (Variable) -> Term = { variable ->
-        if (isDefined(variable) && isInstantiated(variable) && this[variable] != variable) {
+        if (isInstantiated(variable) && this[variable] != variable) {
             this[variable].substituteVariables(this.asSubstitutionMapper())
         }
         else {
@@ -26,19 +26,11 @@ class VariableBucket private constructor(
 
     operator fun get(v: Variable): Term {
         if (isInstantiated(v)) {
-            return variableMap[v]!!.get()
+            return variableMap[v]!!
         }
         else {
             throw NameError("Variable $v has not been instantiated yet.")
         }
-    }
-
-    fun define(variable: Variable) {
-        if (variable in variableMap) {
-            throw NameError("Variable $variable is already defined in this bucket.")
-        }
-
-        variableMap.put(variable, Optional.empty())
     }
 
     fun instantiate(variable: Variable, value: Term) {
@@ -46,19 +38,11 @@ class VariableBucket private constructor(
             throw NameError("Variable $variable is already instantiated in this bucket.")
         }
 
-        variableMap[variable] = Optional.of(value)
-    }
-
-    fun isDefined(variable: Variable): Boolean {
-        return variable in variableMap
+        variableMap[variable] = value
     }
 
     fun isInstantiated(variable: Variable): Boolean {
-        if (!isDefined(variable)) {
-            throw NameError("Variable $variable is not defined in this bucket.")
-        }
-
-        return variableMap[variable]!!.isPresent
+        return variableMap[variable] != null
     }
 
     fun combineWith(other: VariableBucket): VariableBucket {
@@ -69,13 +53,13 @@ class VariableBucket private constructor(
             }
             else {
                 val thisValue = copy.variableMap[variableName]!!
-                if (thisValue.isPresent && othersValue.isPresent) {
+                if (thisValue != null && othersValue != null) {
                     if (thisValue != othersValue) {
                         // same variable instantiated to different value
-                        throw VariableDiscrepancyException("Cannot combine: variable $variableName is instantiated to unequal values: ${thisValue.get()} and ${othersValue.get()}")
+                        throw VariableDiscrepancyException("Cannot combine: variable $variableName is instantiated to unequal values: ${thisValue} and ${othersValue}")
                     }
                 }
-                else if (othersValue.isPresent) {
+                else if (othersValue != null) {
                     // this does not have an instantiation, but others does => fine
                     copy.variableMap[variableName] = othersValue
                 }
@@ -87,7 +71,7 @@ class VariableBucket private constructor(
     }
 
     fun copy(): VariableBucket {
-        val mapCopy = HashMap<Variable,Optional<Term>>()
+        val mapCopy = mutableMapOf<Variable,Term?>()
         mapCopy.putAll(variableMap)
         return VariableBucket(mapCopy)
     }
@@ -96,14 +80,17 @@ class VariableBucket private constructor(
      * Removes all variables from this bucket that are not in the given collection
      */
     fun retainAll(variables: Collection<Variable>) {
-        variableMap.keys.removeIf { it !in variables }
+        val keysToRemove = variableMap.keys.filter { it !in variables }
+        for (key in keysToRemove) {
+            variableMap.remove(key)
+        }
     }
 
-    fun withVariablesResolvedFrom(mapping: Map<Variable, Variable>): VariableBucket {
+    fun withVariablesResolvedFrom(mapping: VariableMapping): VariableBucket {
         fun resolve(variable: Variable): Variable {
             var pivot = variable
-            while (pivot in mapping) {
-                pivot = mapping[pivot]!!
+            while (mapping.hasSubstitution(pivot)) {
+                pivot = mapping.getOriginal(pivot)!!
             }
             return pivot
         }
@@ -111,15 +98,14 @@ class VariableBucket private constructor(
         val newBucket = VariableBucket()
         for ((variable, value) in values) {
             val resolved = resolve(variable)
-            newBucket.define(resolved)
-            newBucket.instantiate(resolved, value.get())
+            if (value != null) newBucket.instantiate(resolved, value)
         }
 
         return newBucket
     }
 
-    val values: Iterable<Pair<Variable,Optional<Term>>>
+    val values: Iterable<Pair<Variable,Term?>>
         get() = variableMap.map { it.key to it.value }
 }
 
-class NameError(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+class NameError(message: String, override val cause: Throwable? = null) : RuntimeException(message)
