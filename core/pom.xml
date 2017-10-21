@@ -45,6 +45,7 @@
                 <version>${kotlin.plugin.version}</version>
                 <configuration>
                     <experimentalCoroutines>enable</experimentalCoroutines>
+                    <jvmTarget>1.8</jvmTarget>
                 </configuration>
                 <executions>
                     <execution>
