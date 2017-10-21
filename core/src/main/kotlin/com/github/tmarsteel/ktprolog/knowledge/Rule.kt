@@ -47,7 +47,7 @@ class Rule(val head: Predicate, val goals: List<Predicate>) {
                 }
             }
 
-            Unification(resolveAllVariables(solutionVars, predicateRandomVarsMapping))
+            Unification(solutionVars.withVariablesResolvedFrom(predicateRandomVarsMapping))
         }
     }
 

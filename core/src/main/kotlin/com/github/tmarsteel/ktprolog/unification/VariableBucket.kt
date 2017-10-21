@@ -99,6 +99,25 @@ class VariableBucket private constructor(
         variableMap.keys.removeIf { it !in variables }
     }
 
+    fun withVariablesResolvedFrom(mapping: Map<Variable, Variable>): VariableBucket {
+        fun resolve(variable: Variable): Variable {
+            var pivot = variable
+            while (pivot in mapping) {
+                pivot = mapping[pivot]!!
+            }
+            return pivot
+        }
+
+        val newBucket = VariableBucket()
+        for ((variable, value) in values) {
+            val resolved = resolve(variable)
+            newBucket.define(resolved)
+            newBucket.instantiate(resolved, value.get())
+        }
+
+        return newBucket
+    }
+
     val values: Iterable<Pair<Variable,Optional<Term>>>
         get() = variableMap.map { it.key to it.value }
 }

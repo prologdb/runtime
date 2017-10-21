@@ -24,7 +24,7 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
                 val knownPredicateReplaced = randomVarScope.withRandomVariables(knownPredicate, HashBiMap.create<Variable, Variable>())
                 val unification = knownPredicateReplaced.unify(replaced)
                 if (unification != null) {
-                    val resolvedBucket = resolveAllVariables(unification.variableValues, termMappings)
+                    val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
                     resolvedBucket.retainAll(predicate.variables)
                     yield(Unification(resolvedBucket))
                 }
@@ -49,23 +49,4 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
     override fun defineRule(rule: Rule) {
         this.rules.add(rule)
     }
-}
-
-fun resolveAllVariables(bucket: VariableBucket, mappings: Map<Variable, Variable>): VariableBucket {
-    fun resolve(variable: Variable): Variable {
-        var pivot = variable
-        while (pivot in mappings) {
-            pivot = mappings[pivot]!!
-        }
-        return pivot
-    }
-
-    val newBucket = VariableBucket()
-    for ((variable, value) in bucket.values) {
-        val resolved = resolve(variable)
-        newBucket.define(resolved)
-        newBucket.instantiate(resolved, value.get())
-    }
-
-    return newBucket
 }
