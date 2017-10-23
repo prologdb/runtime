@@ -175,4 +175,57 @@ class KnowledgeBaseTest : FreeSpec() {init {
             }
         }
     }
+
+    "anonymous variable" - {
+        val kb = DefaultKnowledgeBase()
+        val f = PredicateBuilder("f")
+        val _A = Variable.ANONYMOUS
+        val X = Variable("X")
+        val a = Atom("a")
+        val b = Atom("b")
+
+        "case 1" {
+            kb.assert(f(_A))
+
+            kb shouldProve f(a) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("it is empty") {
+                    it.variableValues.isEmpty
+                }
+            }
+        }
+
+        "case 2" {
+            kb.assert(f(_A, _A))
+
+            kb shouldProve f(a, b) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("it is empty") {
+                    it.variableValues.isEmpty
+                }
+            }
+        }
+
+        "case 3" {
+            kb.assert(f(_A, b))
+
+            kb shouldProve f(a, X) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("X = b") {
+                    it.variableValues[X] == b
+                }
+            }
+        }
+
+        "case 4" {
+            kb.assert(f(_A))
+
+            kb shouldProve f(X) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("X = _") {
+                    it.variableValues[X] == _A
+                }
+            }
+        }
+    }
 }}

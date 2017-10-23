@@ -20,11 +20,17 @@ class RandomVariableScope {
      */
     fun withRandomVariables(term: Term, mapping: VariableMapping): Term {
         return term.substituteVariables { originalVariable ->
-            if (!mapping.hasOriginal(originalVariable)) {
-                val randomVariable = createNewRandomVariable()
-                mapping.storeSubstitution(originalVariable, randomVariable)
+            if (originalVariable == Variable.ANONYMOUS) {
+                createNewRandomVariable()
             }
-            mapping.getSubstitution(originalVariable)!!
+            else {
+                if (!mapping.hasOriginal(originalVariable)) {
+                    val randomVariable = createNewRandomVariable()
+                    mapping.storeSubstitution(originalVariable, randomVariable)
+                }
+
+                mapping.getSubstitution(originalVariable)!!
+            }
         }
     }
 
