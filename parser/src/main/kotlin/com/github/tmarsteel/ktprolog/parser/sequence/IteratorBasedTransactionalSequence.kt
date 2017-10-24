@@ -24,7 +24,7 @@ open class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<
     }
 
     override fun next(): T {
-        if (!hasNext()) throw IllegalStateException()
+        if (!hasNext()) throw NoSuchElementException()
 
         if (buffer.isEmpty() || currentPosition >= buffer.size) {
             val next = iterator.next()
