@@ -1,6 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.sequence
 
-class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<T>) : TransactionalSequence<T, Index> {
+open class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<T>) : TransactionalSequence<T> {
 
     private val buffer: MutableList<T> = ArrayList(100)
 
