@@ -13,8 +13,11 @@ enum class Operator(val text: String) {
     PARANT_CLOSE(")"),
     FULL_STOP("."),
     SEMICOLON(";"),
-    COMMA(",")
+    COMMA(","),
+    HEAD_QUERY_SEPARATOR(":-")
 }
+
+val DECIMAL_SEPARATOR: Char = '.'
 
 sealed class Token(val type: TokenType, val location: SourceLocationRange)
 class IdentifierToken(val textContent: String, location: SourceLocationRange) : Token(TokenType.IDENTIFIER, location)
