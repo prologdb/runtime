@@ -20,7 +20,47 @@ enum class Operator(val text: String) {
 val DECIMAL_SEPARATOR: Char = '.'
 
 sealed class Token(val type: TokenType, val location: SourceLocationRange)
-class IdentifierToken(val textContent: String, location: SourceLocationRange) : Token(TokenType.IDENTIFIER, location)
-class OperatorToken(val operator: Operator, location: SourceLocationRange): Token(TokenType.OPERATOR, location)
-class NumericLiteralToken(val number: Number, location: SourceLocationRange): Token(TokenType.NUMERIC_LITERAL, location)
+
+class IdentifierToken(val textContent: String, location: SourceLocationRange) : Token(TokenType.IDENTIFIER, location) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is IdentifierToken) return false
+
+        if (textContent != other.textContent) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return textContent.hashCode()
+    }
+}
+class OperatorToken(val operator: Operator, location: SourceLocationRange): Token(TokenType.OPERATOR, location) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is OperatorToken) return false
+
+        if (operator != other.operator) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return operator.hashCode()
+    }
+}
+class NumericLiteralToken(val number: Number, location: SourceLocationRange): Token(TokenType.NUMERIC_LITERAL, location) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is NumericLiteralToken) return false
+
+        if (number != other.number) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return number.hashCode()
+    }
+}
 
