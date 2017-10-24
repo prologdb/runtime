@@ -223,7 +223,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
             kb shouldProve f(X) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("X = _") {
-                    it.variableValues[X] == _A
+                    it.variableValues.isEmpty
                 }
             }
         }
