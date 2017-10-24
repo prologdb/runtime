@@ -45,13 +45,7 @@ open class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<
     }
 
     override fun mark() {
-        if (markers.isEmpty()) {
-            markers.add(0)
-        }
-        else
-        {
-            markers.add(currentPosition)
-        }
+        markers.add(currentPosition)
     }
 
     override fun commit() {
