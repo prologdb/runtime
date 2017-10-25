@@ -86,6 +86,7 @@ internal class LexerIterator(unit: SourceUnit, givenSource: Iterator<Char>) : It
             }
             else {
                 numberWithLocation = Pair(text.first.toLong(), text.second)
+                source.rollback()
             }
 
             return NumericLiteralToken(numberWithLocation.first, numberWithLocation.second)
