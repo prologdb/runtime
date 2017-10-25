@@ -7,22 +7,3 @@ import kotlin.coroutines.experimental.buildSequence
 interface Query {
     fun findProofWithin(kb: KnowledgeBase): Sequence<Unification>
 }
-
-
-
-class BooleanAndQuery(components: Array<out Query>) : Query {
-    init {
-        if (components.isEmpty()) {
-            throw IllegalArgumentException("A boolean AND query must have at least one component.")
-        }
-    }
-
-    override fun findProofWithin(kb: KnowledgeBase): Sequence<Unification> {
-
-
-
-        return buildSequence {
-
-        }
-    }
-}

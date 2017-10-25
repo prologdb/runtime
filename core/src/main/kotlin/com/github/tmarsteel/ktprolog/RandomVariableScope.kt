@@ -1,6 +1,5 @@
-package com.github.tmarsteel.ktprolog.knowledge
+package com.github.tmarsteel.ktprolog
 
-import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.term.Term
 import com.github.tmarsteel.ktprolog.term.Variable
 
@@ -38,5 +37,3 @@ class RandomVariableScope {
         return RandomVariable(randomCounter++)
     }
 }
-
-class RandomVariable(private val counter: Int) : Variable("_G" + counter)

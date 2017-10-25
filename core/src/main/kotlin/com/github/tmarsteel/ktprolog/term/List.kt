@@ -1,6 +1,6 @@
 package com.github.tmarsteel.ktprolog.term
 
-import com.github.tmarsteel.ktprolog.knowledge.RandomVariableScope
+import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 import com.github.tmarsteel.ktprolog.unification.VariableDiscrepancyException

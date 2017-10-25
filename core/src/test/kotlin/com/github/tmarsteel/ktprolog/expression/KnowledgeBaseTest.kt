@@ -7,7 +7,7 @@ import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Variable
 import com.github.tmarsteel.ktprolog.term.List
 import com.github.tmarsteel.ktprolog.knowledge.DefaultKnowledgeBase
-import com.github.tmarsteel.ktprolog.knowledge.RandomVariable
+import com.github.tmarsteel.ktprolog.RandomVariable
 import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.PredicateBuilder

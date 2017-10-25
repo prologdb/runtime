@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.knowledge
 
+import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.unification.Unification
