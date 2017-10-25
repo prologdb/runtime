@@ -37,6 +37,8 @@ class IdentifierToken(val textContent: String, location: SourceLocationRange) : 
     override fun hashCode(): Int {
         return textContent.hashCode()
     }
+
+    override fun toString() = "identifier $textContent"
 }
 class OperatorToken(val operator: Operator, location: SourceLocationRange): Token(TokenType.OPERATOR, location) {
     override fun equals(other: Any?): Boolean {
@@ -51,6 +53,8 @@ class OperatorToken(val operator: Operator, location: SourceLocationRange): Toke
     override fun hashCode(): Int {
         return operator.hashCode()
     }
+
+    override fun toString() = "operator $operator"
 }
 class NumericLiteralToken(val number: Number, location: SourceLocationRange): Token(TokenType.NUMERIC_LITERAL, location) {
     override fun equals(other: Any?): Boolean {
@@ -65,5 +69,7 @@ class NumericLiteralToken(val number: Number, location: SourceLocationRange): To
     override fun hashCode(): Int {
         return number.hashCode()
     }
+
+    override fun toString() = "number"
 }
 
