@@ -39,7 +39,7 @@ open class Atom(val name: String) : Term {
 
     override fun toString(): String {
         val firstChar = name[0]
-        if (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s"))) {
+        if (!firstChar.isDigit() && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
             return "'$name'"
         }
         else {
