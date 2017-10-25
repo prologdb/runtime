@@ -5,8 +5,8 @@ import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
 object AnonymousVariable : Variable("_") {
-    override fun unify(rhs: Term, randomVariableScope: RandomVariableScope): Unification {
-        val randomVar = randomVariableScope.createNewRandomVariable()
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification {
+        val randomVar = randomVarsScope.createNewRandomVariable()
         val bucket = VariableBucket()
         bucket.instantiate(randomVar, rhs)
         return Unification(bucket)
