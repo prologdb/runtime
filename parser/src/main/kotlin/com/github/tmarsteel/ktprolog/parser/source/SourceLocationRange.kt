@@ -10,4 +10,13 @@ class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : 
             throw IllegalArgumentException("The start must be before the end.")
         }
     }
+
+    operator fun rangeTo(other: SourceLocation): SourceLocationRange {
+        if (other is SourceLocationRange) {
+            return SourceLocationRange(this, other.end)
+        }
+        else {
+            return SourceLocationRange(this, other)
+        }
+    }
 }
