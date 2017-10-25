@@ -11,3 +11,5 @@ class UnexpectedTokenError(val actual: Token, vararg val expected: String) : Rep
 class UnexpectedEOFError(vararg val expected: String): Reporting("Unexpected EOF, expecting ${expected.joinToString(", ")}") {
     constructor(vararg expected: Enum<*>) : this(*expected.map { it.name }.toTypedArray())
 }
+
+class SemanticError(message: String): Reporting(message)
