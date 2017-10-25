@@ -16,7 +16,8 @@ enum class Operator(val text: String) {
     FULL_STOP("."),
     SEMICOLON(";"),
     COMMA(","),
-    HEAD_QUERY_SEPARATOR(":-")
+    HEAD_QUERY_SEPARATOR(":-"),
+    HEAD_TAIL_SEPARATOR("|")
 }
 
 val DECIMAL_SEPARATOR: Char = '.'
