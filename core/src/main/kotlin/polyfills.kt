@@ -1,4 +1,4 @@
-fun Array<*>?.sensibleHashCode(): Int {
+internal fun Array<*>?.sensibleHashCode(): Int {
     if (this == null)
         return 0
 
