@@ -24,7 +24,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_OPEN
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_OPEN
             next.location.start.line shouldEqual 1
             next.location.start.column shouldEqual 10
             next.location.end.line shouldEqual 1
@@ -40,7 +40,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_CLOSE
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_CLOSE
             next.location.start.line shouldEqual 1
             next.location.start.column shouldEqual 14
             next.location.end.line shouldEqual 1
@@ -66,7 +66,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_OPEN
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_OPEN
             next.location.start.line shouldEqual 2
             next.location.start.column shouldEqual 22
             next.location.end.line shouldEqual 2
@@ -98,7 +98,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_CLOSE
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_CLOSE
             next.location.start.line shouldEqual 2
             next.location.start.column shouldEqual 33
             next.location.end.line shouldEqual 2
@@ -124,7 +124,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_OPEN
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_OPEN
             next.location.start.line shouldEqual 3
             next.location.start.column shouldEqual 30
             next.location.end.line shouldEqual 3
@@ -156,7 +156,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_CLOSE
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_CLOSE
             next.location.start.line shouldEqual 3
             next.location.start.column shouldEqual 38
             next.location.end.line shouldEqual 3
@@ -180,7 +180,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_OPEN
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_OPEN
             next.location.start.line shouldEqual 3
             next.location.start.column shouldEqual 48
             next.location.end.line shouldEqual 3
@@ -196,7 +196,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_CLOSE
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_CLOSE
             next.location.start.line shouldEqual 3
             next.location.start.column shouldEqual 53
             next.location.end.line shouldEqual 3
@@ -220,7 +220,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_OPEN
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_OPEN
             next.location.start.line shouldEqual 3
             next.location.start.column shouldEqual 61
             next.location.end.line shouldEqual 3
@@ -236,7 +236,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is OperatorToken)
-            (next as OperatorToken).operator shouldEqual Operator.PARANT_CLOSE
+            (next as OperatorToken).operator shouldEqual Operator.PARENT_CLOSE
             next.location.start.line shouldEqual 3
             next.location.start.column shouldEqual 63
             next.location.end.line shouldEqual 3

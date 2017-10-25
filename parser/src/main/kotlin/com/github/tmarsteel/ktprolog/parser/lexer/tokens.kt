@@ -9,8 +9,8 @@ enum class TokenType {
 }
 
 enum class Operator(val text: String) {
-    PARANT_OPEN("("),
-    PARANT_CLOSE(")"),
+    PARENT_OPEN("("),
+    PARENT_CLOSE(")"),
     FULL_STOP("."),
     SEMICOLON(";"),
     COMMA(","),
