@@ -11,6 +11,8 @@ enum class TokenType {
 enum class Operator(val text: String) {
     PARENT_OPEN("("),
     PARENT_CLOSE(")"),
+    BRACKET_OPEN("["),
+    BRACKET_CLOSE("]"),
     FULL_STOP("."),
     SEMICOLON(";"),
     COMMA(","),
