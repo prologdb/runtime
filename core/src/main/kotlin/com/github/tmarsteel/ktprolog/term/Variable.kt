@@ -5,7 +5,7 @@ import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
 open class Variable(val name: String) : Term {
-    override fun unify(rhs: Term, randomVariableScope: RandomVariableScope): Unification {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification {
         if (rhs is Variable && rhs == this) return Unification.TRUE
 
         val vars = VariableBucket()

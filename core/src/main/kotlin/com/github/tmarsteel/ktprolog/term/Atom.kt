@@ -5,7 +5,7 @@ import com.github.tmarsteel.ktprolog.RandomVariableScope
 
 open class Atom(val name: String) : Term {
 
-    override fun unify(rhs: Term, randomVariableScope: RandomVariableScope): Unification? {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs == this) {
             return Unification.TRUE
         }
