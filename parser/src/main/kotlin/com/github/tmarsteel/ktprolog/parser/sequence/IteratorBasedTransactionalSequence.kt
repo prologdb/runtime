@@ -29,7 +29,15 @@ open class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<
         if (buffer.isEmpty() || currentPosition >= buffer.size) {
             val next = iterator.next()
 
-            if (markers.isNotEmpty()) {
+            if (markers.isEmpty()) {
+                // reading past the buffer and there is no way that we need to roll back into the buffer again
+                // => the buffer is no longer needed
+                buffer.clear()
+                currentPosition = 0
+            }
+            else
+            {
+                // there is a marker
                 buffer.add(next)
                 currentPosition++
             }
