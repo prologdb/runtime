@@ -9,3 +9,13 @@ internal fun Array<*>?.sensibleHashCode(): Int {
 
     return result
 }
+
+/* JS polyfills: on the JVM, the native methods will win in the overload; on JS, those will grip */
+
+internal fun Char.isDigit(): Boolean {
+    return this in '0'..'9'
+}
+
+internal fun Char.isUpperCase(): Boolean {
+    return this.toUpperCase() == this
+}
