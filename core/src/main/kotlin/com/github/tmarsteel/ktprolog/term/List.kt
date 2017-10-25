@@ -5,7 +5,7 @@ import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 import com.github.tmarsteel.ktprolog.unification.VariableDiscrepancyException
 
-class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
+open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
 
     val elements: kotlin.collections.List<Term>
     val tail: Variable?

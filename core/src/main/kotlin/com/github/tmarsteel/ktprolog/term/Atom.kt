@@ -3,7 +3,7 @@ package com.github.tmarsteel.ktprolog.term
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 
-class Atom(val name: String) : Term {
+open class Atom(val name: String) : Term {
 
     override fun unify(rhs: Term, randomVariableScope: RandomVariableScope): Unification? {
         if (rhs == this) {
