@@ -8,6 +8,8 @@ class LexerIteratorTest : FreeSpec() {init{
         val source = """predicate(arg).
             predicate(arg1, arg2).
             ruleHeadPredicate(arg1, X) :- goal1(arg1), goal2(X).
+
+
         """
         val lexer = LexerIterator(SourceUnit("testcode"), source.asIterable().iterator())
 
