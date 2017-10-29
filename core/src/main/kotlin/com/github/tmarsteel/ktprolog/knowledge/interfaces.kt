@@ -1,13 +1,15 @@
 package com.github.tmarsteel.ktprolog.knowledge
 
+import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.query.Query
 import com.github.tmarsteel.ktprolog.term.Predicate
 
 interface KnowledgeBase {
 
-    fun fulfill(predicate: Predicate): Sequence<Unification>
-    fun fulfill(query: Query): Sequence<Unification> = query.findProofWithin(this)
+    fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope = RandomVariableScope()): Sequence<Unification>
+
+    fun fulfill(query: Query, randomVarsScope: RandomVariableScope = RandomVariableScope()): Sequence<Unification> = query.findProofWithin(kb = this, randomVarsScope = randomVarsScope)
 
     companion object {
         val EMPTY = EmptyKnowledgeBase()
@@ -20,5 +22,5 @@ interface MutableKnowledgeBase : KnowledgeBase {
 }
 
 class EmptyKnowledgeBase : KnowledgeBase {
-    override fun fulfill(predicate: Predicate) = Unification.NONE
+    override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope) = Unification.NONE
 }

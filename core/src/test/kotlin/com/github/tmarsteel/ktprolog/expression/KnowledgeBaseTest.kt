@@ -9,6 +9,7 @@ import com.github.tmarsteel.ktprolog.term.List
 import com.github.tmarsteel.ktprolog.knowledge.DefaultKnowledgeBase
 import com.github.tmarsteel.ktprolog.RandomVariable
 import com.github.tmarsteel.ktprolog.knowledge.Rule
+import com.github.tmarsteel.ktprolog.query.PredicateQuery
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.PredicateBuilder
 import io.kotlintest.specs.FreeSpec
@@ -134,7 +135,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        kb.defineRule(Rule(f(X, Y), listOf(g(X, Y))))
+        kb.defineRule(Rule(f(X, Y), PredicateQuery(g(X, Y))))
         kb.assert(g(X, X))
 
         kb shouldProve f(a, V) suchThat {
@@ -166,7 +167,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         kb.assert(append(List(emptyList()),L,L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.defineRule(Rule(append(List(listOf(H),T),L2,List(listOf(H),L3)), listOf(append(T,L2,L3))))
+        kb.defineRule(Rule(append(List(listOf(H),T),L2,List(listOf(H),L3)), PredicateQuery(append(T,L2,L3))))
 
         kb shouldProve append(List(listOf(a, b)),List(listOf(c,d)),R) suchThat {
             // itHasExactlyOneSolution()

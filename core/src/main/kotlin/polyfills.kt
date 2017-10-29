@@ -10,6 +10,8 @@ internal fun Array<*>?.sensibleHashCode(): Int {
     return result
 }
 
+internal inline fun <T, reified R>Array<T>.mapToArray(mapper: (T) -> R): Array<out R> = Array(this.size, { index -> mapper(this[index]) })
+
 /* JS polyfills: on the JVM, the native methods will win in the overload; on JS, those will grip */
 
 internal fun Char.isDigit(): Boolean {

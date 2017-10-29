@@ -10,16 +10,14 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
     private val predicates: MutableSet<Predicate> = HashSet()
     private val rules: MutableSet<Rule> = mutableSetOf()
 
-    override fun fulfill(predicate: Predicate): Sequence<Unification> {
-        var randomVarScope = RandomVariableScope()
-
+    override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         // replace all variables in the term with random ones to prevent name collisions
         val termMappings = VariableMapping()
-        val replaced = randomVarScope.withRandomVariables(predicate, termMappings)
+        val replaced = randomVarsScope.withRandomVariables(predicate, termMappings)
 
         return buildSequence<Unification> {
             for (knownPredicate in predicates) {
-                val knownPredicateReplaced = randomVarScope.withRandomVariables(knownPredicate, VariableMapping())
+                val knownPredicateReplaced = randomVarsScope.withRandomVariables(knownPredicate, VariableMapping())
                 val unification = knownPredicateReplaced.unify(replaced)
                 if (unification != null) {
                     val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
@@ -29,7 +27,7 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
             }
 
             for (knownRule in rules) {
-                yieldAll(knownRule.fulfill(predicate, this@DefaultKnowledgeBase, randomVarScope))
+                yieldAll(knownRule.fulfill(predicate, this@DefaultKnowledgeBase, randomVarsScope))
             }
         }
     }
