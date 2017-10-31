@@ -11,4 +11,6 @@ open class SourceLocation (
 
         /** The column number, starting with 1 */
         val column: Int
-)
+) {
+        override fun toString() = "$unit:$line, column $column"
+}
