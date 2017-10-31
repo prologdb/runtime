@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.lexer
 
+import com.github.tmarsteel.ktprolog.parser.parser.InternalParserError
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 
 enum class TokenType {
@@ -19,6 +20,16 @@ enum class Operator(val text: String) {
     HEAD_QUERY_SEPARATOR(":-"),
     HEAD_TAIL_SEPARATOR("|")
 }
+
+/**
+ * The precedence of the operator in expressions; less means higher precedence
+ */
+val OperatorToken.precedence: Int
+    get() = when(operator) {
+        Operator.COMMA     -> 50
+        Operator.SEMICOLON -> 100
+        else      -> throw InternalParserError("Precedence is not defined for operator $operator")
+    }
 
 val DECIMAL_SEPARATOR: Char = '.'
 

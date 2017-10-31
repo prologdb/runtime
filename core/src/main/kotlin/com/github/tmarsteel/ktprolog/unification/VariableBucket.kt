@@ -54,7 +54,7 @@ class VariableBucket private constructor(
                 copy.variableMap[variableName] = othersValue
             }
             else {
-                val thisValue = copy.variableMap[variableName]!!
+                val thisValue = copy.variableMap[variableName]
                 if (thisValue != null && othersValue != null) {
                     if (thisValue != othersValue) {
                         // same variable instantiated to different value
