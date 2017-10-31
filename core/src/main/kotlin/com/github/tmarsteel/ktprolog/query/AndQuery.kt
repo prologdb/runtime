@@ -64,7 +64,7 @@ open class AndQuery(val goals: Array<out Query>) : Query {
                 yield(Unification(goalVars))
             }
             else {
-                fulfillAllGoals(goals.subList(1, goals.lastIndex), kb, goalVars)
+                fulfillAllGoals(goals.subList(1, goals.size), kb, goalVars)
             }
         }
     }
