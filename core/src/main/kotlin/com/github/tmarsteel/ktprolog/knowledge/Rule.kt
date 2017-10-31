@@ -23,7 +23,9 @@ class Rule(val head: Predicate, val query: Query) {
             return Unification.NONE
         }
 
-        val randomQuery = query.withRandomVariables(randomVariableScope, ruleRandomVarsMapping)
+        val randomQuery = query
+            .withRandomVariables(randomVariableScope, ruleRandomVarsMapping)
+            .substituteVariables(predicateAndHeadUnification.variableValues)
 
         return randomQuery.findProofWithin(kb, VariableBucket(), randomVariableScope)
             .map { unification ->
@@ -35,7 +37,7 @@ class Rule(val head: Predicate, val query: Query) {
                         val value = predicateAndHeadUnification.variableValues[randomPredicateVariable].substituteVariables(unification.variableValues.asSubstitutionMapper())
                         solutionVars.instantiate(randomPredicateVariable, value)
                     }
-                    else {
+                    else if (unification.variableValues.isInstantiated(randomPredicateVariable)) {
                         val originalVar = predicateRandomVarsMapping.getOriginal(randomPredicateVariable)!!
                         solutionVars.instantiate(originalVar, unification.variableValues[randomPredicateVariable])
                     }
