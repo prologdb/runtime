@@ -169,6 +169,15 @@ class PrologParserTest : FreeSpec() {init{
     }
 
     "list" - {
+        "[]" {
+            val result = parser.parseList(tokensOf("[]"))
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedList)
+            result.item!!.elements.size shouldEqual 0
+            result.item!!.tail shouldBe null
+        }
+
         "[1,2]" {
             val result = parser.parseList(tokensOf("[1,2]"))
             result.certainty shouldEqual MATCHED
