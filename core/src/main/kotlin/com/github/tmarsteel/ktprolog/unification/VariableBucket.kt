@@ -100,7 +100,10 @@ class VariableBucket private constructor(
         val newBucket = VariableBucket()
         for ((variable, value) in values) {
             val resolved = resolve(variable)
-            if (value != null) newBucket.instantiate(resolved, value)
+            if (value != null) {
+                val resolvedValue = value.substituteVariables(::resolve)
+                newBucket.instantiate(resolved, resolvedValue)
+            }
         }
 
         return newBucket
