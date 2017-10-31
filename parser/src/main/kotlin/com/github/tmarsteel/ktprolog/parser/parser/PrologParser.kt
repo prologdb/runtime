@@ -34,18 +34,19 @@ class PrologParser {
                 }
             }
 
-            if (!tokens.hasNext()) {
-                reportings += UnexpectedEOFError(FULL_STOP)
-            }
-
-            tokens.mark()
-            val fullStopToken = tokens.next()
-            if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
-                tokens.commit()
+            if (tokens.hasNext()) {
+                tokens.mark()
+                val fullStopToken = tokens.next()
+                if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
+                    tokens.commit()
+                }
+                else {
+                    reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
+                    tokens.rollback()
+                }
             }
             else {
-                reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
-                tokens.rollback()
+                reportings += UnexpectedEOFError(FULL_STOP)
             }
         }
 
@@ -338,7 +339,7 @@ class PrologParser {
                             }
                             else {
                                 tail = null
-                                reportings += SemanticError("List tails must be lists or variables, ${tailResult.item} given")
+                                reportings += SemanticError("List tails must be lists or variables, ${tailResult.item} given", closingBracketOrSeparatorToken.location)
                             }
                         }
                         else {
@@ -391,7 +392,28 @@ class PrologParser {
                         MATCHED,
                         reportings
                 )
-            } else TODO("..")
+            }
+            else
+            {
+                tokens.takeWhile({ it !is OperatorToken || it.operator != BRACKET_CLOSE })
+                tokens.mark()
+                val token = tokens.next()
+                if (token !is OperatorToken || token.operator != BRACKET_CLOSE) {
+                    tokens.rollback()
+                    reportings.add(UnexpectedTokenError(token, BRACKET_CLOSE))
+                }
+                else {
+                    tokens.commit()
+                }
+
+                val location = firstToken.location .. token.location
+
+                return ParseResult(
+                    ParsedList(emptyList(), null, location),
+                    MATCHED,
+                    reportings
+                )
+            }
         }
         else {
             tokens.rollback()
