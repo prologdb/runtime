@@ -33,6 +33,20 @@ class PrologParser {
                     tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
                 }
             }
+
+            if (!tokens.hasNext()) {
+                reportings += UnexpectedEOFError(FULL_STOP)
+            }
+
+            tokens.mark()
+            val fullStopToken = tokens.next()
+            if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
+                tokens.commit()
+            }
+            else {
+                reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
+                tokens.rollback()
+            }
         }
 
         return ParseResult(
@@ -117,7 +131,7 @@ class PrologParser {
         }
     }
 
-    fun parseQuery(tokens: TransactionalSequence<Token>): ParseResult<ParsedQuery> {
+    fun parseQuery(tokens: TransactionalSequence<Token>, allowedEndingPredicate: (Token) -> Boolean = { it is OperatorToken && it.operator == FULL_STOP}): ParseResult<ParsedQuery> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("query")))
 
         val firstElementResult = parseQueryElement(tokens)
@@ -137,14 +151,12 @@ class PrologParser {
             if (operatorToken !is OperatorToken || (operatorToken.operator != COMMA && operatorToken.operator != SEMICOLON)) {
                 tokens.rollback()
 
-                if (operatorToken !is OperatorToken || operatorToken.operator != FULL_STOP) {
+                if (!allowedEndingPredicate(operatorToken)) {
                     reportings.add(UnexpectedTokenError(operatorToken, COMMA, SEMICOLON))
                 }
 
                 break
             }
-
-            elementsAndOperators.add(operatorToken)
 
             if (!tokens.hasNext()) {
                 tokens.rollback()
@@ -156,6 +168,7 @@ class PrologParser {
             tokens.commit()
             reportings.addAll(queryElementResult.reportings)
             if (queryElementResult.isSuccess) {
+                elementsAndOperators.add(operatorToken)
                 elementsAndOperators.add(queryElementResult.item!!)
             }
         }
@@ -230,11 +243,11 @@ class PrologParser {
         var token = tokens.next()
         if (token is OperatorToken && token.operator == PARENT_OPEN) {
             // sub-query
-            val subQueryResult = parseQuery(tokens)
+            val subQueryResult = parseQuery(tokens, { it is OperatorToken && it.operator == PARENT_CLOSE })
             val reportings = mutableSetOf<Reporting>()
 
             token = tokens.next()
-            if (token is OperatorToken && token.operator == PARENT_CLOSE) {
+            if (token !is OperatorToken || token.operator != PARENT_CLOSE) {
                 reportings.add(UnexpectedTokenError(token, PARENT_CLOSE))
                 tokens.takeWhile({ it is OperatorToken && it.operator != PARENT_CLOSE }, 1, 0)
             }

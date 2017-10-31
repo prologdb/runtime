@@ -266,6 +266,27 @@ class PrologParserTest : FreeSpec() {init{
             result.reportings should beEmpty()
             assert(result.item is ParsedOrQuery)
         }
+
+        "parenthesised 1" {
+            val result = parser.parseQuery(tokensOf("(a(a))"))
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedPredicateQuery)
+        }
+
+        "parenthesised 2" {
+            val result = parser.parseQuery(tokensOf("(a(a), b(b))"))
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedAndQuery)
+        }
+
+        "parenthesised 3" {
+            val result = parser.parseQuery(tokensOf("(a(a), b(b));(c(c), d(d))"))
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedOrQuery)
+        }
     }
 
     "rule" - {
