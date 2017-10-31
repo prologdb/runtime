@@ -68,7 +68,7 @@ open class Predicate(val name: String, val arguments: Array<out Term>) : Term
     }
 
     override fun toString(): String {
-        return name + "(" + arguments.joinToString(",") + ")"
+        return name + "(" + arguments.joinToString(", ") + ")"
     }
 
     override fun equals(other: Any?): Boolean {
