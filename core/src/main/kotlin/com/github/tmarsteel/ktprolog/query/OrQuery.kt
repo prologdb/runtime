@@ -17,14 +17,18 @@ open class OrQuery(val goals: Array<out Query>) : Query {
         }
     }
 
+    override fun toString(): String {
+        return goals.mapToArray { it.toString() }.joinToString("; ")
+    }
+
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
-        return AndQuery(
+        return OrQuery(
             goals.mapToArray { it.withRandomVariables(randomVarsScope, mapping) }
         )
     }
 
     override fun substituteVariables(variableValues: VariableBucket): Query {
-        return AndQuery(
+        return OrQuery(
             goals.mapToArray { it.substituteVariables(variableValues) }
         )
     }
