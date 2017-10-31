@@ -9,7 +9,7 @@ import com.github.tmarsteel.ktprolog.unification.VariableBucket
 import kotlin.coroutines.experimental.SequenceBuilder
 import kotlin.coroutines.experimental.buildSequence
 
-class Rule(val head: Predicate, val query: Query) {
+open class Rule(val head: Predicate, val query: Query) {
     fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
         val predicateRandomVarsMapping = VariableMapping()
         val randomPredicate = randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
