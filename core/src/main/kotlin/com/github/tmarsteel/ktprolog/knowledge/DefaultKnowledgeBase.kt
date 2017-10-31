@@ -7,8 +7,7 @@ import com.github.tmarsteel.ktprolog.unification.Unification
 import kotlin.coroutines.experimental.buildSequence
 
 class DefaultKnowledgeBase : MutableKnowledgeBase {
-    private val predicates: MutableSet<Predicate> = HashSet()
-    private val rules: MutableSet<Rule> = mutableSetOf()
+    private val elements: MutableList<Any> = mutableListOf()
 
     override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         // replace all variables in the term with random ones to prevent name collisions
@@ -16,27 +15,28 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
         val replaced = randomVarsScope.withRandomVariables(predicate, termMappings)
 
         return buildSequence<Unification> {
-            for (knownPredicate in predicates) {
-                val knownPredicateReplaced = randomVarsScope.withRandomVariables(knownPredicate, VariableMapping())
-                val unification = knownPredicateReplaced.unify(replaced)
-                if (unification != null) {
-                    val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
-                    resolvedBucket.retainAll(predicate.variables)
-                    yield(Unification(resolvedBucket))
+            for (element in elements) {
+                if (element is Predicate) {
+                    val knownPredicateReplaced = randomVarsScope.withRandomVariables(element, VariableMapping())
+                    val unification = knownPredicateReplaced.unify(replaced)
+                    if (unification != null) {
+                        val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
+                        resolvedBucket.retainAll(predicate.variables)
+                        yield(Unification(resolvedBucket))
+                    }
                 }
-            }
-
-            for (knownRule in rules) {
-                yieldAll(knownRule.fulfill(predicate, this@DefaultKnowledgeBase, randomVarsScope))
+                else if (element is Rule) {
+                    yieldAll(element.fulfill(predicate, this@DefaultKnowledgeBase, randomVarsScope))
+                }
             }
         }
     }
 
     override fun assert(predicate: Predicate) {
-        predicates.add(predicate)
+        elements.add(predicate)
     }
 
     override fun defineRule(rule: Rule) {
-        this.rules.add(rule)
+        elements.add(rule)
     }
 }
