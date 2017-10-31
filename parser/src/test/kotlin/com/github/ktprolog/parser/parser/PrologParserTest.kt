@@ -267,4 +267,13 @@ class PrologParserTest : FreeSpec() {init{
             assert(result.item is ParsedOrQuery)
         }
     }
+
+    "rule" - {
+        "f(X, a) :- g(X), f(X)." {
+            val result = parser.parseRule(tokensOf("f(X, a) :- g(X), f(X)."))
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedRule)
+        }
+    }
 }}

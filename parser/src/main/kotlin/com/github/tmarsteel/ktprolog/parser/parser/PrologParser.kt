@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
+import com.github.tmarsteel.ktprolog.knowledge.MutableKnowledgeBase
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
@@ -8,8 +9,116 @@ import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.*
 import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
 
 class PrologParser {
+    fun parseDefinitionsInto(tokens: TransactionalSequence<Token>, kb: MutableKnowledgeBase): ParseResult<Unit> {
+        val reportings = mutableSetOf<Reporting>()
+
+        while (tokens.hasNext()) {
+            val ruleResult = parseRule(tokens)
+            if (ruleResult.isSuccess) {
+                kb.defineRule(ruleResult.item!!)
+                reportings += ruleResult.reportings
+            }
+            else {
+                val factResult = parsePredicate(tokens)
+                if (factResult.isSuccess) {
+                    kb.assert(factResult.item!!)
+                    reportings += factResult.reportings
+                }
+                else {
+                    tokens.mark()
+                    val erroneousToken = tokens.next()
+                    tokens.rollback()
+
+                    reportings += UnexpectedTokenError(erroneousToken, "fact or rule")
+                    tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
+                }
+            }
+        }
+
+        return ParseResult(
+            Unit,
+            MATCHED,
+            reportings
+        )
+    }
+
+    fun parseRule(tokens: TransactionalSequence<Token>): ParseResult<ParsedRule> {
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("rule")))
+
+        tokens.mark()
+
+        val headResult = parsePredicate(tokens)
+        if (!headResult.isSuccess) {
+            tokens.rollback()
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                headResult.reportings
+            )
+        }
+
+        if (!tokens.hasNext()) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(HEAD_QUERY_SEPARATOR)))
+        }
+
+        var token = tokens.next()
+        if (token !is OperatorToken || token.operator != HEAD_QUERY_SEPARATOR) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(token, HEAD_QUERY_SEPARATOR)))
+        }
+
+        tokens.commit()
+
+        val queryResult = parseQuery(tokens)
+        if (queryResult.isSuccess) {
+            val ruleLocation = headResult.item!!.location .. queryResult.item!!.location
+
+            var unexpectedEndReporting: Reporting? = null
+            if (tokens.hasNext()) {
+                tokens.mark()
+                token = tokens.next()
+                if (token !is OperatorToken || token.operator != FULL_STOP) {
+                    tokens.rollback()
+                    unexpectedEndReporting = UnexpectedTokenError(token, FULL_STOP)
+                }
+                else {
+                    tokens.commit()
+                }
+            }
+            else {
+                unexpectedEndReporting = UnexpectedEOFError(FULL_STOP)
+            }
+
+            val reportings = if(unexpectedEndReporting == null) {
+                headResult.reportings + queryResult.reportings
+            } else {
+                headResult.reportings + queryResult.reportings + unexpectedEndReporting
+            }
+
+            return ParseResult(
+                ParsedRule(headResult.item, queryResult.item, ruleLocation),
+                MATCHED,
+                reportings
+            )
+        }
+        else {
+            tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
+
+            tokens.mark()
+            val ruleLocation = headResult.item!!.location .. tokens.next().location
+            tokens.rollback()
+
+            return ParseResult(
+                ParsedRule(headResult.item, EmptyQuery(ruleLocation), ruleLocation),
+                MATCHED,
+                headResult.reportings + queryResult.reportings
+            )
+        }
+    }
+
     fun parseQuery(tokens: TransactionalSequence<Token>): ParseResult<ParsedQuery> {
-        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("query")))
 
         val firstElementResult = parseQueryElement(tokens)
         if (!firstElementResult.isSuccess) {
@@ -27,7 +136,11 @@ class PrologParser {
             val operatorToken = tokens.next()
             if (operatorToken !is OperatorToken || (operatorToken.operator != COMMA && operatorToken.operator != SEMICOLON)) {
                 tokens.rollback()
-                reportings.add(UnexpectedTokenError(operatorToken, COMMA, SEMICOLON))
+
+                if (operatorToken !is OperatorToken || operatorToken.operator != FULL_STOP) {
+                    reportings.add(UnexpectedTokenError(operatorToken, COMMA, SEMICOLON))
+                }
+
                 break
             }
 
@@ -110,7 +223,7 @@ class PrologParser {
     }
 
     fun parseQueryElement(tokens: TransactionalSequence<Token>): ParseResult<ParsedQuery> {
-        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("query element")))
 
         tokens.mark()
 

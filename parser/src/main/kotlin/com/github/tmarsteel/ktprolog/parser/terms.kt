@@ -1,5 +1,9 @@
 package com.github.tmarsteel.ktprolog.parser
 
+import com.github.tmarsteel.ktprolog.RandomVariableScope
+import com.github.tmarsteel.ktprolog.VariableMapping
+import com.github.tmarsteel.ktprolog.knowledge.KnowledgeBase
+import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 import com.github.tmarsteel.ktprolog.query.AndQuery
 import com.github.tmarsteel.ktprolog.query.OrQuery
@@ -9,6 +13,8 @@ import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Term
 import com.github.tmarsteel.ktprolog.term.Variable
+import com.github.tmarsteel.ktprolog.unification.Unification
+import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
 interface ParsedTerm : Term {
     val location: SourceLocationRange
@@ -29,3 +35,18 @@ class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicat
 
 class ParsedAndQuery(goals: Array<out ParsedQuery>, override val location: SourceLocationRange) : AndQuery(goals), ParsedQuery
 class ParsedOrQuery(goals: Array<out ParsedQuery>, override val location: SourceLocationRange) : OrQuery(goals), ParsedQuery
+class EmptyQuery(override val location: SourceLocationRange): ParsedQuery {
+    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): Sequence<Unification> {
+        return emptySequence()
+    }
+
+    override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
+        return this
+    }
+
+    override fun substituteVariables(variableValues: VariableBucket): Query {
+        return this
+    }
+}
+
+class ParsedRule(head: ParsedPredicate, query: ParsedQuery, val location: SourceLocationRange): Rule(head, query)
