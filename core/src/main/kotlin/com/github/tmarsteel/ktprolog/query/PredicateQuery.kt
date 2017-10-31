@@ -7,7 +7,7 @@ import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
-class PredicateQuery(val predicate: Predicate) : Query {
+open class PredicateQuery(val predicate: Predicate) : Query {
     override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         val substitutedPredicate = predicate.substituteVariables(initialVariables.asSubstitutionMapper())
 

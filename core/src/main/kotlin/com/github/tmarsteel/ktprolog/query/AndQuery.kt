@@ -9,7 +9,7 @@ import mapToArray
 import kotlin.coroutines.experimental.SequenceBuilder
 import kotlin.coroutines.experimental.buildSequence
 
-class AndQuery(val goals: Array<out Query>) : Query {
+open class AndQuery(val goals: Array<out Query>) : Query {
     override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         val substitutedGoals = goals
             .map { it.substituteVariables(initialVariables) }

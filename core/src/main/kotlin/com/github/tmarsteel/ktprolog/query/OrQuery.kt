@@ -8,7 +8,7 @@ import com.github.tmarsteel.ktprolog.unification.VariableBucket
 import mapToArray
 import kotlin.coroutines.experimental.buildSequence
 
-class OrQuery(val goals: Array<out Query>) : Query {
+open class OrQuery(val goals: Array<out Query>) : Query {
     override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         return buildSequence {
             for (goal in goals) {
