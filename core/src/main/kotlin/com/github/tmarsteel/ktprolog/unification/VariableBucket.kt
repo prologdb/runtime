@@ -13,7 +13,8 @@ class VariableBucket private constructor(
 ) {
     constructor() : this(mutableMapOf<Variable, Term?>())
 
-    val isEmpty = variableMap.isEmpty()
+    val isEmpty
+        get() = variableMap.isEmpty()
 
     private val substitutionMapper: (Variable) -> Term = { variable ->
         if (isInstantiated(variable) && this[variable] != variable) {
