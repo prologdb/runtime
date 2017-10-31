@@ -125,6 +125,23 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
     }
 
+    "g(X, X). ?- g(A, B)" {
+        val kb = DefaultKnowledgeBase()
+
+        val g = PredicateBuilder("g")
+        val X = Variable("X")
+        val A = Variable("A")
+        val B = Variable("B")
+        kb.assert(g(X, X))
+
+        kb shouldProve g(A, B) suchThat {
+            itHasExactlyOneSolution()
+            itHasASolutionSuchThat("A = B") {
+                it.variableValues[A] == B
+            }
+        }
+    }
+
     "g(X, X). f(X, Y) :- g(X, Y). ?- f(a, V)" {
         val kb = DefaultKnowledgeBase()
 
