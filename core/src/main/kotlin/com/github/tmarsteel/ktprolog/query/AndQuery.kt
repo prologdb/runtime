@@ -15,7 +15,7 @@ open class AndQuery(val goals: Array<out Query>) : Query {
             .map { it.substituteVariables(initialVariables) }
 
         return buildSequence {
-            fulfillAllGoals(substitutedGoals, kb, initialVariables.copy())
+            fulfillAllGoals(substitutedGoals, kb, randomVarsScope, initialVariables.copy())
         }
     }
 
@@ -36,11 +36,12 @@ open class AndQuery(val goals: Array<out Query>) : Query {
     }
 
     private suspend fun SequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, kb: KnowledgeBase,
+                                                                     randomVarsScope: RandomVariableScope,
                                                                      vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
 
         goalUnifications@
-        for (goalUnification in kb.fulfill(goal)) {
+        for (goalUnification in kb.fulfill(goal, randomVarsScope)) {
             val goalVars = vars.copy()
             for ((variable, value) in goalUnification.variableValues.values) {
                 if (value != null) {
@@ -64,7 +65,7 @@ open class AndQuery(val goals: Array<out Query>) : Query {
                 yield(Unification(goalVars))
             }
             else {
-                fulfillAllGoals(goals.subList(1, goals.size), kb, goalVars)
+                fulfillAllGoals(goals.subList(1, goals.size), kb, randomVarsScope, goalVars)
             }
         }
     }
