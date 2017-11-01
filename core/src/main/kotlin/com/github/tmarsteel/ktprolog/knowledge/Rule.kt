@@ -6,11 +6,9 @@ import com.github.tmarsteel.ktprolog.query.Query
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
-import kotlin.coroutines.experimental.SequenceBuilder
-import kotlin.coroutines.experimental.buildSequence
 
 open class Rule(val head: Predicate, val query: Query) {
-    fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+    open fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
         val predicateRandomVarsMapping = VariableMapping()
         val randomPredicate = randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
 
@@ -46,4 +44,6 @@ open class Rule(val head: Predicate, val query: Query) {
                 Unification(solutionVars.withVariablesResolvedFrom(predicateRandomVarsMapping))
             }
     }
+
+    override fun toString() = "$head :- $query"
 }
