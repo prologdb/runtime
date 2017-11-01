@@ -3,6 +3,7 @@ package com.github.tmarsteel.ktprolog.knowledge
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.term.Predicate
+import com.github.tmarsteel.ktprolog.term.Variable
 import com.github.tmarsteel.ktprolog.unification.Unification
 import kotlin.coroutines.experimental.buildSequence
 
@@ -38,5 +39,9 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
 
     override fun defineRule(rule: Rule) {
         elements.add(rule)
+    }
+
+    init {
+        assert(Predicate("=", arrayOf(Variable("X"), Variable("X"))))
     }
 }

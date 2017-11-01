@@ -12,41 +12,62 @@ class PrologParser {
     fun parseDefinitionsInto(tokens: TransactionalSequence<Token>, kb: MutableKnowledgeBase): ParseResult<Unit> {
         val reportings = mutableSetOf<Reporting>()
 
+        val parsers: List<(TransactionalSequence<Token>) -> ParseResult<*>> = listOf(
+            this::parseRule,
+            this::parsePredicate,
+            this::parsePredicateWithInfixNotation
+        )
+
         while (tokens.hasNext()) {
-            val ruleResult = parseRule(tokens)
-            if (ruleResult.isSuccess) {
-                kb.defineRule(ruleResult.item!!)
-                reportings += ruleResult.reportings
+            var chosenResult: ParseResult<*>? = null
+
+            for (parser in parsers) {
+                val parserResult = parser(tokens)
+                if (parserResult.certainty >= MATCHED) {
+                    chosenResult = parserResult
+                    break
+                }
             }
-            else {
-                val factResult = parsePredicate(tokens)
-                if (factResult.isSuccess) {
-                    kb.assert(factResult.item!!)
-                    reportings += factResult.reportings
+
+            if (chosenResult != null) {
+                if (chosenResult.item is ParsedPredicate) {
+                    kb.assert(chosenResult.item as ParsedPredicate)
+                }
+                else if (chosenResult.item is ParsedRule) {
+                    kb.defineRule(chosenResult.item as ParsedRule)
                 }
                 else {
+                    throw InternalParserError("Unsupported result: ${chosenResult.item}")
+                }
+
+                if (tokens.hasNext()) {
                     tokens.mark()
-                    val erroneousToken = tokens.next()
-                    tokens.rollback()
-
-                    reportings += UnexpectedTokenError(erroneousToken, "fact or rule")
-                    tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
-                }
-            }
-
-            if (tokens.hasNext()) {
-                tokens.mark()
-                val fullStopToken = tokens.next()
-                if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
-                    tokens.commit()
+                    val fullStopToken = tokens.next()
+                    if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
+                        tokens.commit()
+                    }
+                    else {
+                        reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
+                        tokens.rollback()
+                    }
                 }
                 else {
-                    reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
-                    tokens.rollback()
+                    reportings += UnexpectedEOFError(FULL_STOP)
                 }
             }
             else {
-                reportings += UnexpectedEOFError(FULL_STOP)
+                // none matched
+
+                if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+                tokens.mark()
+                val token = tokens.next()
+                tokens.rollback()
+
+                return ParseResult(
+                    null,
+                    NOT_RECOGNIZED,
+                    setOf(UnexpectedTokenError(token, "rule", "predicate"))
+                )
             }
         }
 
@@ -242,11 +263,23 @@ class PrologParser {
         {
             tokens.rollback()
 
-            val predicateResult = parsePredicate(tokens)
-            val predicateQuery = if (predicateResult.item != null) {
-                ParsedPredicateQuery(predicateResult.item)
-            } else {
-                null
+            val predicateQuery: ParsedPredicateQuery?
+            var predicateResult = parsePredicate(tokens)
+            if (predicateResult.certainty >= MATCHED) {
+                predicateQuery = if (predicateResult.item != null) {
+                    ParsedPredicateQuery(predicateResult.item!!)
+                } else {
+                    null
+                }
+            }
+            else
+            {
+                predicateResult = parsePredicateWithInfixNotation(tokens)
+                predicateQuery = if (predicateResult.item != null) {
+                    ParsedPredicateQuery(predicateResult.item!!)
+                } else {
+                    null
+                }
             }
 
             return ParseResult(
@@ -450,6 +483,51 @@ class PrologParser {
                     setOf(UnexpectedTokenError(token, IDENTIFIER, NUMERIC_LITERAL))
             )
         }
+    }
+
+    fun parsePredicateWithInfixNotation(tokens: TransactionalSequence<Token>): ParseResult<ParsedPredicate> {
+        tokens.mark()
+
+        val lhsResult = parseTerm(tokens)
+
+        if (!lhsResult.isSuccess) {
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                lhsResult.reportings
+            )
+        }
+
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+
+        val identifierToken = tokens.next()
+        if (identifierToken !is IdentifierToken) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(identifierToken, IDENTIFIER)))
+        }
+
+        val rhsResult = parseTerm(tokens)
+
+        if (!rhsResult.isSuccess) {
+            tokens.rollback()
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                rhsResult.reportings
+            )
+        }
+
+        tokens.commit()
+
+        return ParseResult(
+            ParsedPredicate(
+                identifierToken.textContent,
+                arrayOf(lhsResult.item!!, rhsResult.item!!),
+                lhsResult.item.location .. rhsResult.item.location
+            ),
+            MATCHED,
+            lhsResult.reportings + rhsResult.reportings
+        )
     }
 
     fun parsePredicate(tokens: TransactionalSequence<Token>): ParseResult<ParsedPredicate> {

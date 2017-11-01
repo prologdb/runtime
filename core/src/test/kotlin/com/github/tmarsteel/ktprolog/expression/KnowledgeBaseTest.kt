@@ -54,20 +54,6 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
     }
 
-    "temporary variables" {
-        val kb = DefaultKnowledgeBase()
-        val f = PredicateBuilder("f")
-        val a = Atom("a")
-        val b = Atom("b")
-        val c = Atom("c")
-        val X = Variable("X")
-        val Y = Variable("Y")
-        val Z = Variable("Z")
-        kb.assert(f(a, b))
-        kb.assert(f(c))
-
-    }
-
     "lines" {
         /**
          * vertical(line(point(X,Y),point(X,Z))).

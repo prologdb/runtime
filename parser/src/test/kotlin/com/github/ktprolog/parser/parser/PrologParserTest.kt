@@ -10,7 +10,10 @@ import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Variable
 import io.kotlintest.specs.FreeSpec
 
-class PrologParserTest : FreeSpec() {init{
+class PrologParserTest : FreeSpec() {
+    override val oneInstancePerTest = true
+
+    init{
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
@@ -166,6 +169,24 @@ class PrologParserTest : FreeSpec() {init{
             assert(followupToken is OperatorToken)
             (followupToken as OperatorToken).operator shouldEqual Operator.FULL_STOP
         }
+
+        "a predicate b" {
+            val tokens = tokensOf("a predicate b")
+            val result = parser.parsePredicateWithInfixNotation(tokens)
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 0
+
+            val predicate = result.item!!
+            predicate.name shouldEqual "predicate"
+            predicate.arguments.size shouldEqual 2
+        }
+
+        "a(a predicate b)" {
+            val tokens = tokensOf("a(a predicate b)")
+            val result = parser.parseTerm(tokens)
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 1
+        }
     }
 
     "list" - {
@@ -295,6 +316,20 @@ class PrologParserTest : FreeSpec() {init{
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedOrQuery)
+        }
+
+        "infix" {
+            val result = parser.parseQuery(tokensOf("X = a, f(x)"))
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedAndQuery)
+
+            val query = result.item!! as ParsedAndQuery
+            assert(query.goals[0] is ParsedPredicateQuery)
+            assert(query.goals[1] is ParsedPredicateQuery)
+
+            (query.goals[0] as ParsedPredicateQuery).predicate.name shouldEqual "="
+            (query.goals[0] as ParsedPredicateQuery).predicate.arguments.size shouldEqual 2
         }
     }
 
