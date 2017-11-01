@@ -498,7 +498,10 @@ class PrologParser {
             )
         }
 
-        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+        if (!tokens.hasNext()) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+        }
 
         val identifierToken = tokens.next()
         if (identifierToken !is IdentifierToken) {
