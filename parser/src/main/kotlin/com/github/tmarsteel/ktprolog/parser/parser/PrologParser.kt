@@ -89,32 +89,10 @@ class PrologParser {
         if (queryResult.isSuccess) {
             val ruleLocation = headResult.item!!.location .. queryResult.item!!.location
 
-            var unexpectedEndReporting: Reporting? = null
-            if (tokens.hasNext()) {
-                tokens.mark()
-                token = tokens.next()
-                if (token !is OperatorToken || token.operator != FULL_STOP) {
-                    tokens.rollback()
-                    unexpectedEndReporting = UnexpectedTokenError(token, FULL_STOP)
-                }
-                else {
-                    tokens.commit()
-                }
-            }
-            else {
-                unexpectedEndReporting = UnexpectedEOFError(FULL_STOP)
-            }
-
-            val reportings = if(unexpectedEndReporting == null) {
-                headResult.reportings + queryResult.reportings
-            } else {
-                headResult.reportings + queryResult.reportings + unexpectedEndReporting
-            }
-
             return ParseResult(
                 ParsedRule(headResult.item, queryResult.item, ruleLocation),
                 MATCHED,
-                reportings
+                headResult.reportings + queryResult.reportings
             )
         }
         else {
@@ -406,6 +384,8 @@ class PrologParser {
                     tokens.commit()
                 }
 
+                tokens.commit() // commit the initial mark()
+
                 val location = firstToken.location .. token.location
 
                 return ParseResult(
@@ -596,9 +576,8 @@ class PrologParser {
                 }
                 else {
                     hasTrailingComma = true
+                    tokens.commit()
                 }
-
-                tokens.commit()
             }
         } while (mostRecentResult.isSuccess)
 
