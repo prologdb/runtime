@@ -61,7 +61,7 @@ open class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<
             throw IllegalStateException("No marker to commit")
         }
 
-        markers.removeAt(markers.size - 1)
+        popMarker()
     }
 
     override fun rollback() {
@@ -70,6 +70,16 @@ open class IteratorBasedTransactionalSequence<T>(private val iterator: Iterator<
         }
 
         currentPosition = markers[markers.size - 1]
+        popMarker()
+    }
+
+    private fun popMarker() {
         markers.removeAt(markers.size - 1)
+
+        if (markers.isEmpty() && currentPosition == buffer.size) {
+            // buffer not needed anymore
+            buffer.clear()
+            currentPosition = 0
+        }
     }
 }
