@@ -2,6 +2,7 @@ package com.github.tmarsteel.ktprolog.knowledge
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
+import com.github.tmarsteel.ktprolog.query.PredicateQuery
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Variable
 import com.github.tmarsteel.ktprolog.unification.Unification
@@ -42,6 +43,19 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
     }
 
     init {
-        assert(Predicate("=", arrayOf(Variable("X"), Variable("X"))))
+        val A = Variable("A")
+        val B = Variable("B")
+        val X = Variable("X")
+
+        assert(Predicate("=", arrayOf(X, X)))
+        defineRule(NegationRule)
+        defineRule(Rule(
+            Predicate("\\==", arrayOf(A, B)),
+            PredicateQuery(
+                Predicate("not", arrayOf(
+                    Predicate("=", arrayOf(A, B))
+                ))
+            )
+        ))
     }
 }
