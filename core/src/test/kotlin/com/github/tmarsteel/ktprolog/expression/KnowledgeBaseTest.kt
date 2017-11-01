@@ -12,6 +12,7 @@ import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.query.PredicateQuery
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.PredicateBuilder
+import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 
 class KnowledgeBaseTest : FreeSpec() {init {
@@ -176,6 +177,30 @@ class KnowledgeBaseTest : FreeSpec() {init {
             // itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = [a,b,c,d]") {
                 it.variableValues[R] == List(listOf(a,b,c,d))
+            }
+        }
+    }
+
+    "retain values of random variables" {
+        val X = Variable("X")
+        val a = PredicateBuilder("a")
+        val H = Variable("H")
+        val T = Variable("T")
+
+        val u = Atom("u")
+        val v = Atom("v")
+
+        val kb = DefaultKnowledgeBase()
+        kb.assert(a(List(listOf(H), T), List(listOf(H), T)))
+
+        kb shouldProve a(X, List(listOf(u, v))) suchThat {
+            itHasExactlyOneSolution()
+            itHasASolutionSuchThat("X = [u,v]") {
+                val valX = it.variableValues[X] as List
+
+                valX.elements[0] == u
+                &&
+                valX.elements[1] == v
             }
         }
     }

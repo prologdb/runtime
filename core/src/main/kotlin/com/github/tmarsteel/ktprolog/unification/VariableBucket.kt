@@ -84,8 +84,21 @@ class VariableBucket private constructor(
      */
     fun retainAll(variables: Collection<Variable>) {
         val keysToRemove = variableMap.keys.filter { it !in variables }
+        val removedToSubstitute = mutableMapOf<Variable,Term>()
+
         for (key in keysToRemove) {
+            val value = variableMap[key]
+            if (value != null) {
+                removedToSubstitute[key] = value
+            }
+
             variableMap.remove(key)
+        }
+
+        for ((key, value) in variableMap) {
+            if (value != null) {
+                variableMap[key] = value.substituteVariables({ variable -> removedToSubstitute.getOrDefault(variable, variable) })
+            }
         }
     }
 
