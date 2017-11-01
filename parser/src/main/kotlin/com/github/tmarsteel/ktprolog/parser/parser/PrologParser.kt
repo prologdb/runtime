@@ -264,7 +264,7 @@ class PrologParser {
             tokens.rollback()
 
             val predicateQuery: ParsedPredicateQuery?
-            var predicateResult = parsePredicate(tokens)
+            var predicateResult = parsePredicateWithInfixNotation(tokens)
             if (predicateResult.certainty >= MATCHED) {
                 predicateQuery = if (predicateResult.item != null) {
                     ParsedPredicateQuery(predicateResult.item!!)
@@ -274,7 +274,7 @@ class PrologParser {
             }
             else
             {
-                predicateResult = parsePredicateWithInfixNotation(tokens)
+                predicateResult = parsePredicate(tokens)
                 predicateQuery = if (predicateResult.item != null) {
                     ParsedPredicateQuery(predicateResult.item!!)
                 } else {
