@@ -6,8 +6,6 @@ import com.github.tmarsteel.ktprolog.parser.lexer.LineEndingNormalizer
 import com.github.tmarsteel.ktprolog.parser.parser.PrologParser
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit
 
-class foo
-
 val kbAsString = """
 append([], [H|T], [H|T]).
 append([H|T], L, [H|TA]) :- append(T, L, TA).
