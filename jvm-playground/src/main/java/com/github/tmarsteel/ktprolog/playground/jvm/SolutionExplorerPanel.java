@@ -5,6 +5,7 @@ import kotlin.sequences.Sequence;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -13,11 +14,13 @@ public class SolutionExplorerPanel {
 
     private JPanel panel;
     private JPanel solutionsPanel;
+    private GridBagLayout solutionsPaneLayout;
     private JButton showNextBT;
     private JButton showAllRemainingBT;
 
     private Iterator<Unification> currentSolutions = null;
     private boolean currentSolutionsDepleated = true;
+    private int currentSolutionIndex = -1;
 
     public SolutionExplorerPanel() {
         initComponents();
@@ -39,18 +42,20 @@ public class SolutionExplorerPanel {
         actionsToolbar.add(Box.createRigidArea(new Dimension(10, 0)));
         actionsToolbar.add(showNextBT);
 
-        solutionsPanel = new JPanel();
-        solutionsPanel.setLayout(new BoxLayout(solutionsPanel, BoxLayout.Y_AXIS));
+        solutionsPaneLayout = new GridBagLayout();
+        solutionsPanel = new JPanel(solutionsPaneLayout);
         solutionsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         JScrollPane solutionScrollPane = new JScrollPane(solutionsPanel);
         solutionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         solutionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         solutionScrollPane.setBorder(null);
+        solutionScrollPane.getVerticalScrollBar().setUnitIncrement(22);
 
-        panel = new JPanel(new BorderLayout());
-        panel.add(actionsToolbar, BorderLayout.NORTH);
-        panel.add(solutionScrollPane, BorderLayout.CENTER);
+        panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(actionsToolbar);
+        panel.add(solutionScrollPane);
     }
 
     private JComponent createTrueComponent() {
@@ -58,6 +63,7 @@ public class SolutionExplorerPanel {
         label.setForeground(new Color(0x30, 0xB4, 0x40));
         label.setFont(label.getFont().deriveFont(Font.BOLD));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         return label;
     }
@@ -67,6 +73,7 @@ public class SolutionExplorerPanel {
         label.setForeground(new Color(0xE2, 0x40, 0x00));
         label.setFont(label.getFont().deriveFont(Font.BOLD));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         return label;
     }
@@ -75,22 +82,41 @@ public class SolutionExplorerPanel {
         return panel;
     }
 
+    private void addSolutionComponent(Component c) {
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridy = currentSolutionIndex;
+        constraints.gridwidth = 1;
+        constraints.weightx = 1.0;
+        constraints.fill = GridBagConstraints.BOTH;
+        constraints.anchor = GridBagConstraints.NORTH;
+        solutionsPaneLayout.setConstraints(c, constraints);
+        solutionsPanel.add(c);
+    }
+
+    private void addSolution(Unification solution) {
+        if (solution.getVariableValues().isEmpty()) {
+            addSolutionComponent(createTrueComponent());
+        } else {
+            SolutionPanel solutionPanel = new SolutionPanel(solution);
+            solutionPanel.setIndex(currentSolutionIndex);
+            addSolutionComponent(solutionPanel.asJPanel());
+        }
+
+        currentSolutionIndex++;
+    }
+
     public void showNextSolution() {
         if (currentSolutionsDepleated) return;
 
         try {
-            Unification solution = currentSolutions.next();
-            if (solution.getVariableValues().isEmpty()) {
-                solutionsPanel.add(createTrueComponent());
-            } else {
-                solutionsPanel.add((new SolutionPanel(solution)).asJPanel());
-            }
+            addSolution(currentSolutions.next());
         }
         catch (NoSuchElementException ex) {
-            solutionsPanel.add(createFalseComponent());
+            addSolutionComponent(createFalseComponent());
             currentSolutionsDepleated = true;
             showNextBT.setEnabled(false);
             showAllRemainingBT.setEnabled(false);
+            currentSolutionIndex = -1;
         }
 
         solutionsPanel.revalidate();
@@ -103,18 +129,14 @@ public class SolutionExplorerPanel {
         if (currentSolutionsDepleated) return;
 
         while (currentSolutions.hasNext()) {
-            Unification solution = currentSolutions.next();
-            if (solution.getVariableValues().isEmpty()) {
-                solutionsPanel.add(createTrueComponent());
-            } else {
-                solutionsPanel.add((new SolutionPanel(solution)).asJPanel());
-            }
+            addSolution(currentSolutions.next());
         }
 
-        solutionsPanel.add(createFalseComponent());
+        addSolutionComponent(createFalseComponent());
         currentSolutionsDepleated = true;
         showNextBT.setEnabled(false);
         showAllRemainingBT.setEnabled(false);
+        currentSolutionIndex = -1;
 
         solutionsPanel.revalidate();
         solutionsPanel.repaint();
@@ -125,6 +147,7 @@ public class SolutionExplorerPanel {
     public void setSolutions(Sequence<Unification> solutions) {
         currentSolutions = solutions.iterator();
         currentSolutionsDepleated = false;
+        currentSolutionIndex = 0;
 
         solutionsPanel.removeAll();
         showNextBT.setEnabled(true);
