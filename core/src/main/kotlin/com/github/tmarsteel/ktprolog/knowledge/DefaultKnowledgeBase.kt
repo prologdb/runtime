@@ -47,6 +47,7 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
         val B = Variable("B")
         val X = Variable("X")
 
+        // EQUALITY
         // unification predicate
         assert(Predicate("=", arrayOf(X, X)))
 
@@ -73,5 +74,8 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
                 ))
             )
         ))
+
+        // TYPE SAFETY
+        assert(IsAtomPredicate)
     }
 }
