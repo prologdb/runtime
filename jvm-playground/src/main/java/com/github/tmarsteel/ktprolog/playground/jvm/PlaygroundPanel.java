@@ -3,6 +3,7 @@ package com.github.tmarsteel.ktprolog.playground.jvm;
 import com.github.tmarsteel.ktprolog.RandomVariableScope;
 import com.github.tmarsteel.ktprolog.knowledge.DefaultKnowledgeBase;
 import com.github.tmarsteel.ktprolog.knowledge.MutableKnowledgeBase;
+import com.github.tmarsteel.ktprolog.knowledge.library.Library;
 import com.github.tmarsteel.ktprolog.parser.ParseResult;
 import com.github.tmarsteel.ktprolog.parser.lexer.Lexer;
 import com.github.tmarsteel.ktprolog.parser.lexer.LineEndingNormalizer;
@@ -97,9 +98,10 @@ public class PlaygroundPanel {
                     ).iterator()
                 )
             );
-            ParseResult<Unit> result = parser.parseDefinitionsInto(lexer, newKnowledgeBase);
+            ParseResult<Library> result = parser.parseLibrary(lexer);
 
             if (result.getReportings().isEmpty()) {
+                newKnowledgeBase.load(result.getItem());
                 knowledgeBase = newKnowledgeBase;
                 knowledgeBaseChangeIndicator = false;
             } else {
