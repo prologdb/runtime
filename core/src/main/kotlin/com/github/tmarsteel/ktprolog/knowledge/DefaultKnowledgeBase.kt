@@ -3,9 +3,7 @@ package com.github.tmarsteel.ktprolog.knowledge
 import com.github.tmarsteel.ktprolog.PrologRuntimeException
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
-import com.github.tmarsteel.ktprolog.builtin.IdentityPredicate
-import com.github.tmarsteel.ktprolog.builtin.IsAtomPredicate
-import com.github.tmarsteel.ktprolog.builtin.NegationRule
+import com.github.tmarsteel.ktprolog.builtin.*
 import com.github.tmarsteel.ktprolog.knowledge.library.DoublyIndexedLibrary
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.query.PredicateQuery
@@ -56,39 +54,7 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
     }
 
     init {
-        val A = Variable("A")
-        val B = Variable("B")
-        val X = Variable("X")
-
-        // EQUALITY
-        // unification predicate
-        assert(Predicate("=", arrayOf(X, X)))
-
-        defineRule(NegationRule)
-
-        // \=(A, B) :- not(=(A, B)).
-        defineRule(Rule(
-            Predicate("\\=", arrayOf(A, B)),
-            PredicateQuery(
-                Predicate("not", arrayOf(
-                    Predicate("=", arrayOf(A, B))
-                ))
-            )
-        ))
-
-        assert(IdentityPredicate)
-
-        // \==(A, B) :- not(==(A, B)).
-        defineRule(Rule(
-            Predicate("\\==", arrayOf(A, B)),
-            PredicateQuery(
-                Predicate("not", arrayOf(
-                    Predicate("==", arrayOf(A, B))
-                ))
-            )
-        ))
-
-        // TYPE SAFETY
-        assert(IsAtomPredicate)
+        load(EqualityLibrary)
+        load(TypeSafetyLibrary)
     }
 }
