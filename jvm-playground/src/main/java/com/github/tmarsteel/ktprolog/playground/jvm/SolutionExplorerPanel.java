@@ -5,7 +5,6 @@ import kotlin.sequences.Sequence;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -52,10 +51,13 @@ public class SolutionExplorerPanel {
         solutionScrollPane.setBorder(null);
         solutionScrollPane.getVerticalScrollBar().setUnitIncrement(22);
 
+        JPanel solutionsWrapperPanel = new JPanel(new BorderLayout());
+        solutionsWrapperPanel.add(solutionsPanel, BorderLayout.NORTH);
+
         panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.add(actionsToolbar);
-        panel.add(solutionScrollPane);
+        panel.setLayout(new BorderLayout());
+        panel.add(actionsToolbar, BorderLayout.NORTH);
+        panel.add(solutionsWrapperPanel, BorderLayout.CENTER);
     }
 
     private JComponent createTrueComponent() {
