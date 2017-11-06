@@ -1,12 +1,15 @@
 package com.github.tmarsteel.ktprolog.term
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
+import com.github.tmarsteel.ktprolog.knowledge.library.LibraryEntry
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 import sensibleHashCode
 
-open class Predicate(val name: String, val arguments: Array<out Term>) : Term
+open class Predicate(override val name: String, val arguments: Array<out Term>) : Term, LibraryEntry
 {
+    override val arity = arguments.size
+
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Predicate) {
             if (this.name != rhs.name) {
