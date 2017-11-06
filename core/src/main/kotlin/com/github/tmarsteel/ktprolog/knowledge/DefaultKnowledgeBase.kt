@@ -2,6 +2,9 @@ package com.github.tmarsteel.ktprolog.knowledge
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
+import com.github.tmarsteel.ktprolog.knowledge.builtin.IdentityPredicate
+import com.github.tmarsteel.ktprolog.knowledge.builtin.IsAtomPredicate
+import com.github.tmarsteel.ktprolog.knowledge.builtin.NegationRule
 import com.github.tmarsteel.ktprolog.query.PredicateQuery
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Variable

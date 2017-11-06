@@ -1,23 +1,12 @@
-package com.github.tmarsteel.ktprolog.knowledge
+package com.github.tmarsteel.ktprolog.knowledge.builtin
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
+import com.github.tmarsteel.ktprolog.knowledge.KnowledgeBase
+import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.query.PredicateQuery
-import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Term
-import com.github.tmarsteel.ktprolog.term.Variable
 import com.github.tmarsteel.ktprolog.unification.Unification
-
-private val surrogateVarLHS = Variable("LHS")
-private val surrogateVarRHS = Variable("RHS")
-private val surrogateVarX = Variable("X")
-
-abstract class BuiltinPredicate(name: String, vararg arguments: Term) : Predicate(name, arguments) {
-    override val variables: Set<Variable>
-        get() = emptySet()
-
-    override fun substituteVariables(mapper: (Variable) -> Term) = this
-}
 
 object NegationRule : Rule(Predicate("not", arrayOf(surrogateVarX)), PredicateQuery(Predicate("not", arrayOf(surrogateVarX)))) {
     override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
@@ -39,18 +28,6 @@ object IdentityPredicate : BuiltinPredicate("==", surrogateVarLHS, surrogateVarR
         val surrogateUnification = super.unify(rhs, randomVarsScope) ?: return null
 
         if (surrogateUnification.variableValues[surrogateVarLHS] == surrogateUnification.variableValues[surrogateVarRHS]) {
-            return Unification.TRUE
-        } else {
-            return Unification.FALSE
-        }
-    }
-}
-
-object IsAtomPredicate : BuiltinPredicate("atom", surrogateVarX) {
-    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
-        val surrogateUnification = super.unify(rhs, randomVarsScope) ?: return null
-
-        if (surrogateUnification.variableValues[surrogateVarX] is Atom) {
             return Unification.TRUE
         } else {
             return Unification.FALSE
