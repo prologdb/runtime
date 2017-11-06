@@ -26,7 +26,7 @@ internal class LexerIterator(unit: SourceUnit, givenSource: Iterator<Char>) : It
     init {
         source = IteratorBasedTransactionalSequence(
                 SourceLocationAwareCharIterator(
-                        initial = SourceLocation(unit, 1, 1),
+                        initial = SourceLocation(unit, 1, 0, 0),
                         source = givenSource
                 )
         )
