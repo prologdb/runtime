@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DebuggingTokenMaker extends AbstractTokenMaker {
-    private TokenMaker debuggedTokenMaker = new PrologTokenMaker();
+    private TokenMaker debuggedTokenMaker = new PrologLexerTokenMaker();
 
     @Override
     public TokenMap getWordsToHighlight() {
