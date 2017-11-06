@@ -6,8 +6,11 @@ import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit
 
-class Lexer(unit: SourceUnit, source: Iterator<Char>) : TransactionalSequence<Token> {
-    private val lexerIteratorTxSequence = IteratorBasedTransactionalSequence(LexerIterator(unit, source))
+class Lexer(source: Iterator<Char>, initialSourceLocation: SourceLocation) : TransactionalSequence<Token>
+{
+    private val lexerIteratorTxSequence = IteratorBasedTransactionalSequence(LexerIterator(source, initialSourceLocation))
+
+    constructor(unit: SourceUnit, source: Iterator<Char>): this(source, SourceLocation(unit, 1, 0, 0))
 
     override fun mark() = lexerIteratorTxSequence.mark()
 
@@ -20,15 +23,15 @@ class Lexer(unit: SourceUnit, source: Iterator<Char>) : TransactionalSequence<To
     override fun rollback() = lexerIteratorTxSequence.rollback()
 }
 
-internal class LexerIterator(unit: SourceUnit, givenSource: Iterator<Char>) : Iterator<Token> {
+internal class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLocation) : Iterator<Token> {
 
     private val source: TransactionalSequence<Pair<Char, SourceLocation>>
     init {
         source = IteratorBasedTransactionalSequence(
-                SourceLocationAwareCharIterator(
-                        initial = SourceLocation(unit, 1, 0, 0),
-                        source = givenSource
-                )
+            SourceLocationAwareCharIterator(
+                initialSourceLocation,
+                givenSource
+            )
         )
     }
 
