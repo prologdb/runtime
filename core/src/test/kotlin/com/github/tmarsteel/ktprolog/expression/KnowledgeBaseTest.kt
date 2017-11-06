@@ -9,8 +9,10 @@ import com.github.tmarsteel.ktprolog.term.List
 import com.github.tmarsteel.ktprolog.knowledge.DefaultKnowledgeBase
 import com.github.tmarsteel.ktprolog.RandomVariable
 import com.github.tmarsteel.ktprolog.knowledge.Rule
+import com.github.tmarsteel.ktprolog.query.PredicateQuery
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.PredicateBuilder
+import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 
 class KnowledgeBaseTest : FreeSpec() {init {
@@ -51,20 +53,6 @@ class KnowledgeBaseTest : FreeSpec() {init {
                 it.variableValues[X] == a(n, m)
             }
         }
-    }
-
-    "temporary variables" {
-        val kb = DefaultKnowledgeBase()
-        val f = PredicateBuilder("f")
-        val a = Atom("a")
-        val b = Atom("b")
-        val c = Atom("c")
-        val X = Variable("X")
-        val Y = Variable("Y")
-        val Z = Variable("Z")
-        kb.assert(f(a, b))
-        kb.assert(f(c))
-
     }
 
     "lines" {
@@ -124,6 +112,23 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
     }
 
+    "g(X, X). ?- g(A, B)" {
+        val kb = DefaultKnowledgeBase()
+
+        val g = PredicateBuilder("g")
+        val X = Variable("X")
+        val A = Variable("A")
+        val B = Variable("B")
+        kb.assert(g(X, X))
+
+        kb shouldProve g(A, B) suchThat {
+            itHasExactlyOneSolution()
+            itHasASolutionSuchThat("A = B") {
+                it.variableValues[A] == B
+            }
+        }
+    }
+
     "g(X, X). f(X, Y) :- g(X, Y). ?- f(a, V)" {
         val kb = DefaultKnowledgeBase()
 
@@ -134,7 +139,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        kb.defineRule(Rule(f(X, Y), listOf(g(X, Y))))
+        kb.defineRule(Rule(f(X, Y), PredicateQuery(g(X, Y))))
         kb.assert(g(X, X))
 
         kb shouldProve f(a, V) suchThat {
@@ -166,12 +171,36 @@ class KnowledgeBaseTest : FreeSpec() {init {
         kb.assert(append(List(emptyList()),L,L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.defineRule(Rule(append(List(listOf(H),T),L2,List(listOf(H),L3)), listOf(append(T,L2,L3))))
+        kb.defineRule(Rule(append(List(listOf(H),T),L2,List(listOf(H),L3)), PredicateQuery(append(T,L2,L3))))
 
         kb shouldProve append(List(listOf(a, b)),List(listOf(c,d)),R) suchThat {
             // itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = [a,b,c,d]") {
                 it.variableValues[R] == List(listOf(a,b,c,d))
+            }
+        }
+    }
+
+    "retain values of random variables" {
+        val X = Variable("X")
+        val a = PredicateBuilder("a")
+        val H = Variable("H")
+        val T = Variable("T")
+
+        val u = Atom("u")
+        val v = Atom("v")
+
+        val kb = DefaultKnowledgeBase()
+        kb.assert(a(List(listOf(H), T), List(listOf(H), T)))
+
+        kb shouldProve a(X, List(listOf(u, v))) suchThat {
+            itHasExactlyOneSolution()
+            itHasASolutionSuchThat("X = [u,v]") {
+                val valX = it.variableValues[X] as List
+
+                valX.elements[0] == u
+                &&
+                valX.elements[1] == v
             }
         }
     }

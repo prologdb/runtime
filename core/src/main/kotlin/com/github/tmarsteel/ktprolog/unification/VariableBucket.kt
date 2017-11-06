@@ -13,7 +13,8 @@ class VariableBucket private constructor(
 ) {
     constructor() : this(mutableMapOf<Variable, Term?>())
 
-    val isEmpty = variableMap.isEmpty()
+    val isEmpty
+        get() = variableMap.isEmpty()
 
     private val substitutionMapper: (Variable) -> Term = { variable ->
         if (isInstantiated(variable) && this[variable] != variable) {
@@ -54,7 +55,7 @@ class VariableBucket private constructor(
                 copy.variableMap[variableName] = othersValue
             }
             else {
-                val thisValue = copy.variableMap[variableName]!!
+                val thisValue = copy.variableMap[variableName]
                 if (thisValue != null && othersValue != null) {
                     if (thisValue != othersValue) {
                         // same variable instantiated to different value
@@ -83,8 +84,21 @@ class VariableBucket private constructor(
      */
     fun retainAll(variables: Collection<Variable>) {
         val keysToRemove = variableMap.keys.filter { it !in variables }
+        val removedToSubstitute = mutableMapOf<Variable,Term>()
+
         for (key in keysToRemove) {
+            val value = variableMap[key]
+            if (value != null) {
+                removedToSubstitute[key] = value
+            }
+
             variableMap.remove(key)
+        }
+
+        for ((key, value) in variableMap) {
+            if (value != null) {
+                variableMap[key] = value.substituteVariables({ variable -> removedToSubstitute.getOrDefault(variable, variable) })
+            }
         }
     }
 
@@ -100,7 +114,10 @@ class VariableBucket private constructor(
         val newBucket = VariableBucket()
         for ((variable, value) in values) {
             val resolved = resolve(variable)
-            if (value != null) newBucket.instantiate(resolved, value)
+            if (value != null) {
+                val resolvedValue = value.substituteVariables(::resolve)
+                newBucket.instantiate(resolved, resolvedValue)
+            }
         }
 
         return newBucket

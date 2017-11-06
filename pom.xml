@@ -18,6 +18,7 @@
         <module>core</module>
         <module>corejs</module>
         <module>parser</module>
+        <module>jvm-playground</module>
     </modules>
 
     <properties>

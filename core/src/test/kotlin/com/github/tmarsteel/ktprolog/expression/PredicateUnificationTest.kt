@@ -113,6 +113,19 @@ class PredicateUnificationTest : FreeSpec(){init {
         }
     }
 
+    "?- g(X, X) = g(A, B)" {
+        val g = PredicateBuilder("g")
+        val X = Variable("X")
+        val A = Variable("A")
+        val B = Variable("B")
+
+        g(X, X) shouldUnifyWith g(A, B) suchThat {
+            itHasASolutionSuchThat("A = B") {
+                it.variableValues[A] == B
+            }
+        }
+    }
+
     "?- f(a, X) = f(X, b)" {
         // SETUP
         val a = Atom("a")

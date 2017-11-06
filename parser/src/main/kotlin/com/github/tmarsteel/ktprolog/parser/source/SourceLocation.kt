@@ -14,4 +14,6 @@ open class SourceLocation (
 
         /** The index in the source input of characters */
         val sourceIndex: Int
-)
+) {
+        override fun toString() = "$unit:$line, column $column"
+}

@@ -77,7 +77,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                 val tailUnification: Unification
 
                 if (this.tail != null && rhs.tail != null) {
-                    tailUnification = this.tail.unify(rhs.tail!!, randomVarsScope)
+                    tailUnification = this.tail.unify(rhs.tail, randomVarsScope)
                 }
                 else if (this.tail != null) {
                     tailUnification = this.tail.unify(List(emptyList()))

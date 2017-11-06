@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
+import com.github.tmarsteel.ktprolog.knowledge.MutableKnowledgeBase
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
@@ -8,6 +9,287 @@ import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.*
 import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
 
 class PrologParser {
+    fun parseDefinitionsInto(tokens: TransactionalSequence<Token>, kb: MutableKnowledgeBase): ParseResult<Unit> {
+        val reportings = mutableSetOf<Reporting>()
+
+        val parsers: List<(TransactionalSequence<Token>) -> ParseResult<*>> = listOf(
+            this::parseRule,
+            this::parsePredicate,
+            this::parsePredicateWithInfixNotation
+        )
+
+        while (tokens.hasNext()) {
+            var chosenResult: ParseResult<*>? = null
+
+            for (parser in parsers) {
+                val parserResult = parser(tokens)
+                if (parserResult.certainty >= MATCHED) {
+                    chosenResult = parserResult
+                    break
+                }
+            }
+
+            if (chosenResult != null) {
+                if (chosenResult.item is ParsedPredicate) {
+                    kb.assert(chosenResult.item as ParsedPredicate)
+                }
+                else if (chosenResult.item is ParsedRule) {
+                    kb.defineRule(chosenResult.item as ParsedRule)
+                }
+                else {
+                    throw InternalParserError("Unsupported result: ${chosenResult.item}")
+                }
+
+                if (tokens.hasNext()) {
+                    tokens.mark()
+                    val fullStopToken = tokens.next()
+                    if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
+                        tokens.commit()
+                    }
+                    else {
+                        reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
+                        tokens.rollback()
+                    }
+                }
+                else {
+                    reportings += UnexpectedEOFError(FULL_STOP)
+                }
+            }
+            else {
+                // none matched
+
+                if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+                tokens.mark()
+                val token = tokens.next()
+                tokens.rollback()
+
+                return ParseResult(
+                    null,
+                    NOT_RECOGNIZED,
+                    setOf(UnexpectedTokenError(token, "rule", "predicate"))
+                )
+            }
+        }
+
+        return ParseResult(
+            Unit,
+            MATCHED,
+            reportings
+        )
+    }
+
+    fun parseRule(tokens: TransactionalSequence<Token>): ParseResult<ParsedRule> {
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("rule")))
+
+        tokens.mark()
+
+        val headResult = parsePredicate(tokens)
+        if (!headResult.isSuccess) {
+            tokens.rollback()
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                headResult.reportings
+            )
+        }
+
+        if (!tokens.hasNext()) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(HEAD_QUERY_SEPARATOR)))
+        }
+
+        var token = tokens.next()
+        if (token !is OperatorToken || token.operator != HEAD_QUERY_SEPARATOR) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(token, HEAD_QUERY_SEPARATOR)))
+        }
+
+        tokens.commit()
+
+        val queryResult = parseQuery(tokens)
+        if (queryResult.isSuccess) {
+            val ruleLocation = headResult.item!!.location .. queryResult.item!!.location
+
+            return ParseResult(
+                ParsedRule(headResult.item, queryResult.item, ruleLocation),
+                MATCHED,
+                headResult.reportings + queryResult.reportings
+            )
+        }
+        else {
+            tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
+
+            tokens.mark()
+            val ruleLocation = headResult.item!!.location .. tokens.next().location
+            tokens.rollback()
+
+            return ParseResult(
+                ParsedRule(headResult.item, EmptyQuery(ruleLocation), ruleLocation),
+                MATCHED,
+                headResult.reportings + queryResult.reportings
+            )
+        }
+    }
+
+    fun parseQuery(tokens: TransactionalSequence<Token>, allowedEndingPredicate: (Token) -> Boolean = { it is OperatorToken && it.operator == FULL_STOP}): ParseResult<ParsedQuery> {
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("query")))
+
+        val firstElementResult = parseQueryElement(tokens)
+        if (!firstElementResult.isSuccess) {
+            return firstElementResult
+        }
+
+        val elementsAndOperators = mutableListOf<Any>()
+        elementsAndOperators.add(firstElementResult.item!!)
+        var reportings = mutableSetOf<Reporting>()
+        reportings.addAll(firstElementResult.reportings)
+
+        while (tokens.hasNext()) {
+            tokens.mark()
+
+            val operatorToken = tokens.next()
+            if (operatorToken !is OperatorToken || (operatorToken.operator != COMMA && operatorToken.operator != SEMICOLON)) {
+                tokens.rollback()
+
+                if (!allowedEndingPredicate(operatorToken)) {
+                    reportings.add(UnexpectedTokenError(operatorToken, COMMA, SEMICOLON))
+                }
+
+                break
+            }
+
+            if (!tokens.hasNext()) {
+                tokens.rollback()
+                reportings.add(UnexpectedEOFError("query element"))
+                break
+            }
+
+            val queryElementResult = parseQueryElement(tokens)
+            tokens.commit()
+            reportings.addAll(queryElementResult.reportings)
+            if (queryElementResult.isSuccess) {
+                elementsAndOperators.add(operatorToken)
+                elementsAndOperators.add(queryElementResult.item!!)
+            }
+        }
+
+        return ParseResult(
+            toASTWithOperatorPrecedence(elementsAndOperators),
+            MATCHED,
+            reportings
+        )
+    }
+
+    private fun toASTWithOperatorPrecedence(queriesAndOperators: List<Any>): ParsedQuery {
+        if (queriesAndOperators.size < 1) throw InternalParserError("The argument must have at least 1 item")
+        if (queriesAndOperators.size == 1) return queriesAndOperators[0] as? ParsedQuery ?: throw InternalParserError("List must contain a valid boolean expression")
+
+        val operatorsWithIndex: Collection<Pair<OperatorToken, Int>> = queriesAndOperators
+            .mapIndexed { index, elem -> elem to index }
+            .filter { it.first is OperatorToken } as Collection<Pair<OperatorToken, Int>>
+
+        val leftmostOperatorWithHighestPrecedence = operatorsWithIndex
+            .sortedWith(compareBy(
+                { it.first.precedence },
+                { it.second }
+            ))
+            .first()
+        val operator = leftmostOperatorWithHighestPrecedence.first.operator
+
+        // now find the last operator in that same group
+        val lastOperatorWithIndexInQuery = operatorsWithIndex
+            .sortedBy { it.second }
+            .filter { it.second >= leftmostOperatorWithHighestPrecedence.second }
+            .takeWhile { it.first.operator == leftmostOperatorWithHighestPrecedence.first.operator }
+            .last()
+
+        val indicesRelevantForThisQuery = (leftmostOperatorWithHighestPrecedence.second - 1) .. (lastOperatorWithIndexInQuery.second + 1)
+
+        val subQueriesInQuery = queriesAndOperators
+            .filterIndexed { index, _ ->  index in indicesRelevantForThisQuery }
+            .filter { it is ParsedQuery } as List<ParsedQuery>
+
+        val queryLocation = subQueriesInQuery.first().location .. subQueriesInQuery.last().location
+        val query = when(operator) {
+            COMMA     -> ParsedAndQuery(subQueriesInQuery.toTypedArray(), queryLocation)
+            SEMICOLON -> ParsedOrQuery(subQueriesInQuery.toTypedArray(), queryLocation)
+            else      -> throw InternalParserError("Unsupported boolean operator $operator")
+        }
+
+        if (indicesRelevantForThisQuery.first == 0 && indicesRelevantForThisQuery.endInclusive == queriesAndOperators.lastIndex) {
+            return query
+        }
+        else {
+            val preceding = if (indicesRelevantForThisQuery.first == 0) {
+                emptyList()
+            } else {
+                queriesAndOperators.subList(0, indicesRelevantForThisQuery.first - 1)
+            }
+            val following = if (indicesRelevantForThisQuery.endInclusive == queriesAndOperators.lastIndex) {
+                emptyList()
+            } else {
+                queriesAndOperators.subList(indicesRelevantForThisQuery.endInclusive + 1, queriesAndOperators.size)
+            }
+
+            return toASTWithOperatorPrecedence(preceding + query + following)
+        }
+    }
+
+    fun parseQueryElement(tokens: TransactionalSequence<Token>): ParseResult<ParsedQuery> {
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("query element")))
+
+        tokens.mark()
+
+        var token = tokens.next()
+        if (token is OperatorToken && token.operator == PARENT_OPEN) {
+            // sub-query
+            val subQueryResult = parseQuery(tokens, { it is OperatorToken && it.operator == PARENT_CLOSE })
+            val reportings = mutableSetOf<Reporting>()
+
+            token = tokens.next()
+            if (token !is OperatorToken || token.operator != PARENT_CLOSE) {
+                reportings.add(UnexpectedTokenError(token, PARENT_CLOSE))
+                tokens.takeWhile({ it is OperatorToken && it.operator != PARENT_CLOSE }, 1, 0)
+            }
+
+            tokens.commit()
+            return if (reportings.isEmpty()) {
+                subQueryResult
+            } else {
+                ParseResult(subQueryResult.item, subQueryResult.certainty, subQueryResult.reportings + reportings)
+            }
+        }
+        else
+        {
+            tokens.rollback()
+
+            val predicateQuery: ParsedPredicateQuery?
+            var predicateResult = parsePredicateWithInfixNotation(tokens)
+            if (predicateResult.certainty >= MATCHED) {
+                predicateQuery = if (predicateResult.item != null) {
+                    ParsedPredicateQuery(predicateResult.item!!)
+                } else {
+                    null
+                }
+            }
+            else
+            {
+                predicateResult = parsePredicate(tokens)
+                predicateQuery = if (predicateResult.item != null) {
+                    ParsedPredicateQuery(predicateResult.item!!)
+                } else {
+                    null
+                }
+            }
+
+            return ParseResult(
+                predicateQuery,
+                predicateResult.certainty,
+                predicateResult.reportings
+            )
+        }
+    }
+
     fun parseTerm(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
         val parsers: List<(TransactionalSequence<Token>) -> ParseResult<ParsedTerm>> = listOf(
                 this::parsePredicate,
@@ -41,10 +323,10 @@ class PrologParser {
 
         tokens.mark()
 
-        var token = tokens.next()
+        val firstToken = tokens.next()
 
-        if (token is OperatorToken && token.operator == BRACKET_OPEN) {
-            val openingBracketToken = token
+        if (firstToken is OperatorToken && firstToken.operator == BRACKET_OPEN) {
+            val openingBracketToken = firstToken
             var lastLocation = openingBracketToken.location
 
             val itemResults = parseCommaSeparatedTerms(tokens, { it is OperatorToken && (it.operator == HEAD_TAIL_SEPARATOR || it.operator == BRACKET_CLOSE) })
@@ -68,7 +350,7 @@ class PrologParser {
                             }
                             else {
                                 tail = null
-                                reportings += SemanticError("List tails must be lists or variables, ${tailResult.item} given")
+                                reportings += SemanticError("List tails must be lists or variables, ${tailResult.item} given", closingBracketOrSeparatorToken.location)
                             }
                         }
                         else {
@@ -121,7 +403,30 @@ class PrologParser {
                         MATCHED,
                         reportings
                 )
-            } else TODO("..")
+            }
+            else
+            {
+                tokens.takeWhile({ it !is OperatorToken || it.operator != BRACKET_CLOSE })
+                tokens.mark()
+                val token = tokens.next()
+                if (token !is OperatorToken || token.operator != BRACKET_CLOSE) {
+                    tokens.rollback()
+                    reportings.add(UnexpectedTokenError(token, BRACKET_CLOSE))
+                }
+                else {
+                    tokens.commit()
+                }
+
+                tokens.commit() // commit the initial mark()
+
+                val location = firstToken.location .. token.location
+
+                return ParseResult(
+                    ParsedList(emptyList(), null, location),
+                    MATCHED,
+                    reportings
+                )
+            }
         }
         else {
             tokens.rollback()
@@ -129,7 +434,7 @@ class PrologParser {
             return ParseResult(
                     null,
                     NOT_RECOGNIZED,
-                    setOf(UnexpectedTokenError(token, BRACKET_OPEN))
+                    setOf(UnexpectedTokenError(firstToken, BRACKET_OPEN))
             )
         }
     }
@@ -178,6 +483,54 @@ class PrologParser {
                     setOf(UnexpectedTokenError(token, IDENTIFIER, NUMERIC_LITERAL))
             )
         }
+    }
+
+    fun parsePredicateWithInfixNotation(tokens: TransactionalSequence<Token>): ParseResult<ParsedPredicate> {
+        tokens.mark()
+
+        val lhsResult = parseTerm(tokens)
+
+        if (!lhsResult.isSuccess) {
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                lhsResult.reportings
+            )
+        }
+
+        if (!tokens.hasNext()) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+        }
+
+        val identifierToken = tokens.next()
+        if (identifierToken !is IdentifierToken) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(identifierToken, IDENTIFIER)))
+        }
+
+        val rhsResult = parseTerm(tokens)
+
+        if (!rhsResult.isSuccess) {
+            tokens.rollback()
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                rhsResult.reportings
+            )
+        }
+
+        tokens.commit()
+
+        return ParseResult(
+            ParsedPredicate(
+                identifierToken.textContent,
+                arrayOf(lhsResult.item!!, rhsResult.item!!),
+                lhsResult.item.location .. rhsResult.item.location
+            ),
+            MATCHED,
+            lhsResult.reportings + rhsResult.reportings
+        )
     }
 
     fun parsePredicate(tokens: TransactionalSequence<Token>): ParseResult<ParsedPredicate> {
@@ -304,9 +657,8 @@ class PrologParser {
                 }
                 else {
                     hasTrailingComma = true
+                    tokens.commit()
                 }
-
-                tokens.commit()
             }
         } while (mostRecentResult.isSuccess)
 
