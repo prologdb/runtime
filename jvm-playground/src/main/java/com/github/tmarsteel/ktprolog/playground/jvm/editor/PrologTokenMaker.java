@@ -1,8 +1,6 @@
 package com.github.tmarsteel.ktprolog.playground.jvm.editor;
 
-import com.github.tmarsteel.ktprolog.parser.lexer.IdentifierToken;
 import com.github.tmarsteel.ktprolog.parser.lexer.Lexer;
-import com.github.tmarsteel.ktprolog.parser.lexer.NumericLiteralToken;
 import com.github.tmarsteel.ktprolog.parser.lexer.OperatorToken;
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit;
 import com.github.tmarsteel.ktprolog.playground.jvm.CharacterIterable;
@@ -24,7 +22,7 @@ public class PrologTokenMaker extends AbstractTokenMaker {
     public Token getTokenList(Segment segment, int initialTokenType, int startOffset) {
         Lexer lexer = new Lexer(
             new SourceUnit("mock source unit"),
-            new CharacterIterable(segment.toString()).iterator()
+            new CharacterIterable(new String(segment.array)).iterator()
         );
 
         List<com.github.tmarsteel.ktprolog.parser.lexer.Token> prologTokens = new ArrayList<>();
@@ -38,11 +36,11 @@ public class PrologTokenMaker extends AbstractTokenMaker {
                 if (prologToken.getLocation().getStart().getColumn() != 1) {
                     // leading whitespace
                     addToken(
-                        segment.array,
+                        segment,
                         startOffset,
                         startOffset + prologToken.getLocation().getStart().getColumn() - 2,
                         Token.WHITESPACE,
-                        segment.offset + startOffset
+                        startOffset
                     );
                 }
             } else {
@@ -50,11 +48,11 @@ public class PrologTokenMaker extends AbstractTokenMaker {
                     // there is whitespace in between -> add it
 
                     addToken(
-                        segment.array,
-                        segment.offset + startOffset + previous.getLocation().getEnd().getColumn(),
-                        segment.offset + startOffset + prologToken.getLocation().getStart().getColumn() - 2,
+                        segment,
+                        startOffset + previous.getLocation().getEnd().getColumn(),
+                        startOffset + prologToken.getLocation().getStart().getColumn() - 2,
                         Token.WHITESPACE,
-                        segment.offset + startOffset + previous.getLocation().getEnd().getColumn() + 1
+                        startOffset + previous.getLocation().getEnd().getColumn()
                     );
                 }
             }
@@ -88,7 +86,7 @@ public class PrologTokenMaker extends AbstractTokenMaker {
                 startOffset + prologToken.getLocation().getStart().getColumn() - 1,
                 startOffset + prologToken.getLocation().getEnd().getColumn() - 1,
                 tokenType,
-                segment.offset + startOffset + prologToken.getLocation().getStart().getColumn() - 1
+                startOffset + prologToken.getLocation().getStart().getColumn() - 1
             );
             previous = prologToken;
         }
@@ -101,7 +99,7 @@ public class PrologTokenMaker extends AbstractTokenMaker {
                     startOffset + previous.getLocation().getEnd().getColumn(),
                     startOffset + segment.count - 1,
                     Token.WHITESPACE,
-                    segment.offset + startOffset + previous.getLocation().getEnd().getColumn()
+                    startOffset + previous.getLocation().getEnd().getColumn()
                 );
             }
         }
@@ -114,7 +112,7 @@ public class PrologTokenMaker extends AbstractTokenMaker {
                     startOffset,
                     startOffset + segment.count - 1,
                     Token.WHITESPACE,
-                    segment.offset + startOffset
+                    startOffset
                 );
             } else {
                 addNullToken();
