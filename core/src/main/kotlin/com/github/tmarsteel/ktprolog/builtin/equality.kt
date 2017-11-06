@@ -1,4 +1,4 @@
-package com.github.tmarsteel.ktprolog.knowledge.builtin
+package com.github.tmarsteel.ktprolog.builtin
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.knowledge.KnowledgeBase

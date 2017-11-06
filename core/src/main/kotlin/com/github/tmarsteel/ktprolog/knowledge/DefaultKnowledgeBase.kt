@@ -3,9 +3,9 @@ package com.github.tmarsteel.ktprolog.knowledge
 import com.github.tmarsteel.ktprolog.PrologRuntimeException
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
-import com.github.tmarsteel.ktprolog.knowledge.builtin.IdentityPredicate
-import com.github.tmarsteel.ktprolog.knowledge.builtin.IsAtomPredicate
-import com.github.tmarsteel.ktprolog.knowledge.builtin.NegationRule
+import com.github.tmarsteel.ktprolog.builtin.IdentityPredicate
+import com.github.tmarsteel.ktprolog.builtin.IsAtomPredicate
+import com.github.tmarsteel.ktprolog.builtin.NegationRule
 import com.github.tmarsteel.ktprolog.knowledge.library.DoublyIndexedLibrary
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.query.PredicateQuery

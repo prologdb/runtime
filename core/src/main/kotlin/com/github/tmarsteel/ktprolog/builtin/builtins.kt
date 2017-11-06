@@ -1,4 +1,4 @@
-package com.github.tmarsteel.ktprolog.knowledge.builtin
+package com.github.tmarsteel.ktprolog.builtin
 
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Term
