@@ -47,13 +47,29 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
         val B = Variable("B")
         val X = Variable("X")
 
+        // unification predicate
         assert(Predicate("=", arrayOf(X, X)))
+
         defineRule(NegationRule)
+
+        // \=(A, B) :- not(=(A, B)).
+        defineRule(Rule(
+            Predicate("\\=", arrayOf(A, B)),
+            PredicateQuery(
+                Predicate("not", arrayOf(
+                    Predicate("=", arrayOf(A, B))
+                ))
+            )
+        ))
+
+        assert(IdentityPredicate)
+
+        // \==(A, B) :- not(==(A, B)).
         defineRule(Rule(
             Predicate("\\==", arrayOf(A, B)),
             PredicateQuery(
                 Predicate("not", arrayOf(
-                    Predicate("=", arrayOf(A, B))
+                    Predicate("==", arrayOf(A, B))
                 ))
             )
         ))
