@@ -5,9 +5,10 @@ import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 class SourceLocationAwareCharIterator(private val initial: SourceLocation, private val source: Iterator<Char>) : Iterator<Pair<Char, SourceLocation>> {
     private var currentLine = initial.line
     private var currentColumn = initial.column
+    private var sourceIndex = initial.sourceIndex
 
     private val currentLocation: SourceLocation
-        get() = SourceLocation(initial.unit, currentLine, currentColumn)
+        get() = SourceLocation(initial.unit, currentLine, currentColumn, sourceIndex)
 
     override fun hasNext() = source.hasNext()
 
@@ -22,6 +23,7 @@ class SourceLocationAwareCharIterator(private val initial: SourceLocation, priva
         else {
             currentColumn++
         }
+        sourceIndex++
 
         return Pair(char, location)
     }
