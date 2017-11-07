@@ -86,18 +86,27 @@ object IsRule : Rule(IsPredicate, PredicateQuery(IsPredicate)) {
     override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
         val predicateAndHeadUnification = head.unify(predicate) ?: return Unification.NONE
 
+        val valForA = predicateAndHeadUnification.variableValues[A]
+        val valForB = predicateAndHeadUnification.variableValues[B]
         val bucket = VariableBucket()
 
-        if (predicateAndHeadUnification.variableValues.isInstantiated(B)) {
-            bucket.instantiate(A, predicateAndHeadUnification.variableValues[B].asNumber)
+        if (valForA is Variable) {
+            bucket.instantiate(valForA, valForB.asNumber)
             return sequenceOf(Unification(bucket))
         }
-        else if (predicateAndHeadUnification.variableValues.isInstantiated(A)) {
-            bucket.instantiate(B, predicateAndHeadUnification.variableValues[A].asNumber)
+        else if (valForB is Variable) {
+            bucket.instantiate(valForB, valForA.asNumber)
             return sequenceOf(Unification(bucket))
         }
-        else if (predicateAndHeadUnification.variableValues.isInstantiated(A) && predicateAndHeadUnification.variableValues.isInstantiated(B)) {
-            if (predicateAndHeadUnification.variableValues[A].asNumber == predicateAndHeadUnification.variableValues[B].asNumber) {
+        else if (valForA is Number) {
+            if (valForB.asNumber == valForA) {
+                return sequenceOf(Unification.TRUE)
+            } else {
+                return emptySequence()
+            }
+        }
+        else if (valForB is Number) {
+            if (valForA.asNumber == valForB) {
                 return sequenceOf(Unification.TRUE)
             } else {
                 return emptySequence()
