@@ -56,5 +56,6 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
     init {
         load(EqualityLibrary)
         load(TypeSafetyLibrary)
+        load(MathLibrary)
     }
 }
