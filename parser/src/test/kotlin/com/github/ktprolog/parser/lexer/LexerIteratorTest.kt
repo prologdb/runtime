@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.lexer
 
+import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit
 import io.kotlintest.specs.FreeSpec
 
@@ -11,7 +12,7 @@ class LexerIteratorTest : FreeSpec() {init{
             foo(1,2,3)
 
         """
-        val lexer = LexerIterator(SourceUnit("testcode"), source.asIterable().iterator())
+        val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
         var next: Token
 

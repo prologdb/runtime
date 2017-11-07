@@ -8,7 +8,7 @@ class SourceLocationAwareCharIteratorTest : FreeSpec() {init{
     "test" {
         val source = "a\nabc\nd\nef\n"
 
-        val iterator = SourceLocationAwareCharIterator(SourceLocation(SourceUnit("testcode"), 1, 1), source.asIterable().iterator())
+        val iterator = SourceLocationAwareCharIterator(SourceLocation(SourceUnit("testcode"), 1, 1, 0), source.asIterable().iterator())
 
         var next: Pair<Char, SourceLocation>
 
