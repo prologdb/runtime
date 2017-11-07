@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
+import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
 import com.github.tmarsteel.ktprolog.parser.lexer.*
@@ -27,10 +28,10 @@ class PrologParserTest : FreeSpec() {
             result.reportings should beEmpty()
             assert(result.item != null)
             result.item!!.size shouldEqual 4
-            (result.item!![0] as Atom).name shouldEqual "1"
-            (result.item!![1] as Atom).name shouldEqual "2"
-            (result.item!![2] as Atom).name shouldEqual "3"
-            (result.item!![3] as Atom).name shouldEqual "4"
+            (result.item!![0] as ParsedInteger).value shouldEqual 1L
+            (result.item!![1] as ParsedInteger).value shouldEqual 2L
+            (result.item!![2] as ParsedInteger).value shouldEqual 3L
+            (result.item!![3] as ParsedInteger).value shouldEqual 4L
 
             tokens.hasNext() shouldEqual true
             val followUpToken = tokens.next()
@@ -191,12 +192,17 @@ class PrologParserTest : FreeSpec() {
 
     "list" - {
         "[]" {
-            val result = parser.parseList(tokensOf("[]"))
+            val tokens = tokensOf("[]")
+            val result = parser.parseList(tokens)
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
             result.item!!.elements.size shouldEqual 0
             result.item!!.tail shouldBe null
+
+            shouldThrow<IllegalStateException> {
+                tokens.commit()
+            }
         }
 
         "[1,2]" {
@@ -339,6 +345,69 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedRule)
+        }
+    }
+
+    "error edge cases" - {
+        "predicate in empty list" {
+            val tokens = tokensOf("]")
+            val result = parser.parsePredicate(tokens)
+
+            result.isSuccess shouldBe false
+            result.reportings.size shouldBe 1
+
+            shouldThrow<IllegalStateException> {
+                tokens.commit()
+            }
+        }
+
+        "atomic in empty list" {
+            val tokens = tokensOf("]")
+            val result = parser.parseAtomicOrVariable(tokens)
+
+            result.isSuccess shouldBe false
+            result.reportings.size shouldBe 1
+
+            shouldThrow<IllegalStateException> {
+                tokens.commit()
+            }
+        }
+
+        "list in empty list" {
+            val tokens = tokensOf("]")
+            val result = parser.parseList(tokens)
+
+            result.isSuccess shouldBe false
+            result.reportings.size shouldBe 1
+
+            shouldThrow<IllegalStateException> {
+                tokens.commit()
+            }
+        }
+
+        "term in empty list" {
+            val tokens = tokensOf("]")
+            val result = parser.parseTerm(tokens)
+
+            result.isSuccess shouldBe false
+            result.reportings.size shouldBe 1
+
+            shouldThrow<IllegalStateException> {
+                tokens.commit()
+            }
+        }
+    }
+
+    "library" {
+        "case 1" {
+            val tokens = tokensOf("a([], _, []).")
+            val result = parser.parseLibrary(tokens)
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+
+            val predicate = result.item as Library
+            predicate.exports.count() shouldEqual 1
+            (predicate.exports.first() as Predicate).arguments.size shouldEqual 3
         }
     }
 }}
