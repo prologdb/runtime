@@ -70,10 +70,9 @@ internal class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation:
 
             if (source.hasNext()) {
                 var next = source.next()
-                if (next.first == DECIMAL_SEPARATOR) {
+                if (next.first == DECIMAL_SEPARATOR && source.hasNext()) {
                     source.mark()
                     next = source.next()
-
                     if (next.first.isDigit()) {
                         // <DIGIT...> <SEPARATOR> <DIGIT...> => floating point literal
                         source.rollback()
