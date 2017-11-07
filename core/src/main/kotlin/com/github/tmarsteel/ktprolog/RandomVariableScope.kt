@@ -8,10 +8,10 @@ import com.github.tmarsteel.ktprolog.term.Variable
  */
 class RandomVariableScope {
     /**
-     * This is essentially the most simple PRNG possible: this int will just be incremented until it hits Int.MAX_VALUE
+     * This is essentially the most simple PRNG possible: this int will just be incremented until it hits Long.MAX_VALUE
      * and will then throw an exception. That number is then used to generate variable names.
      */
-    private var randomCounter = 0
+    private var randomCounter: Long = 0
 
     /**
      * Replaces all the variables in the given predicate with random instances; the mapping gets stored
@@ -34,6 +34,10 @@ class RandomVariableScope {
     }
 
     fun createNewRandomVariable(): Variable {
+        if (randomCounter == Long.MAX_VALUE) {
+            throw PrologRuntimeException("Out of random variables")
+        }
+        
         return RandomVariable(randomCounter++)
     }
 }
