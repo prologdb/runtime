@@ -295,9 +295,9 @@ class PrologParser {
     fun parseTerm(tokens: TransactionalSequence<Token>, allowInfixPredicate: Boolean = true): ParseResult<ParsedTerm> {
         val parsers = mutableListOf<(TransactionalSequence<Token>) -> ParseResult<ParsedTerm>>()
         parsers.add(this::parsePredicate)
-        parsers.add(this::parseAtomicOrVariable)
         parsers.add(this::parseList)
         if (allowInfixPredicate) parsers.add(this::parsePredicateWithInfixNotation)
+        parsers.add(this::parseAtomicOrVariable)
 
         for (parser in parsers) {
             val parserResult = parser(tokens)
