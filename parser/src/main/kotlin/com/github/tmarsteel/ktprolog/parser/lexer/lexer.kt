@@ -68,28 +68,33 @@ internal class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation:
             val numberWithLocation: Pair<Number, SourceLocationRange>
             source.mark()
 
-            var next = source.next()
-            if (next.first == DECIMAL_SEPARATOR) {
-                next = source.next()
+            if (source.hasNext()) {
+                var next = source.next()
+                if (next.first == DECIMAL_SEPARATOR) {
+                    source.mark()
+                    next = source.next()
 
-                if (next.first.isDigit()) {
-                    // <DIGIT...> <SEPARATOR> <DIGIT...> => floating point literal
-                    source.commit()
-                    val afterSeparator = collectUntilOperatorOrWhitespace()
-                    val numberLocationRange = SourceLocationRange(text.second.start, afterSeparator.second)
-                    val numberAsString = text.first + '.' + afterSeparator.first
-                    numberWithLocation = Pair(numberAsString.toDouble(), numberLocationRange)
-                }
-                else {
-                    // <DIGIT...> <SEPARATOR> <!DIGIT> => treat the separator as an operator; the nextCharsAsString invocation will
-                    // find it and deal with it
-                    source.rollback()
+                    if (next.first.isDigit()) {
+                        // <DIGIT...> <SEPARATOR> <DIGIT...> => floating point literal
+                        source.rollback()
+                        val afterSeparator = collectUntilOperatorOrWhitespace()
+                        val numberLocationRange = SourceLocationRange(text.second.start, afterSeparator.second)
+                        val numberAsString = text.first + '.' + afterSeparator.first
+                        numberWithLocation = Pair(numberAsString.toDouble(), numberLocationRange)
+                    } else {
+                        // <DIGIT...> <SEPARATOR> <!DIGIT> => treat the separator as an operator; the nextCharsAsString invocation will
+                        // find it and deal with it
+                        source.commit()
+                        source.rollback()
+                        numberWithLocation = Pair(text.first.toLong(), text.second)
+                    }
+                } else {
                     numberWithLocation = Pair(text.first.toLong(), text.second)
+                    source.rollback()
                 }
-            }
-            else {
+            } else {
                 numberWithLocation = Pair(text.first.toLong(), text.second)
-                source.rollback()
+                source.commit()
             }
 
             return NumericLiteralToken(numberWithLocation.first, numberWithLocation.second)
