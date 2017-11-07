@@ -8,7 +8,7 @@ import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
-open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
+open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
     override val name = head.name
     override val arity = head.arity
 
