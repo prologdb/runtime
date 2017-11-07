@@ -1,6 +1,5 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.knowledge.MutableKnowledgeBase
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary
 import com.github.tmarsteel.ktprolog.parser.*
@@ -296,7 +295,7 @@ class PrologParser {
     fun parseTerm(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
         val parsers: List<(TransactionalSequence<Token>) -> ParseResult<ParsedTerm>> = listOf(
                 this::parsePredicate,
-                this::parseAtomOrVariable,
+                this::parseAtomicOrVariable,
                 this::parseList
         )
 
@@ -442,7 +441,7 @@ class PrologParser {
         }
     }
 
-    fun parseAtomOrVariable(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
+    fun parseAtomicOrVariable(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
 
         tokens.mark()
