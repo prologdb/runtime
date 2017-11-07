@@ -48,6 +48,13 @@ open class Integer(val value: Long) : Number {
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
+    override fun compareTo(other: Number) =
+        when(other) {
+            is Integer -> this.value.compareTo(other.value)
+            is Decimal -> this.value.compareTo(other.value)
+            else -> throw PrologRuntimeException("Unsupported type of number")
+        }
+
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Integer) {
             if (rhs.value == value) {

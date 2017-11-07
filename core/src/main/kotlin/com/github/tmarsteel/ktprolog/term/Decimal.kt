@@ -47,6 +47,13 @@ open class Decimal(val value: Double) : Number {
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
+    override fun compareTo(other: Number) =
+        when(other) {
+            is Integer -> this.value.compareTo(other.value)
+            is Decimal -> this.value.compareTo(other.value)
+            else -> throw PrologRuntimeException("Unsupported type of number")
+        }
+
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Decimal) {
             if (rhs.value == value) {
