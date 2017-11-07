@@ -292,12 +292,12 @@ class PrologParser {
         }
     }
 
-    fun parseTerm(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
-        val parsers: List<(TransactionalSequence<Token>) -> ParseResult<ParsedTerm>> = listOf(
-                this::parsePredicate,
-                this::parseAtomicOrVariable,
-                this::parseList
-        )
+    fun parseTerm(tokens: TransactionalSequence<Token>, allowInfixPredicate: Boolean = true): ParseResult<ParsedTerm> {
+        val parsers = mutableListOf<(TransactionalSequence<Token>) -> ParseResult<ParsedTerm>>()
+        parsers.add(this::parsePredicate)
+        if (allowInfixPredicate) parsers.add(this::parsePredicateWithInfixNotation)
+        parsers.add(this::parseAtomicOrVariable)
+        parsers.add(this::parseList)
 
         for (parser in parsers) {
             val parserResult = parser(tokens)
@@ -343,7 +343,7 @@ class PrologParser {
                     var closingBracketOrSeparatorToken = tokens.next() as? OperatorToken ?: throw InternalParserError("Expected operator token")
 
                     if (closingBracketOrSeparatorToken.operator == HEAD_TAIL_SEPARATOR) {
-                        val tailResult = parseTerm(tokens)
+                        val tailResult = parseTerm(tokens, false)
                         reportings += tailResult.reportings
 
                         if (tailResult.item != null) {
@@ -470,10 +470,20 @@ class PrologParser {
         else if(token is NumericLiteralToken) {
             tokens.commit()
 
+            val tokenNumber = token.number
+
+            val number = when(tokenNumber) {
+                is Int -> ParsedInteger(tokenNumber.toLong(), token.location)
+                is Long -> ParsedInteger(tokenNumber, token.location)
+                is Float -> ParsedDecimal(tokenNumber.toDouble(), token.location)
+                is Double -> ParsedDecimal(tokenNumber, token.location)
+                else -> throw InternalParserError("Unsupported number type in numeric literal token")
+            }
+
             return ParseResult(
-                    ParsedAtom(token.number.toString(), token.location),
-                    MATCHED,
-                    emptySet()
+                number,
+                MATCHED,
+                emptySet()
             )
         }
         else {
@@ -490,7 +500,7 @@ class PrologParser {
     fun parsePredicateWithInfixNotation(tokens: TransactionalSequence<Token>): ParseResult<ParsedPredicate> {
         tokens.mark()
 
-        val lhsResult = parseTerm(tokens)
+        val lhsResult = parseTerm(tokens, false)
 
         if (!lhsResult.isSuccess) {
             return ParseResult(

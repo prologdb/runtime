@@ -9,10 +9,8 @@ import com.github.tmarsteel.ktprolog.query.AndQuery
 import com.github.tmarsteel.ktprolog.query.OrQuery
 import com.github.tmarsteel.ktprolog.query.PredicateQuery
 import com.github.tmarsteel.ktprolog.query.Query
-import com.github.tmarsteel.ktprolog.term.Atom
-import com.github.tmarsteel.ktprolog.term.Predicate
-import com.github.tmarsteel.ktprolog.term.Term
-import com.github.tmarsteel.ktprolog.term.Variable
+import com.github.tmarsteel.ktprolog.term.*
+import com.github.tmarsteel.ktprolog.term.Number
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
@@ -24,6 +22,9 @@ class ParsedAtom(name: String, override val location: SourceLocationRange): Pars
 class ParsedList(givenElements: List<Term>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, com.github.tmarsteel.ktprolog.term.List(givenElements, tail)
 class ParsedPredicate(name: String, arguments: Array<out Term>, override val location: SourceLocationRange) : ParsedTerm, Predicate(name, arguments)
 class ParsedVariable(name: String, override val location: SourceLocationRange) : ParsedTerm, Variable(name)
+interface ParsedNumber : ParsedTerm, Number
+class ParsedInteger(value: Long, override val location: SourceLocationRange) : ParsedNumber, Integer(value)
+class ParsedDecimal(value: Double, override val location: SourceLocationRange) : ParsedNumber, Decimal(value)
 
 interface ParsedQuery : Query {
     val location: SourceLocationRange
