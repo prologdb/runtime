@@ -19,4 +19,8 @@ class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : 
             return SourceLocationRange(this, other)
         }
     }
+
+    companion object {
+        val EOF = SourceLocationRange(SourceLocation.EOF, SourceLocation.EOF)
+    }
 }

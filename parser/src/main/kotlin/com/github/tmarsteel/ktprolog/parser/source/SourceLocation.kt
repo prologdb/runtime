@@ -16,4 +16,10 @@ open class SourceLocation (
         val sourceIndex: Int
 ) {
         override fun toString() = "$unit:$line, column $column"
+
+        companion object {
+            val EOF = object : SourceLocation(SourceUnit(""), -1, -1, -1) {
+            override fun toString() = "EOF"
+            }
+        }
 }
