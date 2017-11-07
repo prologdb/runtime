@@ -119,7 +119,7 @@ public class QueryPanel {
                         }
                     } else {
                         StringBuilder message = new StringBuilder("Failed to parse query:\n");
-                        queryParseResult.getReportings().forEach(r -> message.append(r.getMessage() + "\n"));
+                        queryParseResult.getReportings().forEach(r -> message.append(r.getMessage() + " in " + r.getLocation().getStart() + "\n"));
                         JOptionPane.showMessageDialog(null, message.toString(), "Parse Error", JOptionPane.ERROR_MESSAGE);
                     }
                 });

@@ -106,7 +106,7 @@ public class PlaygroundPanel {
                 knowledgeBaseChangeIndicator = false;
             } else {
                 StringBuilder message = new StringBuilder("Failed to parse knowledge base:");
-                result.getReportings().forEach(r -> { message.append("\n"); message.append(r.getMessage()); });
+                result.getReportings().forEach(r -> { message.append("\n"); message.append(r.getMessage() + " in " + r.getLocation().getStart()); });
                 throw new ParseException(message.toString(), 0);
             }
         }
