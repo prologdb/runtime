@@ -43,7 +43,7 @@ open class Integer(val value: Long) : Number {
 
     override fun toThePowerOf(other: Number) =
         when(other) {
-            is Integer -> Decimal(Math.pow(this.value.toDouble(), other.value.toDouble()))
+            is Integer -> Integer(Math.pow(this.value.toDouble(), other.value.toDouble()).toLong())
             is Decimal -> Decimal(Math.pow(this.value.toDouble(), other.value))
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
