@@ -79,4 +79,6 @@ open class Decimal(val value: Double) : Number {
     }
 
     override fun hashCode() = value.hashCode()
+
+    override fun toString() = value.toString()
 }

@@ -76,4 +76,6 @@ open class Integer(val value: Long) : Number {
     override fun hashCode(): Int {
         return value.hashCode()
     }
+
+    override fun toString() = value.toString()
 }
