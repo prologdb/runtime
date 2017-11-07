@@ -19,7 +19,11 @@ typealias Calculator = (Predicate) -> Number
 
 object MathLibrary : Library {
     override val exports = listOf(
-        IsRule
+        IsRule,
+        LessThanPredicate,
+        LessThanOrEqualPredicate,
+        GreaterThanPredicate,
+        GreaterThanOrEqualPredicate
     )
 
     /**
@@ -127,3 +131,59 @@ val Term.asNumber: Number
         is Predicate -> MathLibrary.evaluate(this)
         else -> throw PrologRuntimeException("is/2: cannot evaluate term $this")
     }
+
+object GreaterThanPredicate : BuiltinPredicate(">", A, B) {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
+        val unification = super.unify(rhs, randomVarsScope) ?: return Unification.FALSE
+        val valForA = unification.variableValues[A]
+        val valForB = unification.variableValues[B]
+
+        if (valForA.asNumber > valForB.asNumber) {
+            return Unification.TRUE
+        } else {
+            return Unification.FALSE
+        }
+    }
+}
+
+private object GreaterThanOrEqualPredicate : BuiltinPredicate(">=", A, B) {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
+        val unification = super.unify(rhs, randomVarsScope) ?: return Unification.FALSE
+        val valForA = unification.variableValues[A]
+        val valForB = unification.variableValues[B]
+
+        if (valForA.asNumber > valForB.asNumber) {
+            return Unification.TRUE
+        } else {
+            return Unification.FALSE
+        }
+    }
+}
+
+private object LessThanPredicate : BuiltinPredicate("<", A, B) {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
+        val unification = super.unify(rhs, randomVarsScope) ?: return Unification.FALSE
+        val valForA = unification.variableValues[A]
+        val valForB = unification.variableValues[B]
+
+        if (valForA.asNumber > valForB.asNumber) {
+            return Unification.TRUE
+        } else {
+            return Unification.FALSE
+        }
+    }
+}
+
+object LessThanOrEqualPredicate : BuiltinPredicate("=<", A, B) {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
+        val unification = super.unify(rhs, randomVarsScope) ?: return Unification.FALSE
+        val valForA = unification.variableValues[A]
+        val valForB = unification.variableValues[B]
+
+        if (valForA.asNumber > valForB.asNumber) {
+            return Unification.TRUE
+        } else {
+            return Unification.FALSE
+        }
+    }
+}
