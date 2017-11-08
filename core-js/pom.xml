@@ -58,7 +58,7 @@
                             <goal>jar</goal>
                         </goals>
                         <configuration>
-                            <classesDirectory>target/js</classesDirectory>
+                            <classesDirectory>${build.directory}/js</classesDirectory>
                         </configuration>
                     </execution>
                     <execution>

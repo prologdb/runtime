@@ -24,7 +24,7 @@
     </modules>
 
     <properties>
-        <kotlin.version>1.2.0-beta-31</kotlin.version>
+        <kotlin.version>1.1.51</kotlin.version>
         <kotlin.plugin.version>${kotlin.version}</kotlin.plugin.version>
     </properties>
 
@@ -37,20 +37,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <repositories>
-        <repository>
-            <id>kotlin-1.2-eap</id>
-            <url>http://dl.bintray.com/kotlin/kotlin-eap-1.2</url>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>kotlin-1.2-eap</id>
-            <url>http://dl.bintray.com/kotlin/kotlin-eap-1.2</url>
-        </pluginRepository>
-    </pluginRepositories>
 
     <build>
         <pluginManagement>

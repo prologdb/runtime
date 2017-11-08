@@ -19,12 +19,12 @@
     <dependencies>
         <dependency>
             <groupId>com.github.tmarsteel</groupId>
-            <artifactId>kotlin-prolog-core</artifactId>
+            <artifactId>kotlin-prolog-core-jvm</artifactId>
             <version>0.5.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.github.tmarsteel</groupId>
-            <artifactId>kotlin-prolog-parser</artifactId>
+            <artifactId>kotlin-prolog-parser-jvm</artifactId>
             <version>0.5.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -86,6 +86,62 @@
 					<source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>prepare-jar-with-dependencies</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>compile</includeScope>
+                            <includeScope>runtime</includeScope>
+                            <excludeScope>provided</excludeScope>
+                            <excludeScope>test</excludeScope>
+                            <excludeScope>system</excludeScope>
+                            <outputDirectory>${build.directory}/runnable-jar-wd</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-classes-to-runnable-jar-wd</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${build.outputDirectory}</directory>
+                                </resource>
+                            </resources>
+                            <outputDirectory>${build.directory}/runnable-jar-wd</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution><id>default-jar</id><phase>none</phase></execution>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>jar</goal></goals>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>com.github.tmarsteel.ktprolog.playground.jvm.Starter</mainClass>
+                                </manifest>
+                            </archive>
+                            <classesDirectory>${build.directory}/runnable-jar-wd</classesDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
