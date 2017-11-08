@@ -97,7 +97,7 @@ class VariableBucket private constructor(
 
         for ((key, value) in variableMap) {
             if (value != null) {
-                variableMap[key] = value.substituteVariables({ variable -> removedToSubstitute.getOrDefault(variable, variable) })
+                variableMap[key] = value.substituteVariables({ variable -> removedToSubstitute[variable] ?: variable })
             }
         }
     }

@@ -2,8 +2,6 @@ package com.github.tmarsteel.ktprolog.term
 
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.RandomVariableScope
-import isDigit
-import isUpperCase
 
 open class Atom(val name: String) : Term {
 
@@ -41,7 +39,7 @@ open class Atom(val name: String) : Term {
 
     override fun toString(): String {
         val firstChar = name[0]
-        if (!firstChar.isDigit() && (firstChar.isUpperCase() || name.contains(Regex("\\s")))) {
+        if (firstChar !in '0' .. '9' && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
             return "'$name'"
         }
         else {
