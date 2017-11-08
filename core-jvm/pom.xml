@@ -38,7 +38,7 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>../core/src/main/kotlin</sourceDirectory>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
         <testSourceDirectory>src/test/kotlin</testSourceDirectory>
         <plugins>
             <plugin>
@@ -46,6 +46,10 @@
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.plugin.version}</version>
                 <configuration>
+                    <sourceDirs>
+                        <sourceDir>${project.build.sourceDirectory}</sourceDir>
+                        <sourceDir>../core/src/main/kotlin</sourceDir>
+                    </sourceDirs>
                     <experimentalCoroutines>enable</experimentalCoroutines>
                     <jvmTarget>1.8</jvmTarget>
                 </configuration>

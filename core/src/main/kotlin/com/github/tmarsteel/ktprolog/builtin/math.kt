@@ -83,6 +83,9 @@ object MathOperatorRegistry {
         registerOperator("*",   Number::times)
         registerOperator("/",   Number::div)
         registerOperator("mod", Number::rem)
+
+        // this is declared in the platform modules
+        BuiltinMathOperators.register()
     }
 }
 

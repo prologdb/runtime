@@ -27,6 +27,7 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>src/main/kotlin</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
@@ -42,6 +43,7 @@
                             <sourceMap>true</sourceMap>
                             <experimentalCoroutines>enable</experimentalCoroutines>
                             <sourceDirs>
+                                <sourceDir>${project.build.sourceDirectory}</sourceDir>
                                 <sourceDir>../core/src/main/kotlin</sourceDir>
                             </sourceDirs>
                         </configuration>
