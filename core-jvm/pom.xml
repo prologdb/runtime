@@ -10,16 +10,10 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.tmarsteel</groupId>
-    <artifactId>kotlin-prolog-core-js</artifactId>
+    <artifactId>kotlin-prolog-core-jvm</artifactId>
     <version>0.5.0-SNAPSHOT</version>
 
     <dependencies>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-js</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.github.tmarsteel</groupId>
             <artifactId>kotlin-prolog-core</artifactId>

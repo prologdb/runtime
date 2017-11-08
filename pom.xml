@@ -16,7 +16,7 @@
 
     <modules>
         <module>core</module>
-        <module>corejs</module>
+        <module>core-js</module>
         <module>parser</module>
         <module>jvm-playground</module>
     </modules>
