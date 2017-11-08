@@ -40,13 +40,6 @@ open class Decimal(val value: Double) : Number {
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun toThePowerOf(other: Number) =
-        when(other) {
-            is Decimal -> Decimal(Math.pow(value, other.value))
-            is Integer -> Decimal(Math.pow(value, other.value.toDouble()))
-            else -> throw PrologRuntimeException("Unsupported type of number")
-        }
-
     override fun compareTo(other: Number) =
         when(other) {
             is Integer -> this.value.compareTo(other.value)
