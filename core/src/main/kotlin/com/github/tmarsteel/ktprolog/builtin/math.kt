@@ -83,7 +83,6 @@ object MathOperatorRegistry {
         registerOperator("*",   Number::times)
         registerOperator("/",   Number::div)
         registerOperator("mod", Number::rem)
-        registerOperator("^",   Number::toThePowerOf)
     }
 }
 
