@@ -1,6 +1,8 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
 import com.github.tmarsteel.ktprolog.knowledge.MutableKnowledgeBase
+import com.github.tmarsteel.ktprolog.knowledge.library.Library
+import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
@@ -9,8 +11,9 @@ import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.*
 import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
 
 class PrologParser {
-    fun parseDefinitionsInto(tokens: TransactionalSequence<Token>, kb: MutableKnowledgeBase): ParseResult<Unit> {
+    fun parseLibrary(tokens: TransactionalSequence<Token>): ParseResult<Library> {
         val reportings = mutableSetOf<Reporting>()
+        val library = SimpleLibrary()
 
         val parsers: List<(TransactionalSequence<Token>) -> ParseResult<*>> = listOf(
             this::parseRule,
@@ -31,10 +34,10 @@ class PrologParser {
 
             if (chosenResult != null) {
                 if (chosenResult.item is ParsedPredicate) {
-                    kb.assert(chosenResult.item as ParsedPredicate)
+                    library.add(chosenResult.item as ParsedPredicate)
                 }
                 else if (chosenResult.item is ParsedRule) {
-                    kb.defineRule(chosenResult.item as ParsedRule)
+                    library.add(chosenResult.item as ParsedRule)
                 }
                 else {
                     throw InternalParserError("Unsupported result: ${chosenResult.item}")
@@ -72,7 +75,7 @@ class PrologParser {
         }
 
         return ParseResult(
-            Unit,
+            library,
             MATCHED,
             reportings
         )

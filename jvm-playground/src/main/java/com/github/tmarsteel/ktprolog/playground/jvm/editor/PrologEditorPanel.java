@@ -42,6 +42,6 @@ public class PrologEditorPanel {
         textScrollPane = new RTextScrollPane(textArea);
         panel.add(textScrollPane, BorderLayout.CENTER);
 
-        // textArea.setSyntaxEditingStyle("text/prolog");
+        textArea.setSyntaxEditingStyle("text/prolog");
     }
 }

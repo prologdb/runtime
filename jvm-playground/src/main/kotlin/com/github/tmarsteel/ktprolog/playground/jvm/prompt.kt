@@ -18,17 +18,18 @@ fun main(args: Array<String>) {
 
     val kb = DefaultKnowledgeBase()
 
-    val result = parser.parseDefinitionsInto(
+    val result = parser.parseLibrary(
         Lexer(
             SourceUnit("test.pl"),
             LineEndingNormalizer(kbAsString.iterator())
-        ),
-        kb
+        )
     )
 
     result.reportings.forEach(::println)
 
     if (result.reportings.isNotEmpty()) return
+
+    kb.load(result.item!!)
 
     println("Done.")
     println()

@@ -10,7 +10,10 @@ open class SourceLocation (
         val line: Int,
 
         /** The column number, starting with 1 */
-        val column: Int
+        val column: Int,
+
+        /** The index in the source input of characters */
+        val sourceIndex: Int
 ) {
         override fun toString() = "$unit:$line, column $column"
 }

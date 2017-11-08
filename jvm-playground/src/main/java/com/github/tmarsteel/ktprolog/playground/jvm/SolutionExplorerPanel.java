@@ -80,6 +80,17 @@ public class SolutionExplorerPanel {
         return label;
     }
 
+    private JComponent createErrorComponent(String errorMessage) {
+        JLabel label = new JLabel(errorMessage);
+        label.setForeground(new Color(0xE2, 0x40, 0x00));
+        label.setBackground(new Color(242, 140, 137));
+        label.setFont(label.getFont().deriveFont(Font.BOLD));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        return label;
+    }
+
     public JPanel asJPanel() {
         return panel;
     }
@@ -115,10 +126,11 @@ public class SolutionExplorerPanel {
         }
         catch (NoSuchElementException ex) {
             addSolutionComponent(createFalseComponent());
-            currentSolutionsDepleated = true;
-            showNextBT.setEnabled(false);
-            showAllRemainingBT.setEnabled(false);
-            currentSolutionIndex = -1;
+            setDepleated();
+        }
+        catch (StackOverflowError e) {
+            addSolutionComponent(createErrorComponent("Out of local stack."));
+            setDepleated();
         }
 
         solutionsPanel.revalidate();
@@ -135,10 +147,7 @@ public class SolutionExplorerPanel {
         }
 
         addSolutionComponent(createFalseComponent());
-        currentSolutionsDepleated = true;
-        showNextBT.setEnabled(false);
-        showAllRemainingBT.setEnabled(false);
-        currentSolutionIndex = -1;
+        setDepleated();
 
         solutionsPanel.revalidate();
         solutionsPanel.repaint();
@@ -159,5 +168,12 @@ public class SolutionExplorerPanel {
         solutionsPanel.repaint();
         panel.revalidate();
         panel.repaint();
+    }
+
+    public void setDepleated() {
+        currentSolutionsDepleated = true;
+        showNextBT.setEnabled(false);
+        showAllRemainingBT.setEnabled(false);
+        currentSolutionIndex = -1;
     }
 }

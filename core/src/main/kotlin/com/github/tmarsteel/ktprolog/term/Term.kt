@@ -13,5 +13,10 @@ interface Term {
     val variables: Set<Variable>
 
     fun substituteVariables(mapper: (Variable) -> Term): Term
+
+    /**
+     * Two terms equal when they are the same Prolog structure. This method builds the identity predicate.
+     */
+    override fun equals(other: Any?): Boolean
 }
 

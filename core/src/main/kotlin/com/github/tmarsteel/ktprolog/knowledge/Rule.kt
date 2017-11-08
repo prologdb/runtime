@@ -2,12 +2,16 @@ package com.github.tmarsteel.ktprolog.knowledge
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
+import com.github.tmarsteel.ktprolog.knowledge.library.LibraryEntry
 import com.github.tmarsteel.ktprolog.query.Query
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 
-open class Rule(val head: Predicate, val query: Query) {
+open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
+    override val name = head.name
+    override val arity = head.arity
+
     open fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
         val predicateRandomVarsMapping = VariableMapping()
         val randomPredicate = randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)

@@ -123,6 +123,7 @@ public class QueryPanel {
                         JOptionPane.showMessageDialog(null, message.toString(), "Parse Error", JOptionPane.ERROR_MESSAGE);
                     }
                 });
+                e.consume();
             }
         }
 
