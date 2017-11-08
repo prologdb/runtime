@@ -186,7 +186,7 @@ class PrologParserTest : FreeSpec() {
             val tokens = tokensOf("a(a predicate b)")
             val result = parser.parseTerm(tokens)
             result.certainty shouldEqual MATCHED
-            result.reportings.size shouldEqual 1
+            result.reportings.size shouldEqual 0
         }
     }
 
