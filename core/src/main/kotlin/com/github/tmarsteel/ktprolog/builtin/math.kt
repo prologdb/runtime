@@ -3,6 +3,7 @@ package com.github.tmarsteel.ktprolog.builtin
 import com.github.tmarsteel.ktprolog.ArityMap
 import com.github.tmarsteel.ktprolog.PrologRuntimeException
 import com.github.tmarsteel.ktprolog.RandomVariableScope
+import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.knowledge.KnowledgeBase
 import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
@@ -88,7 +89,9 @@ private object IsPredicate : BuiltinPredicate("is", A, B)
 
 object IsRule : Rule(IsPredicate, PredicateQuery(IsPredicate)) {
     override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
-        val predicateAndHeadUnification = head.unify(predicate) ?: return Unification.NONE
+        val randomMapping = VariableMapping()
+        val randomPredicate = randomVariableScope.withRandomVariables(predicate, randomMapping)
+        val predicateAndHeadUnification = head.unify(randomPredicate) ?: return Unification.NONE
 
         val valForA = predicateAndHeadUnification.variableValues[A]
         val valForB = predicateAndHeadUnification.variableValues[B]
@@ -96,11 +99,11 @@ object IsRule : Rule(IsPredicate, PredicateQuery(IsPredicate)) {
 
         if (valForA is Variable) {
             bucket.instantiate(valForA, valForB.asNumber)
-            return sequenceOf(Unification(bucket))
+            return sequenceOf(Unification(bucket.withVariablesResolvedFrom(randomMapping)))
         }
         else if (valForB is Variable) {
             bucket.instantiate(valForB, valForA.asNumber)
-            return sequenceOf(Unification(bucket))
+            return sequenceOf(Unification(bucket.withVariablesResolvedFrom(randomMapping)))
         }
         else if (valForA is Number) {
             if (valForB.asNumber == valForA) {
