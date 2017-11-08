@@ -9,6 +9,7 @@ import com.github.tmarsteel.ktprolog.parser.source.SourceUnit
 import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Variable
+import io.kotlintest.matchers.*
 import io.kotlintest.specs.FreeSpec
 
 class PrologParserTest : FreeSpec() {

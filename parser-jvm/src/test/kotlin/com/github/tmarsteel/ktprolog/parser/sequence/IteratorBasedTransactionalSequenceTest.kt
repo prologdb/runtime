@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.sequence
 
+import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 
 class IteratorBasedTransactionalSequenceTest : FreeSpec() {init {

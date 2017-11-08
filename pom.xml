@@ -19,6 +19,7 @@
         <module>core-js</module>
         <module>core-jvm</module>
         <module>parser</module>
+        <module>parser-jvm</module>
         <module>jvm-playground</module>
     </modules>
 

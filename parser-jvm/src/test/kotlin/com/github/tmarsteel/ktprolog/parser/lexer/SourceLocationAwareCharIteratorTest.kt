@@ -2,6 +2,7 @@ package com.github.tmarsteel.ktprolog.parser.lexer
 
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit
+import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 
 class SourceLocationAwareCharIteratorTest : FreeSpec() {init{

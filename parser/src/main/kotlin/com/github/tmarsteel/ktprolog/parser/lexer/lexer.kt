@@ -23,7 +23,7 @@ class Lexer(source: Iterator<Char>, initialSourceLocation: SourceLocation) : Tra
     override fun rollback() = lexerIteratorTxSequence.rollback()
 }
 
-internal class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLocation) : Iterator<Token> {
+class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLocation) : Iterator<Token> {
 
     private val source: TransactionalSequence<Pair<Char, SourceLocation>>
     init {
