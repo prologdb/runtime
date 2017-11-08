@@ -1,6 +1,7 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
 import com.github.tmarsteel.ktprolog.builtin.MathLibrary
+import com.github.tmarsteel.ktprolog.builtin.MathOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary
 import com.github.tmarsteel.ktprolog.parser.*
@@ -539,7 +540,7 @@ class PrologParser {
         val resultItem: ParsedInfixPredicate
 
         // assure left-associativity of Math operators
-        if (MathLibrary.getCalculator(identifierToken.textContent, 2) != null && rhsResult.item!! is ParsedInfixPredicate) {
+        if (MathOperatorRegistry.getCalculator(identifierToken.textContent, 2) != null && rhsResult.item!! is ParsedInfixPredicate) {
             val rhsPredicate = rhsResult.item as ParsedInfixPredicate
             resultItem = ParsedInfixPredicate(
                 rhsPredicate.name,

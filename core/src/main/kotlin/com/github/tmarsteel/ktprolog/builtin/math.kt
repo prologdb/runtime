@@ -26,7 +26,9 @@ object MathLibrary : Library {
         GreaterThanPredicate,
         GreaterThanOrEqualPredicate
     )
+}
 
+object MathOperatorRegistry {
     /**
      * Maps operator names to calculators
      */
@@ -131,7 +133,7 @@ val Term.asNumber: Number
         is Number -> this
         is com.github.tmarsteel.ktprolog.term.List -> throw PrologRuntimeException("is/2: $this is not a number")
         is Variable -> throw PrologRuntimeException("is/2: Arguments not sufficiently instantiated: $this")
-        is Predicate -> MathLibrary.evaluate(this)
+        is Predicate -> MathOperatorRegistry.evaluate(this)
         else -> throw PrologRuntimeException("is/2: cannot evaluate term $this")
     }
 
