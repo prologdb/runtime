@@ -41,6 +41,10 @@ open class Integer(val value: Long) : Number {
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
+    override fun unaryPlus(): Number = Integer(+this.value)
+
+    override fun unaryMinus(): Number = Integer(-this.value)
+
     override fun compareTo(other: Number) =
         when(other) {
             is Integer -> this.value.compareTo(other.value)

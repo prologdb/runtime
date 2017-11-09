@@ -40,6 +40,10 @@ open class Decimal(val value: Double) : Number {
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
+    override fun unaryPlus(): Number = Decimal(+this.value)
+
+    override fun unaryMinus(): Number = Decimal(-this.value)
+
     override fun compareTo(other: Number) =
         when(other) {
             is Integer -> this.value.compareTo(other.value)

@@ -7,4 +7,7 @@ interface Number : Term {
     operator fun div(other: Number): Number
     operator fun rem(other: Number): Number
     operator fun compareTo(other: Number) : Int
+
+    operator fun unaryPlus(): Number
+    operator fun unaryMinus(): Number
 }

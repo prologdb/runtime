@@ -58,20 +58,20 @@ object MathOperatorRegistry {
      * Evaluates the given predicate as an arithmetic expression.
      */
     fun evaluate(predicate: Predicate): Number {
-        val calculator = getCalculator(predicate.name, predicate.arity) ?: throw PrologRuntimeException("Arithmetic operator ${predicate.name}/{$predicate.arity} is not defined")
+        val calculator = getCalculator(predicate.name, predicate.arity) ?: throw PrologRuntimeException("Arithmetic operator ${predicate.name}/${predicate.arity} is not defined")
         return calculator(predicate)
     }
 
     fun registerOperator(operatorName: String, calculator: (Number) -> Number) {
         registerOperator(operatorName, 1..1, { predicate ->
-            if (predicate.arity != 1 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${predicate.name}/${predicate.arguments.size}")
+            if (predicate.arity != 1 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${predicate.name}/${predicate.arity}")
             calculator(predicate.arguments[0].asNumber)
         })
     }
 
     fun registerOperator(operatorName: String, calculator: (Number, Number) -> Number) {
         registerOperator(operatorName, 2..2, { predicate ->
-            if (predicate.arity != 2 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${predicate.name}/${predicate.arguments.size}")
+            if (predicate.arity != 2 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${predicate.name}/${predicate.arity}")
             calculator(predicate.arguments[0].asNumber, predicate.arguments[1].asNumber)
         })
     }
@@ -83,6 +83,9 @@ object MathOperatorRegistry {
         registerOperator("*",   Number::times)
         registerOperator("/",   Number::div)
         registerOperator("mod", Number::rem)
+
+        registerOperator("+", Number::unaryPlus)
+        registerOperator("-", Number::unaryMinus)
 
         // this is declared in the platform modules
         BuiltinMathOperators.register()
