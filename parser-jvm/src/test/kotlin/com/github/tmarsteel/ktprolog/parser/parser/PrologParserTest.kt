@@ -189,6 +189,22 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
         }
+
+        "-(1) + 3" {
+            val tokens = tokensOf("-(1) + 3")
+            val result = parser.parseTerm(tokens)
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 0
+
+            val item = result.item!! as Predicate
+            item.name shouldEqual "+"
+            item.arguments.size shouldEqual 2
+
+            val lhs = item.arguments[0] as Predicate
+            lhs.name shouldEqual "-"
+            lhs.arguments.size shouldEqual 1
+        }
     }
 
     "list" - {
