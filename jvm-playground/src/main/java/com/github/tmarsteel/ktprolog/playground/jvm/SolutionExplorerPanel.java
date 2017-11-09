@@ -1,5 +1,6 @@
 package com.github.tmarsteel.ktprolog.playground.jvm;
 
+import com.github.tmarsteel.ktprolog.PrologRuntimeException;
 import com.github.tmarsteel.ktprolog.unification.Unification;
 import kotlin.sequences.Sequence;
 
@@ -128,6 +129,11 @@ public class SolutionExplorerPanel {
             addSolutionComponent(createFalseComponent());
             setDepleated();
         }
+        catch (PrologRuntimeException e) {
+            addSolutionComponent(createErrorComponent("Error: " + e.getMessage()));
+            e.printStackTrace(System.err);
+            setDepleated();
+        }
         catch (StackOverflowError e) {
             addSolutionComponent(createErrorComponent("Out of local stack."));
             setDepleated();
@@ -142,8 +148,19 @@ public class SolutionExplorerPanel {
     public void showAllRemainingSolutions() {
         if (currentSolutionsDepleated) return;
 
-        while (currentSolutions.hasNext()) {
-            addSolution(currentSolutions.next());
+        try {
+            while (currentSolutions.hasNext()) {
+                addSolution(currentSolutions.next());
+            }
+        }
+        catch (PrologRuntimeException e) {
+            addSolutionComponent(createErrorComponent("Error: " + e.getMessage()));
+            e.printStackTrace(System.err);
+            setDepleated();
+        }
+        catch (StackOverflowError e) {
+            addSolutionComponent(createErrorComponent("Out of local stack."));
+            setDepleated();
         }
 
         addSolutionComponent(createFalseComponent());
