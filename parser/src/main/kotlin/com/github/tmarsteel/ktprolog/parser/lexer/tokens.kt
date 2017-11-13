@@ -9,7 +9,7 @@ enum class TokenType {
     NUMERIC_LITERAL
 }
 
-enum class Operator(val text: String) {
+enum class Operator(val text: String, val canActAsPredicateName: Boolean = false) {
     PARENT_OPEN("("),
     PARENT_CLOSE(")"),
     BRACKET_OPEN("["),
@@ -18,7 +18,12 @@ enum class Operator(val text: String) {
     SEMICOLON(";"),
     COMMA(","),
     HEAD_QUERY_SEPARATOR(":-"),
-    HEAD_TAIL_SEPARATOR("|")
+    HEAD_TAIL_SEPARATOR("|"),
+    PLUS("+", true),
+    MINUS("-", true),
+    TIMES("*", true),
+    DIVIDE("/", true),
+    POWER("^", true)
 }
 
 /**

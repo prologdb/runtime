@@ -77,7 +77,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
                         // <DIGIT...> <SEPARATOR> <DIGIT...> => floating point literal
                         source.rollback()
                         val afterSeparator = collectUntilOperatorOrWhitespace()
-                        val numberLocationRange = SourceLocationRange(text.second.start, afterSeparator.second)
+                        val numberLocationRange = SourceLocationRange(text.second.start, afterSeparator.second.end)
                         val numberAsString = text.first + '.' + afterSeparator.first
                         numberWithLocation = Pair(numberAsString.toDouble(), numberLocationRange)
                     } else {

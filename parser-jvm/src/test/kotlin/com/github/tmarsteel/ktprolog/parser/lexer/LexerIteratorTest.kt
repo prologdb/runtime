@@ -10,7 +10,8 @@ class LexerIteratorTest : FreeSpec() {init{
         val source = """predicate(arg).
             predicate(arg1, arg2).
             ruleHeadPredicate(arg1, X) :- goal1(arg1), goal2(X).
-            foo(1,2,3)
+            foo(1,2,3.412)  .
+            a+1.
 
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
@@ -306,19 +307,61 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is NumericLiteralToken)
-            (next as NumericLiteralToken).number shouldEqual 3L
+            (next as NumericLiteralToken).number shouldEqual 3.412
             next.location.start.line shouldEqual 4
             next.location.start.column shouldEqual 21
             next.location.end.line shouldEqual 4
-            next.location.end.column shouldEqual 21
+            next.location.end.column shouldEqual 25
 
             next = lexer.next()
             assert(next is OperatorToken)
             (next as OperatorToken).operator shouldEqual Operator.PARENT_CLOSE
             next.location.start.line shouldEqual 4
-            next.location.start.column shouldEqual 22
+            next.location.start.column shouldEqual 26
             next.location.end.line shouldEqual 4
-            next.location.end.column shouldEqual 22
+            next.location.end.column shouldEqual 26
+
+            next = lexer.next()
+            assert(next is OperatorToken)
+            (next as OperatorToken).operator shouldEqual Operator.FULL_STOP
+            next.location.start.line shouldEqual 4
+            next.location.start.column shouldEqual 29
+            next.location.end.line shouldEqual 4
+            next.location.end.column shouldEqual 29
+        }
+
+        "line 5" - {
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldEqual "a"
+            next.location.start.line shouldEqual 5
+            next.location.start.column shouldEqual 13
+            next.location.end.line shouldEqual 5
+            next.location.end.column shouldEqual 13
+
+            next = lexer.next()
+            assert(next is OperatorToken)
+            (next as OperatorToken).operator shouldEqual Operator.PLUS
+            next.location.start.line shouldEqual 5
+            next.location.start.column shouldEqual 14
+            next.location.end.line shouldEqual 5
+            next.location.end.column shouldEqual 14
+
+            next = lexer.next()
+            assert(next is NumericLiteralToken)
+            (next as NumericLiteralToken).number shouldEqual 1L
+            next.location.start.line shouldEqual 5
+            next.location.start.column shouldEqual 15
+            next.location.end.line shouldEqual 5
+            next.location.end.column shouldEqual 15
+
+            next = lexer.next()
+            assert(next is OperatorToken)
+            (next as OperatorToken).operator shouldEqual Operator.FULL_STOP
+            next.location.start.line shouldEqual 5
+            next.location.start.column shouldEqual 16
+            next.location.end.line shouldEqual 5
+            next.location.end.column shouldEqual 16
         }
 
         "eof" - {
