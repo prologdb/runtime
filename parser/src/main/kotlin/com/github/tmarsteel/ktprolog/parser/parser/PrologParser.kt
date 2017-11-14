@@ -1,7 +1,7 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.builtin.MathLibrary
 import com.github.tmarsteel.ktprolog.builtin.MathOperatorRegistry
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary
 import com.github.tmarsteel.ktprolog.parser.*
@@ -12,7 +12,7 @@ import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.*
 import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
 
 class PrologParser {
-    fun parseLibrary(tokens: TransactionalSequence<Token>): ParseResult<Library> {
+    fun parseLibrary(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Library> {
         val reportings = mutableSetOf<Reporting>()
         val library = SimpleLibrary()
 
