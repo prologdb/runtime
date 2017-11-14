@@ -3,6 +3,7 @@ package com.github.tmarsteel.ktprolog.knowledge
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.knowledge.library.MutableOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
 
 private typealias OperatorMap = MutableMap<String,MutableSet<OperatorDefinition>>
 
@@ -85,4 +86,14 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
 
     override val allOperators: Iterable<OperatorDefinition>
         get() = (prefixOps.values + infixOps.values + postfixOps.values).flatMap { it }
+
+    override fun include(other: OperatorRegistry) {
+        if (other is DefaultOperatorRegistry) {
+            prefixOps.putAll(other.prefixOps)
+            infixOps.putAll(other.infixOps)
+            postfixOps.putAll(other.postfixOps)
+        } else {
+            super.include(other)
+        }
+    }
 }

@@ -77,6 +77,14 @@ interface OperatorRegistry {
 
 interface MutableOperatorRegistry : OperatorRegistry {
     fun defineOperator(definition: OperatorDefinition)
+
+    /**
+     * Adds all the operators defined in `other` to this registry. The default implementation simply does something
+     * equivalent to `other.allOperators.forEach(this::defineOperator)`
+     */
+    fun include(other: OperatorRegistry) {
+        other.allOperators.forEach(this::defineOperator)
+    }
 }
 
 /**
