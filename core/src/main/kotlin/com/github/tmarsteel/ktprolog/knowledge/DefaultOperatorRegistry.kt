@@ -3,7 +3,6 @@ package com.github.tmarsteel.ktprolog.knowledge
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.knowledge.library.MutableOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
-import kotlin.coroutines.experimental.buildSequence
 
 private typealias OperatorMap = MutableMap<String,MutableSet<OperatorDefinition>>
 

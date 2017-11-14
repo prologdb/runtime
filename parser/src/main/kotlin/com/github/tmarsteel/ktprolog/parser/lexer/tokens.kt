@@ -9,7 +9,7 @@ enum class TokenType {
     NUMERIC_LITERAL
 }
 
-enum class Operator(val text: String, val canActAsPredicateName: Boolean = false) {
+enum class Operator(val text: String) {
     PARENT_OPEN("("),
     PARENT_CLOSE(")"),
     BRACKET_OPEN("["),
@@ -19,11 +19,25 @@ enum class Operator(val text: String, val canActAsPredicateName: Boolean = false
     COMMA(","),
     HEAD_QUERY_SEPARATOR(":-"),
     HEAD_TAIL_SEPARATOR("|"),
-    PLUS("+", true),
-    MINUS("-", true),
-    TIMES("*", true),
-    DIVIDE("/", true),
-    POWER("^", true)
+    QUERY("?-"),
+    PLUS("+"),
+    MINUS("-"),
+    DOUBLE_TIMES("**"),
+    TIMES("*"),
+    DIVIDE("/"),
+    POWER("^"),
+    XOR("xor"),
+    MODULO("mod"),
+    TERM_EQUALS("=="),
+    LESS_THAN("<"),
+    LESS_THAN_OR_EQUAL("=<"),
+    ARITHMETIC_NOT_EQUALS("=\\="),
+    UNIFY("="),
+    GREATER_THAN_OR_EQUAL(">="),
+    GREATER_THAN(">"),
+    TERM_NOT_EQUALS("\\=="),
+    NEGATED_UNIFY("\\="),
+    IS("is")
 }
 
 /**
