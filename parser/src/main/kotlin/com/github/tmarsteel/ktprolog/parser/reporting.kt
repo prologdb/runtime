@@ -1,9 +1,10 @@
 package com.github.tmarsteel.ktprolog.parser
 
 import com.github.tmarsteel.ktprolog.parser.lexer.Token
+import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 
-sealed class Reporting(val message: String, val location: SourceLocationRange) {
+sealed class Reporting(val message: String, val location: SourceLocation) {
     override fun toString() = message
 }
 
@@ -18,5 +19,9 @@ class UnexpectedEOFError(vararg val expected: String): Reporting("Unexpected EOF
 }
 
 class SemanticError(message: String, location: SourceLocationRange): Reporting(message, location) {
-    override fun toString() = "$message in ${location.start}"
+    override fun toString() = "$message in $location"
+}
+
+class SyntaxError(message: String, location: SourceLocation): Reporting(message, location) {
+    override fun toString() = "$message in $location"
 }
