@@ -65,9 +65,23 @@ interface MutableLibrary : Library {
  * with operator definitions because it makes the library easier to use.
  */
 interface OperatorRegistry {
-    fun findPrefixOperators(name: String): Set<OperatorDefinition>
-    fun findInfixOperators(name: String): Set<OperatorDefinition>
-    fun findPostfixOperators(name: String): Set<OperatorDefinition>
+    /**
+     * Returns the prefix definition for the given name or `null` if the given name is not defined as a prefix
+     * operator.
+     */
+    fun getPrefixDefinition(name: String): OperatorDefinition?
+
+    /**
+     * Returns the infix definition for the given name or `null` if the given name is not defined as a prefix
+     * operator.
+     */
+    fun getInfixDefinition(name: String): OperatorDefinition?
+
+    /**
+     * Returns the postfix definition for the given name or `null` if the given name is not defined as a prefix
+     * operator.
+     */
+    fun getPostfixDefinition(name: String): OperatorDefinition?
 
     /**
      * Is supposed to display listings and merge multiple operator registries. Should be computed on demand only.

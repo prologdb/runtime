@@ -5,7 +5,7 @@ import com.github.tmarsteel.ktprolog.knowledge.library.MutableOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
 
-private typealias OperatorMap = MutableMap<String,MutableSet<OperatorDefinition>>
+private typealias OperatorMap = MutableMap<String,OperatorDefinition>
 
 /**
  * A simple implementation of [MutableOperatorRegistry]. Includes the definitions of the ISO prolog operators in
@@ -60,11 +60,11 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
         }
     }
 
-    override fun findPrefixOperators(name: String): Set<OperatorDefinition> = prefixOps[name] ?: emptySet()
+    override fun getPrefixDefinition(name: String): OperatorDefinition? = prefixOps[name]
 
-    override fun findInfixOperators(name: String): Set<OperatorDefinition> = infixOps[name] ?: emptySet()
+    override fun getInfixDefinition(name: String): OperatorDefinition? = infixOps[name]
 
-    override fun findPostfixOperators(name: String): Set<OperatorDefinition> = postfixOps[name] ?: emptySet()
+    override fun getPostfixDefinition(name: String): OperatorDefinition? = postfixOps[name]
 
     override fun defineOperator(definition: OperatorDefinition) {
         val targetMap = when(definition.type) {
@@ -73,19 +73,11 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
             XF, YF -> postfixOps
         }
 
-        val targetSet: MutableSet<OperatorDefinition>
-        if (definition.name !in targetMap) {
-            targetSet = mutableSetOf()
-            targetMap[definition.name] = targetSet
-        } else {
-            targetSet = targetMap[definition.name]!!
-        }
-
-        targetSet.add(definition)
+        targetMap[definition.name] = definition
     }
 
     override val allOperators: Iterable<OperatorDefinition>
-        get() = (prefixOps.values + infixOps.values + postfixOps.values).flatMap { it }
+        get() = prefixOps.values + infixOps.values + postfixOps.values
 
     override fun include(other: OperatorRegistry) {
         if (other is DefaultOperatorRegistry) {
