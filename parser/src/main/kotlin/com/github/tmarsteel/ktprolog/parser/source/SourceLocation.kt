@@ -17,6 +17,26 @@ open class SourceLocation (
 ) {
         override fun toString() = "$unit:$line, column $column"
 
+        operator fun rangeTo(other: SourceLocation): SourceLocationRange {
+            if (this.unit != other.unit) {
+                throw IllegalArgumentException("The stat and end of a source location range must be in the same source unit")
+            }
+
+            return if (other is SourceLocationRange) {
+                rangeTo(other.end)
+            } else {
+                if (this.line < other.line) {
+                    SourceLocationRange(this, other)
+                } else if (other.line < this.line) {
+                    SourceLocationRange(other, this)
+                } else if (this.column <= other.column) {
+                    SourceLocationRange(this, other)
+                } else {
+                    SourceLocationRange(other, this)
+                }
+            }
+        }
+
         companion object {
             val EOF = object : SourceLocation(SourceUnit(""), -1, -1, -1) {
             override fun toString() = "EOF"
