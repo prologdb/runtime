@@ -21,7 +21,6 @@ interface ParsedTerm : Term {
 class ParsedAtom(name: String, override val location: SourceLocationRange): ParsedTerm, Atom(name)
 class ParsedList(givenElements: List<Term>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, com.github.tmarsteel.ktprolog.term.List(givenElements, tail)
 open class ParsedPredicate(name: String, arguments: Array<out Term>, override val location: SourceLocationRange) : ParsedTerm, Predicate(name, arguments)
-class ParsedInfixPredicate(name: String, val lhs: ParsedTerm, val rhs: ParsedTerm) : ParsedPredicate(name, arrayOf(lhs, rhs), lhs.location .. rhs.location)
 class ParsedVariable(name: String, override val location: SourceLocationRange) : ParsedTerm, Variable(name)
 interface ParsedNumber : ParsedTerm, Number
 class ParsedInteger(value: Long, override val location: SourceLocationRange) : ParsedNumber, Integer(value)
