@@ -556,9 +556,21 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
         }
 
         val rhs = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry)
-
+        if (prefixDef.precedence > rhs.second.precedence) {
+            return Pair(
+                ParsedPredicate(
+                    first.textContent,
+                    arrayOf(rhs.first),
+                    first.location .. rhs.first.location
+                ),
+                prefixDef
+            )
+        }
+        else if (prefixDef.precedence < rhs.second.precedence) {
+            val rhsLhs = rhs.first.arguments[0]
+        }
     } else {
-        // first is a value to the following infix operator
+        // first is a value to the following infix or postfix operator
         TODO()
     }
 }
