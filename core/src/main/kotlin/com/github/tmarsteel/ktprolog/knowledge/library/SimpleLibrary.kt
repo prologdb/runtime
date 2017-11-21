@@ -1,6 +1,6 @@
 package com.github.tmarsteel.ktprolog.knowledge.library
 
-class SimpleLibrary(
+open class SimpleLibrary(
     private val entryStore: MutableLibraryEntryStore,
     private val operatorRegistry: MutableOperatorRegistry
 ) : MutableLibrary {

@@ -129,7 +129,7 @@ interface Library : LibraryEntryStore, OperatorRegistry
 /**
  * A library that can be modified
  */
-interface MutableLibrary : MutableLibraryEntryStore, MutableOperatorRegistry {
+interface MutableLibrary : Library, MutableLibraryEntryStore, MutableOperatorRegistry {
     /**
      * Includes all exports (facts, rules and operators) of the given library into this library.
      *

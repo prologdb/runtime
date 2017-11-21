@@ -20,7 +20,8 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
     private val infixOps: OperatorMap = mutableMapOf()
     private val postfixOps: OperatorMap = mutableMapOf()
 
-    constructor() : this(true)
+    /** Delegates to `this(false)`. */
+    constructor() : this(false)
 
     init {
         if (withIsoOps) {

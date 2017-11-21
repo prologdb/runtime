@@ -18,53 +18,45 @@ import com.github.tmarsteel.ktprolog.unification.VariableBucket
  */
 typealias Calculator = (Predicate) -> Number
 
-object MathLibrary : Library {
-    private val entryStore = DoublyIndexedLibraryEntryStore()
+val MathLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+
     init {
-        entryStore.add(IsRule)
-        entryStore.add(LessThanPredicate)
-        entryStore.add(LessThanOrEqualPredicate)
-        entryStore.add(GreaterThanPredicate)
-        entryStore.add(GreaterThanOrEqualPredicate)
+        add(IsRule)
+        add(LessThanPredicate)
+        add(LessThanOrEqualPredicate)
+        add(GreaterThanPredicate)
+        add(GreaterThanOrEqualPredicate)
+
+        defineOperator(OperatorDefinition(700, OperatorType.XFX, "<"))
+        defineOperator(OperatorDefinition(700, OperatorType.XFX, "=<"))
+        defineOperator(OperatorDefinition(700, OperatorType.XFX, "=\\="))
+        defineOperator(OperatorDefinition(700, OperatorType.XFX, ">"))
+        defineOperator(OperatorDefinition(700, OperatorType.XFX, ">="))
+        defineOperator(OperatorDefinition(700, OperatorType.XFX, "is"))
+
+        defineOperator(OperatorDefinition(500, OperatorType.YFX, "+"))
+        defineOperator(OperatorDefinition(500, OperatorType.YFX, "-"))
+        defineOperator(OperatorDefinition(500, OperatorType.YFX, "xor"))
+
+        defineOperator(OperatorDefinition(400, OperatorType.YFX, "*"))
+
+        defineOperator(OperatorDefinition(400, OperatorType.YFX, "mod"))
+
+        defineOperator(OperatorDefinition(200, OperatorType.XFX, "**"))
+
+        defineOperator(OperatorDefinition(200, OperatorType.XFY, "^"))
+
+        defineOperator(OperatorDefinition(200, OperatorType.FY, "+"))
+        defineOperator(OperatorDefinition(200, OperatorType.FY, "-"))
     }
-
-    override val exports: Iterable<LibraryEntry> = entryStore.exports
-
-    private val operators = DefaultOperatorRegistry()
-    init {
-        operators.defineOperator(OperatorDefinition(700, OperatorType.XFX, "<"))
-        operators.defineOperator(OperatorDefinition(700, OperatorType.XFX, "=<"))
-        operators.defineOperator(OperatorDefinition(700, OperatorType.XFX, "=\\="))
-        operators.defineOperator(OperatorDefinition(700, OperatorType.XFX, ">"))
-        operators.defineOperator(OperatorDefinition(700, OperatorType.XFX, ">="))
-        operators.defineOperator(OperatorDefinition(700, OperatorType.XFX, "is"))
-
-        operators.defineOperator(OperatorDefinition(500, OperatorType.YFX, "+"))
-        operators.defineOperator(OperatorDefinition(500, OperatorType.YFX, "-"))
-        operators.defineOperator(OperatorDefinition(500, OperatorType.YFX, "xor"))
-
-        operators.defineOperator(OperatorDefinition(400, OperatorType.YFX, "*"))
-
-        operators.defineOperator(OperatorDefinition(400, OperatorType.YFX, "mod"))
-
-        operators.defineOperator(OperatorDefinition(200, OperatorType.XFX, "**"))
-
-        operators.defineOperator(OperatorDefinition(200, OperatorType.XFY, "^"))
-
-        operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "+"))
-        operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "-"))
-    }
-
-    override fun getPrefixDefinition(name: String): OperatorDefinition? = operators.getPrefixDefinition(name)
-
-    override fun getInfixDefinition(name: String): OperatorDefinition? = operators.getInfixDefinition(name)
-
-    override fun getPostfixDefinition(name: String): OperatorDefinition? = operators.getPostfixDefinition(name)
-
-    override val allOperators: Iterable<OperatorDefinition>
-        get() = operators.allOperators
 }
 
+/**
+ * Keeps track of ways to evaluate mathematical predicates. This is global; registring a new calculator
+ * will affect all prolog runtimes.
+ *
+ * **This is not an [OperatorRegistry]!**
+ */
 object MathOperatorRegistry {
     /**
      * Maps operator names to calculators
