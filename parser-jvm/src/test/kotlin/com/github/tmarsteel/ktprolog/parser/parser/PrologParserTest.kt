@@ -1,11 +1,14 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.knowledge.DefaultOperatorRegistry
-import com.github.tmarsteel.ktprolog.knowledge.library.Library
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
-import com.github.tmarsteel.ktprolog.parser.*
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
-import com.github.tmarsteel.ktprolog.parser.lexer.*
+import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
+import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
+import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
+import com.github.tmarsteel.ktprolog.parser.ParsedAtom
+import com.github.tmarsteel.ktprolog.parser.ParsedList
+import com.github.tmarsteel.ktprolog.parser.ParsedPredicate
+import com.github.tmarsteel.ktprolog.parser.ParsedVariable
+import com.github.tmarsteel.ktprolog.parser.lexer.Lexer
+import com.github.tmarsteel.ktprolog.parser.lexer.Token
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit
 import com.github.tmarsteel.ktprolog.term.Atom

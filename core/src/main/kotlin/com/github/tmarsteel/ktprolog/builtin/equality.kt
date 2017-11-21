@@ -1,9 +1,9 @@
 package com.github.tmarsteel.ktprolog.builtin
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope
-import com.github.tmarsteel.ktprolog.knowledge.DefaultOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.KnowledgeBase
 import com.github.tmarsteel.ktprolog.knowledge.Rule
+import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType

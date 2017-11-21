@@ -6,6 +6,7 @@ import com.github.tmarsteel.ktprolog.VariableMapping
 import com.github.tmarsteel.ktprolog.builtin.EqualityLibrary
 import com.github.tmarsteel.ktprolog.builtin.MathLibrary
 import com.github.tmarsteel.ktprolog.builtin.TypeSafetyLibrary
+import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.DoublyIndexedLibraryEntryStore
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
 import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary

@@ -1,8 +1,5 @@
-package com.github.tmarsteel.ktprolog.knowledge
+package com.github.tmarsteel.ktprolog.knowledge.library
 
-import com.github.tmarsteel.ktprolog.knowledge.library.MutableOperatorRegistry
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 
 private typealias OperatorMap = MutableMap<String,OperatorDefinition>
