@@ -1,15 +1,21 @@
 package com.github.tmarsteel.ktprolog.knowledge
 
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.knowledge.library.MutableOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 
 private typealias OperatorMap = MutableMap<String,OperatorDefinition>
 
 /**
  * A simple implementation of [MutableOperatorRegistry]. Includes the definitions of the ISO prolog operators in
  * every instance
+ * @param withIsoOps If true, the absolutely essential operators will be defined at construction time. These are:
+ *
+ * * TODO
+ *
+ * This parameter should be set to false unless you are creating a prolog runtime environment
+ * from scratch. E.g., [DefaultKnowledgeBase] sets it to true.
  */
 class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
 
@@ -32,15 +38,12 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
 
             defineOperator(OperatorDefinition(1000, XFY, ","))
 
+            // equality and inequality operators are defined in EqualityLibrary
             defineOperator(OperatorDefinition(700, XFX, "<"))
-            defineOperator(OperatorDefinition(700, XFX, "="))
             defineOperator(OperatorDefinition(700, XFX, "=<"))
-            defineOperator(OperatorDefinition(700, XFX, "=="))
             defineOperator(OperatorDefinition(700, XFX, "=\\="))
             defineOperator(OperatorDefinition(700, XFX, ">"))
             defineOperator(OperatorDefinition(700, XFX, ">="))
-            defineOperator(OperatorDefinition(700, XFX, "\\="))
-            defineOperator(OperatorDefinition(700, XFX, "\\=="))
             defineOperator(OperatorDefinition(700, XFX, "is"))
 
             defineOperator(OperatorDefinition(500, YFX, "+"))
