@@ -119,7 +119,9 @@ data class OperatorDefinition (
      * The name of the operator
      */
     val name: String
-)
+) {
+    override fun toString() = "op($precedence,${type.name.toLowerCase()},$name)"
+}
 
 enum class OperatorType(val arity: Int) {
     FX(1),
