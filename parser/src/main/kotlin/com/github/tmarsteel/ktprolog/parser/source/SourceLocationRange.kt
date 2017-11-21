@@ -11,7 +11,7 @@ class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : 
         }
     }
 
-    operator fun rangeTo(other: SourceLocation): SourceLocationRange {
+    override operator fun rangeTo(other: SourceLocation): SourceLocationRange {
         if (other is SourceLocationRange) {
             return SourceLocationRange(this, other.end)
         }

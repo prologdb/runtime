@@ -17,7 +17,7 @@ open class SourceLocation (
 ) {
         override fun toString() = "$unit:$line, column $column"
 
-        operator fun rangeTo(other: SourceLocation): SourceLocationRange {
+        open operator fun rangeTo(other: SourceLocation): SourceLocationRange {
             if (this.unit != other.unit) {
                 throw IllegalArgumentException("The stat and end of a source location range must be in the same source unit")
             }

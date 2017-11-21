@@ -13,14 +13,10 @@
     <artifactId>kotlin-prolog-core</artifactId>
     <version>0.5.0-SNAPSHOT</version>
 
-    <properties>
-        <kotlin.version>1.2.0-rc-39</kotlin.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib-jdk8</artifactId>
+            <artifactId>kotlin-stdlib</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>
@@ -69,6 +65,7 @@
                 <executions><execution><phase>none</phase></execution></executions>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
+                    <experimentalCoroutines>enable</experimentalCoroutines>
                 </configuration>
             </plugin>
         </plugins>
