@@ -1,18 +1,22 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.knowledge.library.*
+import com.github.tmarsteel.ktprolog.knowledge.library.Library
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.parser.*
-import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
+import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
+import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.tmarsteel.ktprolog.parser.lexer.*
-import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.*
 import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
+import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.IDENTIFIER
+import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.NUMERIC_LITERAL
+import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Term
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
-import com.github.tmarsteel.ktprolog.term.AnonymousVariable
+import com.github.tmarsteel.ktprolog.term.Variable
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -23,7 +27,7 @@ class PrologParser {
      * @param opRegistry Is used to determine operators, their precedence and associativity
      * @param shouldStop Is invoked with the given token sequence. If it returns true the matching will stop.
      */
-    fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Term> {
+    fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<ParsedTerm> {
         // in prolog, the binary expression (e.g. a op b op c op d) is the concept that can be applied to all
         // syntactically valid expressions; comma separated lists are also binary expressions:
         //
@@ -43,7 +47,6 @@ class PrologParser {
                 return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
             }
 
-            val token = tokens.next()
             val parseResult = parseSingle(tokens, opRegistry)
             if (parseResult.isSuccess) {
                 collectedElements.add(parseResult.item!!)
@@ -51,7 +54,7 @@ class PrologParser {
             }
             else
             {
-                collectedElements.add(token)
+                collectedElements.add(tokens.next())
             }
         }
 
@@ -164,7 +167,7 @@ class PrologParser {
             tokens.commit()
             val argsResult = commaPredicateToList(argsTermResult.item!!)
             return ParseResult(
-                Predicate(predicateName, argsResult.item!!.toTypedArray()),
+                ParsedPredicate(predicateName, argsResult.item!!.toTypedArray(), nameToken.location .. argsResult.item.last().location),
                     MATCHED,
                     argsTermResult.reportings + argsResult.reportings
             )
@@ -220,12 +223,12 @@ class PrologParser {
 
             if (term is Predicate && term.name == HEAD_TAIL_SEPARATOR.text) {
                 if (term.arity != 2) throw InternalParserError("Cannot use an instance of ${term.name}/${term.arity} to construct a list.")
-                val elResult = commaPredicateToList(term.arguments[0])
+                val elResult = commaPredicateToList(term.arguments[0] as? ParsedTerm ?: throw InternalParserError())
                 resultList = com.github.tmarsteel.ktprolog.term.List(elResult.item ?: emptyList(), term.arguments[1])
                 reportings += elResult.reportings
             }
             else if (term is Predicate && term.name == COMMA.text) {
-                val elResult = commaPredicateToList(term)
+                val elResult = commaPredicateToList(term as? ParsedTerm ?: throw InternalParserError())
                 resultList = com.github.tmarsteel.ktprolog.term.List(elResult.item ?: emptyList())
                 reportings += elResult.reportings
             }
@@ -244,7 +247,7 @@ class PrologParser {
     /**
      * Parses a parenthesised term: `(term)`.
      */
-    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Term> {
+    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedTerm> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("parenthesised term")))
 
         tokens.mark()
@@ -411,8 +414,18 @@ class PrologParser {
      * elements. The resulting [ParseResult] always has the certainty [MATCHED] and contains
      * [Reporting]s for every error encountered.
      */
-    private fun commaPredicateToList(commaPredicate: Term): ParseResult<List<Term>> {
-        TODO()
+    private fun commaPredicateToList(commaPredicate: ParsedTerm): ParseResult<List<ParsedTerm>> {
+        var pivot = commaPredicate
+        val list = ArrayList<ParsedTerm>(5)
+        while (pivot is Predicate && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
+            pivot as? ParsedPredicate ?: throw InternalParserError()
+            list.add(pivot.arguments[0])
+            pivot = pivot.arguments[1]
+        }
+
+        list.add(pivot)
+
+        return ParseResult.of(list)
     }
 
     companion object {
@@ -423,15 +436,17 @@ class PrologParser {
          */
         fun stopAtOperator(operator: Operator): (TransactionalSequence<Token>) -> Boolean {
             return { tokens ->
-                tokens.mark()
-                val token = tokens.next()
+                if (!tokens.hasNext()) true else {
+                    tokens.mark()
+                    val token = tokens.next()
 
-                if (token is OperatorToken && token.operator == operator) {
-                    tokens.commit()
-                    true
-                } else {
-                    tokens.rollback()
-                    false
+                    if (token is OperatorToken && token.operator == operator) {
+                        tokens.commit()
+                        true
+                    } else {
+                        tokens.rollback()
+                        false
+                    }
                 }
             }
         }
@@ -496,18 +511,24 @@ private val Token.textContent: String?
     }
 
 private fun OperatorRegistry.getPrefixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
+    if (tokenOrTerm is Variable) return null
+
     val text = tokenOrTerm.textContent
 
     return getPrefixDefinition(text)
 }
 
 private fun OperatorRegistry.getInfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
+    if (tokenOrTerm is Variable) return null
+
     val text = tokenOrTerm.textContent
 
     return getInfixDefinition(text)
 }
 
 private fun OperatorRegistry.getPostfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
+    if (tokenOrTerm is Variable) return null
+
     val text = tokenOrTerm.textContent
 
     return getPostfixDefinition(text)
@@ -527,9 +548,9 @@ private val TokenOrTerm.location: SourceLocationRange
         else -> throw InternalParserError()
     }
 
-private fun TokenOrTerm.asTerm(): Term {
+private fun TokenOrTerm.asTerm(): ParsedTerm {
     if (this is Term) {
-        return this
+        return this as? ParsedTerm ?: throw InternalParserError()
     }
 
     if (this is Token && this is OperatorToken) {
@@ -656,7 +677,7 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                     Pair(
                         ParsedPredicate(
                             second.textContent,
-                            arrayOf(first.asTerm(), AnonymousVariable),
+                            arrayOf(first.asTerm()),
                             first.location .. second.location
                         ),
                         infixDef

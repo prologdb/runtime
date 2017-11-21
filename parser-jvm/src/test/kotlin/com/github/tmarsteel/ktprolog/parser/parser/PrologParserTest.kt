@@ -53,10 +53,6 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 1
             result.item shouldBe null
         }
-
-        "a," {
-            TODO()
-        }
     }
 
     "variable" - {
@@ -248,86 +244,4 @@ class PrologParserTest : FreeSpec() {
             (result.item!!.tail as ParsedVariable).name shouldEqual "T"
         }
     }
-
-        /*
-    "query" - {
-        "single predicate" {
-            val result = parser.parseQuery(tokensOf("a(a)"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedPredicateQuery)
-        }
-
-        "a(a), b(b)" {
-            val result = parser.parseQuery(tokensOf("a(a), b(b)"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedAndQuery)
-        }
-
-        "a(a), b(b); c(c)" {
-            val result = parser.parseQuery(tokensOf("a(a), b(b); c(c)"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedOrQuery)
-        }
-
-        "parenthesised 1" {
-            val result = parser.parseQuery(tokensOf("(a(a))"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedPredicateQuery)
-        }
-
-        "parenthesised 2" {
-            val result = parser.parseQuery(tokensOf("(a(a), b(b))"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedAndQuery)
-        }
-
-        "parenthesised 3" {
-            val result = parser.parseQuery(tokensOf("(a(a), b(b));(c(c), d(d))"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedOrQuery)
-        }
-
-        "infix" {
-            val result = parser.parseQuery(tokensOf("X = a, f(x)"))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedAndQuery)
-
-            val query = result.item!! as ParsedAndQuery
-            assert(query.goals[0] is ParsedPredicateQuery)
-            assert(query.goals[1] is ParsedPredicateQuery)
-
-            (query.goals[0] as ParsedPredicateQuery).predicate.name shouldEqual "="
-            (query.goals[0] as ParsedPredicateQuery).predicate.arguments.size shouldEqual 2
-        }
-    }
-
-    "rule" - {
-        "f(X, a) :- g(X), f(X)." {
-            val result = parser.parseRule(tokensOf("f(X, a) :- g(X), f(X)."))
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedRule)
-        }
-    }*/
-
-
-    /*"library" {
-        "case 1" {
-            val tokens = tokensOf("a([], _, []).")
-            val result = parser.parseLibrary(tokens)
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-
-            val predicate = result.item as Library
-            predicate.exports.count() shouldEqual 1
-            (predicate.exports.first() as Predicate).arguments.size shouldEqual 3
-        }
-    }*/
 }}

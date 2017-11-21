@@ -6,8 +6,10 @@ import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.unification.VariableBucket
 import sensibleHashCode
 
-open class Predicate(override val name: String, val arguments: Array<out Term>) : Term, LibraryEntry
+open class Predicate(override val name: String, arguments: Array<out Term>) : Term, LibraryEntry
 {
+    open val arguments: Array<out Term> = arguments
+
     override val arity = arguments.size
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
