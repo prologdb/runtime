@@ -1,6 +1,8 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
+import com.github.tmarsteel.ktprolog.knowledge.DefaultOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
 import com.github.tmarsteel.ktprolog.parser.lexer.*
@@ -19,46 +21,15 @@ class PrologParserTest : FreeSpec() {
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
-    val parser = PrologParser()
+    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, DefaultOperatorRegistry(true), PrologParser.STOP_AT_EOF)
+    fun parseTerm(code: String) = parseTerm(tokensOf(code))
 
-    "comma separated terms" - {
-        "1,2,3,4 a" {
-            val tokens = tokensOf("1,2,3,4 followUpAtom")
-            val result = parser.parseCommaSeparatedTerms(tokens, { true })
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item != null)
-            result.item!!.size shouldEqual 4
-            (result.item!![0] as ParsedInteger).value shouldEqual 1L
-            (result.item!![1] as ParsedInteger).value shouldEqual 2L
-            (result.item!![2] as ParsedInteger).value shouldEqual 3L
-            (result.item!![3] as ParsedInteger).value shouldEqual 4L
-
-            tokens.hasNext() shouldEqual true
-            val followUpToken = tokens.next()
-            assert(followUpToken is IdentifierToken)
-            (followUpToken as IdentifierToken).textContent shouldEqual "followUpAtom"
-        }
-
-        "invalid: 1,2,." {
-            val tokens = tokensOf("1,2,.")
-            val result = parser.parseCommaSeparatedTerms(tokens, { it is OperatorToken && it.operator == Operator.FULL_STOP })
-
-            result.certainty shouldEqual MATCHED
-            result.reportings.size shouldEqual 1
-            assert(result.item != null)
-            result.item!!.size shouldEqual 2
-
-            tokens.hasNext() shouldEqual true
-            val followUpToken = tokens.next()
-            assert(followUpToken is OperatorToken)
-            (followUpToken as OperatorToken).operator shouldEqual Operator.FULL_STOP
-        }
-    }
+    fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, DefaultOperatorRegistry(true))
+    fun parseList(code: String) = parseList(tokensOf(code))
 
     "atom" - {
         "a" {
-            val result = parser.parseTerm(tokensOf("a"))
+            val result = parseTerm("a")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedAtom)
@@ -66,7 +37,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "someAtom" {
-            val result = parser.parseTerm(tokensOf("someAtom"))
+            val result = parseTerm("someAtom")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedAtom)
@@ -74,30 +45,20 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: PARENT_OPEN" {
-            val result = parser.parseTerm(tokensOf("("))
+            val result = parseTerm("(")
             result.certainty shouldEqual NOT_RECOGNIZED
             result.reportings.size shouldEqual 1
             result.item shouldBe null
         }
 
         "a," {
-            val tokens = tokensOf("a,")
-            val result = parser.parseTerm(tokens)
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
-            assert(result.item is ParsedAtom)
-            (result.item!! as ParsedAtom).name shouldEqual "a"
-
-            tokens.hasNext() shouldEqual true
-            val followUpToken = tokens.next()
-            assert(followUpToken is OperatorToken)
-            (followUpToken as OperatorToken).operator shouldEqual Operator.COMMA
+            TODO()
         }
     }
 
     "variable" - {
         "X" {
-            val result = parser.parseTerm(tokensOf("X"))
+            val result = parseTerm("X")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is Variable)
@@ -105,7 +66,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "Variable" {
-            val result = parser.parseTerm(tokensOf("Variable"))
+            val result = parseTerm("Variable")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is Variable)
@@ -113,7 +74,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "_underscore" {
-            val result = parser.parseTerm(tokensOf("_underscore"))
+            val result = parseTerm("_underscore")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is Variable)
@@ -123,7 +84,7 @@ class PrologParserTest : FreeSpec() {
     
     "predicate" - {
         "predicate(foo, X, bar)" {
-            val result = parser.parseTerm(tokensOf("predicate(foo, X, bar)"))
+            val result = parseTerm("predicate(foo, X, bar)")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             val predicate = result.item!! as Predicate
@@ -141,7 +102,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: missing closing parenthesis: EOF instead" {
-            val result = parser.parseTerm(tokensOf("predicate(foo, X"))
+            val result = parseTerm("predicate(foo, X")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
 
@@ -150,7 +111,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: missing closing parenthesis: . instead" {
-            val result = parser.parseTerm(tokensOf("predicate(foo, X."))
+            val result = parseTerm("predicate(foo, X.")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
 
@@ -159,40 +120,27 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: missing comma" {
-            val tokens = tokensOf("predicate(foo  X).")
-            val result = parser.parseTerm(tokens)
-            result.certainty shouldEqual MATCHED
-            result.reportings.size shouldEqual 1
-
-            val predicate = result.item!! as Predicate
-            predicate.name shouldEqual "predicate"
-
-            val followupToken = tokens.next()
-            assert(followupToken is OperatorToken)
-            (followupToken as OperatorToken).operator shouldEqual Operator.FULL_STOP
+            TODO()
         }
 
         "a predicate b" {
-            val tokens = tokensOf("a predicate b")
-            val result = parser.parsePredicateWithInfixNotation(tokens)
+            val result = parseTerm("a predicate b")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
-            val predicate = result.item!!
+            val predicate = result.item!! as ParsedPredicate
             predicate.name shouldEqual "predicate"
             predicate.arguments.size shouldEqual 2
         }
 
         "a(a predicate b)" {
-            val tokens = tokensOf("a(a predicate b)")
-            val result = parser.parseTerm(tokens)
+            val result = parseTerm("a(a predicate b)")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
         }
 
         "-(1) + 3" {
-            val tokens = tokensOf("-(1) + 3")
-            val result = parser.parseTerm(tokens)
+            val result = parseTerm("-(1) + 3")
 
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
@@ -210,7 +158,7 @@ class PrologParserTest : FreeSpec() {
     "list" - {
         "[]" {
             val tokens = tokensOf("[]")
-            val result = parser.parseList(tokens)
+            val result = parseList(tokens)
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
@@ -223,7 +171,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "[1,2]" {
-            val result = parser.parseList(tokensOf("[1,2]"))
+            val result = parseList(tokensOf("[1,2]"))
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
@@ -232,7 +180,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "[1|T]" {
-            val result = parser.parseList(tokensOf("[1|T]"))
+            val result = parseList("[1|T]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
@@ -242,7 +190,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "[1,2|T]" {
-            val result = parser.parseList(tokensOf("[1,2|T]"))
+            val result = parseList("[1,2|T]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
@@ -252,7 +200,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: [1," {
-            val result = parser.parseList(tokensOf("[1,"))
+            val result = parseList("[1,")
             result.certainty shouldEqual MATCHED
             assert(result.reportings.size in 1..2)
             assert(result.item is ParsedList)
@@ -261,7 +209,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: [1,]" {
-            val result = parser.parseList(tokensOf("[1,]"))
+            val result = parseList("[1,]")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
             assert(result.item is ParsedList)
@@ -270,7 +218,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "invalid: [1|]" {
-            val result = parser.parseList(tokensOf("[1|]"))
+            val result = parseList("[1|]")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
             assert(result.item is ParsedList)
@@ -279,7 +227,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "[1,2|[3,4]]" {
-            val result = parser.parseList(tokensOf("[1,2|[3,4]]"))
+            val result = parseList("[1,2|[3,4]]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
@@ -288,7 +236,7 @@ class PrologParserTest : FreeSpec() {
         }
 
         "[1,2|[3|T]]" {
-            val result = parser.parseList(tokensOf("[1,2|[3|T]]"))
+            val result = parseList("[1,2|[3|T]]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             assert(result.item is ParsedList)
@@ -298,6 +246,7 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
+        /*
     "query" - {
         "single predicate" {
             val result = parser.parseQuery(tokensOf("a(a)"))
@@ -363,59 +312,10 @@ class PrologParserTest : FreeSpec() {
             result.reportings should beEmpty()
             assert(result.item is ParsedRule)
         }
-    }
+    }*/
 
-    "error edge cases" - {
-        "predicate in empty list" {
-            val tokens = tokensOf("]")
-            val result = parser.parsePredicate(tokens)
 
-            result.isSuccess shouldBe false
-            result.reportings.size shouldBe 1
-
-            shouldThrow<IllegalStateException> {
-                tokens.commit()
-            }
-        }
-
-        "atomic in empty list" {
-            val tokens = tokensOf("]")
-            val result = parser.parseAtomicOrVariable(tokens)
-
-            result.isSuccess shouldBe false
-            result.reportings.size shouldBe 1
-
-            shouldThrow<IllegalStateException> {
-                tokens.commit()
-            }
-        }
-
-        "list in empty list" {
-            val tokens = tokensOf("]")
-            val result = parser.parseList(tokens)
-
-            result.isSuccess shouldBe false
-            result.reportings.size shouldBe 1
-
-            shouldThrow<IllegalStateException> {
-                tokens.commit()
-            }
-        }
-
-        "term in empty list" {
-            val tokens = tokensOf("]")
-            val result = parser.parseTerm(tokens)
-
-            result.isSuccess shouldBe false
-            result.reportings.size shouldBe 1
-
-            shouldThrow<IllegalStateException> {
-                tokens.commit()
-            }
-        }
-    }
-
-    "library" {
+    /*"library" {
         "case 1" {
             val tokens = tokensOf("a([], _, []).")
             val result = parser.parseLibrary(tokens)
@@ -426,5 +326,5 @@ class PrologParserTest : FreeSpec() {
             predicate.exports.count() shouldEqual 1
             (predicate.exports.first() as Predicate).arguments.size shouldEqual 3
         }
-    }
+    }*/
 }}
