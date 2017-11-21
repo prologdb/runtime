@@ -69,7 +69,7 @@ class PrologParser {
                 return ParseResult(
                     collectedElements[0] as ParsedTerm,
                     MATCHED,
-                    emptySet()
+                    reportings
                 )
             }
             else if (collectedElements[0] is Token) {
@@ -89,7 +89,7 @@ class PrologParser {
         return ParseResult(
             astResult.item?.first,
             astResult.certainty,
-            astResult.reportings
+            reportings + astResult.reportings
         )
     }
 
@@ -432,21 +432,16 @@ class PrologParser {
         /**
          * Helper function for the `shouldStop` parameter to [parseTerm].
          * @return Aborts matching if the next token in the sequence is an [OperatorToken] with the given [Operator], otherwise false.
-         *         Consumes the token if it matches.
+         *         Does not consume the final token if aborting.
          */
         fun stopAtOperator(operator: Operator): (TransactionalSequence<Token>) -> Boolean {
             return { tokens ->
                 if (!tokens.hasNext()) true else {
                     tokens.mark()
                     val token = tokens.next()
+                    tokens.rollback()
 
-                    if (token is OperatorToken && token.operator == operator) {
-                        tokens.commit()
-                        true
-                    } else {
-                        tokens.rollback()
-                        false
-                    }
+                    token is OperatorToken && token.operator == operator
                 }
             }
         }
@@ -511,7 +506,7 @@ private val Token.textContent: String?
     }
 
 private fun OperatorRegistry.getPrefixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    if (tokenOrTerm is Variable) return null
+    if (tokenOrTerm is Predicate || tokenOrTerm is Variable || tokenOrTerm is com.github.tmarsteel.ktprolog.term.Number) return null
 
     val text = tokenOrTerm.textContent
 
@@ -519,7 +514,7 @@ private fun OperatorRegistry.getPrefixDefinitionOf(tokenOrTerm: TokenOrTerm): Op
 }
 
 private fun OperatorRegistry.getInfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    if (tokenOrTerm is Variable) return null
+    if (tokenOrTerm is Predicate || tokenOrTerm is Variable || tokenOrTerm is com.github.tmarsteel.ktprolog.term.Number) return null
 
     val text = tokenOrTerm.textContent
 
@@ -527,7 +522,7 @@ private fun OperatorRegistry.getInfixDefinitionOf(tokenOrTerm: TokenOrTerm): Ope
 }
 
 private fun OperatorRegistry.getPostfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    if (tokenOrTerm is Variable) return null
+    if (tokenOrTerm is Predicate || tokenOrTerm is Variable || tokenOrTerm is com.github.tmarsteel.ktprolog.term.Number) return null
 
     val text = tokenOrTerm.textContent
 
@@ -732,12 +727,20 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
             val postfixDef = opRegistry.getInfixDefinitionOf(second)
             if (postfixDef == null) {
                 // two values next to each other => error; then ignore the first value
-                val result = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry)
-                return ParseResult(
-                    result.item,
-                    result.certainty,
-                    result.reportings + SyntaxError("Operator expected", second.location)
-                )
+                if (elements.size > 2) {
+                    val result = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry)
+                    return ParseResult(
+                        result.item,
+                        result.certainty,
+                        result.reportings + SyntaxError("Operator expected", second.location)
+                    )
+                } else {
+                    return ParseResult<Pair<ParsedPredicate,OperatorDefinition>>(
+                        null,
+                        NOT_RECOGNIZED,
+                        setOf(SyntaxError("Operator expected", second.location))
+                    )
+                }
             }
             else {
                 val postfixPredicate = ParsedPredicate(

@@ -1,6 +1,8 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
 import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.tmarsteel.ktprolog.parser.ParsedAtom
@@ -22,12 +24,16 @@ class PrologParserTest : FreeSpec() {
 
     init{
 
+    val operators = DefaultOperatorRegistry(true)
+    operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
+    operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
+
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
-    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, DefaultOperatorRegistry(true), PrologParser.STOP_AT_EOF)
+    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
     fun parseTerm(code: String) = parseTerm(tokensOf(code))
 
-    fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, DefaultOperatorRegistry(true))
+    fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
     fun parseList(code: String) = parseList(tokensOf(code))
 
     "atom" - {
@@ -82,7 +88,7 @@ class PrologParserTest : FreeSpec() {
     }
     
     "predicate" - {
-        "predicate(foo, X, bar)" {
+        "invocation" {
             val result = parseTerm("predicate(foo, X, bar)")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
@@ -100,7 +106,7 @@ class PrologParserTest : FreeSpec() {
             (predicate.arguments[2] as Atom).name shouldEqual "bar"
         }
 
-        "invalid: missing closing parenthesis: EOF instead" {
+        "invalid invocation: missing closing parenthesis: EOF instead" {
             val result = parseTerm("predicate(foo, X")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
@@ -109,7 +115,7 @@ class PrologParserTest : FreeSpec() {
             predicate.name shouldEqual "predicate"
         }
 
-        "invalid: missing closing parenthesis: . instead" {
+        "invalid invocation: missing closing parenthesis: . instead" {
             val result = parseTerm("predicate(foo, X.")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
@@ -122,35 +128,45 @@ class PrologParserTest : FreeSpec() {
             TODO()
         }
 
-        "a predicate b" {
-            val result = parseTerm("a predicate b")
+        "infix" {
+            val result = parseTerm("a infixOpXFX500 b")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
             val predicate = result.item!! as ParsedPredicate
-            predicate.name shouldEqual "predicate"
+            predicate.name shouldEqual "infixOpXFX500"
             predicate.arguments.size shouldEqual 2
         }
 
-        "a(a predicate b)" {
-            val result = parseTerm("a(a predicate b)")
+        "invocation with infix as sole parameter" {
+            val result = parseTerm("a(b infixOpXFX500 c)")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
+
+            val predicate = result.item!! as ParsedPredicate
+            predicate.name shouldEqual "a"
+            predicate.arity shouldEqual 1
+
+            val soleArg = predicate.arguments[0] as ParsedPredicate
+            soleArg.name shouldEqual "infixOpXFX500"
+            soleArg.arity shouldEqual 2
+            soleArg.arguments[0].toString() shouldEqual "b"
+            soleArg.arguments[1].toString() shouldEqual "c"
         }
 
-        "-(1) + 3" {
-            val result = parseTerm("-(1) + 3")
+        "infix with prefix as a parameter" {
+            val result = parseTerm("prefixOpFY200 a infixOpXFX500 b")
 
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
             val item = result.item!! as Predicate
-            item.name shouldEqual "+"
-            item.arguments.size shouldEqual 2
+            item.name shouldEqual "infixOpXFX500"
+            item.arity shouldEqual 2
 
             val lhs = item.arguments[0] as Predicate
-            lhs.name shouldEqual "-"
-            lhs.arguments.size shouldEqual 1
+            lhs.name shouldEqual "prefixOpFY200"
+            lhs.arity shouldEqual 1
         }
     }
 
