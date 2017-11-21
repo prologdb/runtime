@@ -36,27 +36,9 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
             defineOperator(OperatorDefinition(1000, XFY, ","))
 
             // equality and inequality operators are defined in EqualityLibrary
-            defineOperator(OperatorDefinition(700, XFX, "<"))
-            defineOperator(OperatorDefinition(700, XFX, "=<"))
-            defineOperator(OperatorDefinition(700, XFX, "=\\="))
-            defineOperator(OperatorDefinition(700, XFX, ">"))
-            defineOperator(OperatorDefinition(700, XFX, ">="))
-            defineOperator(OperatorDefinition(700, XFX, "is"))
-
-            defineOperator(OperatorDefinition(500, YFX, "+"))
-            defineOperator(OperatorDefinition(500, YFX, "-"))
-            defineOperator(OperatorDefinition(500, YFX, "xor"))
-
-            defineOperator(OperatorDefinition(400, YFX, "*"))
+            // mathematic operators are defined in MathLibrary; /2 is an exception
+            // because it is used to denote predicates with dynamic, e.g.: :- dynamic predicateName/3.
             defineOperator(OperatorDefinition(400, YFX, "/"))
-            defineOperator(OperatorDefinition(400, YFX, "mod"))
-
-            defineOperator(OperatorDefinition(200, XFX, "**"))
-
-            defineOperator(OperatorDefinition(200, XFY, "^"))
-
-            defineOperator(OperatorDefinition(200, FY, "+"))
-            defineOperator(OperatorDefinition(200, FY, "-"))
         }
     }
 
