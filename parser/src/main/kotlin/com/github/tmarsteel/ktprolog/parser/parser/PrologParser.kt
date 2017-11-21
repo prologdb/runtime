@@ -1,9 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.knowledge.library.Library
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
-import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary
+import com.github.tmarsteel.ktprolog.knowledge.library.*
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.*
@@ -14,6 +11,7 @@ import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Term
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -499,14 +497,26 @@ private val Token.textContent: String?
     }
 
 private fun OperatorRegistry.getPrefixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    val text = tokenOrTerm.textContent ?: return null
+    val text = tokenOrTerm.textContent
 
     return getPrefixDefinition(text)
 }
 
+private fun OperatorRegistry.getInfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
+    val text = tokenOrTerm.textContent
+
+    return getInfixDefinition(text)
+}
+
+private fun OperatorRegistry.getPostfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
+    val text = tokenOrTerm.textContent
+
+    return getPostfixDefinition(text)
+}
+
 private val TokenOrTerm.textContent: String
     get() = when(this) {
-        is Token -> this.textContent
+        is Token -> this.textContent!!
         is Atom -> this.name
         else -> throw InternalParserError()
     }
@@ -534,7 +544,13 @@ private fun TokenOrTerm.asTerm(): Term {
 /**
  * @return The parsed predicate and the [OperatorDefinition] of its operator
  */
-private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): Pair<ParsedPredicate,OperatorDefinition> {
+fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedPredicate,OperatorDefinition>> {
+    if (elements.isEmpty()) throw InternalParserError()
+    if (elements.size == 1) {
+        TODO("A Term must be returned here; but a term does not have a meaningful OperatorDefinition. The signature of this method will have to change")
+    }
+    if (elements.size < 2) throw InternalParserError()
+
     val first = elements[0]
 
     val prefixDef = opRegistry.getPrefixDefinitionOf(first)
@@ -545,32 +561,94 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
         if (elements.size == 2) {
             val argTerm = elements[1].asTerm()
 
-            return Pair(
+            return ParseResult.of(Pair(
                 ParsedPredicate(
                     first.textContent,
                     arrayOf(argTerm),
                     first.location .. argTerm.location
                 ),
                 prefixDef
-            )
+            ))
         }
+        assert(elements.size > 2)
 
-        val rhs = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry)
-        if (prefixDef.precedence > rhs.second.precedence) {
-            return Pair(
+        val entireRhs = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry).item ?: throw InternalParserError()
+        if (prefixDef.precedence > entireRhs.second.precedence) {
+            return ParseResult.of(Pair(
                 ParsedPredicate(
                     first.textContent,
-                    arrayOf(rhs.first),
-                    first.location .. rhs.first.location
+                    arrayOf(entireRhs.first),
+                    first.location .. entireRhs.first.location
                 ),
                 prefixDef
+            ))
+        }
+        else if (prefixDef.precedence < entireRhs.second.precedence) {
+            val singleRhs = elements[1].asTerm()
+            val singleRhsWithPrefixOp = ParsedPredicate(
+                first.textContent,
+                arrayOf(singleRhs),
+                first.location .. singleRhs.location
+            )
+
+            val newExpression = ArrayList<TokenOrTerm>(elements.size - 1)
+            newExpression.add(singleRhsWithPrefixOp)
+            newExpression.addAll(elements.subList(2, elements.size))
+
+            return buildBinaryExpressionAST(newExpression, opRegistry)
+        }
+        else {
+            val rhsOperatorDef = entireRhs.second
+            // both same precedence; check compatibility of types
+            var operatorClashError: Reporting? = null
+            if (prefixDef.type == FX && (rhsOperatorDef.type == XF || rhsOperatorDef.type == XFX || rhsOperatorDef.type == XFY)) {
+                operatorClashError = SemanticError(
+                    "Operator priority clash: op(${prefixDef.precedence},${prefixDef.type},${prefixDef.name}) and op(${rhsOperatorDef.precedence},${rhsOperatorDef.type},${rhsOperatorDef.name})",
+                    first.location
+                )
+            }
+
+            if (prefixDef.type == FY && (rhsOperatorDef.type == XF || rhsOperatorDef.type == XFX || rhsOperatorDef.type == XFY)) {
+                return ParseResult.of(Pair(
+                        ParsedPredicate(
+                                first.textContent,
+                                arrayOf(entireRhs.first),
+                                first.location .. entireRhs.first.location
+                        ),
+                        prefixDef
+                ))
+            }
+
+            // the following code is technically not correct in case lhs is FX and rhs is XF or XFX or XFY
+            // but still having an AST can be important. The error case is covered with a reporting earlier
+            // and will prevent execution in a sane runtime.
+            val singleRhs = elements[1].asTerm()
+            val singleRhsWithPrefixOp = ParsedPredicate(
+                    first.textContent,
+                    arrayOf(singleRhs),
+                    first.location .. singleRhs.location
+            )
+
+            val newExpression = ArrayList<TokenOrTerm>(elements.size - 1)
+            newExpression.add(singleRhsWithPrefixOp)
+            newExpression.addAll(elements.subList(2, elements.size))
+
+            val preliminaryResult = buildBinaryExpressionAST(newExpression, opRegistry)
+            // include the operatorClashReporting if necessary
+            return if (operatorClashError == null) preliminaryResult else ParseResult(
+                preliminaryResult.item,
+                preliminaryResult.certainty,
+                preliminaryResult.reportings + operatorClashError
             )
         }
-        else if (prefixDef.precedence < rhs.second.precedence) {
-            val rhsLhs = rhs.first.arguments[0]
-        }
     } else {
-        // first is a value to the following infix or postfix operator
-        TODO()
+        // the first element is a parameter to the following infix or postfix op
+        val second = elements[1]
+        val infixDef = opRegistry.getInfixDefinitionOf(second)
+        if (infixDef != null) {
+            if (elements.size > 2) {
+
+            }
+        }
     }
 }
