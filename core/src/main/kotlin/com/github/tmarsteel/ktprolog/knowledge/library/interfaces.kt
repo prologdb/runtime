@@ -3,19 +3,21 @@ package com.github.tmarsteel.ktprolog.knowledge.library
 import com.github.tmarsteel.ktprolog.term.Predicate
 
 /**
- * A library as read from a source file.
+ * A single entry in a knowledge base or library, e.g. a single fact or a single rule.
+ * @see Predicate
+ * @see com.github.tmarsteel.ktprolog.knowledge.Rule
  */
-interface Library {
+interface LibraryEntry {
+    val name: String
+    val arity: Int
+}
+
+interface LibraryEntryStore {
     /**
      * The elements of the library or knowledge base. The order enforced by the [Iterator]
      * defines the order in proof search will consider the entries.
      */
     val exports: Iterable<LibraryEntry>
-
-    /**
-     * Operators defined in this library.
-     */
-    val operators: OperatorRegistry
 
     /**
      * Finds entries within [exports] that possibly unify with the given [Predicate] (facts or rule heads). This
@@ -26,21 +28,7 @@ interface Library {
     fun findFor(predicate: Predicate): Iterable<LibraryEntry> = exports.filter { it.arity == predicate.arity && it.name == predicate.name }
 }
 
-/**
- * A single entry in a knowledge base or library, e.g. a single fact or a single rule.
- */
-interface LibraryEntry {
-    val name: String
-    val arity: Int
-}
-
-/**
- * A library that can be modified
- */
-interface MutableLibrary : Library {
-
-    override val operators: MutableOperatorRegistry
-
+interface MutableLibraryEntryStore : LibraryEntryStore {
     /**
      * Adds the given entry to the library
      */
@@ -50,10 +38,10 @@ interface MutableLibrary : Library {
      * Includes all of the exports of the given library into this library.
      *
      * This is defined as a separate method to allow indexing strategies to be hidden
-     * and reused. The default implementation of this method simply does `otherLibrary.exports.forEach(this::add)`.
+     * and reused. The default implementation of this method simply does `other.exports.forEach(this::add)`.
      */
-    fun include(otherLibrary: Library) {
-        otherLibrary.exports.forEach(this::add)
+    fun include(other: LibraryEntryStore) {
+        other.exports.forEach(this::add)
     }
 }
 
@@ -131,4 +119,24 @@ enum class OperatorType(val arity: Int) {
     YFX(2),
     XF(1),
     YF(1)
+}
+
+/**
+ * A library as read from a source file.
+ */
+interface Library : LibraryEntryStore, OperatorRegistry
+
+/**
+ * A library that can be modified
+ */
+interface MutableLibrary : MutableLibraryEntryStore, MutableOperatorRegistry {
+    /**
+     * Includes all exports (facts, rules and operators) of the given library into this library.
+     *
+     * The default implementation simply delegates to [MutableLibraryEntryStore.include] and [MutableOperatorRegistry.include]
+     */
+    fun include(otherLibrary: Library) {
+        this.include(otherLibrary as LibraryEntryStore)
+        this.include(otherLibrary as OperatorRegistry)
+    }
 }

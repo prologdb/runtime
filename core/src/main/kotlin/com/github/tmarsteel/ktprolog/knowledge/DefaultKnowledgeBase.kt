@@ -3,17 +3,21 @@ package com.github.tmarsteel.ktprolog.knowledge
 import com.github.tmarsteel.ktprolog.PrologRuntimeException
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.VariableMapping
-import com.github.tmarsteel.ktprolog.builtin.*
-import com.github.tmarsteel.ktprolog.knowledge.library.DoublyIndexedLibrary
+import com.github.tmarsteel.ktprolog.builtin.EqualityLibrary
+import com.github.tmarsteel.ktprolog.builtin.MathLibrary
+import com.github.tmarsteel.ktprolog.builtin.TypeSafetyLibrary
+import com.github.tmarsteel.ktprolog.knowledge.library.DoublyIndexedLibraryEntryStore
 import com.github.tmarsteel.ktprolog.knowledge.library.Library
-import com.github.tmarsteel.ktprolog.query.PredicateQuery
+import com.github.tmarsteel.ktprolog.knowledge.library.SimpleLibrary
 import com.github.tmarsteel.ktprolog.term.Predicate
-import com.github.tmarsteel.ktprolog.term.Variable
 import com.github.tmarsteel.ktprolog.unification.Unification
 import kotlin.coroutines.experimental.buildSequence
 
 class DefaultKnowledgeBase : MutableKnowledgeBase {
-    private val library = DoublyIndexedLibrary()
+    private val library = SimpleLibrary(
+        DoublyIndexedLibraryEntryStore(),
+        DefaultOperatorRegistry(true)
+    )
 
     override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         // replace all variables in the term with random ones to prevent name collisions

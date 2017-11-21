@@ -1,20 +1,22 @@
 package com.github.tmarsteel.ktprolog.knowledge.library
 
-import com.github.tmarsteel.ktprolog.knowledge.DefaultOperatorRegistry
+class SimpleLibrary(
+    private val entryStore: MutableLibraryEntryStore,
+    private val operatorRegistry: MutableOperatorRegistry
+) : MutableLibrary {
+    override val exports: Iterable<LibraryEntry>
+        get() = entryStore.exports
 
-/**
- * The most simple implementation of [MutableLibrary] possible: is
- * based on a plain [MutableList] and uses the default implementations
- * declared in [Library] and [MutableLibrary]
- */
-class SimpleLibrary(givenEntries: Iterable<LibraryEntry> = emptyList()) : MutableLibrary {
-    private val entries = ArrayList(givenEntries.toList())
+    override fun add(entry: LibraryEntry) = entryStore.add(entry)
 
-    override val exports = entries
+    override fun getPrefixDefinition(name: String): OperatorDefinition? = operatorRegistry.getPrefixDefinition(name)
 
-    override val operators = DefaultOperatorRegistry()
+    override fun getInfixDefinition(name: String): OperatorDefinition? = operatorRegistry.getInfixDefinition(name)
 
-    override fun add(entry: LibraryEntry) {
-        entries.add(entry)
-    }
+    override fun getPostfixDefinition(name: String): OperatorDefinition? = operatorRegistry.getPostfixDefinition(name)
+
+    override val allOperators: Iterable<OperatorDefinition>
+        get() = operatorRegistry.allOperators
+
+    override fun defineOperator(definition: OperatorDefinition) = operatorRegistry.defineOperator(definition)
 }

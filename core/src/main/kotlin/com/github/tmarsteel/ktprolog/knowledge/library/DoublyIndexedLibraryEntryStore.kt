@@ -6,8 +6,7 @@ import com.github.tmarsteel.ktprolog.term.Predicate
 /**
  * Indexes entries by arity and name in maps.
  */
-class DoublyIndexedLibrary : MutableLibrary {
-
+class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
     /**
      * The index. The key in the outer map corresponds to [LibraryEntry.name] and the
      * key of the inner map corresponds to [LibraryEntry.arity].
@@ -42,10 +41,10 @@ class DoublyIndexedLibrary : MutableLibrary {
         indexChangedSinceLastExportsCalculation = true
     }
 
-    override fun include(otherLibrary: Library) {
-        if (otherLibrary is DoublyIndexedLibrary) {
+    override fun include(other: LibraryEntryStore) {
+        if (other is DoublyIndexedLibraryEntryStore) {
             // merge the indexes
-            for ((name, othersArityMap) in otherLibrary.index) {
+            for ((name, othersArityMap) in other.index) {
                 if (name in this.index) {
                     val thisArityMap = this.index[name]!!
                     for (arity in othersArityMap.arities) {
@@ -62,7 +61,7 @@ class DoublyIndexedLibrary : MutableLibrary {
                 }
             }
         } else {
-            otherLibrary.exports.forEach(this::add)
+            other.exports.forEach(this::add)
         }
 
         indexChangedSinceLastExportsCalculation = true
