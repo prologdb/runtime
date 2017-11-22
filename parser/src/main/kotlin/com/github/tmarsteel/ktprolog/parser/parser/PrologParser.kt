@@ -12,6 +12,7 @@ import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
 import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.IDENTIFIER
 import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.NUMERIC_LITERAL
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
+import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
@@ -146,22 +147,54 @@ class PrologParser {
 
         tokens.mark()
         val parentOpenToken = tokens.next()
-        tokens.rollback()
+        // rollback is not done here because detection of () invocation happens later
 
         if (parentOpenToken !is OperatorToken || parentOpenToken.operator != PARENT_OPEN) {
-            tokens.rollback()
+            tokens.rollback() // peek of PARENT_OPEN
+            tokens.rollback() // mark() at start of method
             return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(parentOpenToken, PARENT_OPEN)))
         }
 
         // the sequence <Any Token> <Parent Open> in prolog is only considered an invocation if there is no whitespace
         // between the predicate name and the opening parenthesis
         if (nameToken.location.line != parentOpenToken.location.line || nameToken.location.end.column + 1 != parentOpenToken.location.start.column) {
-            tokens.rollback()
+            tokens.rollback() // peek of PARENT_OPEN
+            tokens.rollback() // mark() at start of method
             return ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Whitespace between predicate name and opening parenthesis not allowed", nameToken.location.end .. parentOpenToken.location.start)))
         }
 
         val predicateName = nameToken.textContent!!
 
+        // detect predicate/0 invocations
+        if (!tokens.hasNext()) {
+            tokens.rollback() // peek of PARENT_OPEN
+            tokens.rollback() // mark() at start of method
+            return ParseResult(
+                ParsedPredicate(
+                    predicateName,
+                    emptyArray(),
+                    nameToken.location .. parentOpenToken.location
+                ),
+                MATCHED,
+                setOf(UnexpectedEOFError("[predicate arguments]", "closing parenthesis"))
+            )
+        }
+
+        val tokenAfterParentOpen = tokens.next()
+        if (tokenAfterParentOpen is OperatorToken && tokenAfterParentOpen.operator == PARENT_CLOSE) {
+            tokens.commit() // peek of PARENT_OPEN
+            tokens.commit() // mark() at start of method
+            return ParseResult.of(
+                ParsedPredicate(
+                    predicateName,
+                    emptyArray(),
+                    nameToken.location .. tokenAfterParentOpen.location
+                )
+            )
+        }
+        tokens.rollback() // rollback to before PARENT_OPEN
+
+        // arguments
         val argsTermResult = parseParenthesised(tokens, opRegistry)
         if (argsTermResult.isSuccess) {
             tokens.commit()
@@ -184,11 +217,31 @@ class PrologParser {
 
         tokens.mark()
 
-        var token = tokens.next()
-        if (token !is OperatorToken || token.operator != BRACKET_OPEN) {
+        val openingBracketToken = tokens.next()
+        if (openingBracketToken !is OperatorToken || openingBracketToken.operator != BRACKET_OPEN) {
             tokens.rollback()
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(token, BRACKET_OPEN)))
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(openingBracketToken, BRACKET_OPEN)))
         }
+
+        // detect empty list
+        if (!tokens.hasNext()) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("list content or ${BRACKET_CLOSE}")))
+        }
+        tokens.mark()
+        var token = tokens.next()
+        if (token is OperatorToken && token.operator == BRACKET_CLOSE) {
+            tokens.commit()
+            tokens.commit()
+            return ParseResult(
+                ParsedList(emptyList(), null, openingBracketToken.location .. token.location),
+                MATCHED,
+                emptySet()
+            )
+        }
+
+        // list with content
+        tokens.rollback()
 
         val termResult = parseTerm(tokens, opRegistry, stopAtOperator(BRACKET_CLOSE))
         val tokensUntilBracketClose = tokens.takeWhile({ it !is OperatorToken || it.operator != BRACKET_CLOSE }, 1, 0)
@@ -215,25 +268,41 @@ class PrologParser {
         }
 
         val resultList: com.github.tmarsteel.ktprolog.term.List?
+        val listEndLocation: SourceLocation
 
         if (termResult.item == null) {
             resultList = null
+            listEndLocation = (tokensUntilBracketClose.lastOrNull() ?: token).location
         } else {
             val term = termResult.item
+            listEndLocation = term.location.end
 
             if (term is Predicate && term.name == HEAD_TAIL_SEPARATOR.text) {
+                term as? ParsedPredicate ?: throw InternalParserError()
                 if (term.arity != 2) throw InternalParserError("Cannot use an instance of ${term.name}/${term.arity} to construct a list.")
+
                 val elResult = commaPredicateToList(term.arguments[0] as? ParsedTerm ?: throw InternalParserError())
-                resultList = com.github.tmarsteel.ktprolog.term.List(elResult.item ?: emptyList(), term.arguments[1])
+                resultList = ParsedList(
+                    elResult.item ?: emptyList(),
+                    term.arguments[1],
+                    openingBracketToken.location .. listEndLocation
+                )
                 reportings += elResult.reportings
             }
             else if (term is Predicate && term.name == COMMA.text) {
                 val elResult = commaPredicateToList(term as? ParsedTerm ?: throw InternalParserError())
-                resultList = com.github.tmarsteel.ktprolog.term.List(elResult.item ?: emptyList())
+                resultList = ParsedList(
+                    elResult.item ?: emptyList(),
+                    null,
+                    openingBracketToken.location .. listEndLocation)
                 reportings += elResult.reportings
             }
             else {
-                resultList = com.github.tmarsteel.ktprolog.term.List(listOf(term))
+                resultList = ParsedList(
+                    listOf(term),
+                    null,
+                    openingBracketToken.location .. listEndLocation
+                )
             }
         }
 

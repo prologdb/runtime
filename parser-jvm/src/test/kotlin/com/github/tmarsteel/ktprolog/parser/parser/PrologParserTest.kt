@@ -36,6 +36,9 @@ class PrologParserTest : FreeSpec() {
     fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
     fun parseList(code: String) = parseList(tokensOf(code))
 
+    fun parseParenthesised(tokens: TransactionalSequence<Token>) = PrologParser().parseParenthesised(tokens, operators)
+    fun parseParenthesised(code: String) = parseParenthesised(tokensOf(code))
+
     "atom" - {
         "a" {
             val result = parseTerm("a")
@@ -86,9 +89,38 @@ class PrologParserTest : FreeSpec() {
             (result.item!! as Variable).name shouldEqual "_underscore"
         }
     }
+
+    "simple comma separated atoms" {
+        val result = parseTerm("a, b, c")
+        result.certainty shouldEqual MATCHED
+        result.reportings should beEmpty()
+
+        var predicate = result.item!! as ParsedPredicate
+        predicate.name shouldEqual ","
+        predicate.arity shouldEqual 2
+
+        (predicate.arguments[0] as ParsedAtom).name shouldEqual "a"
+
+        predicate = predicate.arguments[1] as ParsedPredicate
+        predicate.name shouldEqual ","
+        predicate.arity shouldEqual  2
+
+        (predicate.arguments[0] as ParsedAtom).name shouldEqual "b"
+        (predicate.arguments[1] as ParsedAtom).name shouldEqual "c"
+    }
     
     "predicate" - {
-        "invocation" {
+        "invocation without arguments" {
+            val result = parseTerm("predicate()")
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+
+            val predicate = result.item!! as Predicate
+            predicate.name shouldEqual "predicate"
+            predicate.arity shouldEqual 0
+        }
+
+        "invocation with three arguments" {
             val result = parseTerm("predicate(foo, X, bar)")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
