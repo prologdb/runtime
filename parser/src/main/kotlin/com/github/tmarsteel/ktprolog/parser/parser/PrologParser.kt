@@ -28,6 +28,8 @@ class PrologParser {
      * @param shouldStop Is invoked with the given token sequence. If it returns true the matching will stop.
      */
     fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<ParsedTerm> {
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
+
         // in prolog, the binary expression (e.g. a op b op c op d) is the concept that can be applied to all
         // syntactically valid expressions; comma separated lists are also binary expressions:
         //
@@ -60,7 +62,15 @@ class PrologParser {
 
         if (collectedElements.isEmpty()) {
             tokens.rollback()
-            throw InternalParserError()
+            if (!tokens.hasNext() || !shouldStop(tokens)) {
+                return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
+            } else {
+                tokens.mark()
+                val token = tokens.next()
+                tokens.rollback()
+
+                return ParseResult(null, MATCHED, setOf(UnexpectedTokenError(token, "term")))
+            }
         }
 
         if (collectedElements.size == 1) {
@@ -117,11 +127,15 @@ class PrologParser {
         }
 
         if (result == null || !result.isSuccess) {
-            tokens.mark()
-            val nextToken = tokens.next()
-            tokens.rollback()
+            if (tokens.hasNext()) {
+                tokens.mark()
+                val nextToken = tokens.next()
+                tokens.rollback()
 
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(nextToken, "atom, variable, predicate invocation, list or parenthesised term")))
+                return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(nextToken, "atom, variable, predicate invocation, list or parenthesised term")))
+            } else {
+                return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("atom, variable, predicate invocation, list, parenthesised term")))
+            }
         }
 
         return result
