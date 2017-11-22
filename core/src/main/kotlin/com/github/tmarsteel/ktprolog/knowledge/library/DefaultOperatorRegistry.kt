@@ -33,6 +33,7 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
             defineOperator(OperatorDefinition(1150, FX, "dynamic"))
 
             defineOperator(OperatorDefinition(1100, XFY, ";"))
+            defineOperator(OperatorDefinition(1100, XFY, "|"))
 
             defineOperator(OperatorDefinition(1000, XFY, ","))
 
