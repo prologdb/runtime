@@ -12,7 +12,6 @@ import com.github.tmarsteel.ktprolog.parser.lexer.Operator.*
 import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.IDENTIFIER
 import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.NUMERIC_LITERAL
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
-import com.github.tmarsteel.ktprolog.parser.source.SourceLocation
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
 import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
@@ -239,75 +238,59 @@ class PrologParser {
                 emptySet()
             )
         }
-
-        // list with content
+        // else: list with content
         tokens.rollback()
 
-        val termResult = parseTerm(tokens, opRegistry, stopAtOperator(BRACKET_CLOSE))
-        val tokensUntilBracketClose = tokens.takeWhile({ it !is OperatorToken || it.operator != BRACKET_CLOSE }, 1, 0)
-        tokens.commit()
+        val elementsResult = parseTerm(tokens, opRegistry, { t -> stopAtOperator(HEAD_TAIL_SEPARATOR)(t) || stopAtOperator(BRACKET_CLOSE)(t) })
+        if (!elementsResult.isSuccess) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, elementsResult.reportings)
+        }
 
-        val reportings = termResult.reportings.toMutableSet()
+        val elements = commaPredicateToList(elementsResult.item ?: throw InternalParserError()).item ?: throw InternalParserError()
 
-        if (tokens.hasNext()) {
+        if (!tokens.hasNext()) {
+            tokens.commit()
+            return ParseResult(
+                ParsedList(elements, null, openingBracketToken.location..elementsResult.item.location),
+                MATCHED,
+                elementsResult.reportings + UnexpectedEOFError(HEAD_TAIL_SEPARATOR, BRACKET_CLOSE)
+            )
+        }
+
+        tokens.mark()
+        val tokenAfterElements = tokens.next()
+        var tail: ParsedTerm?
+        val reportings: MutableSet<Reporting> = elementsResult.reportings.toMutableSet()
+        val tokenAfterList: Token?
+        val listEndLocation: SourceLocationRange
+
+        if (tokenAfterElements is OperatorToken && tokenAfterElements.operator == HEAD_TAIL_SEPARATOR) {
+            tokens.commit()
             tokens.mark()
-            token = tokens.next()
-            if (token is OperatorToken && token.operator == BRACKET_CLOSE) {
-                tokens.commit()
-            }
-            else {
-                tokens.rollback()
-                reportings.add(UnexpectedTokenError(token, BRACKET_CLOSE))
-            }
+            val tailResult = parseTerm(tokens, opRegistry, stopAtOperator(BRACKET_CLOSE))
+            tail = tailResult.item
+            reportings += tailResult.reportings
+
+            tokenAfterList = if (tokens.hasNext()) tokens.next() else null
+            listEndLocation = tokenAfterList?.location ?: tokenAfterElements.location
         } else {
-            reportings.add(UnexpectedEOFError(BRACKET_CLOSE))
+            tokenAfterList = tokenAfterElements
+            listEndLocation = tokenAfterList.location
+            tail = null
         }
 
-        if (tokensUntilBracketClose.isNotEmpty()) {
-            reportings.add(UnexpectedTokenError(tokensUntilBracketClose.first(), BRACKET_CLOSE))
+        if (tokenAfterList == null) {
+            reportings += UnexpectedEOFError(BRACKET_CLOSE)
+        }
+        else if (tokenAfterList !is OperatorToken || tokenAfterList.operator != BRACKET_CLOSE) {
+            tokens.rollback()
+            reportings += UnexpectedTokenError(tokenAfterList, BRACKET_CLOSE)
         }
 
-        val resultList: com.github.tmarsteel.ktprolog.term.List?
-        val listEndLocation: SourceLocation
-
-        if (termResult.item == null) {
-            resultList = null
-            listEndLocation = (tokensUntilBracketClose.lastOrNull() ?: token).location
-        } else {
-            val term = termResult.item
-            listEndLocation = term.location.end
-
-            if (term is Predicate && term.name == HEAD_TAIL_SEPARATOR.text) {
-                term as? ParsedPredicate ?: throw InternalParserError()
-                if (term.arity != 2) throw InternalParserError("Cannot use an instance of ${term.name}/${term.arity} to construct a list.")
-
-                val elResult = commaPredicateToList(term.arguments[0] as? ParsedTerm ?: throw InternalParserError())
-                resultList = ParsedList(
-                    elResult.item ?: emptyList(),
-                    term.arguments[1],
-                    openingBracketToken.location .. listEndLocation
-                )
-                reportings += elResult.reportings
-            }
-            else if (term is Predicate && term.name == COMMA.text) {
-                val elResult = commaPredicateToList(term as? ParsedTerm ?: throw InternalParserError())
-                resultList = ParsedList(
-                    elResult.item ?: emptyList(),
-                    null,
-                    openingBracketToken.location .. listEndLocation)
-                reportings += elResult.reportings
-            }
-            else {
-                resultList = ParsedList(
-                    listOf(term),
-                    null,
-                    openingBracketToken.location .. listEndLocation
-                )
-            }
-        }
-
+        tokens.commit()
         return ParseResult(
-            resultList,
+            ParsedList(elements, tail, openingBracketToken.location .. listEndLocation),
             MATCHED,
             reportings
         )
