@@ -14,6 +14,13 @@ class RandomVariableScope {
     private var randomCounter: Long = 0
 
     /**
+     * Stores created instances of [RandomVariable] for reuse. Index within the list equals the counter values
+     * used to create the variable; thus, this holds only the random variables created for random counter
+     * values up to [Integer.MAX_VALUE]
+     */
+    private val variables: MutableList<RandomVariable> = ArrayList(30)
+
+    /**
      * Replaces all the variables in the given predicate with random instances; the mapping gets stored
      * in the given map.
      */
@@ -37,7 +44,14 @@ class RandomVariableScope {
         if (randomCounter == Long.MAX_VALUE) {
             throw PrologRuntimeException("Out of random variables")
         }
-        
-        return RandomVariable(randomCounter++)
+
+        if (variables.size > randomCounter) {
+            return variables[(randomCounter++).toInt()]
+        }
+        else {
+            val rvar = RandomVariable(randomCounter++)
+            variables.add(rvar)
+            return rvar
+        }
     }
 }
