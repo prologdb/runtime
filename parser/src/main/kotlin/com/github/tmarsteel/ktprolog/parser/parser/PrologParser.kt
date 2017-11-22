@@ -123,7 +123,7 @@ class PrologParser {
         var result: ParseResult<Term>? = null
         for (parser in parsers) {
             result = parser(tokens, opRegistry)
-            if (result.isSuccess) break
+            if (result.certainty >= MATCHED) break
         }
 
         if (result == null || !result.isSuccess) {
@@ -219,9 +219,16 @@ class PrologParser {
             )
         }
         else {
-            // it was ensured that the first token parseParenthesised encountered was a PARENT_OPEN
-            // it is very weird that parseParenthesised fails under that condition
-            throw InternalParserError()
+            tokens.rollback()
+            return ParseResult(
+                ParsedPredicate(
+                    predicateName,
+                    emptyArray(),
+                    nameToken.location .. parentOpenToken.location
+                ),
+                NOT_RECOGNIZED,
+                argsTermResult.reportings
+            )
         }
     }
 
@@ -765,7 +772,8 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
             else {
                 // input: firstValue infixOp ...other stuff...
                 val entireRhsResult = buildBinaryExpressionAST(elements.subList(2, elements.size), opRegistry)
-                val entireRhs = entireRhsResult.item ?: throw InternalParserError()
+                if (entireRhsResult.item == null) return entireRhsResult
+                val entireRhs = entireRhsResult.item
 
                 // there is only one AST for all cases of priority and operator type; but some cases trigger
                 // a clash error

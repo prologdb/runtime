@@ -4,7 +4,6 @@ import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.tmarsteel.ktprolog.parser.ParsedAtom
 import com.github.tmarsteel.ktprolog.parser.ParsedList
 import com.github.tmarsteel.ktprolog.parser.ParsedPredicate
@@ -54,13 +53,6 @@ class PrologParserTest : FreeSpec() {
             result.reportings should beEmpty()
             assert(result.item is ParsedAtom)
             (result.item!! as ParsedAtom).name shouldEqual "someAtom"
-        }
-
-        "invalid: PARENT_OPEN" {
-            val result = parseTerm("(")
-            result.certainty shouldEqual NOT_RECOGNIZED
-            result.reportings.size shouldEqual 1
-            result.item shouldBe null
         }
     }
 
@@ -154,10 +146,6 @@ class PrologParserTest : FreeSpec() {
 
             val predicate = result.item!! as Predicate
             predicate.name shouldEqual "predicate"
-        }
-
-        "invalid: missing comma" {
-            TODO()
         }
 
         "infix" {
