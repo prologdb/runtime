@@ -1,8 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.knowledge.library.Library
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorRegistry
+import com.github.tmarsteel.ktprolog.knowledge.library.*
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
@@ -428,58 +426,97 @@ class PrologParser {
     }
 
     fun parseLibrary(tokens: TransactionalSequence<Token>): ParseResult<Library> {
-        TODO()
-        /*
-        while (tokens.hasNext()) {
-            var chosenResult: ParseResult<*>? = null
+        return parseLibrary(tokens, { SimpleLibrary(SimpleLibraryEntryStore(), DefaultOperatorRegistry()) })
+    }
 
-            for (parser in parsers) {
-                val parserResult = parser(tokens)
-                if (parserResult.certainty >= MATCHED) {
-                    chosenResult = parserResult
-                    break
-                }
+    /**
+     * @param libraryCreator Is invoked once before the parsing starts. All resluts will be added to the library
+     *                       returned from the lambda. The very same instance will be returned in the library entry.
+     */
+    fun parseLibrary(tokens: TransactionalSequence<Token>, libraryCreator: () -> MutableLibrary): ParseResult<MutableLibrary> {
+        val library = libraryCreator()
+        val reportings = mutableSetOf<Reporting>()
+
+        /**
+         * Adds the given operator definition to the library.
+         * @param definition The definition, e.g.: `:- op(400,xf,isDead)`
+         */
+        fun handleOperator(definition: ParsedPredicate) {
+            val opPredicate = definition.arguments[0] as? ParsedPredicate ?: throw InternalParserError("IllegalArgument")
+            if (opPredicate.arguments[0] !is com.github.tmarsteel.ktprolog.term.Integer) {
+                reportings.add(SemanticError("operator priority must be an integer", opPredicate.arguments[0].location))
+                return
             }
 
-            if (chosenResult != null) {
-                if (chosenResult.item is ParsedPredicate) {
-                    library.add(chosenResult.item as ParsedPredicate)
-                }
-                else if (chosenResult.item is ParsedRule) {
-                    library.add(chosenResult.item as ParsedRule)
-                }
-                else {
-                    throw InternalParserError("Unsupported result: ${chosenResult.item}")
-                }
+            val precedenceAsLong = (opPredicate.arguments[0] as com.github.tmarsteel.ktprolog.term.Integer).value
+            if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
+                reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opPredicate.arguments[0].location))
+                return
+            }
+            val precedence = precedenceAsLong.toShort()
 
-                if (tokens.hasNext()) {
-                    tokens.mark()
-                    val fullStopToken = tokens.next()
-                    if (fullStopToken is OperatorToken && fullStopToken.operator == FULL_STOP) {
-                        tokens.commit()
+            if (opPredicate.arguments[1] !is Atom) {
+                reportings.add(SemanticError("atom expected but found ${opPredicate.arguments[1]}", opPredicate.arguments[1].location))
+                return
+            }
+
+            val typeAsUCString = (opPredicate.arguments[1] as Atom).name.toUpperCase()
+            val operatorType = try {
+                OperatorType.valueOf(typeAsUCString)
+            }
+            catch (ex: IllegalArgumentException) {
+                reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opPredicate.arguments[1].location))
+                return
+            }
+
+            if (opPredicate.arguments[2] !is Atom) {
+                reportings.add(SemanticError("Atom expected but got ${opPredicate.arguments[2]}", opPredicate.arguments[2].location))
+                return
+            }
+
+            library.defineOperator(OperatorDefinition(precedence, operatorType, (opPredicate.arguments[2] as Atom).name))
+        }
+
+        fun handleRule(definition: ParsedPredicate) {
+            TODO()
+        }
+
+        while (tokens.hasNext()) {
+            val parseResult = parseTerm(tokens, library, stopAtOperator(FULL_STOP))
+            reportings += parseResult.reportings
+
+            if (parseResult.isSuccess) {
+                val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
+                if (item is Predicate) {
+                    item as? ParsedPredicate ?: throw InternalParserError("Expected ParsedPredicate, got Predicate")
+                    // detect directive
+                    if (item.isOperatorDefinition) {
+                        handleOperator(item)
+                    }
+                    else if (item.isRuleDefinition) {
+                        handleRule(item)
                     }
                     else {
-                        reportings += UnexpectedTokenError(fullStopToken, FULL_STOP)
-                        tokens.rollback()
+                        library.add(item)
                     }
-                }
-                else {
-                    reportings += UnexpectedEOFError(FULL_STOP)
+                } else {
+                    val typeAsString = when(item) {
+                        is Atom -> "atom"
+                        is Number -> "number"
+                        is Variable -> "variable"
+                        else -> "term"
+                    }
+                    reportings += SemanticError("A $typeAsString is not a top level declaration, expected a predicate.", item.location)
                 }
             }
             else {
-                // none matched
+                // continue at the next declaration
+                tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
+            }
 
-                if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
-                tokens.mark()
-                val token = tokens.next()
-                tokens.rollback()
-
-                return ParseResult(
-                    null,
-                    NOT_RECOGNIZED,
-                    setOf(UnexpectedTokenError(token, "rule", "predicate"))
-                )
+            if (tokens.hasNext()) {
+                // that next token MUST be a FULL_STOP, so just skip it and complain
+                tokens.next()
             }
         }
 
@@ -487,7 +524,7 @@ class PrologParser {
             library,
             MATCHED,
             reportings
-        )*/
+        )
     }
 
     /**
@@ -535,6 +572,23 @@ class PrologParser {
         val STOP_AT_EOF: (TransactionalSequence<Token>) -> Boolean = { !it.hasNext() }
     }
 }
+
+/**
+ * Whether this has the form of an operator definition: `:-(op/3)`. Does not look at the types of the arguments
+ * to the `op/3` invocation.
+ */
+private val ParsedPredicate.isOperatorDefinition: Boolean
+    get() {
+        if (name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is Predicate) {
+            val directivePredicate = arguments[0] as Predicate
+            return directivePredicate.name == "op" && directivePredicate.arity == 3
+        }
+
+        return false
+    }
+
+private val ParsedPredicate.isRuleDefinition: Boolean
+    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is Predicate
 
 /**
  * Skips (`next()`s) tokens in the receiver sequence until the parenthesis + bracket levels are 0 and the given
@@ -807,7 +861,7 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
             }
         }
         else {
-            val postfixDef = opRegistry.getInfixDefinitionOf(second)
+            val postfixDef = opRegistry.getPostfixDefinitionOf(second)
             if (postfixDef == null) {
                 // two values next to each other => error; then ignore the first value
                 if (elements.size > 2) {

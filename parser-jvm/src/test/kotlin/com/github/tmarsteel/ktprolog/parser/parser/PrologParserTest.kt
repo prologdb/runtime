@@ -1,8 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
-import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType
+import com.github.tmarsteel.ktprolog.knowledge.library.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.tmarsteel.ktprolog.parser.ParsedAtom
@@ -27,6 +25,7 @@ class PrologParserTest : FreeSpec() {
     val operators = DefaultOperatorRegistry(true)
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
+    operators.defineOperator(OperatorDefinition(200, OperatorType.XF, "postfixOpXF200"))
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
@@ -186,6 +185,35 @@ class PrologParserTest : FreeSpec() {
             lhs.name shouldEqual "prefixOpFY200"
             lhs.arity shouldEqual 1
         }
+
+        "prefix op" {
+            val result = parseTerm("prefixOpFY200 b")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 0
+
+            val item = result.item!! as Predicate
+            item.name shouldEqual "prefixOpFY200"
+            item.arity shouldEqual 1
+        }
+
+        "rule head with postfix in head" {
+            val result = parseTerm("a postfixOpXF200 infixOpXFX500 b")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 0
+
+            val item = result.item!! as Predicate
+            item.name shouldEqual "infixOpXFX500"
+            item.arity shouldEqual 2
+
+            val lhs = item.arguments[0] as Predicate
+            lhs.name shouldEqual "postfixOpXF200"
+            lhs.arity shouldEqual 1
+
+            val rhs = item.arguments[1] as Atom
+            rhs.name shouldEqual "b"
+        }
     }
 
     "list" - {
@@ -277,5 +305,24 @@ class PrologParserTest : FreeSpec() {
             assert(result.item!!.tail is ParsedVariable)
             (result.item!!.tail as ParsedVariable).name shouldEqual "T"
         }
+    }
+
+    "library" {
+        val library = SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry(true))
+
+        fun parseLibrary(tokens: TransactionalSequence<Token>) = PrologParser().parseLibrary(tokens, { library })
+        fun parseLibrary(code: String) = parseLibrary(tokensOf(code))
+
+        val result = parseLibrary("""
+            :- op(200,xf,isDead).
+            :- op(200,fx,kill).
+
+            X isDead :- kill X.
+
+            kill kenny.
+        """)
+
+        result.certainty shouldEqual MATCHED
+        result.reportings should beEmpty()
     }
 }}
