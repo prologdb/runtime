@@ -4,6 +4,7 @@ import com.github.tmarsteel.ktprolog.knowledge.library.DefaultOperatorRegistry
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorDefinition
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
+import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.tmarsteel.ktprolog.parser.ParsedAtom
 import com.github.tmarsteel.ktprolog.parser.ParsedList
 import com.github.tmarsteel.ktprolog.parser.ParsedPredicate
@@ -141,11 +142,8 @@ class PrologParserTest : FreeSpec() {
 
         "invalid invocation: missing closing parenthesis: . instead" {
             val result = parseTerm("predicate(foo, X.")
-            result.certainty shouldEqual MATCHED
-            result.reportings.size shouldEqual 1
-
-            val predicate = result.item!! as Predicate
-            predicate.name shouldEqual "predicate"
+            result.certainty shouldEqual NOT_RECOGNIZED
+            result.reportings.size should beGreaterThan(0)
         }
 
         "infix" {

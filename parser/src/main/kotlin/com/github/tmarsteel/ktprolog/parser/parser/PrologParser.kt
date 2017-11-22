@@ -333,7 +333,6 @@ class PrologParser {
 
         val termResult = parseTerm(tokens, opRegistry, stopAtOperator(PARENT_CLOSE))
         val tokensUntilParentClose = tokens.takeWhile({ it !is OperatorToken || it.operator != PARENT_CLOSE }, 1, 0)
-        tokens.commit()
 
         val reportings = termResult.reportings.toMutableSet()
 
@@ -355,11 +354,21 @@ class PrologParser {
             reportings.add(UnexpectedTokenError(tokensUntilParentClose.first(), PARENT_CLOSE))
         }
 
-        return ParseResult(
-            termResult.item,
-            MATCHED,
-            reportings
-        )
+        if (termResult.item == null) {
+            tokens.rollback()
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                reportings + termResult.reportings
+            )
+        } else {
+            tokens.commit()
+            return ParseResult(
+                termResult.item,
+                MATCHED,
+                reportings + termResult.reportings
+            )
+        }
     }
 
     fun parseAtomicOrVariable(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
