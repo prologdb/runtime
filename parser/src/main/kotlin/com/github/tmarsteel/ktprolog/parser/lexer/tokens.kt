@@ -26,8 +26,6 @@ enum class Operator(val text: String) {
     TIMES("*"),
     DIVIDE("/"),
     POWER("^"),
-    XOR("xor"),
-    MODULO("mod"),
     TERM_EQUALS("=="),
     LESS_THAN("<"),
     LESS_THAN_OR_EQUAL("=<"),
@@ -36,8 +34,7 @@ enum class Operator(val text: String) {
     GREATER_THAN_OR_EQUAL(">="),
     GREATER_THAN(">"),
     TERM_NOT_EQUALS("\\=="),
-    NEGATED_UNIFY("\\="),
-    IS("is")
+    NEGATED_UNIFY("\\=")
 }
 
 /**
