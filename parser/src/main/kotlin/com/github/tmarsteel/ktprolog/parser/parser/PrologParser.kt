@@ -1,7 +1,6 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
 import com.github.tmarsteel.ktprolog.knowledge.library.*
-import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
@@ -21,6 +20,25 @@ import com.github.tmarsteel.ktprolog.term.Variable
 private typealias TokenOrTerm = Any
 
 class PrologParser {
+
+    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedQuery> {
+        return parseQuery(tokens, opRegistry, stopAtOperator(FULL_STOP))
+    }
+
+    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<ParsedQuery> {
+        val termResult = parseTerm(tokens, opRegistry, shouldStop)
+
+        if (termResult.item == null) return termResult as ParseResult<ParsedQuery>
+
+        val transformResult = transformQuery(termResult.item)
+
+        return ParseResult(
+            transformResult.item,
+            transformResult.certainty,
+            termResult.reportings + transformResult.reportings
+        )
+    }
+
     /**
      * @param tokens The tokens to parse from
      * @param opRegistry Is used to determine operators, their precedence and associativity
@@ -783,7 +801,7 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
             val rhsResult = buildBinaryExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
             val thisTerm = ParsedPredicate(
                 operatorDef.name,
-                if (rhsResult.item != null) arrayOf(rhsResult.item.first) else emptyArray(),
+                if (rhsResult.item != null) arrayOf(rhsResult.item!!.first) else emptyArray(),
                 elements[index].location..elements.last().location
             )
             val hasLhs = index > 0

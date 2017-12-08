@@ -337,7 +337,7 @@ class PrologParserTest : FreeSpec() {
                 item.name shouldEqual "prefixOpFY200"
             }
 
-            "infix both" {
+            "infix without operands falls back to atom or variable" {
                 val result = parseTerm("infixOpXFX500")
 
                 result.certainty shouldEqual MATCHED
