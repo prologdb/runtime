@@ -1,11 +1,5 @@
 package com.github.tmarsteel.ktprolog.playground.jvm;
 
-import com.github.tmarsteel.ktprolog.parser.ParseResult;
-import com.github.tmarsteel.ktprolog.parser.ParsedQuery;
-import com.github.tmarsteel.ktprolog.parser.lexer.Lexer;
-import com.github.tmarsteel.ktprolog.parser.lexer.LineEndingNormalizer;
-import com.github.tmarsteel.ktprolog.parser.lexer.Operator;
-import com.github.tmarsteel.ktprolog.parser.lexer.OperatorToken;
 import com.github.tmarsteel.ktprolog.parser.parser.PrologParser;
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit;
 import com.github.tmarsteel.ktprolog.playground.jvm.editor.PrologEditorPanel;
@@ -84,21 +78,8 @@ public class QueryPanel {
         panel.add(fireHintPanel, BorderLayout.SOUTH);
     }
 
-    private ParseResult<ParsedQuery> parseQuery() {
-        Lexer lexer = new Lexer(
-            parsingSourceUnit,
-            new LineEndingNormalizer(
-                new CharacterIterable(
-                    queryEditorPanel.getCodeAsString()
-                ).iterator()
-            )
-        );
-
-        return parser.parseQuery(lexer, t -> t instanceof OperatorToken && ((OperatorToken) t).getOperator() == Operator.FULL_STOP);
-    }
-
     public interface QueryFiredListener extends EventListener {
-        public void onQueryFired(QueryPanel originPanel, ParsedQuery query);
+        void onQueryFired(QueryPanel originPanel, String queryCode);
     }
 
     private class QueryTextAreaKeyListener implements KeyListener {
@@ -110,17 +91,10 @@ public class QueryPanel {
         @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_ENTER && (e.getModifiers() & ActionEvent.CTRL_MASK) != 0) {
-                // CTRL + ENTER pressed
-                ParseResult<ParsedQuery> queryParseResult = parseQuery();
                 SwingUtilities.invokeLater(() -> {
-                    if (queryParseResult.getReportings().isEmpty()) {
-                        for (QueryFiredListener l : queryFiredListeners.getListeners(QueryFiredListener.class)) {
-                            l.onQueryFired(QueryPanel.this, queryParseResult.getItem());
-                        }
-                    } else {
-                        StringBuilder message = new StringBuilder("Failed to parse query:\n");
-                        queryParseResult.getReportings().forEach(r -> message.append(r.getMessage() + " in " + r.getLocation().getStart() + "\n"));
-                        JOptionPane.showMessageDialog(null, message.toString(), "Parse Error", JOptionPane.ERROR_MESSAGE);
+                    String queryCode = queryEditorPanel.getCodeAsString();
+                    for (QueryFiredListener l : queryFiredListeners.getListeners(QueryFiredListener.class)) {
+                        l.onQueryFired(QueryPanel.this, queryCode);
                     }
                 });
                 e.consume();

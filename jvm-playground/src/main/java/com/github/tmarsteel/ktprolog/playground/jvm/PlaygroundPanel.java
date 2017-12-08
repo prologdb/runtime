@@ -2,23 +2,24 @@ package com.github.tmarsteel.ktprolog.playground.jvm;
 
 import com.github.tmarsteel.ktprolog.RandomVariableScope;
 import com.github.tmarsteel.ktprolog.knowledge.DefaultKnowledgeBase;
-import com.github.tmarsteel.ktprolog.knowledge.MutableKnowledgeBase;
 import com.github.tmarsteel.ktprolog.knowledge.library.Library;
 import com.github.tmarsteel.ktprolog.parser.ParseResult;
+import com.github.tmarsteel.ktprolog.parser.ParsedQuery;
+import com.github.tmarsteel.ktprolog.parser.Reporting;
 import com.github.tmarsteel.ktprolog.parser.lexer.Lexer;
 import com.github.tmarsteel.ktprolog.parser.lexer.LineEndingNormalizer;
 import com.github.tmarsteel.ktprolog.parser.parser.PrologParser;
 import com.github.tmarsteel.ktprolog.parser.source.SourceUnit;
 import com.github.tmarsteel.ktprolog.playground.jvm.editor.PrologEditorPanel;
-import com.github.tmarsteel.ktprolog.query.Query;
 import com.github.tmarsteel.ktprolog.unification.VariableBucket;
-import kotlin.Unit;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.text.ParseException;
+
+import static java.util.stream.Collectors.joining;
 
 public class PlaygroundPanel {
 
@@ -33,7 +34,7 @@ public class PlaygroundPanel {
      * Is set to true whenever the code in the knowledge base changes. Is set back to false in {@link #assureKnowledgeBaseIsUpToDate()}.
      */
     private boolean knowledgeBaseChangeIndicator = false;
-    private MutableKnowledgeBase knowledgeBase = null;
+    private DefaultKnowledgeBase knowledgeBase = null;
 
     public PlaygroundPanel() {
         initComponents();
@@ -89,7 +90,7 @@ public class PlaygroundPanel {
 
     private void assureKnowledgeBaseIsUpToDate() throws ParseException {
         if (knowledgeBaseChangeIndicator || knowledgeBase == null) {
-            MutableKnowledgeBase newKnowledgeBase = new DefaultKnowledgeBase();
+            DefaultKnowledgeBase newKnowledgeBase = new DefaultKnowledgeBase();
             Lexer lexer = new Lexer(
                 new SourceUnit("knowledge base"),
                 new LineEndingNormalizer(
@@ -98,21 +99,20 @@ public class PlaygroundPanel {
                     ).iterator()
                 )
             );
-            ParseResult<Library> result = parser.parseLibrary(lexer);
+            ParseResult<? extends Library> result = parser.parseLibrary(lexer, newKnowledgeBase::getLibrary);
 
             if (result.getReportings().isEmpty()) {
-                newKnowledgeBase.load(result.getItem());
                 knowledgeBase = newKnowledgeBase;
                 knowledgeBaseChangeIndicator = false;
             } else {
                 StringBuilder message = new StringBuilder("Failed to parse knowledge base:");
-                result.getReportings().forEach(r -> { message.append("\n"); message.append(r.getMessage() + " in " + r.getLocation().getStart()); });
+                result.getReportings().forEach(r -> { message.append("\n"); message.append(r.getMessage() + " in " + r.getLocation()); });
                 throw new ParseException(message.toString(), 0);
             }
         }
     }
 
-    private void onQueryFired(Query query) {
+    private void onQueryFired(String queryCode) {
         try {
             assureKnowledgeBaseIsUpToDate();
         }
@@ -121,7 +121,24 @@ public class PlaygroundPanel {
             return;
         }
 
-        solutionExplorerPanel.setSolutions(query.findProofWithin(knowledgeBase, new VariableBucket(), new RandomVariableScope()));
+        Lexer queryLexer = new Lexer(
+            new SourceUnit("query"),
+            new LineEndingNormalizer(
+                new CharacterIterable(queryCode).iterator()
+            )
+        );
+        ParseResult<ParsedQuery> queryParseResult = parser.parseQuery(queryLexer, knowledgeBase.getOperatorRegistry());
+        if (!queryParseResult.getReportings().isEmpty() || queryParseResult.getItem() == null) {
+            JOptionPane.showMessageDialog(
+                null,
+                "Errors in query:\n" + queryParseResult.getReportings().stream().map(Reporting::toString).collect(joining(" \n")),
+                "Error in query",
+                JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        solutionExplorerPanel.setSolutions(queryParseResult.getItem().findProofWithin(knowledgeBase, new VariableBucket(), new RandomVariableScope()));
         solutionExplorerPanel.showNextSolution();
         this.panel.revalidate();
         this.panel.repaint();

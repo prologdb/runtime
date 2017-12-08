@@ -15,10 +15,12 @@ import com.github.tmarsteel.ktprolog.unification.Unification
 import kotlin.coroutines.experimental.buildSequence
 
 class DefaultKnowledgeBase : MutableKnowledgeBase {
-    private val library = SimpleLibrary(
+    val library = SimpleLibrary(
         DoublyIndexedLibraryEntryStore(),
         DefaultOperatorRegistry(true)
     )
+
+    override val operatorRegistry = library
 
     override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): Sequence<Unification> {
         // replace all variables in the term with random ones to prevent name collisions
