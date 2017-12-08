@@ -2,7 +2,7 @@ package com.github.tmarsteel.ktprolog.parser.parser
 
 private const val FEEDBACK_NOTE = "Please send the stacktrace and steps to reproduce to the author of this library."
 
-class InternalParserError private constructor(actualMessage: Any) : Exception(actualMessage.toString()) {
+open class InternalParserError private constructor(actualMessage: Any) : Exception(actualMessage.toString()) {
 
     // the (Any) constructor serves a purpose:
     // Calling InternalParserError() should result in ex.message == FEEDBACK_NOTE

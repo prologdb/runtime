@@ -11,6 +11,7 @@ import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.IDENTIFIER
 import com.github.tmarsteel.ktprolog.parser.lexer.TokenType.NUMERIC_LITERAL
 import com.github.tmarsteel.ktprolog.parser.sequence.TransactionalSequence
 import com.github.tmarsteel.ktprolog.parser.source.SourceLocationRange
+import com.github.tmarsteel.ktprolog.query.Query
 import com.github.tmarsteel.ktprolog.term.Atom
 import com.github.tmarsteel.ktprolog.term.Predicate
 import com.github.tmarsteel.ktprolog.term.Term
@@ -478,7 +479,15 @@ class PrologParser {
         }
 
         fun handleRule(definition: ParsedPredicate) {
-            TODO()
+            val head = definition.arguments[0] as? ParsedPredicate ?: throw InternalParserError("Rule heads must be predicates")
+            val queryTerm = definition.arguments[1] as? ParsedPredicate ?: throw InternalParserError("Queries must be predicates")
+            val transformResult = transformQuery(queryTerm)
+
+            if (transformResult.item != null) {
+                library.add(ParsedRule(head, transformResult.item, head.location .. queryTerm.location))
+            }
+
+            reportings += transformResult.reportings
         }
 
         while (tokens.hasNext()) {
@@ -545,6 +554,52 @@ class PrologParser {
         list.add(pivot)
 
         return ParseResult.of(list)
+    }
+
+    /**
+     * Converts a term given as the second argument to `:-/2` into an instance of [Query].
+     */
+    private fun transformQuery(query: ParsedTerm): ParseResult<ParsedQuery> {
+        if (query is ParsedPredicate) {
+            if (query.arity == 2 && (query.name == Operator.COMMA.text || query.name == Operator.SEMICOLON.text)) {
+                val operator = query.name
+                val elements = ArrayList<ParsedQuery>(5)
+                var pivot: ParsedTerm = query
+                val reportings = mutableSetOf<Reporting>()
+
+                fun addElement(element: ParsedTerm) {
+                    val transformResult = transformQuery(element)
+                    reportings += transformResult.reportings
+                    if (transformResult.item != null) elements += transformResult.item
+                }
+
+                while (pivot is ParsedPredicate && pivot.arity == 2 && pivot.name == operator) {
+                    addElement(pivot.arguments[0])
+                    pivot = pivot.arguments[1]
+                }
+                addElement(pivot)
+
+                return ParseResult(
+                    if (operator == Operator.COMMA.text) {
+                        ParsedAndQuery(
+                            elements.toTypedArray(),
+                            query.location
+                        )
+                    } else {
+                        ParsedOrQuery(
+                            elements.toTypedArray(),
+                            query.location
+                        )
+                    },
+                    MATCHED,
+                    reportings
+                )
+            } else {
+                return ParseResult.of(ParsedPredicateQuery(query))
+            }
+        } else {
+            return ParseResult(null, NOT_RECOGNIZED, setOf(SemanticError("$query is not a valid query component", query.location)))
+        }
     }
 
     companion object {
@@ -665,6 +720,12 @@ private fun OperatorRegistry.getPostfixDefinitionOf(tokenOrTerm: TokenOrTerm): O
     return getPostfixDefinition(text)
 }
 
+private val TokenOrTerm.hasTextContent: Boolean
+    get() = when(this) {
+        is Token, is Atom -> true
+        else -> false
+    }
+
 private val TokenOrTerm.textContent: String
     get() = when(this) {
         is Token -> this.textContent!!
@@ -692,236 +753,109 @@ private fun TokenOrTerm.asTerm(): ParsedTerm {
     throw InternalParserError()
 }
 
+private class ExpressionASTBuildingException(message: String) : InternalParserError(message)
+
 /**
  * @return The parsed predicate and the [OperatorDefinition] of its operator
  */
-fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedPredicate,OperatorDefinition>> {
+fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedTerm,OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
-        TODO("A Term must be returned here; but a term does not have a meaningful OperatorDefinition. The signature of this method will have to change")
+        return ParseResult.of(Pair(elements[0].asTerm(), null))
     }
 
-    val first = elements[0]
+    val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
+        .mapIndexed { index, it -> Pair(index, it) }
+        .filter { it.second.hasTextContent }
+        .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getAllDefinitions(tokenOrTerm.textContent)) }
+        .filter { it.second.isNotEmpty() }
+        .maxBy { it.second.maxBy(OperatorDefinition::precedence)!!.precedence }
+        ?: throw ExpressionASTBuildingException("There is no operator in the given list of elements")
 
-    val prefixDef = opRegistry.getPrefixDefinitionOf(first)
+    val index = leftmostOperatorWithMostPrecedence.first
 
-    if (prefixDef != null) {
-        // prefix operator
+    // will store results that can be constructed but are not necessarily the best fit to the input
+    // instead of failing with an exception, this one might be returned as a surrogate
+    var preliminaryResult: ParseResult<Pair<ParsedTerm,OperatorDefinition?>>? = null
 
-        if (elements.size == 2) {
-            val argTerm = elements[1].asTerm()
+    for (operatorDef in leftmostOperatorWithMostPrecedence.second) {
+        if (operatorDef.type.isPrefix) {
+            val rhsResult = buildBinaryExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
+            val thisTerm = ParsedPredicate(
+                operatorDef.name,
+                if (rhsResult.item != null) arrayOf(rhsResult.item.first) else emptyArray(),
+                elements[index].location..elements.last().location
+            )
+            val hasLhs = index > 0
+            if (hasLhs) {
+                val newElements = ArrayList<TokenOrTerm>(index + 2)
+                newElements.addAll(elements.subList(0, index))
+                newElements.add(thisTerm)
+                try {
+                    val fullResult = buildBinaryExpressionAST(newElements, opRegistry)
+                    return ParseResult(fullResult.item, fullResult.certainty, fullResult.reportings + rhsResult.reportings)
+                } catch (ex: ExpressionASTBuildingException) {
+                    // try another operator definition
+                }
+            } else {
+                return ParseResult(Pair(thisTerm, operatorDef), MATCHED, rhsResult.reportings)
+            }
+        } else if (operatorDef.type.isInfix) {
+            val lhsResult = if (index > 0) {
+                buildBinaryExpressionAST(elements.subList(0, index), opRegistry)
+            } else {
+                ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Missing left hand side operand", elements[index].location)))
+            }
 
-            return ParseResult.of(Pair(
-                ParsedPredicate(
-                    first.textContent,
-                    arrayOf(argTerm),
-                    first.location .. argTerm.location
-                ),
-                prefixDef
-            ))
-        }
-        assert(elements.size > 2)
+            val rhsResult = if (index < elements.lastIndex) {
+                buildBinaryExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
+            } else {
+                ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Missing right hand side operand", elements[index].location)))
+            }
 
-        val entireRhsResult = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry)
-        val entireRhs = entireRhsResult.item ?: throw InternalParserError()
-        if (prefixDef.precedence > entireRhs.second.precedence) {
-            return ParseResult(
+            val thisResult = ParsedPredicate(
+                operatorDef.name,
+                listOf(lhsResult.item?.first, rhsResult.item?.first).filterNotNull().toTypedArray(),
+                elements.first().location..elements.last().location
+            )
+
+            preliminaryResult = ParseResult(
                 Pair(
-                    ParsedPredicate(
-                        first.textContent,
-                        arrayOf(entireRhs.first),
-                        first.location .. entireRhs.first.location
-                    ),
-                    prefixDef
+                    thisResult,
+                    operatorDef
                 ),
                 MATCHED,
-                entireRhsResult.reportings
-            )
-        }
-        else if (prefixDef.precedence < entireRhs.second.precedence) {
-            val singleRhs = elements[1].asTerm()
-            val singleRhsWithPrefixOp = ParsedPredicate(
-                first.textContent,
-                arrayOf(singleRhs),
-                first.location .. singleRhs.location
+                lhsResult.reportings + rhsResult.reportings
             )
 
-            val newExpression = ArrayList<TokenOrTerm>(elements.size - 1)
-            newExpression.add(singleRhsWithPrefixOp)
-            newExpression.addAll(elements.subList(2, elements.size))
-
-            return buildBinaryExpressionAST(newExpression, opRegistry)
-        }
-        else {
-            val rhsOperatorDef = entireRhs.second
-            // both same precedence; check compatibility of types
-            var operatorClashError: Reporting? = null
-            if (prefixDef.type == FX && (rhsOperatorDef.type == XF || rhsOperatorDef.type == XFX || rhsOperatorDef.type == XFY)) {
-                operatorClashError = SemanticError("Operator priority clash: $prefixDef and $rhsOperatorDef", first.location)
-            }
-
-            if (prefixDef.type == FY && (rhsOperatorDef.type == XF || rhsOperatorDef.type == XFX || rhsOperatorDef.type == XFY)) {
-                return ParseResult(
-                    Pair(
-                        ParsedPredicate(
-                            first.textContent,
-                            arrayOf(entireRhs.first),
-                            first.location .. entireRhs.first.location
-                        ),
-                        prefixDef
-                    ),
-                    MATCHED,
-                    entireRhsResult.reportings
-                )
-            }
-
-            // the following code is technically not correct in case lhs is FX and rhs is XF or XFX or XFY
-            // but still having an AST can be important. The error case is covered with a reporting earlier
-            // and will prevent execution in a sane runtime.
-            val singleRhs = elements[1].asTerm()
-            val singleRhsWithPrefixOp = ParsedPredicate(
-                    first.textContent,
-                    arrayOf(singleRhs),
-                    first.location .. singleRhs.location
+            if (rhsResult.isSuccess) {
+                return preliminaryResult
+            } // else: try another operator definition
+        } else if (operatorDef.type.isPostfix) {
+            val lhsResult = buildBinaryExpressionAST(elements.subList(0, index), opRegistry)
+            val thisTerm = ParsedPredicate(
+                operatorDef.name,
+                if (lhsResult.item != null) arrayOf(lhsResult.item.first) else emptyArray(),
+                elements.first().location..elements[index].location
             )
 
-            val newExpression = ArrayList<TokenOrTerm>(elements.size - 1)
-            newExpression.add(singleRhsWithPrefixOp)
-            newExpression.addAll(elements.subList(2, elements.size))
-
-            val preliminaryResult = buildBinaryExpressionAST(newExpression, opRegistry)
-            // include the operatorClashReporting if necessary
-            return if (operatorClashError == null) preliminaryResult else ParseResult(
-                preliminaryResult.item,
-                preliminaryResult.certainty,
-                preliminaryResult.reportings + operatorClashError
-            )
-        }
-    } else {
-        // the first element is a parameter to the following infix or postfix op
-        val second = elements[1]
-        val infixDef = opRegistry.getInfixDefinitionOf(second)
-        if (infixDef != null) {
-            if (elements.size == 2) {
-                // input: firstValue infixOp
-                return ParseResult(
-                    Pair(
-                        ParsedPredicate(
-                            second.textContent,
-                            arrayOf(first.asTerm()),
-                            first.location .. second.location
-                        ),
-                        infixDef
-                    ),
-                    MATCHED,
-                    setOf(
-                        SyntaxError("Unbalanced operator: missing second parameter to infix operator $infixDef", second.location)
-                    )
-                )
+            val hasRhs = index > 0
+            if (hasRhs) {
+                val newElements = ArrayList<TokenOrTerm>(index + 2)
+                newElements.add(thisTerm)
+                newElements.addAll(elements.subList(index + 1, elements.size))
+                val fullResult = buildBinaryExpressionAST(newElements, opRegistry)
+                return ParseResult(fullResult.item, fullResult.certainty, fullResult.reportings + lhsResult.reportings)
+            } else {
+                return ParseResult(Pair(thisTerm, operatorDef), MATCHED, lhsResult.reportings)
             }
-            else if (elements.size == 3) {
-                // input: firstValue infixOp secondValue
-                return ParseResult.of(
-                    Pair(
-                        ParsedPredicate(
-                            second.textContent,
-                            arrayOf(first.asTerm(), elements[2].asTerm()),
-                            first.location .. elements[2].location
-                        ),
-                        infixDef
-                    )
-                )
-            }
-            else {
-                // input: firstValue infixOp ...other stuff...
-                val entireRhsResult = buildBinaryExpressionAST(elements.subList(2, elements.size), opRegistry)
-                if (entireRhsResult.item == null) return entireRhsResult
-                val entireRhs = entireRhsResult.item
-
-                // there is only one AST for all cases of priority and operator type; but some cases trigger
-                // a clash error
-                var operatorClashError: Reporting? = null
-
-                if (infixDef.precedence < entireRhs.second.precedence || (infixDef.precedence == entireRhs.second.precedence && (infixDef.type == XFX || infixDef.type == YFX))) {
-                    operatorClashError = SemanticError("Operator priority clash: $infixDef and ${entireRhs.second}", first.location)
-                }
-
-                return ParseResult(
-                    Pair(
-                        ParsedPredicate(
-                            second.textContent,
-                            arrayOf(first.asTerm(), entireRhs.first),
-                            first.location .. entireRhs.first.location
-                        ),
-                        infixDef
-                    ),
-                    MATCHED,
-                    if (operatorClashError == null) entireRhsResult.reportings else entireRhsResult.reportings + operatorClashError
-                )
-            }
-        }
-        else {
-            val postfixDef = opRegistry.getPostfixDefinitionOf(second)
-            if (postfixDef == null) {
-                // two values next to each other => error; then ignore the first value
-                if (elements.size > 2) {
-                    val result = buildBinaryExpressionAST(elements.subList(1, elements.size), opRegistry)
-                    return ParseResult(
-                        result.item,
-                        result.certainty,
-                        result.reportings + SyntaxError("Operator expected", second.location)
-                    )
-                } else {
-                    return ParseResult<Pair<ParsedPredicate,OperatorDefinition>>(
-                        null,
-                        NOT_RECOGNIZED,
-                        setOf(SyntaxError("Operator expected", second.location))
-                    )
-                }
-            }
-            else {
-                val postfixPredicate = ParsedPredicate(
-                    second.textContent,
-                    arrayOf(first.asTerm()),
-                    first.location .. second.location
-                )
-
-                if (elements.size == 2 || elements.size == 3) {
-                    // must be value postOp [postOp]
-                    if (elements.size == 2) {
-                        return ParseResult.of(Pair(postfixPredicate, postfixDef))
-                    }
-
-                    return buildBinaryExpressionAST(listOf(postfixPredicate, elements[2]), opRegistry)
-                }
-
-                // turn e.g. a postOp infixOp b into infixOp(postOp(a), b))
-                val newExpression = ArrayList<TokenOrTerm>(elements.size - 1)
-                newExpression.add(postfixPredicate)
-                newExpression.addAll(elements.subList(2, elements.size))
-                val preliminaryResult = buildBinaryExpressionAST(newExpression, opRegistry)
-                val preliminaryDef = preliminaryResult.item!!.second
-
-                var reporting: Reporting? = null // will be non-null in case of a priority clash or a pointless expression (see below)
-
-                if (postfixDef.precedence == preliminaryDef.precedence && (preliminaryDef.type == XF || preliminaryDef.type == XFX || preliminaryDef.type == XFY)) {
-                    reporting = SemanticError("Operator priority clash: $postfixDef and $preliminaryDef", preliminaryResult.item.location)
-                }
-
-                if (postfixDef.precedence > preliminaryDef.precedence) {
-                    reporting = SemanticError("Unsupported operator order: $postfixDef cannot precede $preliminaryDef", second.location)
-                }
-
-                if (postfixDef.precedence == preliminaryDef.precedence && postfixDef.type == YF && (preliminaryDef.type == XF || preliminaryDef.type == XFX || preliminaryDef.type == XFY)) {
-                    reporting = SemanticError("Unsupported operator order: $postfixDef cannot precede $preliminaryDef", second.location)
-                }
-
-                return if (reporting == null) preliminaryResult else ParseResult(
-                    preliminaryResult.item,
-                    preliminaryResult.certainty,
-                    preliminaryResult.reportings + reporting
-                )
-            }
-        }
+        } else throw InternalParserError("Illegal operator definition: is neither prefix nor infix nor postfix")
     }
+
+    if (preliminaryResult != null) {
+        return preliminaryResult
+    }
+
+    // there is no way to use the operator
+    throw InternalParserError("Cannot meaningfully use operator ${elements[index]}")
 }

@@ -72,6 +72,22 @@ interface OperatorRegistry {
     fun getPostfixDefinition(name: String): OperatorDefinition?
 
     /**
+     * Returns all definitions for operators with the given name
+     */
+    fun getAllDefinitions(name: String): Set<OperatorDefinition> {
+        val defs = mutableSetOf<OperatorDefinition>()
+        val prefixDef = getPrefixDefinition(name)
+        val infixDef = getInfixDefinition(name)
+        val postfixDef = getPostfixDefinition(name)
+
+        if (prefixDef != null)  defs.add(prefixDef)
+        if (infixDef != null)   defs.add(infixDef)
+        if (postfixDef != null) defs.add(postfixDef)
+
+        return defs
+    }
+
+    /**
      * Is supposed to display listings and merge multiple operator registries. Should be computed on demand only.
      */
     val allOperators: Iterable<OperatorDefinition>
@@ -118,7 +134,11 @@ enum class OperatorType(val arity: Int) {
     XFY(2),
     YFX(2),
     XF(1),
-    YF(1)
+    YF(1);
+
+    val isPrefix by lazy { this == FX || this == FY }
+    val isInfix by lazy { this == XFX || this == XFY || this == YFX }
+    val isPostfix by lazy { this == XF || this == YF }
 }
 
 /**

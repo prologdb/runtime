@@ -1,5 +1,7 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
+import com.github.tmarsteel.ktprolog.builtin.EqualityLibrary
+import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.knowledge.library.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
@@ -307,8 +309,96 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
+    "expression term" - {
+        "double prefix" {
+            val result = parseTerm("prefixOpFY200 prefixOpFY200 a")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 0
+
+            var item = result.item!! as Predicate
+            item.name shouldEqual "prefixOpFY200"
+            item.arity shouldEqual 1
+
+            item = item.arguments[0] as Predicate
+            item.name shouldEqual "prefixOpFY200"
+            item.arity shouldEqual 1
+        }
+
+        "missing operand" - {
+            "prefix" {
+                val result = parseTerm("prefixOpFY200")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(Atom::class)
+                val item = result.item as Atom
+                item.name shouldEqual "prefixOpFY200"
+            }
+
+            "infix both" {
+                val result = parseTerm("infixOpXFX500")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(Atom::class)
+                val item = result.item as Atom
+                item.name shouldEqual "infixOpXFX500"
+            }
+
+            "infix before" {
+                val result = parseTerm("infixOpXFX500 a")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings shouldNot beEmpty()
+            }
+
+            "infix after" {
+                val result = parseTerm("a infixOpXFX500")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings shouldNot beEmpty()
+            }
+
+            "infix op with missing rhs operand falls back to postfix definition" {
+                operators.defineOperator(OperatorDefinition(400,OperatorType.XFX,"infixAndPostfixOp"))
+                operators.defineOperator(OperatorDefinition(200,OperatorType.XF,"infixAndPostfixOp"))
+
+                val result = parseTerm("a infixAndPostfixOp")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                val item = result.item!!
+                item shouldBe instanceOf(Predicate::class)
+                item as Predicate
+                item.name shouldEqual "infixAndPostfixOp"
+                item.arity shouldEqual 1
+            }
+
+            "infix op with missing lhs operand falls back to prefix definition" {
+                operators.defineOperator(OperatorDefinition(400,OperatorType.XFX,"infixAndPrefixOp"))
+                operators.defineOperator(OperatorDefinition(200,OperatorType.FX,"infixAndPrefixOp"))
+
+                val result = parseTerm("infixAndPrefixOp a")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                val item = result.item!!
+                item shouldBe instanceOf(Predicate::class)
+                item as Predicate
+                item.name shouldEqual "infixAndPrefixOp"
+                item.arity shouldEqual 1
+            }
+        }
+    }
+
     "library" {
         val library = SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry(true))
+        library.include(EqualityLibrary)
 
         fun parseLibrary(tokens: TransactionalSequence<Token>) = PrologParser().parseLibrary(tokens, { library })
         fun parseLibrary(code: String) = parseLibrary(tokensOf(code))
@@ -317,12 +407,21 @@ class PrologParserTest : FreeSpec() {
             :- op(200,xf,isDead).
             :- op(200,fx,kill).
 
-            X isDead :- kill X.
+            X isDead :- kill X, X = kenny; X = cartman.
 
             kill kenny.
         """)
 
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
+
+        val rules = library.findFor(Predicate("isDead", arrayOf(Variable("X")))).toList()
+        rules.size shouldBe 1
+
+        val rule = rules.first()
+        rule shouldBe instanceOf(Rule::class)
+        rule as Rule
+
+        rule.toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
     }
 }}
