@@ -18,7 +18,7 @@ open class OrQuery(val goals: Array<out Query>) : Query {
     }
 
     override fun toString(): String {
-        return goals.mapToArray { it.toString() }.joinToString("; ")
+        return goals.mapToArray { it.toString() }.joinToString(" ; ")
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
