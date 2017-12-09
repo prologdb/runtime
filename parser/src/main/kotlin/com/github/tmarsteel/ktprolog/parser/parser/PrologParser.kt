@@ -825,6 +825,20 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                         elements[index].location .. rhsPredicate.arguments[1].location
                     )
                 }
+                else if (rhsOp.type == YF) {
+                    val rhsPredicate = rhsResult.item.first as ParsedPredicate
+                    thisTerm = ParsedPredicate(
+                        rhsOp.name,
+                        arrayOf(
+                            ParsedPredicate(
+                                operatorDef.name,
+                                arrayOf(rhsPredicate.arguments[0]),
+                                elements[index].location .. rhsPredicate.arguments[0].location
+                            )
+                        ),
+                        elements[index].location .. rhsPredicate.location
+                    )
+                }
                 else if (rhsOp.precedence >= operatorDef.precedence) {
                     reportings.add(SemanticError(
                         "Operator priority clash: right of ${operatorDef.name} must be strictly less precedence than ${operatorDef.precedence}, but found ${rhsOp.name} with precedence ${rhsOp.precedence}",
