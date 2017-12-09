@@ -26,30 +26,21 @@
         <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest</artifactId>
-            <version>2.0.7</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/kotlin</sourceDirectory>
+        <sourceDirectory>../core/src/main/kotlin</sourceDirectory>
         <testSourceDirectory>src/test/kotlin</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.plugin.version}</version>
                 <configuration>
-                    <sourceDirs>
-                        <sourceDir>${project.build.sourceDirectory}</sourceDir>
-                        <sourceDir>../core/src/main/kotlin</sourceDir>
-                    </sourceDirs>
                     <experimentalCoroutines>enable</experimentalCoroutines>
                     <jvmTarget>1.8</jvmTarget>
                 </configuration>

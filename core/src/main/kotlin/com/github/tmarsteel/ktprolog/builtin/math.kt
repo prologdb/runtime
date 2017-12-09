@@ -112,12 +112,10 @@ object MathOperatorRegistry {
         registerOperator("*",   Number::times)
         registerOperator("/",   Number::div)
         registerOperator("mod", Number::rem)
+        registerOperator("^",   Number::toThe)
 
         registerOperator("+", Number::unaryPlus)
         registerOperator("-", Number::unaryMinus)
-
-        // this is declared in the platform modules
-        BuiltinMathOperators.register()
     }
 }
 

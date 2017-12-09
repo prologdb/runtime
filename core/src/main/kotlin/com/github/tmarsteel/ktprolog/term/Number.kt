@@ -6,6 +6,7 @@ interface Number : Term {
     operator fun times(other: Number): Number
     operator fun div(other: Number): Number
     operator fun rem(other: Number): Number
+    infix fun toThe(other: Number): Number
     operator fun compareTo(other: Number) : Int
 
     operator fun unaryPlus(): Number

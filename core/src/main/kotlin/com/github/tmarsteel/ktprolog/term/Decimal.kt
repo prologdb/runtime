@@ -3,6 +3,7 @@ package com.github.tmarsteel.ktprolog.term
 import com.github.tmarsteel.ktprolog.PrologRuntimeException
 import com.github.tmarsteel.ktprolog.RandomVariableScope
 import com.github.tmarsteel.ktprolog.unification.Unification
+import kotlin.math.pow
 
 open class Decimal(val value: Double) : Number {
     override fun plus(other: Number) =
@@ -39,6 +40,14 @@ open class Decimal(val value: Double) : Number {
             is Integer -> Decimal(value % other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
+
+    override fun toThe(other: Number): Number {
+        return when(other) {
+            is Decimal -> Decimal(this.value.pow(other.value))
+            is Integer -> Decimal(this.value.pow(other.value.toDouble()))
+            else -> throw PrologRuntimeException("Unsupported type of number")
+        }
+    }
 
     override fun unaryPlus(): Number = Decimal(+this.value)
 
