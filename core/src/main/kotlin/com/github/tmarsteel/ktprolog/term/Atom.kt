@@ -1,7 +1,7 @@
 package com.github.tmarsteel.ktprolog.term
 
-import com.github.tmarsteel.ktprolog.unification.Unification
 import com.github.tmarsteel.ktprolog.RandomVariableScope
+import com.github.tmarsteel.ktprolog.unification.Unification
 
 open class Atom(val name: String) : Term {
 
@@ -22,21 +22,6 @@ open class Atom(val name: String) : Term {
 
     override fun substituteVariables(mapper: (Variable) -> Term) = this
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as Atom
-
-        if (name != other.name) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        return name.hashCode()
-    }
-
     override fun toString(): String {
         val firstChar = name[0]
         if (firstChar !in '0' .. '9' && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
@@ -45,5 +30,18 @@ open class Atom(val name: String) : Term {
         else {
             return name
         }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Atom) return false
+
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
     }
 }
