@@ -797,14 +797,42 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
     // instead of failing with an exception, this one might be returned as a surrogate
     var preliminaryResult: ParseResult<Pair<ParsedTerm,OperatorDefinition?>>? = null
 
-    for (operatorDef in leftmostOperatorWithMostPrecedence.second) {
+    tryOperatorDefinitionForIndex@ for (operatorDef in leftmostOperatorWithMostPrecedence.second) {
+        val reportings = mutableSetOf<Reporting>()
+
         if (operatorDef.type.isPrefix) {
             val rhsResult = buildBinaryExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
-            val thisTerm = ParsedPredicate(
+            var thisTerm = ParsedPredicate(
                 operatorDef.name,
-                if (rhsResult.item != null) arrayOf(rhsResult.item!!.first) else emptyArray(),
+                if (rhsResult.item != null) arrayOf(rhsResult.item.first) else emptyArray(),
                 elements[index].location..elements.last().location
             )
+
+            if (operatorDef.type == FX && rhsResult.item?.second != null) {
+                val rhsOp = rhsResult.item.second!!
+                if (rhsOp.type == YFX) {
+                    val rhsPredicate = rhsResult.item.first as ParsedPredicate
+                    thisTerm = ParsedPredicate(
+                        rhsOp.name,
+                        arrayOf(
+                            ParsedPredicate(
+                                operatorDef.name,
+                                arrayOf(rhsPredicate.arguments[0]),
+                                elements[index].location .. rhsPredicate.arguments[1].location
+                            ),
+                            rhsPredicate.arguments[1]
+                        ),
+                        elements[index].location .. rhsPredicate.arguments[1].location
+                    )
+                }
+                else if (rhsOp.precedence >= operatorDef.precedence) {
+                    reportings.add(SemanticError(
+                        "Operator priority clash: right of ${operatorDef.name} must be strictly less precedence than ${operatorDef.precedence}, but found ${rhsOp.name} with precedence ${rhsOp.precedence}",
+                        elements[index].location
+                    ))
+                }
+            }
+
             val hasLhs = index > 0
             if (hasLhs) {
                 val newElements = ArrayList<TokenOrTerm>(index + 2)
@@ -812,12 +840,17 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                 newElements.add(thisTerm)
                 try {
                     val fullResult = buildBinaryExpressionAST(newElements, opRegistry)
-                    return ParseResult(fullResult.item, fullResult.certainty, fullResult.reportings + rhsResult.reportings)
+                    preliminaryResult = ParseResult(fullResult.item, fullResult.certainty, reportings + fullResult.reportings + rhsResult.reportings)
                 } catch (ex: ExpressionASTBuildingException) {
-                    // try another operator definition
+                    // try another defintion for the same operator
+                    continue@tryOperatorDefinitionForIndex
                 }
             } else {
-                return ParseResult(Pair(thisTerm, operatorDef), MATCHED, rhsResult.reportings)
+                preliminaryResult = ParseResult(Pair(thisTerm, operatorDef), MATCHED, reportings + rhsResult.reportings)
+            }
+
+            if (rhsResult.reportings.isEmpty()) {
+                return preliminaryResult
             }
         } else if (operatorDef.type.isInfix) {
             val lhsResult = if (index > 0) {
@@ -838,7 +871,6 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                 elements.first().location..elements.last().location
             )
 
-            val reportings = mutableSetOf<Reporting>()
             reportings.addAll(lhsResult.reportings)
             reportings.addAll(rhsResult.reportings)
 
@@ -867,7 +899,7 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                                 ParsedPredicate(
                                     operatorDef.name,
                                     arrayOf(lhsResult.item!!.first, rhsPredicate.arguments[0]),
-                                    lhsResult.item!!.first.location .. rhsPredicate.arguments[0].location
+                                    lhsResult.item.first.location .. rhsPredicate.arguments[0].location
                                 )
                             ),
                             lhsResult.item.first.location .. rhsPredicate.location

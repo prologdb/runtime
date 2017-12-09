@@ -326,7 +326,9 @@ class PrologParserTest : FreeSpec() {
         }
 
         "precedence tests" - {
+            operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "prefixOpFX200"))
             operators.defineOperator(OperatorDefinition(200, OperatorType.XFX, "infixOpXFX200"))
+            operators.defineOperator(OperatorDefinition(200, OperatorType.YFX, "infixOpYFX200"))
             operators.defineOperator(OperatorDefinition(200, OperatorType.YF, "postfixOpYF200"))
 
             "op priority clash 01" {
@@ -345,7 +347,15 @@ class PrologParserTest : FreeSpec() {
                 result.item shouldNotBe null
             }
 
-            "associativity correction 01" {
+            "op priority clash 03" {
+                val result = parseTerm("prefixOpFX200 a infixOpXFX200 b")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings shouldNot beEmpty()
+                result.item shouldNotBe null
+            }
+
+            "associativity test 01 correction" {
                 val result = parseTerm("a infixOpXFX200 b postfixOpYF200")
 
                 result.certainty shouldEqual MATCHED
@@ -362,6 +372,44 @@ class PrologParserTest : FreeSpec() {
                 inner.arity shouldEqual 2
                 inner.arguments[0] shouldEqual Atom("a")
                 inner.arguments[1] shouldEqual Atom("b")
+            }
+
+            "associativity test 02" {
+                val result = parseTerm("prefixOpFY200 a infixOpXFX200 b")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(ParsedPredicate::class)
+                val outer = result.item as ParsedPredicate
+                outer.name shouldEqual "prefixOpFY200"
+                outer.arity shouldEqual 1
+                outer.arguments[0] shouldBe instanceOf(ParsedPredicate::class)
+
+                val inner = outer.arguments[0] as ParsedPredicate
+                inner.name shouldEqual "infixOpXFX200"
+                inner.arity shouldEqual 2
+                inner.arguments[0] shouldEqual Atom("a")
+                inner.arguments[1] shouldEqual Atom("b")
+            }
+
+            "associativity test 03 correction" {
+                val result = parseTerm("prefixOpFX200 a infixOpYFX200 b")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(ParsedPredicate::class)
+                val outer = result.item as ParsedPredicate
+                outer.name shouldEqual "infixOpYFX200"
+                outer.arity shouldEqual 2
+                outer.arguments[0] shouldBe instanceOf(ParsedPredicate::class)
+                outer.arguments[1] shouldEqual Atom("b")
+
+                val inner = outer.arguments[0] as ParsedPredicate
+                inner.name shouldEqual "prefixOpFX200"
+                inner.arity shouldEqual 1
+                inner.arguments[0] shouldEqual Atom("a")
             }
         }
 
