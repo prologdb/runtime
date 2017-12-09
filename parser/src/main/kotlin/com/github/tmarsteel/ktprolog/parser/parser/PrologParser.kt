@@ -725,30 +725,6 @@ private val Token.textContent: String?
         else -> null
     }
 
-private fun OperatorRegistry.getPrefixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    if (tokenOrTerm is Predicate || tokenOrTerm is Variable || tokenOrTerm is com.github.tmarsteel.ktprolog.term.Number) return null
-
-    val text = tokenOrTerm.textContent
-
-    return getPrefixDefinition(text)
-}
-
-private fun OperatorRegistry.getInfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    if (tokenOrTerm is Predicate || tokenOrTerm is Variable || tokenOrTerm is com.github.tmarsteel.ktprolog.term.Number) return null
-
-    val text = tokenOrTerm.textContent
-
-    return getInfixDefinition(text)
-}
-
-private fun OperatorRegistry.getPostfixDefinitionOf(tokenOrTerm: TokenOrTerm): OperatorDefinition? {
-    if (tokenOrTerm is Predicate || tokenOrTerm is Variable || tokenOrTerm is com.github.tmarsteel.ktprolog.term.Number) return null
-
-    val text = tokenOrTerm.textContent
-
-    return getPostfixDefinition(text)
-}
-
 private val TokenOrTerm.hasTextContent: Boolean
     get() = when(this) {
         is Token, is Atom -> true
@@ -798,7 +774,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
     val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
         .mapIndexed { index, it -> Pair(index, it) }
         .filter { it.second.hasTextContent }
-        .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getAllDefinitions(tokenOrTerm.textContent)) }
+        .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getOperatorDefinitionsFor(tokenOrTerm.textContent)) }
         .filter { it.second.isNotEmpty() }
         .maxBy { it.second.maxBy(OperatorDefinition::precedence)!!.precedence }
         ?: throw ExpressionASTBuildingException(SyntaxError("Operator expected", elements[0].location.end))
@@ -949,7 +925,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                 reportings
             )
 
-            if (rhsResult.isSuccess) {
+            if (lhsResult.isSuccess && rhsResult.isSuccess) {
                 return preliminaryResult
             } // else: try another operator definition
         } else if (operatorDef.type.isPostfix) {

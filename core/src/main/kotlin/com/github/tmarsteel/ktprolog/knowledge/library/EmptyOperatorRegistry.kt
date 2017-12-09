@@ -1,11 +1,6 @@
 package com.github.tmarsteel.ktprolog.knowledge.library
 
 object EmptyOperatorRegistry : OperatorRegistry {
-    override fun getPrefixDefinition(name: String): OperatorDefinition? = null
-
-    override fun getInfixDefinition(name: String): OperatorDefinition? = null
-
-    override fun getPostfixDefinition(name: String): OperatorDefinition? = null
-
-    override val allOperators: Iterable<OperatorDefinition> = emptySet()
+    override val allOperators: Set<OperatorDefinition> = emptySet()
+    override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = allOperators
 }

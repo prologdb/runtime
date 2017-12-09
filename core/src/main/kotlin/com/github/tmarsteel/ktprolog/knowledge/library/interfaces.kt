@@ -54,41 +54,13 @@ interface MutableLibraryEntryStore : LibraryEntryStore {
  */
 interface OperatorRegistry {
     /**
-     * Returns the prefix definition for the given name or `null` if the given name is not defined as a prefix
-     * operator.
-     */
-    fun getPrefixDefinition(name: String): OperatorDefinition?
-
-    /**
-     * Returns the infix definition for the given name or `null` if the given name is not defined as a prefix
-     * operator.
-     */
-    fun getInfixDefinition(name: String): OperatorDefinition?
-
-    /**
-     * Returns the postfix definition for the given name or `null` if the given name is not defined as a prefix
-     * operator.
-     */
-    fun getPostfixDefinition(name: String): OperatorDefinition?
-
-    /**
      * Returns all definitions for operators with the given name
      */
-    fun getAllDefinitions(name: String): Set<OperatorDefinition> {
-        val defs = mutableSetOf<OperatorDefinition>()
-        val prefixDef = getPrefixDefinition(name)
-        val infixDef = getInfixDefinition(name)
-        val postfixDef = getPostfixDefinition(name)
-
-        if (prefixDef != null)  defs.add(prefixDef)
-        if (infixDef != null)   defs.add(infixDef)
-        if (postfixDef != null) defs.add(postfixDef)
-
-        return defs
-    }
+    fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition>
 
     /**
-     * Is supposed to display listings and merge multiple operator registries. Should be computed on demand only.
+     * Is supposed to be used to display listings and merge multiple operator registries.
+     * Should be computed on demand only.
      */
     val allOperators: Iterable<OperatorDefinition>
 }
@@ -124,7 +96,7 @@ data class OperatorDefinition (
      */
     val name: String
 ) {
-    override fun toString() = "op($precedence,${type.name.toLowerCase()},$name)"
+    override fun toString() = "op($precedence, ${type.name.toLowerCase()}, $name)"
 }
 
 enum class OperatorType(val arity: Int) {

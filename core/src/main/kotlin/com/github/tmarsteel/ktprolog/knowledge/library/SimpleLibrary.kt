@@ -9,14 +9,10 @@ open class SimpleLibrary(
 
     override fun add(entry: LibraryEntry) = entryStore.add(entry)
 
-    override fun getPrefixDefinition(name: String): OperatorDefinition? = operatorRegistry.getPrefixDefinition(name)
-
-    override fun getInfixDefinition(name: String): OperatorDefinition? = operatorRegistry.getInfixDefinition(name)
-
-    override fun getPostfixDefinition(name: String): OperatorDefinition? = operatorRegistry.getPostfixDefinition(name)
-
     override val allOperators: Iterable<OperatorDefinition>
         get() = operatorRegistry.allOperators
+
+    override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operatorRegistry.getOperatorDefinitionsFor(name)
 
     override fun defineOperator(definition: OperatorDefinition) = operatorRegistry.defineOperator(definition)
 }

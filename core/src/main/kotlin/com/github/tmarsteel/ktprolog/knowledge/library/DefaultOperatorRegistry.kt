@@ -2,7 +2,7 @@ package com.github.tmarsteel.ktprolog.knowledge.library
 
 import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 
-private typealias OperatorMap = MutableMap<String,OperatorDefinition>
+private typealias OperatorMap = MutableMap<String,MutableSet<OperatorDefinition>>
 
 /**
  * A simple implementation of [MutableOperatorRegistry]. Includes the definitions of the ISO prolog operators in
@@ -16,9 +16,7 @@ private typealias OperatorMap = MutableMap<String,OperatorDefinition>
  */
 class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
 
-    private val prefixOps: OperatorMap = mutableMapOf()
-    private val infixOps: OperatorMap = mutableMapOf()
-    private val postfixOps: OperatorMap = mutableMapOf()
+    private val operators: OperatorMap = mutableMapOf()
 
     /** Delegates to `this(false)`. */
     constructor() : this(false)
@@ -44,30 +42,30 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
         }
     }
 
-    override fun getPrefixDefinition(name: String): OperatorDefinition? = prefixOps[name]
-
-    override fun getInfixDefinition(name: String): OperatorDefinition? = infixOps[name]
-
-    override fun getPostfixDefinition(name: String): OperatorDefinition? = postfixOps[name]
+    override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operators[name] ?: emptySet()
 
     override fun defineOperator(definition: OperatorDefinition) {
-        val targetMap = when(definition.type) {
-            FX, FY -> prefixOps
-            XFX, XFY, YFX -> infixOps
-            XF, YF -> postfixOps
+        var targetSet = operators[definition.name]
+        if (targetSet == null) {
+            targetSet = HashSet()
+            operators[definition.name] = targetSet
         }
 
-        targetMap[definition.name] = definition
+        targetSet.add(definition)
     }
 
     override val allOperators: Iterable<OperatorDefinition>
-        get() = prefixOps.values + infixOps.values + postfixOps.values
+        get() = operators.values.flatten()
 
     override fun include(other: OperatorRegistry) {
         if (other is DefaultOperatorRegistry) {
-            prefixOps.putAll(other.prefixOps)
-            infixOps.putAll(other.infixOps)
-            postfixOps.putAll(other.postfixOps)
+            for (name in other.operators.keys) {
+                if (name in this.operators) {
+                    this.operators[name]!!.addAll(other.operators[name]!!)
+                } else {
+                    this.operators[name] = mutableSetOf()
+                }
+            }
         } else {
             super.include(other)
         }
