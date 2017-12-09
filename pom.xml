@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.tmarsteel</groupId>
-    <artifactId>kotlin-prolog</artifactId>
+    <groupId>com.github.prologdb</groupId>
+    <artifactId>runtime</artifactId>
     <packaging>pom</packaging>
 
     <!--
@@ -63,6 +63,17 @@
                 <artifactId>kotlin-reflect</artifactId>
                 <version>${kotlin.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.prologdb</groupId>
+                <artifactId>runtime-core</artifactId>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.prologdb</groupId>
+                <artifactId>runtime-parser</artifactId>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

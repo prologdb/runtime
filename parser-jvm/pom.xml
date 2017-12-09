@@ -3,14 +3,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>kotlin-prolog</artifactId>
-        <groupId>com.github.tmarsteel</groupId>
+        <groupId>com.github.prologdb</groupId>
+        <artifactId>runtime</artifactId>
         <version>1.0.0-RC1</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kotlin-prolog-parser-jvm</artifactId>
+    <artifactId>runtime-parser-jvm</artifactId>
     <version>1.0.0-RC1</version>
 
     <dependencies>
@@ -19,13 +19,13 @@
             <artifactId>kotlin-stdlib</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.tmarsteel</groupId>
-            <artifactId>kotlin-prolog-core-jvm</artifactId>
+            <groupId>com.github.prologdb</groupId>
+            <artifactId>runtime-core-jvm</artifactId>
             <version>1.0.0-RC1</version>
         </dependency>
         <dependency>
-            <groupId>com.github.tmarsteel</groupId>
-            <artifactId>kotlin-prolog-parser</artifactId>
+            <groupId>com.github.prologdb</groupId>
+            <artifactId>runtime-parser</artifactId>
             <version>1.0.0-RC1</version>
         </dependency>
         <dependency>

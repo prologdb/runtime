@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.github.tmarsteel</groupId>
-        <artifactId>kotlin-prolog</artifactId>
+        <groupId>com.github.prologdb</groupId>
+        <artifactId>runtime</artifactId>
         <version>1.0.0-RC1</version>
     </parent>
 
-    <artifactId>kotlin-prolog-core</artifactId>
+    <artifactId>runtime-core</artifactId>
     <version>1.0.0-RC1</version>
 
     <dependencies>
@@ -63,6 +63,14 @@
                     <jvmTarget>1.8</jvmTarget>
                     <experimentalCoroutines>enable</experimentalCoroutines>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions><execution><phase>none</phase></execution></executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <executions><execution><phase>none</phase></execution></executions>
             </plugin>
         </plugins>
     </build>

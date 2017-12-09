@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>kotlin-prolog</artifactId>
-        <groupId>com.github.tmarsteel</groupId>
+        <groupId>com.github.prologdb</groupId>
+        <artifactId>runtime</artifactId>
         <version>1.0.0-RC1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kotlin-prolog-parser</artifactId>
+    <artifactId>runtime-parser</artifactId>
     <version>1.0.0-RC1</version>
 
     <properties>
@@ -18,8 +18,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.tmarsteel</groupId>
-            <artifactId>kotlin-prolog-core</artifactId>
+            <groupId>com.github.prologdb</groupId>
+            <artifactId>runtime-core</artifactId>
             <version>1.0.0-RC1</version>
         </dependency>
         <dependency>
@@ -46,11 +46,18 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
                 <executions><execution><phase>none</phase></execution></executions>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions><execution><phase>none</phase></execution></executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <executions><execution><phase>none</phase></execution></executions>
             </plugin>
         </plugins>
     </build>
