@@ -70,6 +70,19 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
+                <configuration>
+                    <impliedPlatforms>
+                        <platform>JS</platform>
+                    </impliedPlatforms>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

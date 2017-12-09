@@ -8,6 +8,10 @@
     <artifactId>runtime</artifactId>
     <packaging>pom</packaging>
 
+    <name>com.github.prologdb:runtime</name>
+    <description>A prolog runtime written in Kotlin</description>
+    <url>https://github.com/prologdb/runtime</url>
+
     <!--
         update all versions in all poms with:
         mvn versions:set -DnewVersion=X.Y.Z -DgenerateBackupPoms=false
@@ -27,6 +31,46 @@
         <kotlin.version>1.2.0</kotlin.version>
         <kotlin.plugin.version>${kotlin.version}</kotlin.plugin.version>
     </properties>
+
+    <developers>
+        <developer>
+            <name>Tobias Marstaller</name>
+            <email>tobias.marstaller@gmail.com</email>
+            <organizationUrl>https://github.com/tmarsteel</organizationUrl>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://raw.githubusercontent.com/prologdb/runtime/master/LICENSE</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git@github.com:prologdb/runtime.git</connection>
+        <developerConnection>scm:git:git@github.com:prologdb/runtime.git</developerConnection>
+        <url>git@github.com:prologdb/runtime.git</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jcenter</id>
+            <name>JCenter</name>
+            <url>https://jcenter.bintray.com/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -98,7 +142,48 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.6</version>
+                    <executions>
+                        <execution>
+                            <id>sign-artifacts</id>
+                            <phase>verify</phase>
+                            <configuration>
+                                <keyname>20DAB483</keyname>
+                            </configuration>
+                            <goals>
+                                <goal>sign</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.jetbrains.dokka</groupId>
+                    <artifactId>dokka-maven-plugin</artifactId>
+                    <version>0.9.15</version>
+                    <executions>
+                        <execution>
+                            <phase>pre-site</phase>
+                            <goals>
+                                <goal>javadocJar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <artifactId>maven-site-plugin</artifactId>
+                <executions><execution><phase>none</phase></execution></executions>
+                <configuration><skip>true</skip></configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
 </project>

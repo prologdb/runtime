@@ -38,20 +38,6 @@
         </repository>
     </repositories>
 
-    <pluginRepositories>
-        <pluginRepository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>bintray.kotlin.eap</id>
-            <name>Bintray Kotlin 1.2 EAP Repository</name>
-            <url>http://dl.bintray.com/kotlin/kotlin-eap-1.2</url>
-        </pluginRepository>
-    </pluginRepositories>
-
     <build>
         <sourceDirectory>src/main/kotlin</sourceDirectory>
         <plugins>
@@ -71,6 +57,7 @@
             <plugin>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <executions><execution><phase>none</phase></execution></executions>
+                <configuration><skip>true</skip></configuration>
             </plugin>
         </plugins>
     </build>
