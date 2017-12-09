@@ -325,6 +325,46 @@ class PrologParserTest : FreeSpec() {
             item.arity shouldEqual 1
         }
 
+        "precedence tests" - {
+            operators.defineOperator(OperatorDefinition(200, OperatorType.XFX, "infixOpXFX200"))
+            operators.defineOperator(OperatorDefinition(200, OperatorType.YF, "postfixOpYF200"))
+
+            "op priority clash 01" {
+                val result = parseTerm("a infixOpXFX500 b infixOpXFX500 c")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings shouldNot beEmpty()
+                result.item shouldNotBe null
+            }
+
+            "op priority clash 02" {
+                val result = parseTerm("a infixOpXFX200 b postfixOpXF200")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings shouldNot beEmpty()
+                result.item shouldNotBe null
+            }
+
+            "associativity correction 01" {
+                val result = parseTerm("a infixOpXFX200 b postfixOpYF200")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(ParsedPredicate::class)
+                val outer = result.item as ParsedPredicate
+                outer.name shouldEqual "postfixOpYF200"
+                outer.arity shouldEqual 1
+                outer.arguments[0] shouldBe instanceOf(ParsedPredicate::class)
+
+                val inner = outer.arguments[0] as ParsedPredicate
+                inner.name shouldEqual "infixOpXFX200"
+                inner.arity shouldEqual 2
+                inner.arguments[0] shouldEqual Atom("a")
+                inner.arguments[1] shouldEqual Atom("b")
+            }
+        }
+
         "missing operand" - {
             "prefix" {
                 val result = parseTerm("prefixOpFY200")

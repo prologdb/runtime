@@ -1,6 +1,7 @@
 package com.github.tmarsteel.ktprolog.parser.parser
 
 import com.github.tmarsteel.ktprolog.knowledge.library.*
+import com.github.tmarsteel.ktprolog.knowledge.library.OperatorType.*
 import com.github.tmarsteel.ktprolog.parser.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
@@ -831,19 +832,63 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                 ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Missing right hand side operand", elements[index].location)))
             }
 
-            val thisResult = ParsedPredicate(
+            var thisPredicate = ParsedPredicate(
                 operatorDef.name,
                 listOf(lhsResult.item?.first, rhsResult.item?.first).filterNotNull().toTypedArray(),
                 elements.first().location..elements.last().location
             )
 
+            val reportings = mutableSetOf<Reporting>()
+            reportings.addAll(lhsResult.reportings)
+            reportings.addAll(rhsResult.reportings)
+
+            if (rhsResult.item?.second != null) {
+                val rhsPredicate = rhsResult.item.first as ParsedPredicate
+                val rhsOp = rhsResult.item.second!!
+                if ((operatorDef.type == XFX || operatorDef.type == YFX) && rhsOp.precedence >= operatorDef.precedence) {
+                    if (rhsOp.type == YFX) {
+                        thisPredicate = ParsedPredicate(
+                            rhsPredicate.name,
+                            arrayOf(
+                                ParsedPredicate(
+                                    operatorDef.name,
+                                    arrayOf(lhsResult.item!!.first, rhsPredicate.arguments[0]),
+                                    lhsResult.item.first.location .. rhsPredicate.arguments[0].location
+                                ),
+                                rhsPredicate.arguments[1]
+                            ),
+                            lhsResult.item.first.location .. rhsPredicate.arguments[1].location
+                        )
+                    }
+                    else if (rhsOp.type == YF) {
+                        thisPredicate = ParsedPredicate(
+                            rhsPredicate.name,
+                            arrayOf(
+                                ParsedPredicate(
+                                    operatorDef.name,
+                                    arrayOf(lhsResult.item!!.first, rhsPredicate.arguments[0]),
+                                    lhsResult.item!!.first.location .. rhsPredicate.arguments[0].location
+                                )
+                            ),
+                            lhsResult.item.first.location .. rhsPredicate.location
+                        )
+                    }
+                    else {
+                        reportings.add(SemanticError(
+                            "Operator priority clash: right of ${operatorDef.name} must be strictly less precedence than ${operatorDef.precedence}, but found ${rhsOp.name} with precedence ${rhsOp.precedence}",
+                            elements[index].location
+                        ))
+                    }
+                }
+            }
+
             preliminaryResult = ParseResult(
                 Pair(
-                    thisResult,
+                    thisPredicate,
                     operatorDef
                 ),
                 MATCHED,
-                lhsResult.reportings + rhsResult.reportings
+                reportings
             )
 
             if (rhsResult.isSuccess) {
@@ -857,7 +902,7 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                 elements.first().location..elements[index].location
             )
 
-            val hasRhs = index > 0
+            val hasRhs = index > 1
             if (hasRhs) {
                 val newElements = ArrayList<TokenOrTerm>(index + 2)
                 newElements.add(thisTerm)
