@@ -61,12 +61,7 @@ class PrologParser {
 
         tokens.mark()
 
-        while (!shouldStop(tokens)) {
-            if (!tokens.hasNext()) {
-                tokens.rollback()
-                return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
-            }
-
+        while (tokens.hasNext() && !shouldStop(tokens)) {
             val parseResult = parseSingle(tokens, opRegistry)
             if (parseResult.isSuccess) {
                 collectedElements.add(parseResult.item!!)
@@ -76,6 +71,11 @@ class PrologParser {
             {
                 collectedElements.add(tokens.next())
             }
+        }
+
+        if (!shouldStop(tokens)) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
         }
 
         if (collectedElements.isEmpty()) {
@@ -629,13 +629,14 @@ class PrologParser {
          */
         fun stopAtOperator(operator: Operator): (TransactionalSequence<Token>) -> Boolean {
             return { tokens ->
-                if (!tokens.hasNext()) true else {
+                if (tokens.hasNext()) {
                     tokens.mark()
                     val token = tokens.next()
                     tokens.rollback()
 
                     token is OperatorToken && token.operator == operator
-                }
+                } else false
+                // return false so that EOF can be detected independently of the break condition
             }
         }
 
@@ -783,13 +784,20 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
         return ParseResult.of(Pair(elements[0].asTerm(), null))
     }
 
-    val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
+    val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>>? = elements
         .mapIndexed { index, it -> Pair(index, it) }
         .filter { it.second.hasTextContent }
         .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getAllDefinitions(tokenOrTerm.textContent)) }
         .filter { it.second.isNotEmpty() }
         .maxBy { it.second.maxBy(OperatorDefinition::precedence)!!.precedence }
-        ?: throw ExpressionASTBuildingException("There is no operator in the given list of elements")
+
+    if (leftmostOperatorWithMostPrecedence == null) {
+        return ParseResult(
+            Pair(elements.first().asTerm(), null),
+            MATCHED,
+            setOf(SyntaxError("Operator expected", elements.first().location .. elements.last().location))
+        )
+    }
 
     val index = leftmostOperatorWithMostPrecedence.first
 

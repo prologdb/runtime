@@ -4,7 +4,6 @@ import com.github.tmarsteel.ktprolog.builtin.EqualityLibrary
 import com.github.tmarsteel.ktprolog.knowledge.Rule
 import com.github.tmarsteel.ktprolog.knowledge.library.*
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.tmarsteel.ktprolog.parser.ParsedAtom
 import com.github.tmarsteel.ktprolog.parser.ParsedList
 import com.github.tmarsteel.ktprolog.parser.ParsedPredicate
@@ -136,15 +135,11 @@ class PrologParserTest : FreeSpec() {
             val result = parseTerm("predicate(foo, X")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
-
-            val predicate = result.item!! as Predicate
-            predicate.name shouldEqual "predicate"
         }
 
         "invalid invocation: missing closing parenthesis: . instead" {
             val result = parseTerm("predicate(foo, X.")
-            result.certainty shouldEqual NOT_RECOGNIZED
-            result.reportings.size should beGreaterThan(0)
+            result.reportings shouldNot beEmpty()
         }
 
         "infix" {
@@ -264,11 +259,7 @@ class PrologParserTest : FreeSpec() {
 
         "invalid: [1," {
             val result = parseList("[1,")
-            result.certainty shouldEqual MATCHED
-            assert(result.reportings.size in 1..2)
-            assert(result.item is ParsedList)
-            result.item!!.elements.size shouldEqual 1
-            result.item!!.tail shouldBe null
+            result.reportings shouldNot beEmpty()
         }
 
         "invalid: [1,]" {
