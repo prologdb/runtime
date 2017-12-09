@@ -5,13 +5,13 @@
     <parent>
         <artifactId>kotlin-prolog</artifactId>
         <groupId>com.github.tmarsteel</groupId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>kotlin-prolog-parser-jvm</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
@@ -21,12 +21,12 @@
         <dependency>
             <groupId>com.github.tmarsteel</groupId>
             <artifactId>kotlin-prolog-core-jvm</artifactId>
-            <version>0.5.0-SNAPSHOT</version>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.github.tmarsteel</groupId>
             <artifactId>kotlin-prolog-parser</artifactId>
-            <version>0.5.0-SNAPSHOT</version>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.kotlintest</groupId>
