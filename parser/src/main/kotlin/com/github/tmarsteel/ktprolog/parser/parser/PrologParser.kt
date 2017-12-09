@@ -114,7 +114,7 @@ class PrologParser {
         tokens.commit()
 
         try {
-            val astResult = buildBinaryExpressionAST(collectedElements, opRegistry)
+            val astResult = buildExpressionAST(collectedElements, opRegistry)
 
             return ParseResult(
                 astResult.item?.first,
@@ -785,9 +785,11 @@ private fun TokenOrTerm.asTerm(): ParsedTerm {
 private class ExpressionASTBuildingException(reporting: Reporting) : ReportingException(reporting)
 
 /**
- * @return The parsed predicate and the [OperatorDefinition] of its operator
+ * @return The parsed term and the [OperatorDefinition] of its operator; if the parsed term does not involve an
+ *         operator, the operator is null
+ * @throws ExpressionASTBuildingException
  */
-private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedTerm,OperatorDefinition?>> {
+private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedTerm,OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
         return ParseResult.of(Pair(elements[0].asTerm(), null))
@@ -811,7 +813,7 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
         val reportings = mutableSetOf<Reporting>()
 
         if (operatorDef.type.isPrefix) {
-            val rhsResult = buildBinaryExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
+            val rhsResult = buildExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
             var thisTerm = ParsedPredicate(
                 operatorDef.name,
                 if (rhsResult.item != null) arrayOf(rhsResult.item.first) else emptyArray(),
@@ -863,7 +865,7 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
                 newElements.addAll(elements.subList(0, index))
                 newElements.add(thisTerm)
                 try {
-                    val fullResult = buildBinaryExpressionAST(newElements, opRegistry)
+                    val fullResult = buildExpressionAST(newElements, opRegistry)
                     preliminaryResult = ParseResult(fullResult.item, fullResult.certainty, reportings + fullResult.reportings + rhsResult.reportings)
                 } catch (ex: ExpressionASTBuildingException) {
                     // try another defintion for the same operator
@@ -878,13 +880,13 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
             }
         } else if (operatorDef.type.isInfix) {
             val lhsResult = if (index > 0) {
-                buildBinaryExpressionAST(elements.subList(0, index), opRegistry)
+                buildExpressionAST(elements.subList(0, index), opRegistry)
             } else {
                 ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Missing left hand side operand", elements[index].location)))
             }
 
             val rhsResult = if (index < elements.lastIndex) {
-                buildBinaryExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
+                buildExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
             } else {
                 ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Missing right hand side operand", elements[index].location)))
             }
@@ -951,7 +953,7 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
                 return preliminaryResult
             } // else: try another operator definition
         } else if (operatorDef.type.isPostfix) {
-            val lhsResult = buildBinaryExpressionAST(elements.subList(0, index), opRegistry)
+            val lhsResult = buildExpressionAST(elements.subList(0, index), opRegistry)
             val thisTerm = ParsedPredicate(
                 operatorDef.name,
                 if (lhsResult.item != null) arrayOf(lhsResult.item.first) else emptyArray(),
@@ -963,7 +965,7 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
                 val newElements = ArrayList<TokenOrTerm>(index + 2)
                 newElements.add(thisTerm)
                 newElements.addAll(elements.subList(index + 1, elements.size))
-                val fullResult = buildBinaryExpressionAST(newElements, opRegistry)
+                val fullResult = buildExpressionAST(newElements, opRegistry)
                 return ParseResult(fullResult.item, fullResult.certainty, fullResult.reportings + lhsResult.reportings)
             } else {
                 return ParseResult(Pair(thisTerm, operatorDef), MATCHED, lhsResult.reportings)
@@ -976,5 +978,5 @@ private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: Op
     }
 
     // there is no way to use the operator
-    throw InternalParserError("Cannot meaningfully use operator ${elements[index]}")
+    throw ExpressionASTBuildingException(SemanticError("Cannot meaningfully use operator ${elements[index]}", elements[index].location))
 }
