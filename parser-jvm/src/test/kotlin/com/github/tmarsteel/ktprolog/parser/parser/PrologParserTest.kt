@@ -350,7 +350,7 @@ class PrologParserTest : FreeSpec() {
             }
 
             "op priority clash 04" {
-                val result = parseTerm("prefixOpFX200 a postfixOpXF200.")
+                val result = parseTerm("prefixOpFX200 a postfixOpXF200")
 
                 result.certainty shouldEqual MATCHED
                 result.reportings shouldNot beEmpty()

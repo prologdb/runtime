@@ -113,12 +113,21 @@ class PrologParser {
 
         tokens.commit()
 
-        val astResult = buildBinaryExpressionAST(collectedElements, opRegistry)
-        return ParseResult(
-            astResult.item?.first,
-            astResult.certainty,
-            reportings + astResult.reportings
-        )
+        try {
+            val astResult = buildBinaryExpressionAST(collectedElements, opRegistry)
+
+            return ParseResult(
+                astResult.item?.first,
+                astResult.certainty,
+                reportings + astResult.reportings
+            )
+        } catch (ex: ExpressionASTBuildingException) {
+            return ParseResult(
+                collectedElements[0].asTerm(),
+                MATCHED,
+                setOf(ex.reporting)
+            )
+        }
     }
 
     /**
@@ -773,31 +782,24 @@ private fun TokenOrTerm.asTerm(): ParsedTerm {
     throw InternalParserError()
 }
 
-private class ExpressionASTBuildingException(message: String) : InternalParserError(message)
+private class ExpressionASTBuildingException(reporting: Reporting) : ReportingException(reporting)
 
 /**
  * @return The parsed predicate and the [OperatorDefinition] of its operator
  */
-fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedTerm,OperatorDefinition?>> {
+private fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedTerm,OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
         return ParseResult.of(Pair(elements[0].asTerm(), null))
     }
 
-    val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>>? = elements
+    val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
         .mapIndexed { index, it -> Pair(index, it) }
         .filter { it.second.hasTextContent }
         .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getAllDefinitions(tokenOrTerm.textContent)) }
         .filter { it.second.isNotEmpty() }
         .maxBy { it.second.maxBy(OperatorDefinition::precedence)!!.precedence }
-
-    if (leftmostOperatorWithMostPrecedence == null) {
-        return ParseResult(
-            Pair(elements.first().asTerm(), null),
-            MATCHED,
-            setOf(SyntaxError("Operator expected", elements.first().location .. elements.last().location))
-        )
-    }
+        ?: throw ExpressionASTBuildingException(SyntaxError("Operator expected", elements[0].location.end))
 
     val index = leftmostOperatorWithMostPrecedence.first
 
@@ -956,7 +958,7 @@ fun buildBinaryExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRe
                 elements.first().location..elements[index].location
             )
 
-            val hasRhs = index > 1
+            val hasRhs = elements.lastIndex > index
             if (hasRhs) {
                 val newElements = ArrayList<TokenOrTerm>(index + 2)
                 newElements.add(thisTerm)
