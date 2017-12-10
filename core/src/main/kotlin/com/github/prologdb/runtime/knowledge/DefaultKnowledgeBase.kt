@@ -1,0 +1,68 @@
+package com.github.prologdb.runtime.knowledge
+
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.builtin.EqualityLibrary
+import com.github.prologdb.runtime.builtin.MathLibrary
+import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
+import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
+import com.github.prologdb.runtime.knowledge.library.DoublyIndexedLibraryEntryStore
+import com.github.prologdb.runtime.knowledge.library.Library
+import com.github.prologdb.runtime.knowledge.library.SimpleLibrary
+import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.unification.Unification
+import kotlin.coroutines.experimental.buildSequence
+
+class DefaultKnowledgeBase : MutableKnowledgeBase {
+    val library = SimpleLibrary(
+        DoublyIndexedLibraryEntryStore(),
+        DefaultOperatorRegistry(true)
+    )
+
+    override val operatorRegistry = library
+
+    override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): Sequence<Unification> {
+        // replace all variables in the term with random ones to prevent name collisions
+        val termMappings = VariableMapping()
+        val replaced = randomVarsScope.withRandomVariables(predicate, termMappings)
+
+        return buildSequence<Unification> {
+            for (libEntry in library.findFor(predicate)) {
+                if (libEntry is Predicate) {
+                    val knownPredicateReplaced = randomVarsScope.withRandomVariables(libEntry, VariableMapping())
+                    val unification = knownPredicateReplaced.unify(replaced)
+                    if (unification != null) {
+                        val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
+                        resolvedBucket.retainAll(predicate.variables)
+                        yield(Unification(resolvedBucket))
+                    }
+                }
+                else if (libEntry is Rule) {
+                    yieldAll(libEntry.fulfill(predicate, this@DefaultKnowledgeBase, randomVarsScope))
+                }
+                else {
+                    throw PrologRuntimeException("Unsupported library entry $libEntry")
+                }
+            }
+        }
+    }
+
+    override fun assert(predicate: Predicate) {
+        library.add(predicate)
+    }
+
+    override fun defineRule(rule: Rule) {
+        library.add(rule)
+    }
+
+    override fun load(library: Library) {
+        this.library.include(library)
+    }
+
+    init {
+        load(EqualityLibrary)
+        load(TypeSafetyLibrary)
+        load(MathLibrary)
+    }
+}
