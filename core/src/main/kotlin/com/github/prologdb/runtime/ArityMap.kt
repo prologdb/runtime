@@ -65,4 +65,6 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
 
         return items[arity] != null
     }
+
+    fun values(): Iterable<T> = items.filter { it != null } as Iterable<T>
 }
