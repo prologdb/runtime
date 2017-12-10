@@ -49,5 +49,9 @@ open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
             }
     }
 
+    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+        return fulfill(other, kb, randomVariableScope)
+    }
+
     override fun toString() = "$head :- $query"
 }

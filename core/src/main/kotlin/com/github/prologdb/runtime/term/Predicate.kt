@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -64,6 +65,11 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
         {
             return Unification.FALSE
         }
+    }
+
+    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+        val unification = unify(other, randomVariableScope)
+        return if (unification == null) emptySequence() else sequenceOf(unification)
     }
 
     override val variables = arguments.flatMap(Term::variables).toSet()

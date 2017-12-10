@@ -1,15 +1,30 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.unification.Unification
+
+/**
+ * A type of predicate, e.g. `likes/2`.
+ */
+interface PredicatePrototype {
+    val name: String
+    val arity: Int
+}
 
 /**
  * A single entry in a knowledge base or library, e.g. a single fact or a single rule.
  * @see Predicate
  * @see com.github.prologdb.runtime.knowledge.Rule
  */
-interface LibraryEntry {
-    val name: String
-    val arity: Int
+interface LibraryEntry : PredicatePrototype {
+    /**
+     * Unifies the given predicate (`other`) with this entry; if this is a fact (a [Predicate]), unifies with
+     * the given predicate and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
+     * to run the query (in case the head and the given [Predicate] unify).
+     */
+    fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope) : Sequence<Unification>
 }
 
 interface LibraryEntryStore {

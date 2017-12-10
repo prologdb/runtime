@@ -1,6 +1,5 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.builtin.EqualityLibrary
@@ -38,11 +37,8 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
                         yield(Unification(resolvedBucket))
                     }
                 }
-                else if (libEntry is Rule) {
-                    yieldAll(libEntry.fulfill(predicate, this@DefaultKnowledgeBase, randomVarsScope))
-                }
                 else {
-                    throw PrologRuntimeException("Unsupported library entry $libEntry")
+                    yieldAll(libEntry.unifyWithKnowledge(predicate, this@DefaultKnowledgeBase, randomVarsScope))
                 }
             }
         }
