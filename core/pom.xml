@@ -44,6 +44,7 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.plugin.version}</version>
                 <executions><execution><phase>none</phase></execution></executions>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
