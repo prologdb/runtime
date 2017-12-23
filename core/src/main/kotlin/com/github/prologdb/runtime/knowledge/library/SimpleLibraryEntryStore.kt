@@ -58,10 +58,10 @@ class SimpleLibraryEntryStore(givenEntries: Iterable<LibraryEntry> = emptyList()
     }
 
     override fun abolishFacts(functor: String, arity: Int): Boolean {
-        return entries.removeIf { it.arity == arity && it is Predicate && it.name == functor  }
+        return entries.removeAll(entries.filter { it.arity == arity && it is Predicate && it.name == functor  })
     }
 
     override fun abolish(functor: String, arity: Int): Boolean {
-        return entries.removeIf { it.arity == arity && it.name == functor }
+        return entries.removeAll(entries.filter { it.arity == arity && it.name == functor })
     }
 }

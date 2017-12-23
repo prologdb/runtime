@@ -144,7 +144,7 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
 
         val entryList = arityMap[arity] ?: return false
 
-        return entryList.removeIf { it is Predicate }
+        return entryList.removeAll(entryList.filter { it is Predicate})
     }
 }
 
