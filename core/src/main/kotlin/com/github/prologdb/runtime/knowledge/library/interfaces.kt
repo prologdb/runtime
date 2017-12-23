@@ -3,7 +3,10 @@ package com.github.prologdb.runtime.knowledge.library
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
+import kotlin.coroutines.experimental.buildSequence
 
 /**
  * A type of predicate, e.g. `likes/2`.
@@ -45,7 +48,7 @@ interface LibraryEntryStore {
 
 interface MutableLibraryEntryStore : LibraryEntryStore {
     /**
-     * Adds the given entry to the library
+     * Adds the given entry to the library; acts like `assertz/1`: adds the entry to the **end** of the knowledge base.
      */
     fun add(entry: LibraryEntry)
 
@@ -57,6 +60,78 @@ interface MutableLibraryEntryStore : LibraryEntryStore {
      */
     fun include(other: LibraryEntryStore) {
         other.exports.forEach(this::add)
+    }
+
+    /**
+     * Removes the first fact that unifies with the given [Predicate] from the entry store. **Does not affect rules.**
+     *
+     * If no matching entry is found, does nothing and returns `false`.
+     *
+     * @return The unification of the given [Predicate] with the removed fact or `null` if no matching fact was found.
+     */
+    fun retractFact(fact: Predicate): Unification?
+
+    /**
+     * Removes the first fact (which unifies with the given [Predicate]) **or rule (whichs head unifies with
+     * the given predicate)** from this store. Acts like `retract/1`.
+     *
+     * If no matching entry is found, does nothing and returns `false`.
+     *
+     * @return The unification of the given [Predicate] with the removed fact resp. rule head or `null` if no matching
+     * entry was found.
+     */
+    fun retract(unifiesWith: Predicate): Unification?
+
+    /**
+     * Removes all facts that unify with the given [Predicate] from the entry store. **Does not affect rules**.
+     *
+     * If no matching entry is found, does nothing and returns `false`.
+     *
+     * @return For each fact removed, yields the unification of the given [Predicate] with the removed fact.
+     */
+    fun retractAllFacts(fact: Predicate): Sequence<Unification> = buildSequence {
+        while (true) yield(retract(fact) ?: break)
+    }
+
+    /**
+     * Removes all facts (which unify with the given [Predicate]) **and rules (whichs heads unify with the given
+     * [Predicate])** from this store. Acts like `retractAll/1`.
+     *
+     * If no matching entry is found, does nothing and returns `false`.
+     *
+     * @return For each fact and rule remove, yields the unification of the given [Predicate] with the removed fact
+     *         resp. rule head
+     */
+    fun retractAll(unifiesWith: Predicate): Sequence<Unification> = buildSequence {
+        while (true) yield(retract(unifiesWith) ?: break)
+    }
+
+    /**
+     * Removes all facts with the given functor and arity. **Does not affect rules.**
+     *
+     * If no matching entry is found, does nothing and returns `false`.
+     *
+     * @return Whether a fact was removed from this store as a result of the call to this method.
+     */
+    fun abolishFacts(functor: String, arity: Int): Boolean {
+        val list = retractAllFacts(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
+                .toList() // toList ensures that all entries are actually retracted
+
+        return list.isNotEmpty()
+    }
+
+    /**
+     * Removes all facts **and rules** with the given functor and arity. Acts like `abolish/1` and `abolish/2`.
+     *
+     * If no matching entry is found, does nothing and returns `false`.
+     *
+     * @return Whether an entry was removed from this store as a result of the call to this method.
+     */
+    fun abolish(functor: String, arity: Int): Boolean {
+        val list = retractAll(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
+                .toList() // toList ensures that all entries are actually retracted
+
+        return list.isNotEmpty()
     }
 }
 

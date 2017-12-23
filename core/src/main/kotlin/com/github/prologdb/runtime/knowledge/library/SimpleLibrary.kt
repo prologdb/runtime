@@ -1,5 +1,8 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.unification.Unification
+
 open class SimpleLibrary(
     private val entryStore: MutableLibraryEntryStore,
     private val operatorRegistry: MutableOperatorRegistry
@@ -15,4 +18,12 @@ open class SimpleLibrary(
     override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operatorRegistry.getOperatorDefinitionsFor(name)
 
     override fun defineOperator(definition: OperatorDefinition) = operatorRegistry.defineOperator(definition)
+
+    override fun retractFact(fact: Predicate): Unification? {
+        return entryStore.retractFact(fact)
+    }
+
+    override fun retract(unifiesWith: Predicate): Unification? {
+        return entryStore.retract(unifiesWith)
+    }
 }

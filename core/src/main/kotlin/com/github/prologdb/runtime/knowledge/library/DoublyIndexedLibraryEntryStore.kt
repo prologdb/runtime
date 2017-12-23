@@ -1,7 +1,10 @@
 package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.ArityMap
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.unification.Unification
 
 /**
  * Indexes entries by arity and name in maps.
@@ -78,6 +81,71 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
 
             return cachedExports!!
         }
+
+    override fun retractFact(fact: Predicate): Unification? {
+        val arityIndex = index[fact.name] ?: return null
+
+        val entryList = arityIndex[fact.arity] ?: return null
+
+        for (i in 0 .. entryList.lastIndex) {
+            val entry = entryList[i]
+            if (entry is Predicate) {
+                val unification = entry.unify(fact)
+                if (unification != null) {
+                    entryList.removeAt(index = i)
+                    return unification
+                }
+            }
+        }
+
+        return null
+    }
+
+    override fun retract(unifiesWith: Predicate): Unification? {
+        val arityIndex = index[unifiesWith.name] ?: return null
+
+        val entryList = arityIndex[unifiesWith.arity] ?: return null
+
+        for (i in 0 .. entryList.lastIndex) {
+            val entry = entryList[i]
+            if (entry is Predicate) {
+                val unification = entry.unify(unifiesWith)
+                if (unification != null) {
+                    entryList.removeAt(index = i)
+                    return unification
+                }
+            } else if (entry is Rule) {
+                val headUnification = entry.head.unify(unifiesWith)
+                if (headUnification != null) {
+                    entryList.removeAt(index = i)
+                    return headUnification
+                }
+            } else {
+                throw PrologRuntimeException("Cannot determine whether entry should be retracted: is neither a predicate nor a rule.")
+            }
+        }
+
+        return null
+    }
+
+    override fun abolish(functor: String, arity: Int): Boolean {
+        val arityMap = index[functor] ?: return false
+
+        if (arityMap.contains(arity)) {
+            arityMap.remove(arity)
+            return true
+        } else {
+            return false
+        }
+    }
+
+    override fun abolishFacts(functor: String, arity: Int): Boolean {
+        val arityMap = index[functor] ?: return false
+
+        val entryList = arityMap[arity] ?: return false
+
+        return entryList.removeIf { it is Predicate }
+    }
 }
 
 private typealias ArityMapToLibraryEntries = ArityMap<MutableList<LibraryEntry>>
