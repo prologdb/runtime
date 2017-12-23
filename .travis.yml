@@ -3,3 +3,6 @@ jdk:
   - oraclejdk8
 
 dist: trusty
+
+script:
+  - mvn clean verify -Dgpg.skip=true
