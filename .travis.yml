@@ -4,5 +4,5 @@ jdk:
 
 dist: trusty
 
-script:
-  - mvn clean verify -Dgpg.skip=true
+install: mvn dependency:go-offline
+script: mvn clean verify -Dgpg.skip=true
