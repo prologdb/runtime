@@ -123,8 +123,25 @@ class VariableBucket private constructor(
         return newBucket
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as VariableBucket
+
+        if (variableMap != other.variableMap) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return variableMap.hashCode()
+    }
+
     val values: Iterable<Pair<Variable,Term?>>
         get() = variableMap.map { it.key to it.value }
+
+
 }
 
 class NameError(message: String, override val cause: Throwable? = null) : RuntimeException(message)
