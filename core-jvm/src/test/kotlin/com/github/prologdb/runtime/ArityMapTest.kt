@@ -1,6 +1,9 @@
 package com.github.prologdb.runtime
 
-import io.kotlintest.matchers.*
+import io.kotlintest.matchers.beGreaterThanOrEqualTo
+import io.kotlintest.matchers.should
+import io.kotlintest.matchers.shouldBe
+import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 
 class ArityMapTest : FreeSpec() {init {
@@ -25,10 +28,10 @@ class ArityMapTest : FreeSpec() {init {
     "capacity should increase as necessary" {
         val map = ArityMap<String>()
         map[0] = "foobar"
-        map.capacity should beGreaterThanOrEqualTo(1)
+        map.capacity should beGreaterThanOrEqualTo(0)
 
         map[14] = "barfoo"
-        map.capacity should beGreaterThanOrEqualTo(15)
+        map.capacity should beGreaterThanOrEqualTo(14)
     }
 
     "values removed should not be contained anymore" {
