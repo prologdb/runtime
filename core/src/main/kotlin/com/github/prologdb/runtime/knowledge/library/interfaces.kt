@@ -108,30 +108,18 @@ interface MutableLibraryEntryStore : LibraryEntryStore {
 
     /**
      * Removes all facts with the given functor and arity. **Does not affect rules.**
-     *
-     * If no matching entry is found, does nothing and returns `false`.
-     *
-     * @return Whether a fact was removed from this store as a result of the call to this method.
      */
-    fun abolishFacts(functor: String, arity: Int): Boolean {
-        val list = retractAllFacts(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
-                .toList() // toList ensures that all entries are actually retracted
-
-        return list.isNotEmpty()
+    fun abolishFacts(functor: String, arity: Int) {
+        retractAllFacts(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
+            .toList() // toList ensures that all entries are actually retracted
     }
 
     /**
      * Removes all facts **and rules** with the given functor and arity. Acts like `abolish/1` and `abolish/2`.
-     *
-     * If no matching entry is found, does nothing and returns `false`.
-     *
-     * @return Whether an entry was removed from this store as a result of the call to this method.
      */
-    fun abolish(functor: String, arity: Int): Boolean {
-        val list = retractAll(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
-                .toList() // toList ensures that all entries are actually retracted
-
-        return list.isNotEmpty()
+    fun abolish(functor: String, arity: Int) {
+        retractAll(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
+            .toList() // toList ensures that all entries are actually retracted
     }
 }
 

@@ -57,11 +57,11 @@ class SimpleLibraryEntryStore(givenEntries: Iterable<LibraryEntry> = emptyList()
         return null
     }
 
-    override fun abolishFacts(functor: String, arity: Int): Boolean {
-        return entries.removeAll(entries.filter { it.arity == arity && it is Predicate && it.name == functor  })
+    override fun abolishFacts(functor: String, arity: Int) {
+        entries.removeAll(entries.filter { it.arity == arity && it is Predicate && it.name == functor  })
     }
 
-    override fun abolish(functor: String, arity: Int): Boolean {
-        return entries.removeAll(entries.filter { it.arity == arity && it.name == functor })
+    override fun abolish(functor: String, arity: Int) {
+        entries.removeAll(entries.filter { it.arity == arity && it.name == functor })
     }
 }

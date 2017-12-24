@@ -128,23 +128,15 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
         return null
     }
 
-    override fun abolish(functor: String, arity: Int): Boolean {
-        val arityMap = index[functor] ?: return false
-
-        if (arityMap.contains(arity)) {
-            arityMap.remove(arity)
-            return true
-        } else {
-            return false
-        }
+    override fun abolish(functor: String, arity: Int) {
+        index[functor]?.remove(arity)
     }
 
-    override fun abolishFacts(functor: String, arity: Int): Boolean {
-        val arityMap = index[functor] ?: return false
+    override fun abolishFacts(functor: String, arity: Int) {
+        val arityMap = index[functor] ?: return
+        val entryList = arityMap[arity] ?: return
 
-        val entryList = arityMap[arity] ?: return false
-
-        return entryList.removeAll(entryList.filter { it is Predicate})
+        entryList.removeAll(entryList.filter { it is Predicate})
     }
 }
 
