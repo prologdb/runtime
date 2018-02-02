@@ -225,7 +225,7 @@ init {
                     entryStore.findFor(fact1).toList().size shouldEqual 3
 
                     // ACT
-                    entryStore.retractAll(fact1).toList() // the toList consumes the sequence and thereby
+                    entryStore.retractAll(fact1).toList() // the toList consumes the lazysequence and thereby
                                                           // ensures that all entries are actually retracted
 
                     // ASSERT

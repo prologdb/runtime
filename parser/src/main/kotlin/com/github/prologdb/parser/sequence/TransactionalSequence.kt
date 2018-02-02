@@ -2,7 +2,7 @@ package com.github.prologdb.parser.sequence
 
 interface TransactionalSequence<out ItemType> : Iterator<ItemType> {
     /**
-     * Marks the current position in the sequence. Marks stack: calling this method multiple times creates as many
+     * Marks the current position in the lazysequence. Marks stack: calling this method multiple times creates as many
      * markers. Each of them can be committed or rolled back in reverse order (e.g. `mark(); mark(); commit(); rollback()`).
      */
     fun mark()

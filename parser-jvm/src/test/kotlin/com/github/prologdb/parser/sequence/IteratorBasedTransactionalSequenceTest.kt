@@ -63,8 +63,8 @@ class IteratorBasedTransactionalSequenceTest : FreeSpec() {init {
 
         seq.next() shouldEqual source[0] // from buffer
         seq.next() shouldEqual source[1] // from buffer
-        seq.next() shouldEqual source[2] // from source sequence, buffer should be empty now
-        seq.next() shouldEqual source[3] // from source sequence, buffer should be empty now
-        seq.next() shouldEqual source[4] // from source sequence, buffer should be empty now
+        seq.next() shouldEqual source[2] // from source lazysequence, buffer should be empty now
+        seq.next() shouldEqual source[3] // from source lazysequence, buffer should be empty now
+        seq.next() shouldEqual source[4] // from source lazysequence, buffer should be empty now
     }
 }}

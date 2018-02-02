@@ -43,7 +43,7 @@ class PrologParser {
     /**
      * @param tokens The tokens to parse from
      * @param opRegistry Is used to determine operators, their precedence and associativity
-     * @param shouldStop Is invoked with the given token sequence. If it returns true the matching will stop.
+     * @param shouldStop Is invoked with the given token lazysequence. If it returns true the matching will stop.
      */
     fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<ParsedTerm> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
@@ -55,7 +55,7 @@ class PrologParser {
         //
         // thus, this is what is parsed here
 
-        // will hold all tokens/terms of the binary expression in sequence
+        // will hold all tokens/terms of the binary expression in lazysequence
         val collectedElements = ArrayList<TokenOrTerm>(10)
         val reportings = mutableSetOf<Reporting>()
 
@@ -195,7 +195,7 @@ class PrologParser {
             return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(parentOpenToken, PARENT_OPEN)))
         }
 
-        // the sequence <Any Token> <Parent Open> in prolog is only considered an invocation if there is no whitespace
+        // the lazysequence <Any Token> <Parent Open> in prolog is only considered an invocation if there is no whitespace
         // between the predicate name and the opening parenthesis
         if (nameToken.location.line != parentOpenToken.location.line || nameToken.location.end.column + 1 != parentOpenToken.location.start.column) {
             tokens.rollback() // peek of PARENT_OPEN
@@ -633,7 +633,7 @@ class PrologParser {
     companion object {
         /**
          * Helper function for the `shouldStop` parameter to [parseTerm].
-         * @return Aborts matching if the next token in the sequence is an [OperatorToken] with the given [Operator], otherwise false.
+         * @return Aborts matching if the next token in the lazysequence is an [OperatorToken] with the given [Operator], otherwise false.
          *         Does not consume the final token if aborting.
          */
         fun stopAtOperator(operator: Operator): (TransactionalSequence<Token>) -> Boolean {
@@ -675,7 +675,7 @@ private val ParsedPredicate.isRuleDefinition: Boolean
     get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is Predicate
 
 /**
- * Skips (`next()`s) tokens in the receiver sequence until the parenthesis + bracket levels are 0 and the given
+ * Skips (`next()`s) tokens in the receiver lazysequence until the parenthesis + bracket levels are 0 and the given
  * predicate returns false.
  * @return The skipped tokens
  */
