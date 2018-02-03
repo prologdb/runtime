@@ -1,13 +1,12 @@
 package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.runtime.PrologRuntimeException;
+import com.github.prologdb.runtime.lazysequence.LazySequence;
 import com.github.prologdb.runtime.unification.Unification;
-import kotlin.sequences.Sequence;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class SolutionExplorerPanel {
@@ -18,7 +17,7 @@ public class SolutionExplorerPanel {
     private JButton showNextBT;
     private JButton showAllRemainingBT;
 
-    private Iterator<Unification> currentSolutions = null;
+    private LazySequence<Unification> currentSolutions = null;
     private boolean currentSolutionsDepleated = true;
     private int currentSolutionIndex = -1;
 
@@ -123,7 +122,13 @@ public class SolutionExplorerPanel {
         if (currentSolutionsDepleated) return;
 
         try {
-            addSolution(currentSolutions.next());
+            Unification solution = currentSolutions.tryAdvance();
+            if (solution != null) {
+                addSolution(solution);
+            } else {
+                addSolutionComponent(createFalseComponent());
+                setDepleated();
+            }
         }
         catch (NoSuchElementException ex) {
             addSolutionComponent(createFalseComponent());
@@ -149,8 +154,11 @@ public class SolutionExplorerPanel {
         if (currentSolutionsDepleated) return;
 
         try {
-            while (currentSolutions.hasNext()) {
-                addSolution(currentSolutions.next());
+            while (true) {
+                Unification solution = currentSolutions.tryAdvance();
+                if (solution != null) {
+                    addSolution(solution);
+                } else break;
             }
         }
         catch (PrologRuntimeException e) {
@@ -172,8 +180,8 @@ public class SolutionExplorerPanel {
         panel.repaint();
     }
 
-    public void setSolutions(Sequence<Unification> solutions) {
-        currentSolutions = solutions.iterator();
+    public void setSolutions(LazySequence<Unification> solutions) {
+        currentSolutions = solutions;
         currentSolutionsDepleated = false;
         currentSolutionIndex = 0;
 
