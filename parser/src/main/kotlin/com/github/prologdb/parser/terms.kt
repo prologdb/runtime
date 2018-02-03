@@ -5,6 +5,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
@@ -39,8 +40,8 @@ class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicat
 class ParsedAndQuery(goals: Array<out ParsedQuery>, override val location: SourceLocationRange) : AndQuery(goals), ParsedQuery
 class ParsedOrQuery(goals: Array<out ParsedQuery>, override val location: SourceLocationRange) : OrQuery(goals), ParsedQuery
 class EmptyQuery(override val location: SourceLocationRange): ParsedQuery {
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): Sequence<Unification> {
-        return emptySequence()
+    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
+        return Unification.NONE
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {

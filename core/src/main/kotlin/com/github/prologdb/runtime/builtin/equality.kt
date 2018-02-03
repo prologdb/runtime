@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
@@ -51,16 +52,16 @@ val EqualityLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntry
  * TODO: move to another library because this is technically not a part of equality
  */
 object NegationRule : Rule(Predicate("not", arrayOf(X)), PredicateQuery(Predicate("not", arrayOf(X)))) {
-    override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+    override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         if (predicate.name != "not" || predicate.arguments.size != 1) return Unification.NONE
         val arg0 = predicate.arguments[0] as? Predicate ?: return Unification.NONE
 
         val proof = kb.fulfill(arg0, randomVariableScope)
 
-        if (proof.any()) {
+        if (proof.tryAdvance() != null) {
             return Unification.NONE
         } else {
-            return sequenceOf(Unification.TRUE)
+            return Unification.SINGLETON
         }
     }
 }

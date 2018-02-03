@@ -5,15 +5,16 @@ import com.github.prologdb.runtime.knowledge.library.EmptyOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.knowledge.library.MutableOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
 interface KnowledgeBase {
 
-    fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope = RandomVariableScope()): Sequence<Unification>
+    fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope = RandomVariableScope()): LazySequence<Unification>
 
-    fun fulfill(query: Query, randomVarsScope: RandomVariableScope = RandomVariableScope()): Sequence<Unification> = query.findProofWithin(kb = this, randomVarsScope = randomVarsScope)
+    fun fulfill(query: Query, randomVarsScope: RandomVariableScope = RandomVariableScope()): LazySequence<Unification> = query.findProofWithin(kb = this, randomVarsScope = randomVarsScope)
 
     val operatorRegistry: OperatorRegistry
 

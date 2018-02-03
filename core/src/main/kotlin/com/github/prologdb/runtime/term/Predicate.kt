@@ -3,6 +3,7 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import sensibleHashCode
@@ -67,9 +68,9 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
         }
     }
 
-    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         val unification = unify(other, randomVariableScope)
-        return if (unification == null) emptySequence() else sequenceOf(unification)
+        return if (unification == null) Unification.NONE else LazySequence.of(unification)
     }
 
     override val variables = arguments.flatMap(Term::variables).toSet()

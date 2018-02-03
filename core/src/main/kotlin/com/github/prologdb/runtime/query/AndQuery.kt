@@ -3,18 +3,20 @@ package com.github.prologdb.runtime.query
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.lazysequence.LazySequenceBuilder
+import com.github.prologdb.runtime.lazysequence.buildLazySequence
+import com.github.prologdb.runtime.lazysequence.forEachRemaining
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapToArray
-import kotlin.coroutines.experimental.SequenceBuilder
-import kotlin.coroutines.experimental.buildSequence
 
 open class AndQuery(val goals: Array<out Query>) : Query {
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): Sequence<Unification> {
+    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
         val substitutedGoals = goals
             .map { it.substituteVariables(initialVariables) }
 
-        return buildSequence {
+        return buildLazySequence {
             fulfillAllGoals(substitutedGoals, kb, randomVarsScope, initialVariables.copy())
         }
     }
@@ -35,13 +37,12 @@ open class AndQuery(val goals: Array<out Query>) : Query {
         return goals.mapToArray { it.toString() }.joinToString(", ")
     }
 
-    private suspend fun SequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, kb: KnowledgeBase,
-                                                                     randomVarsScope: RandomVariableScope,
-                                                                     vars: VariableBucket = VariableBucket()) {
+    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, kb: KnowledgeBase,
+                                                                         randomVarsScope: RandomVariableScope,
+                                                                         vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
 
-        goalUnifications@
-        for (goalUnification in kb.fulfill(goal, randomVarsScope)) {
+        kb.fulfill(goal, randomVarsScope).forEachRemaining { goalUnification ->
             val goalVars = vars.copy()
             for ((variable, value) in goalUnification.variableValues.values) {
                 if (value != null) {
@@ -50,7 +51,7 @@ open class AndQuery(val goals: Array<out Query>) : Query {
                     if (goalVars.isInstantiated(variable)) {
                         if (goalVars[variable] != substitutedValue && goalVars[variable] != value) {
                             // instantiated to different value => no unification
-                            continue@goalUnifications
+                            return@forEachRemaining
                         }
                     }
                     else {

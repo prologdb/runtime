@@ -1,16 +1,18 @@
 package com.github.prologdb.runtime
 
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.lazysequence.find
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
-typealias UnificationSequenceGenerator = () -> Sequence<Unification>
+typealias UnificationSequenceGenerator = () -> LazySequence<Unification>
 
 infix fun Term.shouldUnifyWith(rhs: Term): UnificationSequenceGenerator {
     val unification: Unification = this.unify(rhs) ?: throw AssertionError("$this should unify with $rhs but does not")
-    return { setOf(unification).asSequence() }
+    return { LazySequence.of(unification) }
 }
 
 infix fun UnificationSequenceGenerator.suchThat(asserter: UnificationSequenceAssertionReceiver.() -> Unit) {
@@ -19,22 +21,20 @@ infix fun UnificationSequenceGenerator.suchThat(asserter: UnificationSequenceAss
 
 class UnificationSequenceAssertionReceiver(private val generator: UnificationSequenceGenerator) {
     fun itHasANumberOfSolutionsIn(range: IntRange) {
-        val iterator = generator().iterator()
+        val sequence = generator()
         for (i in 0 until range.start) {
-            if (!iterator.hasNext()) {
+            if (sequence.tryAdvance() == null) {
                 throw AssertionError("Too few unifications: expected at least ${range.start} but got only $i.")
             }
-            iterator.next()
         }
 
         if (range.endInclusive > range.start) {
             var foundAtLeastOne = false
             for (i in range.start until range.endInclusive) {
-                if (!iterator.hasNext()) {
+                if (sequence.tryAdvance() == null) {
                     break
                 }
                 foundAtLeastOne = true
-                iterator.next()
             }
 
             if (!foundAtLeastOne) {
@@ -42,7 +42,7 @@ class UnificationSequenceAssertionReceiver(private val generator: UnificationSeq
             }
         }
 
-        if (iterator.hasNext()) {
+        if (sequence.tryAdvance() != null) {
             throw AssertionError("Too many unifications: expected at most ${range.endInclusive} but got more (at least ${range.endInclusive + 1} found)")
         }
     }
@@ -62,7 +62,7 @@ class UnificationSequenceAssertionReceiver(private val generator: UnificationSeq
     }
 
     fun itHasNoSolutions() {
-        if (generator().any()) {
+        if (generator().tryAdvance() != null) {
             throw AssertionError("A solution was found when there should have been none.")
         }
     }
@@ -77,41 +77,27 @@ infix fun Term.shouldNotUnifyWith(rhs: Term) {
 }
 
 infix fun KnowledgeBase.shouldProve(predicate: Predicate): UnificationSequenceGenerator {
-    try {
-        this.fulfill(predicate).first()
-        return { this.fulfill(predicate) }
-    }
-    catch (ex: NoSuchElementException) {
-        throw AssertionError("Failed to fulfill $predicate using knowledge base $this")
-    }
+    this.fulfill(predicate).tryAdvance() ?: throw AssertionError("Failed to fulfill $predicate using knowledge base $this")
+
+    return { this.fulfill(predicate) }
 }
 
 infix fun KnowledgeBase.shouldProve(query: Query): UnificationSequenceGenerator {
-    try {
-        this.fulfill(query).first()
-        return { this.fulfill(query) }
-    }
-    catch (ex: NoSuchElementException) {
-        throw AssertionError("Failed to fulfill $query using knowledge base $this")
-    }
+    this.fulfill(query).tryAdvance() ?: throw AssertionError("Failed to fulfill $query using knowledge base $this")
+    return { this.fulfill(query) }
 }
 
 infix fun KnowledgeBase.shouldNotProve(query: Query) {
-    try {
-        this.fulfill(query).first()
+    if (this.fulfill(query).tryAdvance() != null) {
         throw AssertionError("$this should not fulfill $query but does.")
-    }
-    catch (ex: NoSuchElementException) {
-        // all good!
     }
 }
 
 infix fun KnowledgeBase.shouldNotProve(predicate: Predicate) {
-    try {
-        this.fulfill(predicate).first()
+    if (this.fulfill(predicate).tryAdvance() != null) {
         throw AssertionError("$this should not fulfill $predicate but does.")
     }
-    catch (ex: NoSuchElementException) {
-        // all good!
-    }
 }
+
+private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
+    = find(predicate) != null

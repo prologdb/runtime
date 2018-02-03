@@ -3,6 +3,8 @@ package com.github.prologdb.runtime.knowledge
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
+import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.lazysequence.mapRemaining
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
@@ -12,7 +14,7 @@ open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
     override val name = head.name
     override val arity = head.arity
 
-    open fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+    open fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         val predicateRandomVarsMapping = VariableMapping()
         val randomPredicate = randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
 
@@ -30,7 +32,7 @@ open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
             .substituteVariables(predicateAndHeadUnification.variableValues)
 
         return randomQuery.findProofWithin(kb, VariableBucket(), randomVariableScope)
-            .map { unification ->
+            .mapRemaining { unification ->
                 val solutionVars = VariableBucket()
 
                 for (randomPredicateVariable in randomPredicate.variables)
@@ -49,7 +51,7 @@ open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
             }
     }
 
-    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         return fulfill(other, kb, randomVariableScope)
     }
 

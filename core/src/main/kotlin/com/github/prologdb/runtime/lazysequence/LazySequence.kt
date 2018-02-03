@@ -14,57 +14,6 @@ interface LazySequence<T> {
     fun tryAdvance(): T?
 
     /**
-     * @return The next element that matches the given predicate
-     */
-    fun find(predicate: (T) -> Boolean): T? {
-        var baseResult: T
-        var predicateResult: Boolean
-        do {
-            baseResult = tryAdvance() ?: return null
-            predicateResult = predicate(baseResult)
-        } while (!predicateResult)
-
-        return if (predicateResult) baseResult else null
-    }
-
-    /**
-     * Invokes the given action for all remaining elements in this [LazySequence]
-     */
-    fun forEachRemaining(consumer: (T) -> Unit) {
-        while (true) consumer(tryAdvance() ?: break)
-    }
-
-    /**
-     * Adds all elements remaining in this [LazySequence] to the collection obtained by invoking the given [supplier].
-     *
-     * E.g. use like this: `remainingTo(::LinkedList)`
-     *
-     * @return The collection obtained from [supplier]
-     */
-    fun <C : MutableCollection<in T>> remainingTo(supplier: () -> C): C {
-        val target = supplier()
-        forEachRemaining { target.add(it) }
-        return target
-    }
-
-    /**
-     * Returns a [LazySequence] of only those elements remaining in this [LazySequence] that match the given predicate.
-     *
-     * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
-     */
-    fun filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
-        = FilteredLazySequence(this, predicate)
-
-    /**
-     * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
-     * this [LazySequence]; order is preserved.
-     *
-     * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
-     */
-    fun <M> mapRemaining(mapper: (T) -> M): LazySequence<M>
-        = MappedLazySequence(this, mapper)
-
-    /**
      * Returns a [LazySequence] that, from the remaining elements in this sequence, returns only distinct ones.
      *
      * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
@@ -217,10 +166,90 @@ interface LazySequence<T> {
 
     /**
      * Skips/consumes the next [n] elements
-     *
-     * @see Collection.drop
+     * @return The actual number of elements skipped. Is less than [n] if the sequence had fewer than [n] elements
+     *         at the time of invocation.
      */
-    fun skip(n: Int) {
-        for (i in 1..n) tryAdvance()
+    fun skip(n: Int): Int {
+        var skipped = 0
+        for (i in 1..n) {
+            if (tryAdvance() == null) break
+            skipped++
+        }
+
+        return skipped
     }
+
+    companion object {
+        fun <T> of(vararg elements: T): LazySequence<T> {
+            if (elements.isEmpty()) return empty()
+
+            return object : LazySequence<T> {
+                private var index = 0
+                override fun tryAdvance(): T? {
+                    if (index >= elements.size) return null
+                    return elements[index++]
+                }
+            }
+        }
+
+        private val emptySequence = object : LazySequence<Any> {
+            override fun tryAdvance(): Any? = null
+        }
+
+        fun <T> empty(): LazySequence<T> {
+            @Suppress("unchecked_cast") // no elements returned from the sequence; the size does not matter
+            return emptySequence as LazySequence<T>
+        }
+    }
+}
+
+/**
+ * Adds all elements remaining in this [LazySequence] to the collection obtained by invoking the given [supplier].
+ *
+ * E.g. use like this: `remainingTo(::LinkedList)`
+ *
+ * @return The collection obtained from [supplier]
+ */
+fun <T, C : MutableCollection<in T>> LazySequence<T>.remainingTo(supplier: () -> C): C {
+    val target = supplier()
+    forEachRemaining { target.add(it) }
+    return target
+}
+
+/**
+ * @return The next element that matches the given predicate
+ */
+fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
+    var baseResult: T
+    var predicateResult: Boolean
+    do {
+        baseResult = tryAdvance() ?: return null
+        predicateResult = predicate(baseResult)
+    } while (!predicateResult)
+
+    return if (predicateResult) baseResult else null
+}
+
+/**
+ * Returns a [LazySequence] of only those elements remaining in this [LazySequence] that match the given predicate.
+ *
+ * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
+ */
+fun <T> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
+    = FilteredLazySequence(this, predicate)
+
+/**
+ * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
+ * this [LazySequence]; order is preserved.
+ *
+ * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
+ */
+fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
+    = MappedLazySequence(this, mapper)
+
+/**
+ * Invokes the given action for all remaining elements in this [LazySequence]
+ */
+inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
+    while (true) consumer(tryAdvance() ?: break)
 }

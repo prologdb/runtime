@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -27,7 +28,7 @@ interface LibraryEntry : PredicatePrototype {
      * the given predicate and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
      * to run the query (in case the head and the given [Predicate] unify).
      */
-    fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope) : Sequence<Unification>
+    fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope) : LazySequence<Unification>
 }
 
 interface LibraryEntryStore {

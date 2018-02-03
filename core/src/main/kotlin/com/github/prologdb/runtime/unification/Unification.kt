@@ -1,11 +1,12 @@
 package com.github.prologdb.runtime.unification
 
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Variable
 
 /**
  * A single possible way to unify two expressions; one query result.
  */
-class Unification(public val variableValues: VariableBucket = VariableBucket()) {
+class Unification(val variableValues: VariableBucket = VariableBucket()) {
 
     fun combineWith(other: Unification): Unification {
         return Unification(variableValues.combineWith(other.variableValues))
@@ -35,6 +36,7 @@ class Unification(public val variableValues: VariableBucket = VariableBucket()) 
     companion object {
         val FALSE: Unification? = null
         val TRUE: Unification = Unification()
-        val NONE: Sequence<Unification> = emptySet<Unification>().asSequence()
+        val SINGLETON: LazySequence<Unification> = LazySequence.of(TRUE)
+        val NONE: LazySequence<Unification> = LazySequence.empty()
     }
 }

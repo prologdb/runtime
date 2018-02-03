@@ -9,9 +9,10 @@ import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.DoublyIndexedLibraryEntryStore
 import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.knowledge.library.SimpleLibrary
+import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.lazysequence.buildLazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
-import kotlin.coroutines.experimental.buildSequence
 
 class DefaultKnowledgeBase : MutableKnowledgeBase {
     val library = SimpleLibrary(
@@ -21,12 +22,12 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
 
     override val operatorRegistry = library
 
-    override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): Sequence<Unification> {
+    override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
         // replace all variables in the term with random ones to prevent name collisions
         val termMappings = VariableMapping()
         val replaced = randomVarsScope.withRandomVariables(predicate, termMappings)
 
-        return buildSequence<Unification> {
+        return buildLazySequence<Unification> {
             for (libEntry in library.findFor(predicate)) {
                 if (libEntry is Predicate) {
                     val knownPredicateReplaced = randomVarsScope.withRandomVariables(libEntry, VariableMapping())

@@ -7,6 +7,7 @@ import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.term.Number
@@ -122,7 +123,7 @@ object MathOperatorRegistry {
 private object IsPredicate : BuiltinPredicate("is", A, B)
 
 object IsRule : Rule(IsPredicate, PredicateQuery(IsPredicate)) {
-    override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): Sequence<Unification> {
+    override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         val randomMapping = VariableMapping()
         val randomPredicate = randomVariableScope.withRandomVariables(predicate, randomMapping)
         val predicateAndHeadUnification = head.unify(randomPredicate) ?: return Unification.NONE
@@ -133,28 +134,28 @@ object IsRule : Rule(IsPredicate, PredicateQuery(IsPredicate)) {
 
         if (valForA is Variable) {
             bucket.instantiate(valForA, valForB.asNumber)
-            return sequenceOf(Unification(bucket.withVariablesResolvedFrom(randomMapping)))
+            return LazySequence.of(Unification(bucket.withVariablesResolvedFrom(randomMapping)))
         }
         else if (valForB is Variable) {
             bucket.instantiate(valForB, valForA.asNumber)
-            return sequenceOf(Unification(bucket.withVariablesResolvedFrom(randomMapping)))
+            return LazySequence.of(Unification(bucket.withVariablesResolvedFrom(randomMapping)))
         }
         else if (valForA is Number) {
             if (valForB.asNumber == valForA) {
-                return sequenceOf(Unification.TRUE)
+                return Unification.SINGLETON
             } else {
-                return emptySequence()
+                return Unification.NONE
             }
         }
         else if (valForB is Number) {
             if (valForA.asNumber == valForB) {
-                return sequenceOf(Unification.TRUE)
+                return Unification.SINGLETON
             } else {
-                return emptySequence()
+                return Unification.NONE
             }
         }
         else {
-            return emptySequence()
+            return Unification.NONE
         }
     }
 }
