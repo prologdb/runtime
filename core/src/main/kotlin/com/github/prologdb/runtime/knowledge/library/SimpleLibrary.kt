@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
@@ -19,11 +20,11 @@ open class SimpleLibrary(
 
     override fun defineOperator(definition: OperatorDefinition) = operatorRegistry.defineOperator(definition)
 
-    override fun retractFact(fact: Predicate): Unification? {
+    override fun retractFact(fact: Predicate): LazySequence<Unification> {
         return entryStore.retractFact(fact)
     }
 
-    override fun retract(unifiesWith: Predicate): Unification? {
+    override fun retract(unifiesWith: Predicate): LazySequence<Unification> {
         return entryStore.retract(unifiesWith)
     }
 }

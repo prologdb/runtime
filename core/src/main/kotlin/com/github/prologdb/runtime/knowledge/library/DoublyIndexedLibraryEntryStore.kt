@@ -3,6 +3,7 @@ package com.github.prologdb.runtime.knowledge.library
 import com.github.prologdb.runtime.ArityMap
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
@@ -82,50 +83,52 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
             return cachedExports!!
         }
 
-    override fun retractFact(fact: Predicate): Unification? {
-        val arityIndex = index[fact.name] ?: return null
+    override fun retractFact(fact: Predicate): LazySequence<Unification> {
+        val arityIndex = index[fact.name] ?: return Unification.NONE
+        val entryList = arityIndex[fact.arity] ?: return Unification.NONE
 
-        val entryList = arityIndex[fact.arity] ?: return null
-
-        for (i in 0 .. entryList.lastIndex) {
-            val entry = entryList[i]
-            if (entry is Predicate) {
-                val unification = entry.unify(fact)
-                if (unification != null) {
-                    entryList.removeAt(index = i)
-                    return unification
+        return LazySequence.fromGenerator {
+            for (index in 0 until entryList.size) {
+                val entry = entryList[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(fact)
+                    if (unification != null) {
+                        entryList.removeAt(index)
+                        return@fromGenerator unification
+                    }
                 }
             }
-        }
 
-        return null
+            null
+        }
     }
 
-    override fun retract(unifiesWith: Predicate): Unification? {
-        val arityIndex = index[unifiesWith.name] ?: return null
+    override fun retract(unifiesWith: Predicate): LazySequence<Unification> {
+        val arityIndex = index[unifiesWith.name] ?: return Unification.NONE
+        val entryList = arityIndex[unifiesWith.arity] ?: return Unification.NONE
 
-        val entryList = arityIndex[unifiesWith.arity] ?: return null
-
-        for (i in 0 .. entryList.lastIndex) {
-            val entry = entryList[i]
-            if (entry is Predicate) {
-                val unification = entry.unify(unifiesWith)
-                if (unification != null) {
-                    entryList.removeAt(index = i)
-                    return unification
+        return LazySequence.fromGenerator {
+            for (index in 0 until entryList.size) {
+                val entry = entryList[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(unifiesWith)
+                    if (unification != null) {
+                        entryList.removeAt(index)
+                        return@fromGenerator unification
+                    }
+                } else if (entry is Rule) {
+                    val headUnification = entry.head.unify(unifiesWith)
+                    if (headUnification != null) {
+                        entryList.removeAt(index)
+                        return@fromGenerator  headUnification
+                    }
+                } else {
+                    throw PrologRuntimeException("Cannot determine whether entry should be retracted: is neither a predicate nor a rule.")
                 }
-            } else if (entry is Rule) {
-                val headUnification = entry.head.unify(unifiesWith)
-                if (headUnification != null) {
-                    entryList.removeAt(index = i)
-                    return headUnification
-                }
-            } else {
-                throw PrologRuntimeException("Cannot determine whether entry should be retracted: is neither a predicate nor a rule.")
             }
-        }
 
-        return null
+            null
+        }
     }
 
     override fun abolish(functor: String, arity: Int) {

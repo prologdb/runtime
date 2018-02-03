@@ -14,6 +14,14 @@ interface LazySequence<T> {
     fun tryAdvance(): T?
 
     /**
+     * After a call to this method, [tryAdvance] will always return `null`. Releases as much of the resources
+     * associated with this sequence as possible.
+     *
+     * Repeated invocations to this method **must not throw**.
+     */
+    fun close()
+
+    /**
      * Returns a [LazySequence] that, from the remaining elements in this sequence, returns only distinct ones.
      *
      * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
@@ -179,21 +187,53 @@ interface LazySequence<T> {
         return skipped
     }
 
+    /**
+     * Consumes all elements of this sequence. Useful for sequences where consuming has side effects and the user
+     * only care about the side effects (instead of the elements).
+     */
+    fun consumeAll() {
+        while (true) tryAdvance() ?: break
+    }
+
     companion object {
         fun <T> of(vararg elements: T): LazySequence<T> {
             if (elements.isEmpty()) return empty()
 
             return object : LazySequence<T> {
                 private var index = 0
+                private var closed = false
                 override fun tryAdvance(): T? {
-                    if (index >= elements.size) return null
+                    if (closed || index >= elements.size) return null
                     return elements[index++]
+                }
+
+                override fun close() {
+                    closed = true
+                }
+            }
+        }
+
+        fun <T> fromGenerator(generator: () -> T?): LazySequence<T> {
+            return object : LazySequence<T> {
+                var closed = false
+
+                override fun tryAdvance(): T? {
+                    if (closed) return null
+
+                    val result = generator()
+                    if (result == null) closed = true
+                    return result
+                }
+
+                override fun close() {
+                    closed = true
                 }
             }
         }
 
         private val emptySequence = object : LazySequence<Any> {
             override fun tryAdvance(): Any? = null
+            override fun close() = Unit
         }
 
         fun <T> empty(): LazySequence<T> {
@@ -252,4 +292,5 @@ fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
  */
 inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
     while (true) consumer(tryAdvance() ?: break)
+    close()
 }

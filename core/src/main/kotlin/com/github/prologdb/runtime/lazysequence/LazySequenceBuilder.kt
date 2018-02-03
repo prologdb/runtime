@@ -54,7 +54,7 @@ class LazySequenceBuilder<T>(searchFun: suspend LazySequenceBuilder<T>.() -> Uni
                 synchronized(mutex) {
                     if (isCompleted) throw IllegalStateException()
 
-                    state = SequenceState.COMPLETED
+                    close()
                 }
             }
 
@@ -111,6 +111,14 @@ class LazySequenceBuilder<T>(searchFun: suspend LazySequenceBuilder<T>.() -> Uni
                     SequenceState.AFTER_SUBSEQUENCE     -> throw IllegalStateException()
                     SequenceState.INITIAL               -> throw IllegalStateException()
                 }
+            }
+        }
+
+        override fun close() {
+            synchronized(mutex) {
+                state = SequenceState.COMPLETED
+                currentElement = null
+                currentSubSequence = null
             }
         }
     }

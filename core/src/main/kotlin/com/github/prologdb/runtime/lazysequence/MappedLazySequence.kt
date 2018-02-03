@@ -8,4 +8,6 @@ class MappedLazySequence<T, M>(
         val el = base.tryAdvance() ?: return null
         return mapper(el)
     }
+
+    override fun close() = base.close()
 }

@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.lazysequence.remainingTo
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Atom
@@ -107,7 +108,7 @@ init {
 
                 "facts removed through retractFact" - {
 
-                    entryStore.retractFact(factA)
+                    entryStore.retractFact(factA).tryAdvance()
 
                     "should not be contained in exports" {
                         // ASSERT
@@ -143,7 +144,7 @@ init {
                     entryStore.add(rule)
                     entryStore.findFor(rule.head).toList().size shouldEqual 1
 
-                    entryStore.retract(rule.head)
+                    entryStore.retract(rule.head).tryAdvance()
 
                     "should not be contained in exports" {
                         entryStore.exports.toList() shouldNot contain<LibraryEntry>(rule)
@@ -165,7 +166,7 @@ init {
                     entryStore.findFor(fact1).toList().size shouldEqual 2
 
                     // ACT
-                    entryStore.retractFact(fact2)
+                    entryStore.retractFact(fact2).tryAdvance()
                     val result = entryStore.findFor(fact2).toList()
 
                     // ASSERT
@@ -183,7 +184,7 @@ init {
                     entryStore.findFor(fact1).toList().size shouldEqual 2
 
                     // ACT
-                    entryStore.retract(fact2)
+                    entryStore.retract(fact2).tryAdvance()
                     val result = entryStore.findFor(fact2).toList()
 
                     // ASSERT
@@ -202,8 +203,7 @@ init {
                     entryStore.findFor(fact1).toList().size shouldEqual 2
 
                     // ACT
-                    entryStore.retractAllFacts(fact1).toList() // to toList consumes the seuqnece and thereby
-                                                               // ensures that all entries are actually retracted
+                    entryStore.retractAllFacts(fact1)
 
                     // ASSERT
                     entryStore.exports.toList()should beEmpty()
@@ -225,8 +225,7 @@ init {
                     entryStore.findFor(fact1).toList().size shouldEqual 3
 
                     // ACT
-                    entryStore.retractAll(fact1).toList() // the toList consumes the lazysequence and thereby
-                                                          // ensures that all entries are actually retracted
+                    entryStore.retractAll(fact1)
 
                     // ASSERT
                     entryStore.exports.toList() should beEmpty()
@@ -246,10 +245,10 @@ init {
                         val result = entryStore.retractFact(retractionFact)
 
                         // ASSERT
-                        result shouldEqual expectedUnification
+                        result.remainingTo(::ArrayList) shouldEqual listOf(expectedUnification)
                     }
 
-                    "retractAll" {
+                    "retract" {
                         // SETUP
                         entryStore = implementationFactory()
 
@@ -265,7 +264,7 @@ init {
                         entryStore.add(rule)
 
                         // ACT
-                        val result = entryStore.retractAll(retractionFact).toList()
+                        val result = entryStore.retract(retractionFact).remainingTo(::ArrayList)
 
                         // ASSERT
                         result.size shouldEqual 2

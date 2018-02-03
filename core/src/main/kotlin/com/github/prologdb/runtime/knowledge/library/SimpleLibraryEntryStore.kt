@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
@@ -19,42 +20,46 @@ class SimpleLibraryEntryStore(givenEntries: Iterable<LibraryEntry> = emptyList()
         entries.add(entry)
     }
 
-    override fun retractFact(fact: Predicate): Unification? {
-        for (i in 0 .. entries.lastIndex) {
-            val entry = entries[i]
-            if (entry is Predicate) {
-                val unification = entry.unify(fact)
-                if (unification != null) {
-                    entries.removeAt(i)
-                    return unification
+    override fun retractFact(fact: Predicate): LazySequence<Unification> {
+        return LazySequence.fromGenerator {
+            for (index in 0 until entries.size) {
+                val entry = entries[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(fact)
+                    if (unification != null) {
+                        entries.removeAt(index)
+                        return@fromGenerator unification
+                    }
                 }
             }
-        }
 
-        return null
+            null
+        }
     }
 
-    override fun retract(unifiesWith: Predicate): Unification? {
-        for (i in 0 .. entries.lastIndex) {
-            val entry = entries[i]
-            if (entry is Predicate) {
-                val unification = entry.unify(unifiesWith)
-                if (unification != null) {
-                    entries.removeAt(i)
-                    return unification
+    override fun retract(unifiesWith: Predicate): LazySequence<Unification> {
+        return LazySequence.fromGenerator {
+            for (index in 0 until entries.size) {
+                val entry = entries[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(unifiesWith)
+                    if (unification != null) {
+                        entries.removeAt(index)
+                        return@fromGenerator unification
+                    }
+                } else if (entry is Rule) {
+                    val headUnification = entry.head.unify(unifiesWith)
+                    if (headUnification != null) {
+                        entries.removeAt(index)
+                        return@fromGenerator headUnification
+                    }
+                } else {
+                    throw PrologRuntimeException("Cannot test whether to retract an entry: is neither a fact nor a rule")
                 }
-            } else if (entry is Rule) {
-                val headUnification = entry.head.unify(unifiesWith)
-                if (headUnification != null) {
-                    entries.removeAt(i)
-                    return headUnification
-                }
-            } else {
-                throw PrologRuntimeException("Cannot test whether to retract an entry: is neither a fact nor a rule")
             }
-        }
 
-        return null
+            null
+        }
     }
 
     override fun abolishFacts(functor: String, arity: Int) {

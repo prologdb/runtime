@@ -7,7 +7,6 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import kotlin.coroutines.experimental.buildSequence
 
 /**
  * A type of predicate, e.g. `likes/2`.
@@ -64,47 +63,37 @@ interface MutableLibraryEntryStore : LibraryEntryStore {
     }
 
     /**
-     * Removes the first fact that unifies with the given [Predicate] from the entry store. **Does not affect rules.**
+     * Removes facts that unify with the given [Predicate] from the entry store.
      *
-     * If no matching entry is found, does nothing and returns `false`.
+     * *Does not affect rules.*.
      *
-     * @return The unification of the given [Predicate] with the removed fact or `null` if no matching fact was found.
+     * @return Unifications of the given [Predicate] with the removed facts. Every invocation of [LazySequence.tryAdvance]
+     *         attempts to remove another entry from the store.
      */
-    fun retractFact(fact: Predicate): Unification?
+    fun retractFact(fact: Predicate): LazySequence<Unification>
 
     /**
-     * Removes the first fact (which unifies with the given [Predicate]) **or rule (whichs head unifies with
+     * Removes facts (which unify with the given [Predicate]) **or rules (whichs heads unify with
      * the given predicate)** from this store. Acts like `retract/1`.
      *
-     * If no matching entry is found, does nothing and returns `false`.
-     *
-     * @return The unification of the given [Predicate] with the removed fact resp. rule head or `null` if no matching
-     * entry was found.
+     * @return The unifications of the given [Predicate] with the removed facts resp. rule heads. Every invocation
+     *         of [LazySequence.tryAdvance] attempts to remove another entry from the store.
      */
-    fun retract(unifiesWith: Predicate): Unification?
+    fun retract(unifiesWith: Predicate): LazySequence<Unification>
 
     /**
      * Removes all facts that unify with the given [Predicate] from the entry store. **Does not affect rules**.
-     *
-     * If no matching entry is found, does nothing and returns `false`.
-     *
-     * @return For each fact removed, yields the unification of the given [Predicate] with the removed fact.
      */
-    fun retractAllFacts(fact: Predicate): Sequence<Unification> = buildSequence {
-        while (true) yield(retract(fact) ?: break)
+    fun retractAllFacts(fact: Predicate) {
+        retractFact(fact).consumeAll()
     }
 
     /**
      * Removes all facts (which unify with the given [Predicate]) **and rules (whichs heads unify with the given
      * [Predicate])** from this store. Acts like `retractAll/1`.
-     *
-     * If no matching entry is found, does nothing and returns `false`.
-     *
-     * @return For each fact and rule remove, yields the unification of the given [Predicate] with the removed fact
-     *         resp. rule head
      */
-    fun retractAll(unifiesWith: Predicate): Sequence<Unification> = buildSequence {
-        while (true) yield(retract(unifiesWith) ?: break)
+    fun retractAll(unifiesWith: Predicate) {
+        retract(unifiesWith).consumeAll()
     }
 
     /**
@@ -112,7 +101,6 @@ interface MutableLibraryEntryStore : LibraryEntryStore {
      */
     fun abolishFacts(functor: String, arity: Int) {
         retractAllFacts(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
-            .toList() // toList ensures that all entries are actually retracted
     }
 
     /**
@@ -120,7 +108,6 @@ interface MutableLibraryEntryStore : LibraryEntryStore {
      */
     fun abolish(functor: String, arity: Int) {
         retractAll(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
-            .toList() // toList ensures that all entries are actually retracted
     }
 }
 

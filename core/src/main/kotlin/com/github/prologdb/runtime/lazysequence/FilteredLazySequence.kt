@@ -5,4 +5,5 @@ class FilteredLazySequence<T>(
     private val predicate: (T) -> Boolean
 ) : LazySequence<T> {
     override fun tryAdvance(): T? = base.find(predicate)
+    override fun close() = base.close()
 }

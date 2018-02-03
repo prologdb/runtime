@@ -17,4 +17,8 @@ class DistinctLazySequence<T, K>(
 
         return baseValue
     }
+
+    override fun close() {
+        base.close()
+    }
 }
