@@ -3,6 +3,7 @@ package com.github.prologdb.runtime.knowledge.library
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -14,6 +15,11 @@ import com.github.prologdb.runtime.unification.Unification
 interface PredicatePrototype {
     val name: String
     val arity: Int
+
+    /** The prolog-idiomatic representation of this prototype, e.g. for `name=foobar, arity=2` returns `'/'(foobar, 2)` */
+    fun asIdiomatic(): Predicate = object : Predicate("/", arrayOf(Atom(name), com.github.prologdb.runtime.term.Integer(arity.toLong()))) {
+        override fun toString(): String = "${this@PredicatePrototype.name}/${this@PredicatePrototype.arity}"
+    }
 }
 
 /**
