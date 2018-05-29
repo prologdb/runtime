@@ -38,5 +38,13 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
         val TRUE: Unification = Unification()
         val SINGLETON: LazySequence<Unification> = LazySequence.of(TRUE)
         val NONE: LazySequence<Unification> = LazySequence.empty()
+
+        /**
+         * DSL method; if [condition] is true, returns [TRUE], [FALSE] otherwise.
+         * Usage: `return Unification.whether(myConditionIsMet)`
+         */
+        fun whether(condition: Boolean): Unification? {
+            return if (condition) TRUE else FALSE
+        }
     }
 }
