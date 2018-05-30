@@ -104,15 +104,11 @@ open class PrologString private constructor(
     /**
      * Returns a plain kotlin representation of this string (as apposed
      * to [toString] which returns prolog syntax that, when parsed, would
-     * result in an equal string.
+     * result in an equal string).
      */
     fun toKotlinString(): String {
         return kotlinString ?: {
-            val chars = CharArray(length)
-            for (i in 0 until length) {
-                chars[i] = charAt(i)
-            }
-            val str = String(chars)
+            val str = characters.joinToString()
             kotlinString = str
             str
         }()
