@@ -145,4 +145,12 @@ class ImmutableSubListTest : FreeSpec() { init {
         copy.contains(7) shouldBe true
         copy.contains(8) shouldBe true
     }
+
+    "equality with default lits impls" {
+        val stdLibList = listOf(2, 3, 4, 5)
+        val immutableSubList = ImmutableSubList(listOf(1, 2, 3, 4, 5, 6), 1, 4)
+
+        stdLibList shouldEqual immutableSubList
+        immutableSubList shouldEqual stdLibList
+    }
 }}

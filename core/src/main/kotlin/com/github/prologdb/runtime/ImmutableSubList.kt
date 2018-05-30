@@ -79,8 +79,8 @@ class ImmutableSubList<T>(
     }
 
     override fun subList(fromIndex: Int, toIndex: Int): ImmutableSubList<T> {
-        if (fromIndex < 0 || fromIndex >= size) throw IndexOutOfBoundsException("$fromIndex")
-        if (toIndex < 0 || toIndex >= size) throw IndexOutOfBoundsException("$toIndex")
+        if (fromIndex < 0 || fromIndex > size) throw IndexOutOfBoundsException("$fromIndex")
+        if (toIndex < 0 || toIndex > size) throw IndexOutOfBoundsException("$toIndex")
         if (toIndex < fromIndex) throw IllegalArgumentException()
 
         if (fromIndex == 0 && toIndex == lastIndex) return this
@@ -95,10 +95,11 @@ class ImmutableSubList<T>(
 
         // compare element by element; driven by the other lists
         // iterator because the other list might not be RandomAccess (e.g. LinkedList)
-        val selfIndex = 0
+        var selfIndex = 0
         for (otherEl in other) {
             val selfEl = source[startOffset + selfIndex]
             if (selfEl != otherEl) return false
+            selfIndex++
         }
 
         return true
@@ -112,6 +113,8 @@ class ImmutableSubList<T>(
 
         return result
     }
+
+    override fun toString(): String =  this.joinToString(", ", "[", "]")
 }
 
 private class IndexBasedSubIteratorOverImmutableList<out T>(
