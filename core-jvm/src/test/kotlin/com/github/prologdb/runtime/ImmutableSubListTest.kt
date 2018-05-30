@@ -54,7 +54,7 @@ class ImmutableSubListTest : FreeSpec() { init {
         }
 
         "should not return elements beyond length" {
-            shouldThrow<ArrayIndexOutOfBoundsException> {
+            shouldThrow<IndexOutOfBoundsException> {
                 subList[5]
             }
         }
