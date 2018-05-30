@@ -7,6 +7,8 @@ import kotlin.math.pow
 
 open class Integer(val value: Long) : Number {
 
+    override val isInteger = true
+
     override fun plus(other: Number) =
         when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value + other.value)
@@ -53,6 +55,10 @@ open class Integer(val value: Long) : Number {
     override fun unaryPlus(): Number = Integer.createUsingStringOptimizerCache(+this.value)
 
     override fun unaryMinus(): Number = Integer.createUsingStringOptimizerCache(-this.value)
+
+    override fun toInteger(): Long = value
+
+    override fun toDecimal(): Double = value.toDouble()
 
     override fun compareTo(other: Number) =
         when(other) {

@@ -11,4 +11,17 @@ interface Number : Term {
 
     operator fun unaryPlus(): Number
     operator fun unaryMinus(): Number
+
+    val isInteger: Boolean
+
+    /**
+     * If this is an integer, returns its value. Otherwise rounds
+     * to the nearest integer and returns that
+     */
+    fun toInteger(): Long
+
+    /**
+     * Converts this number to a [Double] and returns it.
+     */
+    fun toDecimal(): Double
 }
