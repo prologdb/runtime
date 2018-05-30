@@ -18,10 +18,16 @@ open class PrologString private constructor(
         ImmutableSubList(chars.toList().map { PrologInteger(it.toLong()) }, beginIndex, length)
     )
 
-    constructor(str: String) : this(str.toCharArray() )
+    constructor(str: String) : this({
+        val ar = CharArray(str.length)
+        for (i in 0..str.lastIndex) {
+            ar[i] = str[i]
+        }
+        ar
+    }())
 
     init {
-        assert(data.none { it.value < 0 || it.value > 65535 }, { "Prolog strings must only contain unicode values in the range [0; 65535]" })
+        if (data.any { it.value < 0 || it.value > 65535 }) throw IllegalArgumentException("Prolog strings must only contain unicode values in the range [0; 65535]")
     }
 
     val length: Int = data.size

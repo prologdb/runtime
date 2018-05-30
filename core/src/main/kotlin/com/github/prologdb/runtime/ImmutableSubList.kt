@@ -16,8 +16,8 @@ class ImmutableSubList<T>(
 ) : List<T> {
 
     init {
-        assert(startOffset >= 0)
-        assert(size >= 0)
+        if (startOffset < 0) throw IndexOutOfBoundsException("startOffset must be 0 or positive")
+        if (size < 0) throw IndexOutOfBoundsException("size must be 0 or positive")
 
         if (startOffset + size > source.size) {
             throw IndexOutOfBoundsException("${startOffset + size}")
@@ -37,7 +37,7 @@ class ImmutableSubList<T>(
     override fun containsAll(elements: Collection<T>): Boolean = elements.all(this::contains)
 
     override fun get(index: Int): T {
-        if (index >= size) throw ArrayIndexOutOfBoundsException(index)
+        if (index >= size) throw IndexOutOfBoundsException("$index")
         return source[startOffset + index]
     }
 
@@ -124,8 +124,8 @@ private class IndexBasedSubIteratorOverImmutableList<out T>(
 ) : ListIterator<T> {
 
     init {
-        assert(initialIndex >= 0)
-        assert(initialIndex + nElements <= list.size)
+        if (initialIndex < 0) throw IndexOutOfBoundsException("initialIndex must be 0 or positive")
+        if (initialIndex + nElements > list.size) throw IndexOutOfBoundsException()
     }
 
     private var nextIndex: Int = initialIndex

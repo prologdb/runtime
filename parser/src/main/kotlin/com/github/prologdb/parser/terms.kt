@@ -10,8 +10,14 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.List as PrologList
+import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.Integer as PrologInteger
+import com.github.prologdb.runtime.term.Decimal as PrologDecimal
 import com.github.prologdb.runtime.term.Number
+import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -20,14 +26,31 @@ interface ParsedTerm : Term {
 }
 
 class ParsedAtom(name: String, override val location: SourceLocationRange): ParsedTerm, Atom(name)
-class ParsedList(givenElements: List<Term>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, com.github.prologdb.runtime.term.List(givenElements, tail)
+class ParsedList(givenElements: List<Term>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, PrologList(givenElements, tail)
 open class ParsedPredicate(name: String, arguments: Array<out ParsedTerm>, override val location: SourceLocationRange) : ParsedTerm, Predicate(name, arguments) {
     override val arguments: Array<out ParsedTerm> = arguments
 }
 class ParsedVariable(name: String, override val location: SourceLocationRange) : ParsedTerm, Variable(name)
 interface ParsedNumber : ParsedTerm, Number
-class ParsedInteger(value: Long, override val location: SourceLocationRange) : ParsedNumber, Integer(value)
-class ParsedDecimal(value: Double, override val location: SourceLocationRange) : ParsedNumber, Decimal(value)
+class ParsedInteger(value: Long, override val location: SourceLocationRange) : ParsedNumber {
+    private val delegate = PrologInteger.createUsingStringOptimizerCache(value)
+
+    override val variables: Set<Variable> = delegate.variables
+    override fun equals(other: Any?) = delegate.equals(other)
+    override fun substituteVariables(mapper: (Variable) -> Term) = delegate.substituteVariables(mapper)
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope) = delegate.unify(rhs, randomVarsScope)
+    override fun compareTo(other: Number) = delegate.compareTo(other)
+
+    override fun plus(other: Number) = delegate.plus(other)
+    override fun minus(other: Number) = delegate.minus(other)
+    override fun times(other: Number) = delegate.times(other)
+    override fun div(other: Number) = delegate.div(other)
+    override fun rem(other: Number) = delegate.rem(other)
+    override fun toThe(other: Number) = delegate.toThe(other)
+    override fun unaryPlus() = delegate.unaryPlus()
+    override fun unaryMinus() = delegate.unaryMinus()
+}
+class ParsedDecimal(value: Double, override val location: SourceLocationRange) : ParsedNumber, PrologDecimal(value)
 
 interface ParsedQuery : Query {
     val location: SourceLocationRange

@@ -5,7 +5,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 
-open class Integer private constructor(val value: Long) : Number {
+open class Integer(val value: Long) : Number {
 
     override fun plus(other: Number) =
         when(other) {
@@ -98,8 +98,6 @@ open class Integer private constructor(val value: Long) : Number {
            likely applies to other uses-cases where small numbers are used.
          */
         private val cache: MutableMap<Short, Integer> = mutableMapOf()
-
-        operator fun invoke(value: Long): Integer = createUsingStringOptimizerCache(value)
 
         fun createUsingStringOptimizerCache(value: Long): Integer {
             if (value > Short.MAX_VALUE || value < Short.MIN_VALUE) {
