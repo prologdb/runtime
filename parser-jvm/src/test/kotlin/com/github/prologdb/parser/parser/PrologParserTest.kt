@@ -1,9 +1,6 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ParsedAtom
-import com.github.prologdb.parser.ParsedList
-import com.github.prologdb.parser.ParsedPredicate
-import com.github.prologdb.parser.ParsedVariable
+import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.sequence.TransactionalSequence
@@ -81,6 +78,15 @@ class PrologParserTest : FreeSpec() {
             assert(result.item is Variable)
             (result.item!! as Variable).name shouldEqual "_underscore"
         }
+    }
+
+    "string" {
+        val result = parseTerm(""""this is a string \" with escaped stuff"""")
+        result.certainty shouldEqual MATCHED
+        result.reportings should beEmpty()
+
+        val string = result.item!! as ParsedPrologString
+        string.toKotlinString() shouldEqual "this is a string \" with escaped stuff"
     }
 
     "simple comma separated atoms" {

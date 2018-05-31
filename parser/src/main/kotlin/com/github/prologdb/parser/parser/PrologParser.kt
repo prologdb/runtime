@@ -445,6 +445,18 @@ class PrologParser {
                     emptySet()
             )
         }
+        else if (token is StringLiteralToken) {
+            tokens.commit()
+
+            return ParseResult(
+                ParsedPrologString(
+                    token.content,
+                    token.location
+                ),
+                MATCHED,
+                emptySet()
+            )
+        }
         else {
             tokens.rollback()
 
