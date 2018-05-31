@@ -5,7 +5,8 @@ import com.github.prologdb.parser.source.SourceLocationRange
 enum class TokenType {
     IDENTIFIER,
     OPERATOR,
-    NUMERIC_LITERAL
+    NUMERIC_LITERAL,
+    STRING_LITERAL
 }
 
 enum class Operator(val text: String) {
@@ -33,7 +34,8 @@ enum class Operator(val text: String) {
     GREATER_THAN_OR_EQUAL(">="),
     GREATER_THAN(">"),
     TERM_NOT_EQUALS("\\=="),
-    NEGATED_UNIFY("\\=")
+    NEGATED_UNIFY("\\="),
+    DOUBLE_QUOTE("\"")
 }
 
 val DECIMAL_SEPARATOR: Char = '.'
@@ -89,3 +91,23 @@ class NumericLiteralToken(val number: Number, location: SourceLocationRange): To
     override fun toString() = "number"
 }
 
+class StringLiteralToken(val content: String, location: SourceLocationRange) : Token(TokenType.STRING_LITERAL, location) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as StringLiteralToken
+
+        if (content != other.content) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return content.hashCode()
+    }
+
+    override fun toString() = "string literal"
+}
+
+val ESCAPE_SEQUENCE: String = "\\"

@@ -1,10 +1,12 @@
 package com.github.prologdb.parser.lexer
 
+import com.github.prologdb.parser.ParsedPrologString
 import com.github.prologdb.parser.sequence.IteratorBasedTransactionalSequence
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.PrologException
 
 class Lexer(source: Iterator<Char>, initialSourceLocation: SourceLocation) : TransactionalSequence<Token>
 {
@@ -57,7 +59,15 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
 
         // try to match an operator
         val operatorToken = tryMatchOperator()
-        if (operatorToken != null) return operatorToken
+        if (operatorToken != null) {
+            // String
+            if (operatorToken.operator == Operator.DOUBLE_QUOTE) {
+                var stringContent = collectStringLike(startToken = operatorToken)
+                return StringLiteralToken(stringContent.first, stringContent.second)
+            }
+
+            return operatorToken
+        }
 
         if (!source.hasNext()) return null
 
@@ -104,6 +114,10 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         }
     }
 
+    /**
+     * @return the next [n] characters as a string. If there are not as many characters in the source,
+     * will return `null`.
+     */
     private fun nextCharsAsString(n: Int): Pair<String, SourceLocationRange>? {
         if (n < 1) throw IllegalArgumentException()
 
@@ -213,6 +227,60 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         }
         else {
             return null
+        }
+    }
+
+    /**
+     * Assumes the parser is right after an operator that introduces a string-like
+     * sequence (actual string, escaped atom). Parses until it finds another instance
+     * of the operator that is not escaped by the [ESCAPE_SEQUENCE].
+     *
+     * @param startToken The operator that started the sequence. The same operator can end the sequence
+     * @return The actual content (with escape sequences removed) and the [SourceLocationRange] of the
+     *         entire sequence, including the start- and end operators.
+     */
+    private fun collectStringLike(startToken: OperatorToken): Pair<String, SourceLocationRange> {
+        var stringContent = ""
+        source.mark() // A
+        while (true) {
+            // look for escape sequence
+            source.mark() // B
+            val possibleEscapeText = nextCharsAsString(ESCAPE_SEQUENCE.length)
+            if (possibleEscapeText != null) {
+                if (possibleEscapeText.first == ESCAPE_SEQUENCE) {
+                    // escape sequence found, take the next char as given
+                    if (!source.hasNext()) {
+                        source.rollback() // B
+                        source.rollback() // A
+                        throw PrologException("Unexpected EOF after escape sequence in ${possibleEscapeText.second.end}")
+                    }
+                    stringContent += source.next().first
+                    continue
+                } else {
+                    source.rollback() // B
+                }
+            }
+
+            // try to find ending operator
+            source.mark() // B
+
+            val possibleEndingOperatorText = nextCharsAsString(startToken.operator.text.length)
+            if (possibleEndingOperatorText == null) {
+                // not enough chars left for the ending delimiter => unexpected eof
+                source.rollback() // B
+                source.rollback() // A
+                throw PrologException("Failed to parse string starting at ${startToken.location.start}: unexpected EOF, expected ${startToken.operator}")
+            }
+
+            if (possibleEndingOperatorText.first == startToken.operator.text) {
+                // here is the ending delimiter, done
+                source.commit() // B
+                source.commit() // A
+                return Pair(stringContent, startToken.location .. possibleEndingOperatorText.second.end)
+            }
+
+            source.rollback() // B
+            stringContent += source.next().first // implicit commit
         }
     }
 

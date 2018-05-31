@@ -12,7 +12,7 @@ class LexerIteratorTest : FreeSpec() {init{
             ruleHeadPredicate(arg1, X) :- goal1(arg1), goal2(X).
             foo(1,2,3.412)  .
             a+1.
-
+            "this is a simple string"  "this is a string with \" escaped \stuff"
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
@@ -362,6 +362,24 @@ class LexerIteratorTest : FreeSpec() {init{
             next.location.start.column shouldEqual 16
             next.location.end.line shouldEqual 5
             next.location.end.column shouldEqual 16
+        }
+
+        "line 6" - {
+            next = lexer.next()
+            assert(next is StringLiteralToken)
+            (next as StringLiteralToken).content shouldEqual "this is a simple string"
+            next.location.start.line shouldEqual 6
+            next.location.start.column shouldEqual 13
+            next.location.end.line shouldEqual 6
+            next.location.end.column shouldEqual 37
+
+            next = lexer.next()
+            assert(next is StringLiteralToken)
+            (next as StringLiteralToken).content shouldEqual "this is a string with \" escaped stuff"
+            next.location.start.line shouldEqual 6
+            next.location.start.column shouldEqual 40
+            next.location.end.line shouldEqual 6
+            next.location.end.column shouldEqual 80
         }
 
         "eof" - {
