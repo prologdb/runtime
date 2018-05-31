@@ -114,9 +114,10 @@ open class PrologString private constructor(
      */
     fun toKotlinString(): String {
         return kotlinString ?: {
-            val str = characters.joinToString()
-            kotlinString = str
-            str
+            val charArray = CharArray(length)
+            var index = 0
+            for (char in characters) charArray[index++] = char
+            String(charArray)
         }()
     }
 
