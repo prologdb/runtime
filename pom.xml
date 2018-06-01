@@ -152,6 +152,7 @@
                             <phase>verify</phase>
                             <configuration>
                                 <keyname>20DAB483</keyname>
+                                <skip>true</skip>
                             </configuration>
                             <goals>
                                 <goal>sign</goal>
