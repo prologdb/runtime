@@ -14,10 +14,9 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.term.List as PrologList
-import com.github.prologdb.runtime.term.Integer as PrologInteger
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.term.Integer as PrologInteger
+import com.github.prologdb.runtime.term.List as PrologList
 
 val StringsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
     init {
@@ -27,20 +26,28 @@ val StringsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryS
 
 private object StringCharsPredicate : BuiltinPredicate("string_chars", A, B)
 
+/**
+ * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
+ */
 object StringCharsRule : Rule(StringCharsPredicate, PredicateQuery(StringCharsPredicate)) {
     override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
-        if (predicate.name != head.name || predicate.arity != head.arity) return Unification.NONE
+        if (predicate.arity != head.arity || predicate.name != head.name) return Unification.NONE
 
-        val valForA = predicate.arguments[0]
-        val valForB = predicate.arguments[1]
+        val inputA = predicate.arguments[0]
+        val inputB = predicate.arguments[1]
 
-        fun convertValueForBToPrologString(): PrologString {
+        fun convertInputAToListOfCharacters(): PrologList {
+            if (inputA !is PrologString) throw PrologRuntimeException("Type Error: expected string as first argument to string_chars/2, got ${inputA.prologTypeName}")
+            return PrologList(inputA.characters.map { Atom(it.toString()) })
+        }
+
+        fun convertInputBToPrologString(): PrologString {
             // single-character atoms to string
-            if (valForB !is PrologList) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got ${valForB.prologTypeName}")
-            if (valForB.tail != null) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got compound")
+            if (inputB !is PrologList) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got ${inputB.prologTypeName}")
+            if (inputB.tail != null) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got compound")
 
-            val stringCharsTarget = CharArray(valForB.elements.size)
-            valForB.elements.forEachIndexed { index, listElement ->
+            val stringCharsTarget = CharArray(inputB.elements.size)
+            inputB.elements.forEachIndexed { index, listElement ->
                 if (listElement is Atom && listElement.name.length == 1) {
                     stringCharsTarget[index] = listElement.name[0]
                 }
@@ -50,35 +57,33 @@ object StringCharsRule : Rule(StringCharsPredicate, PredicateQuery(StringCharsPr
             return PrologString(stringCharsTarget)
         }
 
-        fun convertValueForAToListOfCharacters(): PrologList {
-            if (valForA !is PrologString) throw PrologRuntimeException("Type Error: expected string as first argument to string_chars/2, got ${valForA.prologTypeName}")
-            return PrologList(valForA.characters.map { Atom(it.toString()) })
-        }
-
-        if (valForA is Variable && valForB is Variable) {
+        if (inputA is Variable && inputB is Variable) {
             throw PrologRuntimeException("Arguments are not sufficiently instantiated")
         }
 
-        if (valForA is Variable) {
-            val prologStringFromList = convertValueForBToPrologString()
-            val bucket = VariableBucket()
-            bucket.instantiate(valForA, prologStringFromList)
-            return LazySequence.of(Unification(bucket))
+        if (inputA is PrologString) {
+            val referenceValueForB = convertInputAToListOfCharacters()
+            val unificationResult = referenceValueForB.unify(inputB)
+            return if (unificationResult == null) Unification.NONE else LazySequence.of(unificationResult)
         }
 
-        if (valForB is Variable) {
-            val listFromString = convertValueForAToListOfCharacters()
-            val bucket = VariableBucket()
-            bucket.instantiate(valForB, listFromString)
-            return LazySequence.of(Unification(bucket))
+        if (inputB is PrologList) {
+            val referenceValueForA = convertInputBToPrologString()
+            val unificationResult = referenceValueForA.unify(inputA)
+            return if (unificationResult == null) Unification.NONE else LazySequence.of(unificationResult)
         }
 
-        val prologStringFromList = convertValueForBToPrologString()
-
-        return if (valForA == prologStringFromList) {
-            Unification.SINGLETON
-        } else {
-            Unification.NONE
-        }
+        return Unification.NONE
     }
 }
+
+private object StringCodesPredicate : BuiltinPredicate("string_codes", A, B)
+
+/**
+ * Implements the `string_codes/2` builtin, see http://www.swi-prolog.org/pldoc/doc_for?object=string_codes/2
+ *
+object StringCodesRule : Rule(StringCodesPredicate, PredicateQuery(StringCodesPredicate)) {
+    override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
+
+    }
+}*/
