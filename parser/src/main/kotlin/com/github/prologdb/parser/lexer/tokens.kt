@@ -110,4 +110,16 @@ class StringLiteralToken(val content: String, location: SourceLocationRange) : T
     override fun toString() = "string literal"
 }
 
-val ESCAPE_SEQUENCE: String = "\\"
+/** The escape character in strings */
+val ESCAPE_CHARACTER: Char = '\\'
+
+/** Escape sequences in strings, e.g. \n to linefeed */
+val ESCAPE_SEQUENCES: Map<Char, Char> = mapOf(
+    'a' to '\u0007',
+    'b' to '\b',
+    'e' to '\u001B',
+    'n' to '\n',
+    'r' to '\r',
+    't' to '\t',
+    'v' to '\u000B'
+)

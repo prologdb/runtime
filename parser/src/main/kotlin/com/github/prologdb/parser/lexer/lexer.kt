@@ -1,6 +1,5 @@
 package com.github.prologdb.parser.lexer
 
-import com.github.prologdb.parser.ParsedPrologString
 import com.github.prologdb.parser.sequence.IteratorBasedTransactionalSequence
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
@@ -233,7 +232,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
     /**
      * Assumes the parser is right after an operator that introduces a string-like
      * sequence (actual string, escaped atom). Parses until it finds another instance
-     * of the operator that is not escaped by the [ESCAPE_SEQUENCE].
+     * of the operator that is not escaped by the [ESCAPE_CHARACTER].
      *
      * @param startToken The operator that started the sequence. The same operator can end the sequence
      * @return The actual content (with escape sequences removed) and the [SourceLocationRange] of the
@@ -243,22 +242,27 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         var stringContent = ""
         source.mark() // A
         while (true) {
+            if (!source.hasNext()) throw PrologException("Unexpected EOF in string starting at ${startToken.location.start}")
+
             // look for escape sequence
             source.mark() // B
-            val possibleEscapeText = nextCharsAsString(ESCAPE_SEQUENCE.length)
-            if (possibleEscapeText != null) {
-                if (possibleEscapeText.first == ESCAPE_SEQUENCE) {
-                    // escape sequence found, take the next char as given
-                    if (!source.hasNext()) {
-                        source.rollback() // B
-                        source.rollback() // A
-                        throw PrologException("Unexpected EOF after escape sequence in ${possibleEscapeText.second.end}")
-                    }
-                    stringContent += source.next().first
-                    continue
-                } else {
+            val possibleEscapeChar = source.next()
+            if (possibleEscapeChar.first == ESCAPE_CHARACTER) {
+                // escape sequence found, take the next char as given
+                if (!source.hasNext()) {
                     source.rollback() // B
+                    source.rollback() // A
+                    throw PrologException("Unexpected EOF after escape character in ${possibleEscapeChar.second}")
                 }
+
+                // if this is a special escape sequence, do a replacement
+                val nextCharInSource = source.next().first
+                val escapeSequenceConsideredChar = ESCAPE_SEQUENCES[nextCharInSource] ?: nextCharInSource
+
+                stringContent += escapeSequenceConsideredChar
+                continue
+            } else {
+                source.rollback() // B
             }
 
             // try to find ending operator
