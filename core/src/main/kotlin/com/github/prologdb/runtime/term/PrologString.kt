@@ -57,7 +57,7 @@ open class PrologString private constructor(
     fun substring(beginIndex: Int): PrologString {
         if (beginIndex >= length) throw IndexOutOfBoundsException()
 
-        return PrologString(data.subList(beginIndex, length - 1))
+        return PrologString(data.subList(beginIndex, length))
     }
 
     /**
@@ -71,8 +71,8 @@ open class PrologString private constructor(
      *     "hamburger".substring(4, 8) returns "urge"
      *     "smiles".substring(1, 5) returns "mile"
      *
-     * @param      beginIndex   the beginning index, inclusive.
-     * @param      endIndex     the ending index, exclusive.
+     * @param      fromIndex   the beginning index, inclusive.
+     * @param      toIndex     the ending index, exclusive.
      * @return     the specified substring.
      * @exception  IndexOutOfBoundsException  if the
      *             `beginIndex` is negative, or
@@ -121,16 +121,16 @@ open class PrologString private constructor(
     }
 
     override fun toString(): String {
-        return '"' + toKotlinString()
+        return '"' + (toKotlinString()
             .replace("\\", "\\\\")
             .replace("\u0007", "\\a")
             .replace("\b", "\\b")
-            .replace("\u0027", "\\e")
+            .replace("\u001B", "\\e")
             .replace("\n", "\\n")
             .replace("\r", "\\r")
             .replace("\t", "\\t")
-            .replace("\u0011", "\\v")
-            .replace("\"", "\\") + '"'
+            .replace("\u000B", "\\v")
+            .replace("\"", "\\\"")) + '"'
     }
 }
 
