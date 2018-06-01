@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.MathLibrary
+import com.github.prologdb.runtime.builtin.StringsLibrary
 import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
 import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.DoublyIndexedLibraryEntryStore
@@ -61,5 +62,6 @@ class DefaultKnowledgeBase : MutableKnowledgeBase {
         load(EqualityLibrary)
         load(TypeSafetyLibrary)
         load(MathLibrary)
+        load(StringsLibrary)
     }
 }
