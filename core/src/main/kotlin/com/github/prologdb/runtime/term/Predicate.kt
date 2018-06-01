@@ -14,6 +14,8 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
 
     override val arity = arguments.size
 
+    override val prologTypeName = "predicate"
+
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Predicate) {
             if (this.name != rhs.name) {

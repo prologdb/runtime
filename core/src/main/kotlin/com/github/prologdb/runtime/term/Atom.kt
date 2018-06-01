@@ -18,6 +18,8 @@ open class Atom(val name: String) : Term {
         }
     }
 
+    override val prologTypeName = "atom"
+
     override val variables: Set<Variable> = emptySet()
 
     override fun substituteVariables(mapper: (Variable) -> Term) = this

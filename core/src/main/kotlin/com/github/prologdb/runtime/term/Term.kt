@@ -14,6 +14,9 @@ interface Term {
 
     fun substituteVariables(mapper: (Variable) -> Term): Term
 
+    /** The name of the type of this term in prolog language lowercase (e.g. atom, list, ...) */
+    val prologTypeName: String
+
     /**
      * Two terms equal when they are the same Prolog structure. This method builds the identity predicate.
      */

@@ -14,6 +14,9 @@ interface Number : Term {
 
     val isInteger: Boolean
 
+    override val prologTypeName
+        get() = "number"
+
     /**
      * If this is an integer, returns its value. Otherwise rounds
      * to the nearest integer and returns that

@@ -13,6 +13,8 @@ open class Variable(val name: String) : Term {
         return Unification(vars)
     }
 
+    override val prologTypeName = "variable"
+
     override val variables: Set<Variable>
         get() = setOf(this)
 

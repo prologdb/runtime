@@ -21,6 +21,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
         }
     }
 
+    override val prologTypeName = "list"
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Variable) {
