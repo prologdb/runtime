@@ -56,9 +56,11 @@ object NegationRule : Rule(Predicate("not", arrayOf(X)), PredicateQuery(Predicat
         if (predicate.name != "not" || predicate.arguments.size != 1) return Unification.NONE
         val arg0 = predicate.arguments[0] as? Predicate ?: return Unification.NONE
 
-        val proof = kb.fulfill(arg0, randomVariableScope)
+        val proofSequence = kb.fulfill(arg0, randomVariableScope)
+        val hasProof = proofSequence.tryAdvance() != null
+        proofSequence.close()
 
-        if (proof.tryAdvance() != null) {
+        if (hasProof) {
             return Unification.NONE
         } else {
             return Unification.SINGLETON
