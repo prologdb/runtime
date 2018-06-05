@@ -12,12 +12,11 @@ import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.term.Integer as PrologInteger
-import com.github.prologdb.runtime.term.Decimal as PrologDecimal
 import com.github.tmarsteel.ktprolog.parser.ParseResult
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
+import com.github.prologdb.runtime.term.Decimal as PrologDecimal
+import com.github.prologdb.runtime.term.Integer as PrologInteger
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -552,13 +551,7 @@ class PrologParser {
                         library.add(item)
                     }
                 } else {
-                    val typeAsString = when(item) {
-                        is Atom -> "atom"
-                        is Number -> "number"
-                        is Variable -> "variable"
-                        else -> "term"
-                    }
-                    reportings += SemanticError("A $typeAsString is not a top level declaration, expected a predicate.", item.location)
+                    reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a predicate.", item.location)
                 }
             }
             else {
@@ -718,6 +711,7 @@ private fun TransactionalSequence<Token>.takeWhile(predicate: (Token) -> Boolean
                 PARENT_CLOSE  -> parenthesisLevel--
                 BRACKET_OPEN  -> bracketLevel++
                 BRACKET_CLOSE -> bracketLevel--
+                else -> {}
             }
         }
 
