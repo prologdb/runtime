@@ -118,6 +118,7 @@ class PrologTests : FreeSpec() { init {
                     val runtimeEnv = DefaultKnowledgeBase(library.clone())
                     val result = runtimeEnv.fulfill(testQuery)
                     val hadAtLeastOneSolution = result.tryAdvance() != null
+                    result.close()
 
                     if (hadAtLeastOneSolution) {
                         callback.onTestSuccess(testName)
