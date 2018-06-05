@@ -17,7 +17,12 @@ class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
     constructor() : this(SimpleLibrary(
         DoublyIndexedLibraryEntryStore(),
         DefaultOperatorRegistry(true)
-    ))
+    )) {
+        load(EqualityLibrary)
+        load(TypeSafetyLibrary)
+        load(MathLibrary)
+        load(StringsLibrary)
+    }
 
     override val operatorRegistry = library
 
@@ -54,12 +59,5 @@ class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
 
     override fun load(library: Library) {
         this.library.include(library)
-    }
-
-    init {
-        load(EqualityLibrary)
-        load(TypeSafetyLibrary)
-        load(MathLibrary)
-        load(StringsLibrary)
     }
 }
