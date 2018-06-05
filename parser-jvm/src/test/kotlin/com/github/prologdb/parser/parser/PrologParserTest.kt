@@ -23,7 +23,7 @@ class PrologParserTest : FreeSpec() {
     val operators = DefaultOperatorRegistry(true)
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
-    operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFX200"))
+    operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "prefixOpFX200"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.XF, "postfixOpXF200"))
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
