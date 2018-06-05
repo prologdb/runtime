@@ -103,7 +103,7 @@ class LazySequenceBuilder<T>(searchFun: suspend LazySequenceBuilder<T>.() -> Uni
                 continuation.resume(Unit)
 
                 return when (state) {
-                    SequenceState.ELEMENT_AVAILABLE -> currentElement
+                    SequenceState.ELEMENT_AVAILABLE     -> currentElement
                     SequenceState.COMPLETED             -> null
                     SequenceState.SUBSEQUENCE_AVAILABLE -> tryAdvance()
 
