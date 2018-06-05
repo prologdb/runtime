@@ -11,12 +11,12 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
-import com.github.prologdb.runtime.term.List as PrologList
-import com.github.prologdb.runtime.term.Integer as PrologInteger
-import com.github.prologdb.runtime.term.Decimal as PrologDecimal
-import com.github.prologdb.runtime.term.Number as PrologNumber
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.term.Decimal as PrologDecimal
+import com.github.prologdb.runtime.term.Integer as PrologInteger
+import com.github.prologdb.runtime.term.List as PrologList
+import com.github.prologdb.runtime.term.Number as PrologNumber
 
 interface ParsedTerm : Term {
     val location: SourceLocationRange
@@ -50,6 +50,8 @@ class ParsedNumber(
     override fun toInteger() = delegate.toInteger()
     override fun toDecimal() = delegate.toDecimal()
     override val isInteger = delegate.isInteger
+
+    override fun toString() = delegate.toString()
 }
 
 class ParsedPrologString(
