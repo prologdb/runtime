@@ -36,7 +36,8 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     companion object {
         val FALSE: Unification? = null
         val TRUE: Unification = Unification()
-        val SINGLETON: LazySequence<Unification> = LazySequence.of(TRUE)
+        val SINGLETON: LazySequence<Unification>
+            get() = LazySequence.of(TRUE)
         val NONE: LazySequence<Unification> = LazySequence.empty()
 
         /**
