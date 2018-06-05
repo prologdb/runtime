@@ -6,20 +6,18 @@ import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.MathLibrary
 import com.github.prologdb.runtime.builtin.StringsLibrary
 import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
-import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.DoublyIndexedLibraryEntryStore
-import com.github.prologdb.runtime.knowledge.library.Library
-import com.github.prologdb.runtime.knowledge.library.SimpleLibrary
+import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.lazysequence.buildLazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
-class DefaultKnowledgeBase : MutableKnowledgeBase {
-    val library = SimpleLibrary(
+class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
+
+    constructor() : this(SimpleLibrary(
         DoublyIndexedLibraryEntryStore(),
         DefaultOperatorRegistry(true)
-    )
+    ))
 
     override val operatorRegistry = library
 
