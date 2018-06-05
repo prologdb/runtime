@@ -23,6 +23,7 @@ class PrologParserTest : FreeSpec() {
     val operators = DefaultOperatorRegistry(true)
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
+    operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFX200"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.XF, "postfixOpXF200"))
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
@@ -213,6 +214,25 @@ class PrologParserTest : FreeSpec() {
             val lhs = item.arguments[0] as Predicate
             lhs.name shouldEqual "postfixOpXF200"
             lhs.arity shouldEqual 1
+
+            val rhs = item.arguments[1] as Atom
+            rhs.name shouldEqual "b"
+        }
+
+        "prefix plus infix" {
+            val result = parseTerm("prefixOpFX200 a infixOpXFX500 b")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldEqual 0
+
+            val item = result.item!! as Predicate
+            item.name shouldEqual "infixOpXFX500"
+            item.arity shouldBe 2
+
+            val lhs = item.arguments[0] as Predicate
+            lhs.name shouldEqual "prefixOpFX200"
+            lhs.arity shouldEqual 1
+            (lhs.arguments[0] as Atom).name shouldEqual "a"
 
             val rhs = item.arguments[1] as Atom
             rhs.name shouldEqual "b"
