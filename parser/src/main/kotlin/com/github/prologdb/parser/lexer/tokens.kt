@@ -123,3 +123,22 @@ val ESCAPE_SEQUENCES: Map<Char, Char> = mapOf(
     't' to '\t',
     'v' to '\u000B'
 )
+
+/**
+ * Any of these character sequences introduces a single line comment:
+ * the rest of the line is entirely ignored by the lexer
+ */
+val SINGLE_LINE_COMMENT_SINGALS: List<CharSequence> = listOf(
+    "%"
+)
+
+/**
+ * Multiline comments can be started by each _key_ character sequence of
+ * this map. When such a comment is found, the comment will end when the
+ * _value_ of the key that started it appears. E.g.:
+ * Entry `"/*" to "*/"` means: multiline comments can be started with `/*` and ended
+ * by `*/`
+ */
+val MULTI_LINE_COMMENT_SIGNALS: Map<CharSequence, CharSequence> = mapOf(
+    "/*" to "*/"
+)
