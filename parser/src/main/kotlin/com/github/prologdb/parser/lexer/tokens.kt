@@ -9,6 +9,11 @@ enum class TokenType {
     STRING_LITERAL
 }
 
+/**
+ * The different operators
+ * *Important:* comments (see [SINGLE_LINE_COMMENT_SINGALS], [MULTI_LINE_COMMENT_SIGNALS])
+ * take precedence over operators.
+ */
 enum class Operator(val text: String) {
     PARENT_OPEN("("),
     PARENT_CLOSE(")"),
