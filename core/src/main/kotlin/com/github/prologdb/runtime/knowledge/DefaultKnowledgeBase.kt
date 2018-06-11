@@ -4,8 +4,8 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.MathLibrary
-import com.github.prologdb.runtime.builtin.StringsLibrary
 import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
+import com.github.prologdb.runtime.builtin.string.StringsLibrary
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.lazysequence.buildLazySequence
