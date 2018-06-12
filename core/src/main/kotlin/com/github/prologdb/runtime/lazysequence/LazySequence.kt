@@ -324,3 +324,27 @@ inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
     while (true) consumer(tryAdvance() ?: break)
     close()
 }
+
+/**
+ * Aggregates the remaining elements of the sequence starting with the given initial
+ * value and, for each element, applying the given accumulator.
+ * @return the last return value of the accumulator
+ */
+inline fun <T, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (T, R) -> R): R {
+    var carry = initial
+    while (true) {
+        val el = tryAdvance() ?: break
+        carry = accumulator(el, carry)
+    }
+
+    return carry
+}
+
+/**
+ * Adds the remaining elements to a list and returns that list.
+ */
+fun <T> LazySequence<T>.remainingToList(): List<T> {
+    val target = ArrayList<T>()
+    forEachRemaining { target.add(it) }
+    return target
+}
