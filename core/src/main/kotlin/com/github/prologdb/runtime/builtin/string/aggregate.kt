@@ -10,6 +10,6 @@ import com.github.prologdb.runtime.term.List as PrologList
 val StringsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
     init {
         add(AtomStringPredicate) // atom_string/2
-        add(StringCharsPredicate) // string_chars/2
+        add(BuiltinStringChars) // string_chars/2
     }
 }
