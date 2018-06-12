@@ -29,7 +29,7 @@ import com.github.prologdb.runtime.term.List as PrologList
 
 
 /** runs the tests found in the *.test.pl files in the prolog tests directory */
-class PrologTests : FreeSpec() { init {
+class PrologTest : FreeSpec() { init {
     for (prologTestFileURI in prologTestFiles) {
         val path = Paths.get(prologTestFileURI.path)
         "${path.fileName}" - {
@@ -174,7 +174,7 @@ private fun Library.clone(): MutableLibrary {
     return SimpleLibrary(entryStore, opRegistry)
 }
 
-private fun goalListToAndQuery(goals: Collection<out Term>): Query {
+private fun goalListToAndQuery(goals: Collection<Term>): Query {
     return AndQuery(
         goals.map { it.asPredicate() }
             .map(::predicateToQuery)
