@@ -16,6 +16,7 @@ internal val surrogateVarLHS = Variable("LHS")
 internal val surrogateVarRHS = Variable("RHS")
 internal val A = Variable("A")
 internal val B = Variable("B")
+internal val C = Variable("C")
 internal val X = Variable("X")
 
 @Deprecated("use the DSL instead")
