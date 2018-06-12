@@ -5,7 +5,7 @@ test "is/2: both instantiated, equal" by [
 ].
 
 test "is/2: both instantiated, different" by [
-    not(-12 is 10000)
+    \+ -12 is 10000
 ].
 
 test "is/2: LHS not instantiated, RHS number" by [
@@ -35,11 +35,11 @@ test "greater than - greater" by [
 ].
 
 test "greater than - equal" by [
-    not(134 > 134)
+    \+ 134 > 134
 ].
 
 test "greater than - less" by [
-    not(5 > 9822)
+    \+ 5 > 9822
 ].
 
 test "greater than with variable LHS" by [
@@ -69,7 +69,7 @@ test "greater than or equal - equal" by [
 ].
 
 test "greater than or equal - less" by [
-    not(5 >= 9822)
+    \+ 5 >= 9822
 ].
 
 test "greater than or equal with variable LHS" by [
@@ -91,11 +91,11 @@ test "greater than or equal with both variables" by [
 % </2
 
 test "less than - greater" by [
-    not(5 < 2)
+    \+ 5 < 2
 ].
 
 test "less than - equal" by [
-    not(134 < 134)
+    \+ 134 < 134
 ].
 
 test "less than - less" by [
@@ -121,7 +121,7 @@ test "less than with both variables" by [
 % =</2
 
 test "less than or equal - greater" by [
-    not(5 =< 2)
+    \+ 5 =< 2
 ].
 
 test "less than or equal - equal" by [

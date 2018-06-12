@@ -13,5 +13,5 @@ test "string_chars/2 with both instantiated: equal" by [
 ].
 
 test "string_chars/2 with both instantiated: not equal" by [
-    not(string_chars("foo", [b, a, r]))
+    \+ string_chars("foo", [b, a, r])
 ].

@@ -7,7 +7,7 @@ test "identity - identical atoms" by [
 ].
 
 test "identity - different atoms" by [
-    not(b == a)
+    \+ b == a
 ].
 
 test "identity - equal complex" by [
@@ -15,5 +15,5 @@ test "identity - equal complex" by [
 ].
 
 test "identity - different complex" by [
-    not([a, c, 3.213] == some(very(complex), [term]))
+    \+ [a, c, 3.213] == some(very(complex), [term])
 ].

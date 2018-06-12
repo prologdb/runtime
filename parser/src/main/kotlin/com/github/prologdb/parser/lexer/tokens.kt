@@ -40,7 +40,8 @@ enum class Operator(val text: String) {
     GREATER_THAN(">"),
     TERM_NOT_EQUALS("\\=="),
     NEGATED_UNIFY("\\="),
-    DOUBLE_QUOTE("\"")
+    DOUBLE_QUOTE("\""),
+    NON_PROVABLE("\\+")
 }
 
 val DECIMAL_SEPARATOR: Char = '.'

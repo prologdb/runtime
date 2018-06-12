@@ -39,6 +39,14 @@ val EqualityLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntry
 
         add(BuiltinNot)
 
+        // \+/1
+        add(Rule(
+            Predicate("\\+", arrayOf(A)),
+            PredicateQuery(
+                Predicate("not", arrayOf(A))
+            )
+        ))
+
         // \=(A, B) :- not(=(A, B)).
         add(Rule(
             Predicate("\\=", arrayOf(A, B)),
@@ -60,6 +68,7 @@ val EqualityLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntry
             )
         ))
 
+        defineOperator(OperatorDefinition(900, OperatorType.FY, "\\+"))
         defineOperator(OperatorDefinition(700, OperatorType.XFX, "="))
         defineOperator(OperatorDefinition(700, OperatorType.XFX, "=="))
         defineOperator(OperatorDefinition(700, OperatorType.XFX, "\\="))
