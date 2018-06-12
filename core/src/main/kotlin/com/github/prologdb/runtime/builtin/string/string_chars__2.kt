@@ -4,25 +4,20 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.builtin.A
 import com.github.prologdb.runtime.builtin.B
-import com.github.prologdb.runtime.builtin.BuiltinPredicate
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
-import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.term.List
 import com.github.prologdb.runtime.unification.Unification
 
-private object StringCharsPredicate : BuiltinPredicate("string_chars", A, B)
 /**
  * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
  */
-object StringCharsRule : Rule(StringCharsPredicate, PredicateQuery(StringCharsPredicate)) {
-    override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
-        if (predicate.arity != head.arity || predicate.name != head.name) return Unification.NONE
+object StringCharsPredicate : Predicate("string_chars", arrayOf(A, B)) {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
+        if (rhs !is Predicate) return Unification.FALSE
+        if (rhs.arity != this.arity || rhs.name != this.name) return Unification.FALSE
 
-        val inputA = predicate.arguments[0]
-        val inputB = predicate.arguments[1]
+        val inputA = rhs.arguments[0]
+        val inputB = rhs.arguments[1]
 
         fun convertInputAToListOfCharacters(): List {
             if (inputA !is PrologString) throw PrologRuntimeException("Type Error: expected string as first argument to string_chars/2, got ${inputA.prologTypeName}")
@@ -51,16 +46,14 @@ object StringCharsRule : Rule(StringCharsPredicate, PredicateQuery(StringCharsPr
 
         if (inputA is PrologString) {
             val referenceValueForB = convertInputAToListOfCharacters()
-            val unificationResult = referenceValueForB.unify(inputB)
-            return if (unificationResult == null) Unification.NONE else LazySequence.of(unificationResult)
+            return referenceValueForB.unify(inputB)
         }
 
         if (inputB is List) {
             val referenceValueForA = convertInputBToPrologString()
-            val unificationResult = referenceValueForA.unify(inputA)
-            return if (unificationResult == null) Unification.NONE else LazySequence.of(unificationResult)
+            return referenceValueForA.unify(inputA)
         }
 
-        return Unification.NONE
+        return Unification.FALSE
     }
 }
