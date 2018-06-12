@@ -6,10 +6,10 @@ val MathLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStor
 
     init {
         add(BuiltinIs)
-        add(LessThanPredicate)
-        add(LessThanOrEqualPredicate)
-        add(GreaterThanPredicate)
-        add(GreaterThanOrEqualPredicate)
+        add(BuiltinGreaterThan)
+        add(BuiltinGreaterThanOrEqual)
+        add(BuiltinLessThan)
+        add(BuiltinLessThanOrEqual)
 
         defineOperator(OperatorDefinition(700, OperatorType.XFX, "<"))
         defineOperator(OperatorDefinition(700, OperatorType.XFX, "=<"))
