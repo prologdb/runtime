@@ -8,8 +8,8 @@ import com.github.prologdb.runtime.term.Variable
  */
 class Unification(val variableValues: VariableBucket = VariableBucket()) {
 
-    fun combineWith(other: Unification): Unification {
-        return Unification(variableValues.combineWith(other.variableValues))
+    fun combinedWith(other: Unification): Unification {
+        return Unification(variableValues.combinedWith(other.variableValues))
     }
 
     override fun toString(): String {

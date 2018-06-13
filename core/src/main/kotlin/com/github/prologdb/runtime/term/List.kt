@@ -49,7 +49,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                     val vars = VariableBucket()
                     vars.instantiate(rhsTail, List(this.elements.subList(index, elements.size), this.tail))
                     try {
-                        return carryUnification.combineWith(Unification(vars))
+                        return carryUnification.combinedWith(Unification(vars))
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
@@ -66,7 +66,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                 }
                 else {
                     try {
-                        carryUnification = carryUnification.combineWith(iterationUnification)
+                        carryUnification = carryUnification.combinedWith(iterationUnification)
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
@@ -88,7 +88,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                 }
 
                 try {
-                    carryUnification = carryUnification.combineWith(tailUnification)
+                    carryUnification = carryUnification.combinedWith(tailUnification)
                 }
                 catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE

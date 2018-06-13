@@ -48,7 +48,7 @@ class VariableBucket private constructor(
         return variableMap[variable] != null
     }
 
-    fun combineWith(other: VariableBucket): VariableBucket {
+    fun combinedWith(other: VariableBucket): VariableBucket {
         val copy = copy()
         for ((variableName, othersValue) in other.variableMap) {
             if (variableName !in copy.variableMap) {
