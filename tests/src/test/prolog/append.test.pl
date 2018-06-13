@@ -22,8 +22,3 @@ test "append/3 - second argument missing" by [
     append([a, b], X, [a, b, c, d|T]),
     X = [c, d|T]
 ].
-
-test "append/3 - non list should not be appendable" by [
-    not(append([], a, _))
-].
-
