@@ -409,7 +409,14 @@ class PrologParser {
         if (token is IdentifierToken) {
             tokens.commit()
 
-            if (token.textContent[0].isUpperCase() || token.textContent[0] == '_') {
+            if (token.textContent == "_") {
+                return ParseResult(
+                    ParsedAnonymousVariable(token.location),
+                    MATCHED,
+                    emptySet()
+                )
+            }
+            else if (token.textContent[0].isUpperCase() || token.textContent[0] == '_') {
                 return ParseResult(
                     ParsedVariable(token.textContent, token.location),
                     MATCHED,

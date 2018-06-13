@@ -27,7 +27,19 @@ class ParsedList(givenElements: List<Term>, tail: ParsedTerm?, override val loca
 open class ParsedPredicate(name: String, arguments: Array<out ParsedTerm>, override val location: SourceLocationRange) : ParsedTerm, Predicate(name, arguments) {
     override val arguments: Array<out ParsedTerm> = arguments
 }
+
 class ParsedVariable(name: String, override val location: SourceLocationRange) : ParsedTerm, Variable(name)
+class ParsedAnonymousVariable(override val location: SourceLocationRange) : ParsedTerm, Variable("_") {
+    override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification = AnonymousVariable.unify(rhs, randomVarsScope)
+
+    override val variables: Set<Variable> = AnonymousVariable.variables
+
+    override fun substituteVariables(mapper: (Variable) -> Term): Term = AnonymousVariable.substituteVariables(mapper)
+
+    override val prologTypeName: String = AnonymousVariable.prologTypeName
+
+    override fun equals(other: Any?): Boolean = AnonymousVariable.equals(other)
+}
 
 class ParsedNumber(
     private val delegate: PrologNumber,
