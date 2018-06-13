@@ -26,7 +26,7 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
                 return Unification.FALSE
             }
 
-            if (arguments.isEmpty()) {
+            if (arity == 0) {
                 return Unification.TRUE
             }
 
