@@ -5,6 +5,7 @@ import com.github.prologdb.runtime.knowledge.library.*
 val ListsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
     init {
         add(AppendBuiltin)
+        add(MemberBuiltin)
     }
 
     private fun add(elements: Collection<LibraryEntry>) {
