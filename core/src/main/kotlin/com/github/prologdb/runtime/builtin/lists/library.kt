@@ -8,6 +8,8 @@ val ListsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntrySto
     }
 
     private fun add(elements: Collection<LibraryEntry>) {
-        elements.forEach(::add)
+        for (element in elements) {
+            add(element)
+        }
     }
 }
