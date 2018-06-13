@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
@@ -46,10 +45,8 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                     // end of rhs is reached
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
-                    val vars = VariableBucket()
-                    vars.instantiate(rhsTail, List(this.elements.subList(index, elements.size), this.tail))
                     try {
-                        return carryUnification.combinedWith(Unification(vars))
+                        return carryUnification.combinedWith(rhsTail.unify(List(this.elements.subList(index, elements.size), this.tail)))
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
