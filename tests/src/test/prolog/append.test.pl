@@ -22,3 +22,13 @@ test "append/3 - second argument missing" by [
     append([a, b], X, [a, b, c, d|T]),
     X = [c, d|T]
 ].
+
+test "append/3 - combinations" by [
+    findall([A, B], append(A, B, [a, b, c]), L),
+    is_list(L),
+    length(L, 4),
+    member([[], [a, b, c]], L),
+    member([[a], [b, c]], L),
+    member([[a, b], [c]], L),
+    member([[], [a, b, c]], L)
+].
