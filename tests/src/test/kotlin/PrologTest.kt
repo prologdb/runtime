@@ -6,8 +6,15 @@ import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
+import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.lazysequence.LazySequenceBuilder
+import com.github.prologdb.runtime.lazysequence.buildLazySequence
+import com.github.prologdb.runtime.lazysequence.forEachRemaining
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
@@ -16,6 +23,8 @@ import com.github.prologdb.runtime.term.AnonymousVariable
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.tmarsteel.ktprolog.parser.ParseResult
 import io.kotlintest.matchers.fail
 import io.kotlintest.matchers.shouldEqual
@@ -105,7 +114,7 @@ class PrologTest : FreeSpec() { init {
 
             val testName = (arg0.arguments[0] as PrologString).toKotlinString()
             val testQuery = try {
-                goalListToAndQuery(arg1.elements)
+                goalListToTestingAndQuery(arg1.elements)
             } catch (ex: ReportingException) {
                 parseErrorCallback(setOf(ex.reporting))
                 continue
@@ -116,6 +125,7 @@ class PrologTest : FreeSpec() { init {
 
                 override fun runWith(callback: TestResultCallback) {
                     val runtimeEnv = DefaultKnowledgeBase(library.clone())
+                    testQuery.clearFailures()
                     val result = runtimeEnv.fulfill(testQuery)
                     val hadAtLeastOneSolution = result.tryAdvance() != null
                     result.close()
@@ -123,7 +133,8 @@ class PrologTest : FreeSpec() { init {
                     if (hadAtLeastOneSolution) {
                         callback.onTestSuccess(testName)
                     } else {
-                        callback.onTestFailure(testName, "Query had no solutions: $testQuery")
+                        val failedAssertion = testQuery.goals[testQuery.failures[0].failingGoalIndex]
+                        callback.onTestFailure(testName, "Assertion failed: $failedAssertion")
                     }
                 }
             })
@@ -174,8 +185,8 @@ private fun Library.clone(): MutableLibrary {
     return SimpleLibrary(entryStore, opRegistry)
 }
 
-private fun goalListToAndQuery(goals: Collection<Term>): Query {
-    return AndQuery(
+private fun goalListToTestingAndQuery(goals: Collection<Term>): ReportingAndQuery {
+    return ReportingAndQuery(
         goals.map { it.asPredicate() }
             .map(::predicateToQuery)
             .toTypedArray()
@@ -223,4 +234,88 @@ private fun Term.asPredicate(): Predicate {
     }
 
     throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", location))
+}
+
+/**
+ * Acts just like an [AndQuery]. Additionally, provides information about failing goals.
+ */
+private class ReportingAndQuery(val goals: Array<Query>) : Query {
+    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
+        val substitutedGoals = goals
+            .map { it.substituteVariables(initialVariables) }
+
+        return buildLazySequence {
+            fulfillAllGoals(substitutedGoals, kb, randomVarsScope, initialVariables.copy())
+        }
+    }
+
+    override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
+        return AndQuery(
+            goals.map { it.withRandomVariables(randomVarsScope, mapping) }.toTypedArray()
+        )
+    }
+
+    override fun substituteVariables(variableValues: VariableBucket): Query {
+        return AndQuery(
+            goals.map { it.substituteVariables(variableValues) }.toTypedArray()
+        )
+    }
+
+    override fun toString(): String {
+        return goals.joinToString(", ")
+    }
+
+    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, kb: KnowledgeBase,
+                                                                         randomVarsScope: RandomVariableScope,
+                                                                         vars: VariableBucket = VariableBucket()) {
+        val goal = goals[0].substituteVariables(vars)
+        var goalHadAtLeastOneSolution = false
+
+        kb.fulfill(goal, randomVarsScope).forEachRemaining { goalUnification ->
+            goalHadAtLeastOneSolution = true
+            val goalVars = vars.copy()
+            for ((variable, value) in goalUnification.variableValues.values) {
+                if (value != null) {
+                    // substitute all instantiated variables for simplicity and performance
+                    val substitutedValue = value.substituteVariables(goalVars.asSubstitutionMapper())
+                    if (goalVars.isInstantiated(variable)) {
+                        if (goalVars[variable] != substitutedValue && goalVars[variable] != value) {
+                            // instantiated to different value => no unification
+                            return@forEachRemaining
+                        }
+                    }
+                    else {
+                        goalVars.instantiate(variable, substitutedValue)
+                    }
+                }
+            }
+
+            if (goals.size == 1) {
+                // this was the last goal in the list and it is fulfilled
+                // the variable bucket now holds all necessary instantiations
+                yield(Unification(goalVars))
+            }
+            else {
+                fulfillAllGoals(goals.subList(1, goals.size), kb, randomVarsScope, goalVars)
+            }
+        }
+
+        if (!goalHadAtLeastOneSolution) {
+            // this goal had no solutions, thus the query fails
+            // record it for reporting purposes
+            _failures.add(QueryFailure(this@ReportingAndQuery.goals.size - goals.size))
+        }
+    }
+
+    private val _failures = mutableListOf<QueryFailure>()
+    val failures: List<QueryFailure> = _failures
+
+    fun clearFailures(): Unit = _failures.clear()
+
+    inner class QueryFailure(
+        /**
+         * The index of the goal that failed
+         */
+        val failingGoalIndex: Int
+    )
 }
