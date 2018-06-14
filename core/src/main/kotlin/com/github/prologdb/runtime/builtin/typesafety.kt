@@ -21,7 +21,7 @@ val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEnt
 
         add(typeCheckBuiltin("string") { it is PrologString })
 
-        add(typeCheckBuiltin("list") { it is PrologList })
+        add(typeCheckBuiltin("is_list") { it is PrologList })
 
         add(typeCheckBuiltin("var") { it is Variable })
         add(typeCheckBuiltin("nonvar") { it !is Variable })
