@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.builtin.ComparisonLibrary
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
 import com.github.prologdb.runtime.builtin.dynamic.DynamicsLibrary
@@ -21,6 +22,7 @@ class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
         DefaultOperatorRegistry(true)
     )) {
         load(EqualityLibrary)
+        load(ComparisonLibrary)
         load(TypeSafetyLibrary)
         load(MathLibrary)
         load(StringsLibrary)

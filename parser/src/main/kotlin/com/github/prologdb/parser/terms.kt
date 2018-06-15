@@ -63,6 +63,8 @@ class ParsedNumber(
     override fun toDecimal() = delegate.toDecimal()
     override val isInteger = delegate.isInteger
 
+    override fun compareTo(other: Term) = delegate.compareTo(other)
+
     override fun toString() = delegate.toString()
 }
 

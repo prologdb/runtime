@@ -41,7 +41,12 @@ enum class Operator(val text: String) {
     TERM_NOT_EQUALS("\\=="),
     NEGATED_UNIFY("\\="),
     DOUBLE_QUOTE("\""),
-    NON_PROVABLE("\\+")
+    NON_PROVABLE("\\+"),
+
+    TERM_GREATER_THAN("@>"),
+    TERM_GREATER_THAN_OR_EQUAL("@>="),
+    TERM_LESS_THAN("@<"),
+    TERM_LESS_THAN_OR_EQUAL("@=<"),
 }
 
 val DECIMAL_SEPARATOR: Char = '.'
