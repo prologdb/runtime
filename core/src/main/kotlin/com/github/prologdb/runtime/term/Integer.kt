@@ -96,6 +96,34 @@ open class Integer(val value: Long) : Number {
         return value.hashCode()
     }
 
+    override fun compareTo(other: Term): Int {
+        when(other) {
+            // Variables are, by category, lesser than numbers
+            is Variable -> return 1
+
+            // ISO prolog categorically sorts decimals before integers
+            // as the author of this runtime, i deem this suboptimal.
+            // this behaves identical to SWI prolog
+
+            is Decimal -> {
+                // compare mixed as floating point
+                val thisAsDouble = toDecimal()
+                if (thisAsDouble == other.value) return 1 // if equal, the floating point is lesser
+                if (thisAsDouble > other.value) return 1
+                return -1
+            }
+
+            is Integer -> {
+                // this.value - other.value does NOT work here: it has to be converted to an integer
+                // before return. That might change the result incorrectly.
+                return this.value.compareTo(other.value)
+            }
+
+            // everything else is, by category, greater than numbers
+            else -> return -1
+        }
+    }
+
     override fun toString() = value.toString()
 
     companion object {

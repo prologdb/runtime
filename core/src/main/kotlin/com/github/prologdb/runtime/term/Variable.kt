@@ -39,6 +39,18 @@ open class Variable(val name: String) : Term {
         return name.hashCode()
     }
 
+    override fun compareTo(other: Term): Int {
+        return when(other) {
+            // standard prolog sorts variables by address
+            // there is no such thing in kotlin; the closest
+            // alternative seems to be System.identityHashCode
+            is Variable -> System.identityHashCode(this) - System.identityHashCode(other)
+
+            // Variables are always first
+            else -> -1
+        }
+    }
+
     companion object {
         val ANONYMOUS: Variable = AnonymousVariable
     }

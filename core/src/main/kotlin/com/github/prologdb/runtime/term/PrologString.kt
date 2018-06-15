@@ -1,8 +1,9 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.ImmutableSubList
-import com.github.prologdb.runtime.term.List as PrologList
+import kotlin.math.min
 import com.github.prologdb.runtime.term.Integer as PrologInteger
+import com.github.prologdb.runtime.term.List as PrologList
 
 /**
  * An implementation of String (similar to Java) that is prolog affine.
@@ -101,6 +102,29 @@ open class PrologString private constructor(
     }
 
     override fun hashCode() = super.hashCode()
+
+    override fun compareTo(other: Term): Int {
+        when(other) {
+            // variables and numbers are, by category, lesser than strings
+            is Variable, is Number -> return 1
+
+            // lexicographical order
+            is PrologString -> {
+                val minLength = min(this.length, other.length)
+                for (charIndex in 0 until minLength) {
+                    val thisChar = this.charAt(charIndex)
+                    val otherChar = other.charAt(charIndex)
+                    val cmp = thisChar.compareTo(otherChar)
+                    if (cmp != 0) return cmp
+                }
+                // all chars are equal
+                return 0
+            }
+
+            // everything else is, by category, greater than strings
+            else -> return -1
+        }
+    }
 
     /**
      * The kotlin string representation; is lazy initialized by

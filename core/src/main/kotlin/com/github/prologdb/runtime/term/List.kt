@@ -121,6 +121,36 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
         return out + "]"
     }
 
+    override fun compareTo(other: Term): Int {
+        if (other is Variable || other is Number || other is PrologString || other is Atom) {
+            // these are by category lesser than compound terms
+            return 1
+        }
+
+        if (other is List) {
+            // arity equal and functor name are equal, sort by elements
+            if (this.elements.isEmpty() && other.elements.isEmpty()) {
+                return 0
+            }
+
+            // empty lists are lesser than non-empty lists
+            if (this.elements.isEmpty() && other.elements.isNotEmpty()) {
+                return -1
+            }
+            else if (this.elements.isNotEmpty() && other.elements.isEmpty()) {
+                return 1
+            }
+
+            // both lists have at least one element at this point
+            return this.elements[0].compareTo(other.elements[1])
+        }
+
+        other as? Predicate ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
+
+        // lists always above predicates
+        return -1
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is List) return false

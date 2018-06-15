@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 
-interface Term {
+interface Term : Comparable<Term> {
     /**
      * Unifies this term with the other.
      * @return Information about how to unify or `null` if the two terms cannot be unified.
@@ -22,4 +22,3 @@ interface Term {
      */
     override fun equals(other: Any?): Boolean
 }
-
