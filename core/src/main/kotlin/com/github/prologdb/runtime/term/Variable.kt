@@ -43,8 +43,10 @@ open class Variable(val name: String) : Term {
         return when(other) {
             // standard prolog sorts variables by address
             // there is no such thing in kotlin; the closest
-            // alternative seems to be System.identityHashCode
-            is Variable -> System.identityHashCode(this) - System.identityHashCode(other)
+            // alternative on the JVM is System.identityHashCode.
+            // however, on the JS platform, we're entirely lost.
+            // therefore we just sort lexicographically by name
+            is Variable -> name.compareTo(other.name)
 
             // Variables are always first
             else -> -1
