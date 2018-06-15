@@ -69,7 +69,7 @@ fun PrologList.tail(tail: Term): PrologList {
 
 infix fun Predicate.AND(rhs: Predicate): Query = AndQuery(arrayOf(
     PredicateQuery(this),
-    PredicateQuery(this)
+    PredicateQuery(rhs)
 ))
 
 infix fun Predicate.AND(rhs: Query): Query = rhs.AND(this)
@@ -86,7 +86,7 @@ infix fun Query.AND(rhs: Predicate): Query {
 
 infix fun Predicate.OR(rhs: Predicate): Query = OrQuery(arrayOf(
     PredicateQuery(this),
-    PredicateQuery(this)
+    PredicateQuery(rhs)
 ))
 
 infix fun Predicate.OR(rhs: Query): Query = rhs.OR(this)
