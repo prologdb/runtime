@@ -70,3 +70,12 @@ test "atom is less than predicate" by [
 test "list is less than predicate" by [
     [z] @< a(a)
 ].
+
+% ------------------------------
+
+test "integer compared to decimal: compared as decimal" by [
+    % IEEE floating point inprecision results in the integer being equal
+    % to the larger float in binary representation
+    % in case of equality, the float is always considered less
+    10000000000000004.0 @< 10000000000000003
+].
