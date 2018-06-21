@@ -7,6 +7,7 @@ val ListsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntrySto
         add(AppendBuiltin)
         add(MemberBuiltin)
         add(LengthBuiltin)
+        add(SortBuiltin)
     }
 
     private fun add(elements: Collection<LibraryEntry>) {
