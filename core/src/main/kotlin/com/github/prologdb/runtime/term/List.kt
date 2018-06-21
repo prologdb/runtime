@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
 
-    val elements: kotlin.collections.List<Term>
+    open val elements: kotlin.collections.List<Term>
     val tail: Variable?
 
     init {

@@ -1,7 +1,4 @@
-import com.github.prologdb.parser.ParsedTerm
-import com.github.prologdb.parser.Reporting
-import com.github.prologdb.parser.ReportingException
-import com.github.prologdb.parser.SyntaxError
+import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
@@ -16,13 +13,10 @@ import com.github.prologdb.runtime.lazysequence.LazySequenceBuilder
 import com.github.prologdb.runtime.lazysequence.buildLazySequence
 import com.github.prologdb.runtime.lazysequence.forEachRemaining
 import com.github.prologdb.runtime.query.AndQuery
-import com.github.prologdb.runtime.query.OrQuery
-import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.AnonymousVariable
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologString
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.tmarsteel.ktprolog.parser.ParseResult
@@ -113,8 +107,13 @@ class PrologTest : FreeSpec() { init {
             if (arg0.arguments[0] !is PrologString) continue
 
             val testName = (arg0.arguments[0] as PrologString).toKotlinString()
+
+            if (by2instance !is ParsedPredicate) {
+                testCases.add(PrologTestCase.erroring(testName, IllegalArgumentException("Test cases must be constructed from parsed code so failure locations can be reported.")))
+            }
+
             val testQuery = try {
-                goalListToTestingAndQuery(arg1.elements)
+                goalListToTestingAndQuery((arg1 as ParsedList).elements)
             } catch (ex: ReportingException) {
                 parseErrorCallback(setOf(ex.reporting))
                 continue
@@ -134,7 +133,11 @@ class PrologTest : FreeSpec() { init {
                         callback.onTestSuccess(testName)
                     } else {
                         val failedAssertion = testQuery.goals[testQuery.failures[0].failingGoalIndex]
-                        callback.onTestFailure(testName, "Assertion failed: $failedAssertion")
+                        var message = "Assertion failed: $failedAssertion"
+                        if (failedAssertion is ParsedQuery) {
+                            message += " in ${failedAssertion.location}"
+                        }
+                        callback.onTestFailure(testName, message)
                     }
                 }
             })
@@ -165,6 +168,16 @@ private interface TestResultCallback {
 private interface PrologTestCase {
     val name: String
     fun runWith(callback: TestResultCallback)
+
+    companion object {
+        fun erroring(name: String, error: Throwable): PrologTestCase = object : PrologTestCase {
+            override val name: String = name
+
+            override fun runWith(callback: TestResultCallback) {
+                callback.onTestError(this.name, error)
+            }
+        }
+    }
 }
 
 private fun createFreshTestingKnowledgeBase(): DefaultKnowledgeBase {
@@ -185,7 +198,7 @@ private fun Library.clone(): MutableLibrary {
     return SimpleLibrary(entryStore, opRegistry)
 }
 
-private fun goalListToTestingAndQuery(goals: Collection<Term>): ReportingAndQuery {
+private fun goalListToTestingAndQuery(goals: Collection<ParsedTerm>): ReportingAndQuery {
     return ReportingAndQuery(
         goals.map { it.asPredicate() }
             .map(::predicateToQuery)
@@ -193,9 +206,9 @@ private fun goalListToTestingAndQuery(goals: Collection<Term>): ReportingAndQuer
     )
 }
 
-private fun predicateToQuery(predicate: Predicate): Query {
+private fun predicateToQuery(predicate: ParsedPredicate): ParsedQuery {
     if (predicate.name == ",") {
-        val goals = mutableListOf<Query>()
+        val goals = mutableListOf<ParsedQuery>()
         goals.add(predicateToQuery(predicate.arguments[0].asPredicate()))
 
         var pivot = predicate.arguments[1].asPredicate()
@@ -205,10 +218,10 @@ private fun predicateToQuery(predicate: Predicate): Query {
         }
 
         goals.add(predicateToQuery(pivot))
-        return AndQuery(goals.toTypedArray())
+        return ParsedAndQuery(goals.toTypedArray(), predicate.location);
     }
     else if (predicate.name == ";") {
-        val goals = mutableListOf<Query>()
+        val goals = mutableListOf<ParsedQuery>()
         goals.add(predicateToQuery(predicate.arguments[0].asPredicate()))
 
         var pivot = predicate.arguments[1].asPredicate()
@@ -218,20 +231,15 @@ private fun predicateToQuery(predicate: Predicate): Query {
         }
 
         goals.add(predicateToQuery(pivot))
-        return OrQuery(goals.toTypedArray())
+        return ParsedOrQuery(goals.toTypedArray(), predicate.location)
     }
     else {
-        return PredicateQuery(predicate)
+        return ParsedPredicateQuery(predicate)
     }
 }
 
-private fun Term.asPredicate(): Predicate {
-    if (this is Predicate) return this
-
-    val location = when(this) {
-        is ParsedTerm -> this.location
-        else -> SourceLocation(SourceUnit("unknown prolog test code"), 0, 0, 0)
-    }
+private fun ParsedTerm.asPredicate(): ParsedPredicate {
+    if (this is ParsedPredicate) return this
 
     throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", location))
 }

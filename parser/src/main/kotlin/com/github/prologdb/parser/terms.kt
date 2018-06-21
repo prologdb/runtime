@@ -23,7 +23,9 @@ interface ParsedTerm : Term {
 }
 
 class ParsedAtom(name: String, override val location: SourceLocationRange): ParsedTerm, Atom(name)
-class ParsedList(givenElements: List<Term>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, PrologList(givenElements, tail)
+class ParsedList(givenElements: List<ParsedTerm>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, PrologList(givenElements, tail) {
+    override val elements: List<ParsedTerm> = givenElements
+}
 open class ParsedPredicate(name: String, arguments: Array<out ParsedTerm>, override val location: SourceLocationRange) : ParsedTerm, Predicate(name, arguments) {
     override val arguments: Array<out ParsedTerm> = arguments
 }
