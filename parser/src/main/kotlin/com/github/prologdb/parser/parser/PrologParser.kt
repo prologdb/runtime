@@ -10,9 +10,7 @@ import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.term.*
-import com.github.tmarsteel.ktprolog.parser.ParseResult
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
+import com.github.prologdb.parser.parser.ParseResultCertainty.*
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -140,7 +138,7 @@ class PrologParser {
         val parsers = listOf<(TransactionalSequence<Token>, OperatorRegistry) -> ParseResult<Term>>(
             this::parseParenthesised,
             this::parseList,
-            this::parseDictionary,
+            // this::parseDictionary,
             this::parsePredicateWithInvocationSyntax,
             { ts, _ -> parseAtomicOrVariable(ts) }
         )

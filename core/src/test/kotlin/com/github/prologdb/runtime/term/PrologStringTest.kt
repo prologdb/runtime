@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.builtin.invoke
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 

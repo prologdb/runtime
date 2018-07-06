@@ -5,13 +5,13 @@ import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.parser.parser.ParseResultCertainty.*
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Variable
-import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import io.kotlintest.matchers.*
 import io.kotlintest.specs.FreeSpec
 

@@ -1,5 +1,8 @@
+package com.github.prologdb.nativetests
+
 import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
+import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
@@ -20,7 +23,6 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import com.github.tmarsteel.ktprolog.parser.ParseResult
 import io.kotlintest.matchers.fail
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
@@ -28,14 +30,14 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import java.lang.invoke.MethodHandles
 import java.net.URI
 import java.nio.charset.Charset
+import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
-
 
 /** runs the tests found in the *.test.pl files in the prolog tests directory */
 class PrologTest : FreeSpec() { init {
-    for (prologTestFileURI in prologTestFiles) {
-        val path = Paths.get(prologTestFileURI.path)
-        "${path.fileName}" - {
+    for (prologTestFilePath in prologTestFiles) {
+        "${prologTestFilePath.fileName}" - {
             // run the test
             val callback = object : TestResultCallback {
                 override fun onTestSuccess(testName: String) {
@@ -64,12 +66,12 @@ class PrologTest : FreeSpec() { init {
                 }
             }
 
-            runPrologTestFile(prologTestFileURI, callback)
+            runPrologTestFile(prologTestFilePath, callback)
         }
     }
 }
-    private fun runPrologTestFile(uri: URI, callback: TestResultCallback) {
-        val parseResult = parseFile(uri)
+    private fun runPrologTestFile(path: Path, callback: TestResultCallback) {
+        val parseResult = parseFile(path)
 
         if (!parseResult.isSuccess || parseResult.reportings.isNotEmpty()) {
             callback.onTestParseError(parseResult.reportings)
@@ -82,11 +84,9 @@ class PrologTest : FreeSpec() { init {
         testCases.forEach { it.runWith(callback) }
     }
 
-    private fun parseFile(uri: URI): ParseResult<Library> {
-        val fileContent = uri.toURL().openStream().bufferedReader(Charset.forName("UTF-8")).use {
-            it.readText()
-        }
-        val sourceUnit = SourceUnit(uri.path)
+    private fun parseFile(path: Path): ParseResult<Library> {
+        val fileContent = String(Files.readAllBytes(path), Charset.forName("UTF-8"))
+        val sourceUnit = SourceUnit(path.toString())
         val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
 
         return PrologParser().parseLibrary(lexer, { createFreshTestingKnowledgeBase().library })
@@ -147,12 +147,12 @@ class PrologTest : FreeSpec() { init {
     }
 }
 
-private val prologTestFiles: List<URI>
+private val prologTestFiles: List<Path>
     get() {
         val classLoader = MethodHandles.lookup().javaClass.classLoader
         val resolver = PathMatchingResourcePatternResolver(classLoader)
 
-        return resolver.getResources("classpath:**/*.test.pl").map { it.uri }
+        return resolver.getResources("classpath:**/*.test.pl").map { Paths.get(it.file.absolutePath) }
     }
 
 private interface TestResultCallback {

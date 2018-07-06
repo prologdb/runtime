@@ -20,12 +20,9 @@
 
     <modules>
         <module>core</module>
-        <module>core-js</module>
-        <module>core-jvm</module>
         <module>parser</module>
-        <module>parser-jvm</module>
-        <module>jvm-playground</module>
         <module>tests</module>
+        <module>jvm-playground</module>
     </modules>
 
     <properties>
@@ -109,16 +106,15 @@
                 <version>${kotlin.version}</version>
                 <scope>test</scope>
             </dependency>
-
             <dependency>
                 <groupId>com.github.prologdb</groupId>
                 <artifactId>runtime-core</artifactId>
-                <scope>provided</scope>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.prologdb</groupId>
                 <artifactId>runtime-parser</artifactId>
-                <scope>provided</scope>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

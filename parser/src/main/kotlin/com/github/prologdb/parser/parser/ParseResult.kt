@@ -1,4 +1,4 @@
-package com.github.tmarsteel.ktprolog.parser
+package com.github.prologdb.parser.parser
 
 import com.github.prologdb.parser.Reporting
 

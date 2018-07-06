@@ -4,6 +4,7 @@ import com.github.prologdb.parser.ParsedQuery;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
 import com.github.prologdb.parser.lexer.LineEndingNormalizer;
+import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.RandomVariableScope;
@@ -11,7 +12,6 @@ import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase;
 import com.github.prologdb.runtime.knowledge.library.Library;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.unification.VariableBucket;
-import com.github.tmarsteel.ktprolog.parser.ParseResult;
 
 import javax.swing.*;
 import java.awt.*;
