@@ -116,4 +116,17 @@ open class PrologDictionary(givenTag: Term?, open val pairs: Map<String, Term>) 
     override fun hashCode(): Int {
         return pairs.hashCode()
     }
+
+    override fun toString(): String {
+        var str = tag?.toString() ?: ""
+        str += pairs.entries
+            .joinToString(
+                prefix = "{",
+                separator = ", ",
+                postfix = "}",
+                transform = { it.key + ": " + it.value.toString() }
+            )
+
+        return str
+    }
 }

@@ -11,6 +11,8 @@ import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.parser.parser.ParseResultCertainty.*
+import com.github.prologdb.parser.source.SourceLocation
+import javax.xml.transform.Source
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -132,18 +134,18 @@ class PrologParser {
      * * [parseList]
      * * [parseParenthesised]
      */
-    fun parseSingle(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Term> {
+    fun parseSingle(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedTerm> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("atom, variable, predicate invocation, list or parenthesised term")))
 
-        val parsers = listOf<(TransactionalSequence<Token>, OperatorRegistry) -> ParseResult<Term>>(
+        val parsers = listOf<(TransactionalSequence<Token>, OperatorRegistry) -> ParseResult<ParsedTerm>>(
             this::parseParenthesised,
             this::parseList,
-            // this::parseDictionary,
+            this::parseDictionary,
             this::parsePredicateWithInvocationSyntax,
             { ts, _ -> parseAtomicOrVariable(ts) }
         )
 
-        var result: ParseResult<Term>? = null
+        var result: ParseResult<ParsedTerm>? = null
         for (parser in parsers) {
             result = parser(tokens, opRegistry)
             if (result.certainty >= MATCHED) break
@@ -164,7 +166,7 @@ class PrologParser {
         return result
     }
 
-    fun parsePredicateWithInvocationSyntax(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Predicate> {
+    fun parsePredicateWithInvocationSyntax(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedPredicate> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("predicate invocation")))
 
         tokens.mark()
@@ -255,7 +257,7 @@ class PrologParser {
         }
     }
 
-    fun parseList(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<com.github.prologdb.runtime.term.PrologList> {
+    fun parseList(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedList> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("list")))
 
         tokens.mark()
@@ -341,7 +343,198 @@ class PrologParser {
     }
 
     fun parseDictionary(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedDictionary> {
-        TODO("not implemented yet")
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("identifier or ${Operator.CURLY_OPEN}")))
+
+        tokens.mark() // A
+
+        val tagResult = parseAtomicOrVariable(tokens)
+        val tag = tagResult.item
+
+        if (!tokens.hasNext()) {
+            tokens.rollback() // A
+            return ParseResult(
+                null,
+                NOT_RECOGNIZED,
+                tagResult.reportings + setOf(UnexpectedEOFError(CURLY_OPEN))
+            )
+        }
+
+        var next = tokens.next()
+        if (next !is OperatorToken || next.operator != CURLY_OPEN) {
+            tokens.rollback() // A
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(next, Operator.CURLY_OPEN)))
+        }
+
+        val firstLocation = tag?.location?.start ?: next.location.start
+
+        val pairs = mutableListOf<Triple<String, ParsedTerm, SourceLocationRange>>()
+        val reportings = mutableSetOf<Reporting>()
+        do {
+            val nextPairResult = parseDictionaryPair(tokens, opRegistry)
+            if (nextPairResult.isSuccess) {
+                pairs.add(nextPairResult.item!!)
+                reportings.addAll(nextPairResult.reportings)
+
+                if (!tokens.hasNext()) {
+                    reportings += UnexpectedEOFError(CURLY_CLOSE, COMMA)
+
+                    tokens.rollback() // A
+                    return ParseResult(
+                        ParsedDictionary(
+                            tag,
+                            pairs.map { it.first to it.second }.toMap(),
+                            firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
+                        ),
+                        MATCHED,
+                        reportings
+                    )
+                }
+
+                tokens.mark() // C
+                next = tokens.next()
+                if (next is OperatorToken) {
+                    if (next.operator == COMMA) {
+                        // perfectly valid, just continue
+                        tokens.commit() // C
+                    }
+                    else if (next.operator == CURLY_CLOSE) {
+                        // also valid, but this should be handles further down
+                        tokens.rollback() // C
+                    }
+                    else {
+                        // not valid
+                        reportings += UnexpectedTokenError(next, CURLY_CLOSE, COMMA)
+                        tokens.rollback() // C
+                        tokens.commit() // A
+
+                        return ParseResult(
+                            ParsedDictionary(
+                                tag,
+                                pairs.map { it.first to it.second }.toMap(),
+                                firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
+                            ),
+                            MATCHED,
+                            reportings
+                        )
+                    }
+                } else {
+                    reportings += UnexpectedTokenError(next, CURLY_CLOSE, COMMA)
+                    tokens.rollback() // C
+                    tokens.commit() // A
+
+                    return ParseResult(
+                        ParsedDictionary(
+                            tag,
+                            pairs.map { it.first to it.second }.toMap(),
+                            firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
+                        ),
+                        MATCHED,
+                        reportings
+                    )
+                }
+            }
+        } while (nextPairResult.isSuccess)
+
+        tokens.commit() // A
+
+        val pairsMap = pairs.map { it.first to it.second }.toMap()
+
+        tokens.mark() // B
+        if (!tokens.hasNext()) {
+            reportings += UnexpectedEOFError(CURLY_CLOSE)
+
+            tokens.rollback() // B
+
+            return ParseResult(
+                ParsedDictionary(
+                    tag,
+                    pairsMap,
+                    firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
+                ),
+                MATCHED,
+                reportings
+            )
+        }
+
+        next = tokens.next()
+        if (next !is OperatorToken || next.operator != CURLY_CLOSE) {
+            reportings += UnexpectedTokenError(next, CURLY_CLOSE)
+
+            tokens.rollback() // B
+
+            return ParseResult(
+                ParsedDictionary(
+                    tag,
+                    pairsMap,
+                    firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
+                ),
+                MATCHED,
+                reportings
+            )
+        }
+
+        tokens.commit() // B
+
+        return ParseResult(
+            ParsedDictionary(
+                tag,
+                pairsMap,
+                firstLocation .. next.location.end
+            ),
+            MATCHED,
+            reportings
+        )
+    }
+
+    fun parseDictionaryPair(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Triple<String, ParsedTerm, SourceLocationRange>> {
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
+
+        tokens.mark() // A
+        var next = tokens.next()
+        if (next !is IdentifierToken) {
+            tokens.rollback() // A
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(next, IDENTIFIER)))
+        }
+
+        val keyIdentifier = next
+        val firstLocation = next.location.start
+
+        if (!tokens.hasNext()) {
+            tokens.rollback() // A
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(DICT_KEY_VALUE_SEPARATOR)))
+        }
+
+        next = tokens.next()
+        if (next !is OperatorToken || next.operator != DICT_KEY_VALUE_SEPARATOR) {
+            tokens.rollback() // A
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(next, DICT_KEY_VALUE_SEPARATOR)))
+        }
+
+        if (!tokens.hasNext()) {
+            tokens.rollback() // A
+            return ParseResult(null, MATCHED, setOf(UnexpectedTokenError(next, "term")))
+        }
+
+        val pairValueResult = parseSingle(tokens, opRegistry)
+        if (pairValueResult.isSuccess) {
+            tokens.commit() // A
+            return ParseResult(
+                Triple(
+                    keyIdentifier.textContent,
+                    pairValueResult.item!!,
+                    firstLocation .. pairValueResult.item.location
+                ),
+                MATCHED,
+                pairValueResult.reportings
+            )
+        } else {
+            tokens.rollback() // A
+            return ParseResult(
+                null,
+                MATCHED,
+                pairValueResult.reportings
+            )
+        }
     }
 
     /**
@@ -704,11 +897,12 @@ private val ParsedPredicate.isRuleDefinition: Boolean
  * predicate returns false.
  * @return The skipped tokens
  */
-private fun TransactionalSequence<Token>.takeWhile(predicate: (Token) -> Boolean, initialParenthesisLevel: Int = 0, initialBracketLevel: Int = 0): List<Token> {
+private fun TransactionalSequence<Token>.takeWhile(predicate: (Token) -> Boolean, initialParenthesisLevel: Int = 0, initialBracketLevel: Int = 0, initialCurlyLevel: Int = 0): List<Token> {
     if (!hasNext()) return emptyList()
 
     var parenthesisLevel = initialParenthesisLevel
     var bracketLevel = initialBracketLevel
+    var curlyLevel = initialCurlyLevel
 
     var item: Token
     mark()
@@ -728,6 +922,8 @@ private fun TransactionalSequence<Token>.takeWhile(predicate: (Token) -> Boolean
                 PARENT_CLOSE  -> parenthesisLevel--
                 BRACKET_OPEN  -> bracketLevel++
                 BRACKET_CLOSE -> bracketLevel--
+                CURLY_OPEN    -> curlyLevel++
+                CURLY_CLOSE   -> curlyLevel--
                 else -> {}
             }
         }
