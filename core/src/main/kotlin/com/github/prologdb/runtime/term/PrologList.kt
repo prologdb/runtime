@@ -145,7 +145,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
             return this.elements[0].compareTo(other.elements[1])
         }
 
-        other as? Predicate ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
+        if (other !is Predicate && other !is PrologDictionary) throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list, predicate or dict)")
 
         // lists always above predicates
         return -1
