@@ -463,6 +463,17 @@ class PrologParser {
                 emptySet()
             )
         }
+        else if (token is AtomLiteralToken) {
+            tokens.commit()
+            return ParseResult(
+                ParsedAtom(
+                    token.name,
+                    token.location
+                ),
+                MATCHED,
+                emptySet()
+            )
+        }
         else {
             tokens.rollback()
 

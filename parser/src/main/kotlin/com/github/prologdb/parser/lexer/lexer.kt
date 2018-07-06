@@ -68,9 +68,13 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         val operatorToken = tryMatchOperator()
         if (operatorToken != null) {
             // String
-            if (operatorToken.operator == Operator.DOUBLE_QUOTE) {
-                var stringContent = collectStringLike(startToken = operatorToken)
+            if (operatorToken.operator == Operator.DOUBLE_QUOTE || operatorToken.operator == Operator.BACKTICK) {
+                val stringContent = collectStringLike(startToken = operatorToken)
                 return StringLiteralToken(stringContent.first, stringContent.second)
+            }
+            if (operatorToken.operator == Operator.SINGLE_QUOTE) {
+                val atomContent = collectStringLike(startToken = operatorToken)
+                return AtomLiteralToken(atomContent.first, atomContent.second)
             }
 
             return operatorToken

@@ -6,7 +6,8 @@ enum class TokenType {
     IDENTIFIER,
     OPERATOR,
     NUMERIC_LITERAL,
-    STRING_LITERAL
+    STRING_LITERAL,
+    ATOM_LITERAL
 }
 
 /**
@@ -41,6 +42,8 @@ enum class Operator(val text: String) {
     TERM_NOT_EQUALS("\\=="),
     NEGATED_UNIFY("\\="),
     DOUBLE_QUOTE("\""),
+    SINGLE_QUOTE("'"),
+    BACKTICK("`"),
     NON_PROVABLE("\\+"),
 
     TERM_GREATER_THAN("@>"),
@@ -119,6 +122,25 @@ class StringLiteralToken(val content: String, location: SourceLocationRange) : T
     }
 
     override fun toString() = "string literal"
+}
+
+class AtomLiteralToken(val name: String, location: SourceLocationRange) : Token(TokenType.ATOM_LITERAL, location) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AtomLiteralToken
+
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
+    }
+
+    override fun toString() = "atom literal"
 }
 
 /** The escape character in strings */
