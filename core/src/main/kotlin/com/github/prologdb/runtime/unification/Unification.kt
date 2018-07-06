@@ -8,8 +8,8 @@ import com.github.prologdb.runtime.term.Variable
  */
 class Unification(val variableValues: VariableBucket = VariableBucket()) {
 
-    fun combineWith(other: Unification): Unification {
-        return Unification(variableValues.combineWith(other.variableValues))
+    fun combinedWith(other: Unification): Unification {
+        return Unification(variableValues.combinedWith(other.variableValues))
     }
 
     override fun toString(): String {
@@ -36,7 +36,16 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     companion object {
         val FALSE: Unification? = null
         val TRUE: Unification = Unification()
-        val SINGLETON: LazySequence<Unification> = LazySequence.of(TRUE)
+        val SINGLETON: LazySequence<Unification>
+            get() = LazySequence.of(TRUE)
         val NONE: LazySequence<Unification> = LazySequence.empty()
+
+        /**
+         * DSL method; if [condition] is true, returns [TRUE], [FALSE] otherwise.
+         * Usage: `return Unification.whether(myConditionIsMet)`
+         */
+        fun whether(condition: Boolean): Unification? {
+            return if (condition) TRUE else FALSE
+        }
     }
 }

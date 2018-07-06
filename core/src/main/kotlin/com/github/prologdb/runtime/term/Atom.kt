@@ -18,9 +18,24 @@ open class Atom(val name: String) : Term {
         }
     }
 
+    override val prologTypeName = "atom"
+
     override val variables: Set<Variable> = emptySet()
 
     override fun substituteVariables(mapper: (Variable) -> Term) = this
+
+    override fun compareTo(other: Term): Int {
+        return when (other) {
+            // variables, numbers and strings are, by category, lesser than atoms
+            is Variable, is Number, is PrologString -> 1
+
+            // lexicographical order
+            is Atom -> this.name.compareTo(other.name)
+
+            // everything else is, by category, greater than atoms
+            else -> return -1
+        }
+    }
 
     override fun toString(): String {
         val firstChar = name[0]

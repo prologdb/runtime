@@ -4,8 +4,12 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
+import kotlin.math.roundToLong
 
 open class Decimal(val value: Double) : Number {
+
+    override val isInteger = true
+
     override fun plus(other: Number) =
         when(other) {
             is Decimal -> Decimal(value + other.value)
@@ -53,6 +57,10 @@ open class Decimal(val value: Double) : Number {
 
     override fun unaryMinus(): Number = Decimal(-this.value)
 
+    override fun toInteger(): Long = value.roundToLong()
+
+    override fun toDecimal(): Double = value
+
     override fun compareTo(other: Number) =
         when(other) {
             is Integer -> this.value.compareTo(other.value)
@@ -92,6 +100,32 @@ open class Decimal(val value: Double) : Number {
     }
 
     override fun hashCode() = value.hashCode()
+
+    override fun compareTo(other: Term): Int {
+        when(other) {
+            // Variables are, by category, lesser than numbers
+            is Variable -> return 1
+
+            // ISO prolog categorically sorts decimals before integers
+            // as the author of this runtime, i deem this suboptimal.
+            // this behaves identical to SWI prolog
+
+            is Decimal -> {
+                return this.value.compareTo(other.value)
+            }
+
+            is Integer -> {
+                // compare mixed as floating point
+                val integerAsDouble = other.toDecimal()
+                if (this.value == integerAsDouble) return -1 // if equal, the floating point is lesser
+                if (this.value >  integerAsDouble) return 1
+                return -1
+            }
+
+            // everything else is, by category, greater than numbers
+            else -> return -1
+        }
+    }
 
     override fun toString() = value.toString()
 }

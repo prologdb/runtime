@@ -38,7 +38,10 @@ open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
                 for (randomPredicateVariable in randomPredicate.variables)
                 {
                     if (predicateAndHeadUnification.variableValues.isInstantiated(randomPredicateVariable)) {
-                        val value = predicateAndHeadUnification.variableValues[randomPredicateVariable].substituteVariables(unification.variableValues.asSubstitutionMapper())
+                        val value = predicateAndHeadUnification.variableValues[randomPredicateVariable]
+                            .substituteVariables(unification.variableValues.asSubstitutionMapper())
+                            .substituteVariables(predicateAndHeadUnification.variableValues.asSubstitutionMapper())
+
                         solutionVars.instantiate(randomPredicateVariable, value)
                     }
                     else if (unification.variableValues.isInstantiated(randomPredicateVariable)) {
@@ -47,7 +50,8 @@ open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
                     }
                 }
 
-                Unification(solutionVars.withVariablesResolvedFrom(predicateRandomVarsMapping))
+                Unification(solutionVars
+                    .withVariablesResolvedFrom(predicateRandomVarsMapping))
             }
     }
 

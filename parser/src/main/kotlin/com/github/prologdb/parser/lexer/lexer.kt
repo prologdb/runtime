@@ -5,6 +5,7 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.PrologException
 
 class Lexer(source: Iterator<Char>, initialSourceLocation: SourceLocation) : TransactionalSequence<Token>
 {
@@ -55,13 +56,38 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
 
         if (!source.hasNext()) return null
 
+        // skip all the comments
+        // this is done first because it makes sure the following lexer code gets in contact with actual source code to
+        // lex (instead of getting screwed by weird combinations of comments and valid tokens, e.g.:
+        // r /* ads */ :- /*b*/ c(_). % foo
+        while (trySkipComment()) {}
+
+        if (!source.hasNext()) return null
+
         // try to match an operator
         val operatorToken = tryMatchOperator()
-        if (operatorToken != null) return operatorToken
+        if (operatorToken != null) {
+            // String
+            if (operatorToken.operator == Operator.DOUBLE_QUOTE || operatorToken.operator == Operator.BACKTICK) {
+                val stringContent = collectStringLike(startToken = operatorToken)
+                return StringLiteralToken(stringContent.first, stringContent.second)
+            }
+            if (operatorToken.operator == Operator.SINGLE_QUOTE) {
+                val atomContent = collectStringLike(startToken = operatorToken)
+                return AtomLiteralToken(atomContent.first, atomContent.second)
+            }
+
+            return operatorToken
+        }
 
         if (!source.hasNext()) return null
 
         var text = collectUntilOperatorOrWhitespace()
+
+        if (text.first.length == 0) {
+            // the next operator is straight ahead: jump back
+            return findNext()
+        }
 
         if (text.first[0].isDigit()) {
             // NUMERIC LITERAL
@@ -104,6 +130,10 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         }
     }
 
+    /**
+     * @return the next [n] characters as a string. If there are not as many characters in the source,
+     * will return `null`.
+     */
     private fun nextCharsAsString(n: Int): Pair<String, SourceLocationRange>? {
         if (n < 1) throw IllegalArgumentException()
 
@@ -146,20 +176,118 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         return null
     }
 
+    /**
+     * Attempts to find a comment. If one is found, it is consumed from [source] and ignored and true is returned.
+     * If none is found, [source] is left in the same position it was in when this method was invoked and false is
+     * returned.
+     */
+    private fun trySkipComment(): Boolean  {
+        // yes, a single if-statement with short-circuit OR behaves the same. However, that would make a
+        // crucial part of this functions logic implicit. That would be bad.
+
+        if (trySkipSingleLineComment()) return true
+        if (trySkipMultiLineComment()) return true
+        return false
+    }
+
+    /**
+     * Attempts to find a single line comment. If one is found, the rest of the line is consumed and ignored and
+     * true is returned.
+     * If none is found, [source] is left in the position it was in when this method was invoked and false is returned.
+     */
+    private fun trySkipSingleLineComment(): Boolean {
+        for (initSignal in SINGLE_LINE_COMMENT_SINGALS) {
+            source.mark()
+            val content = nextCharsAsString(initSignal.length)
+            if (content == null) {
+                source.rollback()
+                continue
+            }
+
+            if (content.first == initSignal) {
+                source.commit()
+                collectWhile { it != '\n' }
+                return true
+            }
+
+            source.rollback()
+        }
+
+        return false
+    }
+
+    /**
+     * Attempts to find a multi-line comment. If one is found, the entire comment is consumed and ignored and
+     * true is returned.
+     * If none is found, [source] is left in the same position it was in when this method was invoked and false is
+     * returned.
+     */
+    private fun trySkipMultiLineComment(): Boolean {
+        for ((initSignal, endSignal) in MULTI_LINE_COMMENT_SIGNALS.entries) {
+            source.mark() // A
+            val content = nextCharsAsString(initSignal.length)
+            if (content == null) {
+                source.rollback() // A
+                continue
+            }
+
+            if (content.first == initSignal) {
+                // comment found; find the end
+                source.commit() // A
+                while (true) {
+                    source.mark() // B
+                    val possibleCommentEnd = nextCharsAsString(endSignal.length)
+                    if (possibleCommentEnd == null) {
+                        // the file ends within the comment => done
+                        while (source.hasNext()) source.next()
+                        source.commit() // B
+                        return true
+                    }
+
+                    if (possibleCommentEnd.first == endSignal) {
+                        source.commit() // B
+                        return true
+                    }
+
+                    source.rollback() // B
+
+                    source.next() // immediately commits
+                }
+            }
+            else {
+                // look ahead did not match
+                source.rollback() // A
+            }
+        }
+
+        return false
+    }
+
     private fun collectUntilOperatorOrWhitespace(): Pair<String, SourceLocationRange> {
+        if (!source.hasNext()) throw IllegalStateException("This method must be invoked with at least on character left in the source.")
+
         val buf = StringBuilder()
         var start: SourceLocation? = null
         var end: SourceLocation? = null
 
         while (source.hasNext()) {
             val operator = tryMatchOperator(false)
-            if (operator != null) break
+            if (operator != null) {
+                if (start == null) start = operator.location.start
+                if (end == null) end = operator.location.end
+
+                break
+            }
 
             source.mark()
             val next = source.next()
 
             if (IsWhitespace(next.first)) {
                 source.rollback()
+
+                if (start == null) start = next.second
+                if (end == null) end = next.second
+
                 break
             }
 
@@ -213,6 +341,65 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         }
         else {
             return null
+        }
+    }
+
+    /**
+     * Assumes the parser is right after an operator that introduces a string-like
+     * sequence (actual string, escaped atom). Parses until it finds another instance
+     * of the operator that is not escaped by the [ESCAPE_CHARACTER].
+     *
+     * @param startToken The operator that started the sequence. The same operator can end the sequence
+     * @return The actual content (with escape sequences removed) and the [SourceLocationRange] of the
+     *         entire sequence, including the start- and end operators.
+     */
+    private fun collectStringLike(startToken: OperatorToken): Pair<String, SourceLocationRange> {
+        var stringContent = ""
+        source.mark() // A
+        while (true) {
+            if (!source.hasNext()) throw PrologException("Unexpected EOF in string starting at ${startToken.location.start}")
+
+            // look for escape sequence
+            source.mark() // B
+            val possibleEscapeChar = source.next()
+            if (possibleEscapeChar.first == ESCAPE_CHARACTER) {
+                // escape sequence found, take the next char as given
+                if (!source.hasNext()) {
+                    source.rollback() // B
+                    source.rollback() // A
+                    throw PrologException("Unexpected EOF after escape character in ${possibleEscapeChar.second}")
+                }
+
+                // if this is a special escape sequence, do a replacement
+                val nextCharInSource = source.next().first
+                val escapeSequenceConsideredChar = ESCAPE_SEQUENCES[nextCharInSource] ?: nextCharInSource
+
+                stringContent += escapeSequenceConsideredChar
+                continue
+            } else {
+                source.rollback() // B
+            }
+
+            // try to find ending operator
+            source.mark() // B
+
+            val possibleEndingOperatorText = nextCharsAsString(startToken.operator.text.length)
+            if (possibleEndingOperatorText == null) {
+                // not enough chars left for the ending delimiter => unexpected eof
+                source.rollback() // B
+                source.rollback() // A
+                throw PrologException("Failed to parse string starting at ${startToken.location.start}: unexpected EOF, expected ${startToken.operator}")
+            }
+
+            if (possibleEndingOperatorText.first == startToken.operator.text) {
+                // here is the ending delimiter, done
+                source.commit() // B
+                source.commit() // A
+                return Pair(stringContent, startToken.location .. possibleEndingOperatorText.second.end)
+            }
+
+            source.rollback() // B
+            stringContent += source.next().first // implicit commit
         }
     }
 

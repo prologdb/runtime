@@ -146,10 +146,10 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
     }
 
-    "list append" {
+    "list append" - {
         val kb = DefaultKnowledgeBase()
 
-        val append = PredicateBuilder("append")
+        val app = PredicateBuilder("app")
         val L = Variable("L")
         val H = Variable("H")
         val T = Variable("T")
@@ -164,15 +164,62 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
 
         // append([],L,L).
-        kb.assert(append(List(emptyList()),L,L))
+        kb.assert(app(List(emptyList()),L,L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.defineRule(Rule(append(List(listOf(H),T),L2,List(listOf(H),L3)), PredicateQuery(append(T,L2,L3))))
+        kb.defineRule(Rule(app(List(listOf(H),T),L2,List(listOf(H),L3)), PredicateQuery(app(T,L2,L3))))
 
-        kb shouldProve append(List(listOf(a, b)),List(listOf(c,d)),R) suchThat {
-            // itHasExactlyOneSolution()
-            itHasASolutionSuchThat("R = [a,b,c,d]") {
-                it.variableValues[R] == List(listOf(a,b,c,d))
+        "simple append" {
+            kb shouldProve app(List(listOf(a, b)),List(listOf(c,d)),R) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("R = [a,b,c,d]") {
+                    it.variableValues[R] == List(listOf(a,b,c,d))
+                }
+            }
+        }
+
+        "what needs to be appended?" {
+            kb shouldProve app(List(listOf(a, b)), L, List(listOf(a, b, c, d))) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("L = [c, d]") {
+                    it.variableValues[L] == List(listOf(c, d))
+                }
+            }
+        }
+
+        "what needs to be prepended?" {
+            kb shouldProve app(L, List(listOf(c, d)), List(listOf(a, b, c, d))) suchThat {
+                itHasExactlyOneSolution()
+                itHasASolutionSuchThat("L = [a, b]") {
+                    it.variableValues[L] == List(listOf(a, b))
+                }
+            }
+        }
+
+        "what combinations are possible?" {
+            val A = Variable("A")
+            val B = Variable("B")
+
+            kb shouldProve app(A, B, List(listOf(a, b))) suchThat {
+                itHasExactlyNSolutions(3)
+
+                itHasASolutionSuchThat("A = [], B = [a, b]") {
+                    it.variableValues[A] == List(emptyList())
+                    &&
+                    it.variableValues[B] == List(listOf(a, b))
+                }
+
+                itHasASolutionSuchThat("A = [a], B = [b]") {
+                    it.variableValues[A] == List(listOf(a))
+                    &&
+                    it.variableValues[B] == List(listOf(b))
+                }
+
+                itHasASolutionSuchThat("A = [a, b], B = []") {
+                    it.variableValues[A] == List(listOf(a, b))
+                    &&
+                    it.variableValues[B] == List(emptyList())
+                }
             }
         }
     }

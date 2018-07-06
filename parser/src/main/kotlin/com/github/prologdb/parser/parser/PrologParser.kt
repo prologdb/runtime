@@ -12,10 +12,11 @@ import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
 import com.github.tmarsteel.ktprolog.parser.ParseResult
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.MATCHED
 import com.github.tmarsteel.ktprolog.parser.ParseResultCertainty.NOT_RECOGNIZED
+import com.github.prologdb.runtime.term.Decimal as PrologDecimal
+import com.github.prologdb.runtime.term.Integer as PrologInteger
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -408,7 +409,14 @@ class PrologParser {
         if (token is IdentifierToken) {
             tokens.commit()
 
-            if (token.textContent[0].isUpperCase() || token.textContent[0] == '_') {
+            if (token.textContent == "_") {
+                return ParseResult(
+                    ParsedAnonymousVariable(token.location),
+                    MATCHED,
+                    emptySet()
+                )
+            }
+            else if (token.textContent[0].isUpperCase() || token.textContent[0] == '_') {
                 return ParseResult(
                     ParsedVariable(token.textContent, token.location),
                     MATCHED,
@@ -430,10 +438,10 @@ class PrologParser {
             val tokenNumber = token.number
 
             val number = when(tokenNumber) {
-                is Int -> ParsedInteger(tokenNumber.toLong(), token.location)
-                is Long -> ParsedInteger(tokenNumber, token.location)
-                is Float -> ParsedDecimal(tokenNumber.toDouble(), token.location)
-                is Double -> ParsedDecimal(tokenNumber, token.location)
+                is Int -> ParsedNumber(PrologInteger(tokenNumber.toLong()), token.location)
+                is Long -> ParsedNumber(PrologInteger(tokenNumber), token.location)
+                is Float -> ParsedNumber(PrologDecimal(tokenNumber.toDouble()), token.location)
+                is Double -> ParsedNumber(PrologDecimal(tokenNumber), token.location)
                 else -> throw InternalParserError("Unsupported number type in numeric literal token")
             }
 
@@ -441,6 +449,29 @@ class PrologParser {
                     number,
                     MATCHED,
                     emptySet()
+            )
+        }
+        else if (token is StringLiteralToken) {
+            tokens.commit()
+
+            return ParseResult(
+                ParsedPrologString(
+                    token.content,
+                    token.location
+                ),
+                MATCHED,
+                emptySet()
+            )
+        }
+        else if (token is AtomLiteralToken) {
+            tokens.commit()
+            return ParseResult(
+                ParsedAtom(
+                    token.name,
+                    token.location
+                ),
+                MATCHED,
+                emptySet()
             )
         }
         else {
@@ -472,12 +503,13 @@ class PrologParser {
          */
         fun handleOperator(definition: ParsedPredicate) {
             val opPredicate = definition.arguments[0] as? ParsedPredicate ?: throw InternalParserError("IllegalArgument")
-            if (opPredicate.arguments[0] !is com.github.prologdb.runtime.term.Integer) {
-                reportings.add(SemanticError("operator priority must be an integer", opPredicate.arguments[0].location))
+            val priorityArgument = opPredicate.arguments[0]
+            if (priorityArgument !is com.github.prologdb.runtime.term.Number || !priorityArgument.isInteger) {
+                reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
                 return
             }
 
-            val precedenceAsLong = (opPredicate.arguments[0] as com.github.prologdb.runtime.term.Integer).value
+            val precedenceAsLong = (priorityArgument as com.github.prologdb.runtime.term.Number).toInteger()
             if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
                 reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opPredicate.arguments[0].location))
                 return
@@ -537,13 +569,7 @@ class PrologParser {
                         library.add(item)
                     }
                 } else {
-                    val typeAsString = when(item) {
-                        is Atom -> "atom"
-                        is Number -> "number"
-                        is Variable -> "variable"
-                        else -> "term"
-                    }
-                    reportings += SemanticError("A $typeAsString is not a top level declaration, expected a predicate.", item.location)
+                    reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a predicate.", item.location)
                 }
             }
             else {
@@ -703,6 +729,7 @@ private fun TransactionalSequence<Token>.takeWhile(predicate: (Token) -> Boolean
                 PARENT_CLOSE  -> parenthesisLevel--
                 BRACKET_OPEN  -> bracketLevel++
                 BRACKET_CLOSE -> bracketLevel--
+                else -> {}
             }
         }
 

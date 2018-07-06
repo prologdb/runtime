@@ -13,6 +13,8 @@ open class Variable(val name: String) : Term {
         return Unification(vars)
     }
 
+    override val prologTypeName = "variable"
+
     override val variables: Set<Variable>
         get() = setOf(this)
 
@@ -35,6 +37,20 @@ open class Variable(val name: String) : Term {
 
     override fun hashCode(): Int {
         return name.hashCode()
+    }
+
+    override fun compareTo(other: Term): Int {
+        return when(other) {
+            // standard prolog sorts variables by address
+            // there is no such thing in kotlin; the closest
+            // alternative on the JVM is System.identityHashCode.
+            // however, on the JS platform, we're entirely lost.
+            // therefore we just sort lexicographically by name
+            is Variable -> name.compareTo(other.name)
+
+            // Variables are always first
+            else -> -1
+        }
     }
 
     companion object {

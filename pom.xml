@@ -25,6 +25,7 @@
         <module>parser</module>
         <module>parser-jvm</module>
         <module>jvm-playground</module>
+        <module>tests</module>
     </modules>
 
     <properties>
@@ -152,6 +153,7 @@
                             <phase>verify</phase>
                             <configuration>
                                 <keyname>20DAB483</keyname>
+                                <skip>true</skip>
                             </configuration>
                             <goals>
                                 <goal>sign</goal>

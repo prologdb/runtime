@@ -14,6 +14,8 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
 
     override val arity = arguments.size
 
+    override val prologTypeName = "predicate"
+
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Predicate) {
             if (this.name != rhs.name) {
@@ -24,7 +26,7 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
                 return Unification.FALSE
             }
 
-            if (arguments.isEmpty()) {
+            if (arity == 0) {
                 return Unification.TRUE
             }
 
@@ -77,6 +79,31 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
 
     override fun substituteVariables(mapper: (Variable) -> Term): Predicate {
         return Predicate(name, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
+    }
+
+    override fun compareTo(other: Term): Int {
+        if (other is Variable || other is Number || other is PrologString || other is Atom || other is List) {
+            // these are by category lesser than compound terms
+            return 1
+        }
+
+        other as? Predicate ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
+
+        val arityCmp = this.arity - other.arity
+        if (arityCmp != 0) return arityCmp
+
+        val functorNameCmp = this.name.compareTo(other.name)
+        if (functorNameCmp != 0) return functorNameCmp
+
+        for (argumentIndex in 0 until arity) {
+            val selfArgument = this.arguments[argumentIndex]
+            val otherArgument = other.arguments[argumentIndex]
+
+            val argumentCmp = selfArgument.compareTo(otherArgument)
+            if (argumentCmp != 0) return argumentCmp
+        }
+
+        return 0
     }
 
     override fun toString(): String {

@@ -2,12 +2,11 @@ package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
 
-    val elements: kotlin.collections.List<Term>
+    open val elements: kotlin.collections.List<Term>
     val tail: Variable?
 
     init {
@@ -21,6 +20,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
         }
     }
 
+    override val prologTypeName = "list"
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Variable) {
@@ -45,10 +45,8 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                     // end of rhs is reached
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
-                    val vars = VariableBucket()
-                    vars.instantiate(rhsTail, List(this.elements.subList(index, elements.size), this.tail))
                     try {
-                        return carryUnification.combineWith(Unification(vars))
+                        return carryUnification.combinedWith(rhsTail.unify(List(this.elements.subList(index, elements.size), this.tail)))
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
@@ -65,7 +63,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                 }
                 else {
                     try {
-                        carryUnification = carryUnification.combineWith(iterationUnification)
+                        carryUnification = carryUnification.combinedWith(iterationUnification)
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
@@ -87,7 +85,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                 }
 
                 try {
-                    carryUnification = carryUnification.combineWith(tailUnification)
+                    carryUnification = carryUnification.combinedWith(tailUnification)
                 }
                 catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
@@ -121,6 +119,36 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
             out += "|$tail"
         }
         return out + "]"
+    }
+
+    override fun compareTo(other: Term): Int {
+        if (other is Variable || other is Number || other is PrologString || other is Atom) {
+            // these are by category lesser than compound terms
+            return 1
+        }
+
+        if (other is List) {
+            // arity equal and functor name are equal, sort by elements
+            if (this.elements.isEmpty() && other.elements.isEmpty()) {
+                return 0
+            }
+
+            // empty lists are lesser than non-empty lists
+            if (this.elements.isEmpty() && other.elements.isNotEmpty()) {
+                return -1
+            }
+            else if (this.elements.isNotEmpty() && other.elements.isEmpty()) {
+                return 1
+            }
+
+            // both lists have at least one element at this point
+            return this.elements[0].compareTo(other.elements[1])
+        }
+
+        other as? Predicate ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
+
+        // lists always above predicates
+        return -1
     }
 
     override fun equals(other: Any?): Boolean {

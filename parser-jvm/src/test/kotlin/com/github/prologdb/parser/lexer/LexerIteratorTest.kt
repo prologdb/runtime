@@ -12,7 +12,12 @@ class LexerIteratorTest : FreeSpec() {init{
             ruleHeadPredicate(arg1, X) :- goal1(arg1), goal2(X).
             foo(1,2,3.412)  .
             a+1.
+            "this is a simple string"  "this \a is \b \v a \e \t string \n with \r \" escaped \stuff"
 
+            % this signle-line comment should be ignored
+            foo bar % this comment should be ignored, too
+            /* ignore! */
+            bar /* ignore! */ foo
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
@@ -362,6 +367,60 @@ class LexerIteratorTest : FreeSpec() {init{
             next.location.start.column shouldEqual 16
             next.location.end.line shouldEqual 5
             next.location.end.column shouldEqual 16
+        }
+
+        "line 6" - {
+            next = lexer.next()
+            assert(next is StringLiteralToken)
+            (next as StringLiteralToken).content shouldEqual "this is a simple string"
+            next.location.start.line shouldEqual 6
+            next.location.start.column shouldEqual 13
+            next.location.end.line shouldEqual 6
+            next.location.end.column shouldEqual 37
+
+            next = lexer.next()
+            assert(next is StringLiteralToken)
+            (next as StringLiteralToken).content shouldEqual "this \u0007 is \b \u000B a \u001B \t string \n with \r \" escaped stuff"
+            next.location.start.line shouldEqual 6
+            next.location.start.column shouldEqual 40
+            next.location.end.line shouldEqual 6
+            next.location.end.column shouldEqual 101
+        }
+
+        "line 9" - {
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldEqual "foo"
+            next.location.start.line shouldEqual 9
+            next.location.start.column shouldEqual 13
+            next.location.end.line shouldEqual 9
+            next.location.end.column shouldEqual 15
+
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldEqual "bar"
+            next.location.start.line shouldEqual 9
+            next.location.start.column shouldEqual 17
+            next.location.end.line shouldEqual 9
+            next.location.end.column shouldEqual 19
+        }
+
+        "line 11" - {
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldEqual "bar"
+            next.location.start.line shouldEqual 11
+            next.location.start.column shouldEqual 13
+            next.location.end.line shouldEqual 11
+            next.location.end.column shouldEqual 15
+
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldEqual "foo"
+            next.location.start.line shouldEqual 11
+            next.location.start.column shouldEqual 31
+            next.location.end.line shouldEqual 11
+            next.location.end.column shouldEqual 33
         }
 
         "eof" - {

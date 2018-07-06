@@ -198,6 +198,7 @@ interface LazySequence<T> {
     companion object {
         fun <T> of(vararg elements: T): LazySequence<T> {
             if (elements.isEmpty()) return empty()
+            if (elements.size == 1) return singleton(elements[0])
 
             return object : LazySequence<T> {
                 private var index = 0
@@ -212,6 +213,29 @@ interface LazySequence<T> {
                 }
             }
         }
+
+        /**
+         * @param element must not be null
+         * @return a sequence of only the given element
+         */
+        fun <T> singleton(element: T): LazySequence<T> {
+            if (element == null) throw IllegalArgumentException("The given element must not be null.")
+
+            return object : LazySequence<T> {
+                private var consumed = false
+                override fun tryAdvance(): T? = if (consumed) null else { consumed = true; element }
+                override fun close() {
+                    consumed = true
+                }
+            }
+        }
+
+        /**
+         * Much like Javas Optional.ofNullable: if the given element is not null,
+         * the result of this function equals `LazySequence.singleton(thing)`. If it is null,
+         * the result of this function equals `LazySequence.empty()`.
+         */
+        fun <T> ofNullable(thing: T?): LazySequence<T> = if (thing == null) empty() else singleton(thing)
 
         fun <T> fromGenerator(generator: () -> T?): LazySequence<T> {
             return object : LazySequence<T> {
@@ -299,4 +323,28 @@ fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
 inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
     while (true) consumer(tryAdvance() ?: break)
     close()
+}
+
+/**
+ * Aggregates the remaining elements of the sequence starting with the given initial
+ * value and, for each element, applying the given accumulator.
+ * @return the last return value of the accumulator
+ */
+inline fun <T, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (T, R) -> R): R {
+    var carry = initial
+    while (true) {
+        val el = tryAdvance() ?: break
+        carry = accumulator(el, carry)
+    }
+
+    return carry
+}
+
+/**
+ * Adds the remaining elements to a list and returns that list.
+ */
+fun <T> LazySequence<T>.remainingToList(): List<T> {
+    val target = ArrayList<T>()
+    forEachRemaining { target.add(it) }
+    return target
 }
