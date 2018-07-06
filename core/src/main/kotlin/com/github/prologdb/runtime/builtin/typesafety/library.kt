@@ -1,5 +1,7 @@
-package com.github.prologdb.runtime.builtin
+package com.github.prologdb.runtime.builtin.typesafety
 
+import com.github.prologdb.runtime.builtin.X
+import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.lazysequence.LazySequence
@@ -11,6 +13,7 @@ import com.github.prologdb.runtime.term.List as PrologList
 import com.github.prologdb.runtime.term.Number as PrologNumber
 
 val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+
     init {
         // all of these are /1 tests
         add(typeCheckBuiltin("atom") { it is Atom })
@@ -35,6 +38,10 @@ val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEnt
                 ))
             )
         ))
+
+        add(TypeofBuiltin)
+
+        defineOperator(OperatorDefinition(900, OperatorType.XFY, "typeof"))
     }
 }
 
@@ -43,7 +50,7 @@ val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEnt
  * the given predicate.
  */
 private inline fun typeCheckBuiltin(name: String, crossinline test: (Term) -> Boolean): LibraryEntry {
-    return prologBuiltin(name, 1) { args, _ ,_ ->
+    return prologBuiltin(name, 1) { args, _, _ ->
         return@prologBuiltin LazySequence.ofNullable(
             Unification.whether(
                 test(args[0])
