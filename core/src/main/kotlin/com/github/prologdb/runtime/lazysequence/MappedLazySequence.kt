@@ -5,8 +5,7 @@ class MappedLazySequence<T, M>(
     private val mapper: (T) -> M
 ) : LazySequence<M> {
     override fun tryAdvance(): M? {
-        val el = base.tryAdvance() ?: return null
-        return mapper(el)
+        return mapper(base.tryAdvance() ?: return null)
     }
 
     override fun close() = base.close()

@@ -8,5 +8,6 @@ import com.github.prologdb.runtime.knowledge.library.SimpleLibrary
 val DynamicsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
     init {
         add(BuiltinFindAll)
+        add(BuiltinFindAllOptimized)
     }
 }
