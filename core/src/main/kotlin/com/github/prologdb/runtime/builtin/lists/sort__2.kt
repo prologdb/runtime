@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.term.Variable
 
 import com.github.prologdb.runtime.term.List as PrologList
 
-val SortBuiltin = listOf<LibraryEntry>(
+internal val SortBuiltin = listOf<LibraryEntry>(
     prologBuiltin("sort", 2, { args, _, _ ->
         val inputUnsorted = args[0]
         val inputSorted = args[1]

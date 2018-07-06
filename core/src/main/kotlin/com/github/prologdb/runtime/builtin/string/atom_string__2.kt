@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.term.Decimal as PrologDecimal
 import com.github.prologdb.runtime.term.Integer as PrologInteger
 
-val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, _, randomVarsScope ->
+internal val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, _, randomVarsScope ->
     val inputForA = args[0]
     val inputForB = args[1]
 

@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.unification.Unification
 /**
  * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
  */
-val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _, _ ->
+internal val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _, _ ->
     val inputA = args[0]
     val inputB = args[1]
 

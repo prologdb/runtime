@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.term.List as PrologList
 /**
  * Implements the builtin member/2, see http://www.swi-prolog.org/pldoc/man?predicate=member/2
  */
-val MemberBuiltin = Rule(
+internal val MemberBuiltin = Rule(
     Predicate("member", arrayOf(
         X,
         PrologList(listOf(A), B)

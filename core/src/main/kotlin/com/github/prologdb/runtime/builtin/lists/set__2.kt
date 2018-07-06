@@ -18,7 +18,7 @@ import com.github.prologdb.runtime.term.List as PrologList
  *
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
-val Set2Builtin = prologBuiltin("set", 2, { args, _, _ ->
+internal val Set2Builtin = prologBuiltin("set", 2, { args, _, _ ->
     val arg0 = args[0]
     val arg1 = args[1]
 

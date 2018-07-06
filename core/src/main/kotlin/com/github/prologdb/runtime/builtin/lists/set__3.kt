@@ -23,7 +23,7 @@ import com.github.prologdb.runtime.term.List as PrologList
  * is consulted; e.g. `set([1, 1, 2], X, ==)` would try to proof `=(1, 1)` to check
  * whether the two `1`s are equal.
  */
-val Set3Builtin = prologBuiltin("set", 3, { args, knowledgeBase, _ ->
+internal val Set3Builtin = prologBuiltin("set", 3, { args, knowledgeBase, _ ->
     val arg0 = args[0]
     val arg1 = args[1]
     val comparatorName = args[2] as? Atom ?: throw PrologRuntimeException("Type error: argument 3 to set/3 must be an atom")

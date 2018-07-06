@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.List as PrologList
 
-val BuiltinFindAll = prologBuiltin("findall", 3) { args, knowledgeBase, randomVarsScope ->
+internal val BuiltinFindAll = prologBuiltin("findall", 3) { args, knowledgeBase, randomVarsScope ->
     val templateInput = args[0]
     val goalInput = args[1]
     val solutionInput = args[2]
