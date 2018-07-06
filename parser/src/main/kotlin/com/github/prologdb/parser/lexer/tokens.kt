@@ -20,6 +20,8 @@ enum class Operator(val text: String) {
     PARENT_CLOSE(")"),
     BRACKET_OPEN("["),
     BRACKET_CLOSE("]"),
+    CURLY_OPEN("{"),
+    CURLY_CLOSE("}"),
     FULL_STOP("."),
     SEMICOLON(";"),
     COMMA(","),

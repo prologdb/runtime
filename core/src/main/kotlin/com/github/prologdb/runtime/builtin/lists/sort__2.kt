@@ -4,10 +4,9 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
 import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-
-import com.github.prologdb.runtime.term.List as PrologList
 
 internal val SortBuiltin = listOf<LibraryEntry>(
     prologBuiltin("sort", 2, { args, _, _ ->

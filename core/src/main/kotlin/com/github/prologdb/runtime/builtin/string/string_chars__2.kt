@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.List
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -16,14 +16,14 @@ internal val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _, _ 
     val inputA = args[0]
     val inputB = args[1]
 
-    fun convertInputAToListOfCharacters(): List {
+    fun convertInputAToListOfCharacters(): PrologList {
         if (inputA !is PrologString) throw PrologRuntimeException("Type Error: expected string as first argument to string_chars/2, got ${inputA.prologTypeName}")
-        return List(inputA.characters.map { Atom(it.toString()) })
+        return PrologList(inputA.characters.map { Atom(it.toString()) })
     }
 
     fun convertInputBToPrologString(): PrologString {
         // single-character atoms to string
-        if (inputB !is List) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got ${inputB.prologTypeName}")
+        if (inputB !is PrologList) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got ${inputB.prologTypeName}")
         if (inputB.tail != null) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got compound")
 
         val stringCharsTarget = CharArray(inputB.elements.size)
@@ -46,7 +46,7 @@ internal val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _, _ 
         return@prologBuiltin LazySequence.ofNullable(referenceValueForB.unify(inputB))
     }
 
-    if (inputB is List) {
+    if (inputB is PrologList) {
         val referenceValueForA = convertInputBToPrologString()
         return@prologBuiltin LazySequence.ofNullable(referenceValueForA.unify(inputA))
     }

@@ -260,7 +260,7 @@ class PrologParser {
         }
     }
 
-    fun parseList(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<com.github.prologdb.runtime.term.List> {
+    fun parseList(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<com.github.prologdb.runtime.term.PrologList> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("list")))
 
         tokens.mark()

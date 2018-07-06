@@ -16,6 +16,7 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.AnonymousVariable
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -28,7 +29,6 @@ import java.lang.invoke.MethodHandles
 import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.Paths
-import com.github.prologdb.runtime.term.List as PrologList
 
 
 /** runs the tests found in the *.test.pl files in the prolog tests directory */

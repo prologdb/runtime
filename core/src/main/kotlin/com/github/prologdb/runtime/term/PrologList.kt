@@ -4,13 +4,13 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
-open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
+open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
 
     open val elements: kotlin.collections.List<Term>
     val tail: Variable?
 
     init {
-        if (givenTail is List) {
+        if (givenTail is PrologList) {
             elements = givenElements + givenTail.elements
             tail = givenTail.tail
         }
@@ -26,7 +26,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
         if (rhs is Variable) {
             return rhs.unify(this)
         }
-        else if (rhs is List) {
+        else if (rhs is PrologList) {
             if (rhs.elements.size > this.elements.size) {
                 return rhs.unify(this, randomVarsScope)
             }
@@ -46,7 +46,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
                     try {
-                        return carryUnification.combinedWith(rhsTail.unify(List(this.elements.subList(index, elements.size), this.tail)))
+                        return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail)))
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
@@ -78,10 +78,10 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
                     tailUnification = this.tail.unify(rhs.tail, randomVarsScope)
                 }
                 else if (this.tail != null) {
-                    tailUnification = this.tail.unify(List(emptyList()))
+                    tailUnification = this.tail.unify(PrologList(emptyList()))
                 }
                 else {
-                    tailUnification = rhs.tail!!.unify(List(emptyList()))
+                    tailUnification = rhs.tail!!.unify(PrologList(emptyList()))
                 }
 
                 try {
@@ -109,8 +109,8 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
             return elements
         }
 
-    override fun substituteVariables(mapper: (Variable) -> Term): List {
-        return List(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
+    override fun substituteVariables(mapper: (Variable) -> Term): PrologList {
+        return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
     }
 
     override fun toString(): String {
@@ -127,7 +127,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
             return 1
         }
 
-        if (other is List) {
+        if (other is PrologList) {
             // arity equal and functor name are equal, sort by elements
             if (this.elements.isEmpty() && other.elements.isEmpty()) {
                 return 0
@@ -153,7 +153,7 @@ open class List(givenElements: kotlin.collections.List<Term>, givenTail: Term? =
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is List) return false
+        if (other !is PrologList) return false
 
         if (elements != other.elements) return false
         if (tail != other.tail) return false

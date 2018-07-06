@@ -5,9 +5,9 @@ import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.lazysequence.mapRemaining
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.term.List as PrologList
 
 /**
  * findall/3 always finds all solutions and then unifies a list of those with the input. This

@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.Predicate
-import com.github.prologdb.runtime.term.List as PrologList
+import com.github.prologdb.runtime.term.PrologList
 
 /**
  * Implements the append/3 builtin:

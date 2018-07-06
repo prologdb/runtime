@@ -5,7 +5,6 @@ import com.github.prologdb.runtime.knowledge.library.DoublyIndexedLibraryEntrySt
 import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.knowledge.library.SimpleLibrary
 import com.github.prologdb.runtime.term.Integer as PrologInteger
-import com.github.prologdb.runtime.term.List as PrologList
 
 val StringsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
     init {

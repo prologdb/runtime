@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.Predicate
-import com.github.prologdb.runtime.term.List as PrologList
+import com.github.prologdb.runtime.term.PrologList
 
 /**
  * Implements the builtin member/2, see http://www.swi-prolog.org/pldoc/man?predicate=member/2

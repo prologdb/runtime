@@ -3,7 +3,6 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.ImmutableSubList
 import kotlin.math.min
 import com.github.prologdb.runtime.term.Integer as PrologInteger
-import com.github.prologdb.runtime.term.List as PrologList
 
 /**
  * An implementation of String (similar to Java) that is prolog affine.

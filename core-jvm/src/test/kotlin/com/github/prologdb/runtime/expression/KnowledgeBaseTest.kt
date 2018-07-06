@@ -8,7 +8,6 @@ import com.github.prologdb.runtime.shouldNotProve
 import com.github.prologdb.runtime.shouldProve
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.*
-import com.github.prologdb.runtime.term.List
 import io.kotlintest.specs.FreeSpec
 
 class KnowledgeBaseTest : FreeSpec() {init {
@@ -164,34 +163,34 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
 
         // append([],L,L).
-        kb.assert(app(List(emptyList()),L,L))
+        kb.assert(app(PrologList(emptyList()),L,L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.defineRule(Rule(app(List(listOf(H),T),L2,List(listOf(H),L3)), PredicateQuery(app(T,L2,L3))))
+        kb.defineRule(Rule(app(PrologList(listOf(H),T),L2, PrologList(listOf(H),L3)), PredicateQuery(app(T,L2,L3))))
 
         "simple append" {
-            kb shouldProve app(List(listOf(a, b)),List(listOf(c,d)),R) suchThat {
+            kb shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c,d)),R) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("R = [a,b,c,d]") {
-                    it.variableValues[R] == List(listOf(a,b,c,d))
+                    it.variableValues[R] == PrologList(listOf(a,b,c,d))
                 }
             }
         }
 
         "what needs to be appended?" {
-            kb shouldProve app(List(listOf(a, b)), L, List(listOf(a, b, c, d))) suchThat {
+            kb shouldProve app(PrologList(listOf(a, b)), L, PrologList(listOf(a, b, c, d))) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("L = [c, d]") {
-                    it.variableValues[L] == List(listOf(c, d))
+                    it.variableValues[L] == PrologList(listOf(c, d))
                 }
             }
         }
 
         "what needs to be prepended?" {
-            kb shouldProve app(L, List(listOf(c, d)), List(listOf(a, b, c, d))) suchThat {
+            kb shouldProve app(L, PrologList(listOf(c, d)), PrologList(listOf(a, b, c, d))) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("L = [a, b]") {
-                    it.variableValues[L] == List(listOf(a, b))
+                    it.variableValues[L] == PrologList(listOf(a, b))
                 }
             }
         }
@@ -200,25 +199,25 @@ class KnowledgeBaseTest : FreeSpec() {init {
             val A = Variable("A")
             val B = Variable("B")
 
-            kb shouldProve app(A, B, List(listOf(a, b))) suchThat {
+            kb shouldProve app(A, B, PrologList(listOf(a, b))) suchThat {
                 itHasExactlyNSolutions(3)
 
                 itHasASolutionSuchThat("A = [], B = [a, b]") {
-                    it.variableValues[A] == List(emptyList())
+                    it.variableValues[A] == PrologList(emptyList())
                     &&
-                    it.variableValues[B] == List(listOf(a, b))
+                    it.variableValues[B] == PrologList(listOf(a, b))
                 }
 
                 itHasASolutionSuchThat("A = [a], B = [b]") {
-                    it.variableValues[A] == List(listOf(a))
+                    it.variableValues[A] == PrologList(listOf(a))
                     &&
-                    it.variableValues[B] == List(listOf(b))
+                    it.variableValues[B] == PrologList(listOf(b))
                 }
 
                 itHasASolutionSuchThat("A = [a, b], B = []") {
-                    it.variableValues[A] == List(listOf(a, b))
+                    it.variableValues[A] == PrologList(listOf(a, b))
                     &&
-                    it.variableValues[B] == List(emptyList())
+                    it.variableValues[B] == PrologList(emptyList())
                 }
             }
         }
@@ -234,12 +233,12 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val v = Atom("v")
 
         val kb = DefaultKnowledgeBase()
-        kb.assert(a(List(listOf(H), T), List(listOf(H), T)))
+        kb.assert(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
 
-        kb shouldProve a(X, List(listOf(u, v))) suchThat {
+        kb shouldProve a(X, PrologList(listOf(u, v))) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = [u,v]") {
-                val valX = it.variableValues[X] as List
+                val valX = it.variableValues[X] as PrologList
 
                 valX.elements[0] == u
                 &&

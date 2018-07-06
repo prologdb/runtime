@@ -9,7 +9,6 @@ import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.term.Integer as PrologInteger
-import com.github.prologdb.runtime.term.List as PrologList
 import com.github.prologdb.runtime.term.Number as PrologNumber
 
 val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {

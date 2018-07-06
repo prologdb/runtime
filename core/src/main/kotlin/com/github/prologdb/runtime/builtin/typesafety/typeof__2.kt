@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.List
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -21,7 +21,7 @@ val TypeofBuiltin = prologBuiltin("typeof", 2, { args, _, _ ->
 
         // typecheck; "abc" typeof list should also be true
         val correct =
-            (arg0 is List && arg1.name == "list")
+            (arg0 is PrologList && arg1.name == "list")
                 ||
                 (arg0 is PrologString && arg1.name == "string")
                 ||
