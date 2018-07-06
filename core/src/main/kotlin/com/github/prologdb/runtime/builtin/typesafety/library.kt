@@ -8,7 +8,6 @@ import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.term.Integer as PrologInteger
 
 val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
 
@@ -17,7 +16,7 @@ val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEnt
         add(typeCheckBuiltin("atom") { it is Atom })
 
         add(typeCheckBuiltin("integer") { it is PrologInteger })
-        add(typeCheckBuiltin("decimal") { it is Decimal })
+        add(typeCheckBuiltin("decimal") { it is PrologDecimal })
         add(typeCheckBuiltin("number") { it is PrologNumber })
 
         add(typeCheckBuiltin("string") { it is PrologString })

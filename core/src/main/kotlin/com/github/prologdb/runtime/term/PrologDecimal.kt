@@ -6,56 +6,56 @@ import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-open class Decimal(val value: Double) : PrologNumber {
+open class PrologDecimal(val value: Double) : PrologNumber {
 
     override val isInteger = true
 
     override fun plus(other: PrologNumber) =
         when(other) {
-            is Decimal -> Decimal(value + other.value)
-            is Integer -> Decimal(value + other.value.toDouble())
+            is PrologDecimal -> PrologDecimal(value + other.value)
+            is PrologInteger -> PrologDecimal(value + other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun minus(other: PrologNumber) =
         when(other) {
-            is Decimal -> Decimal(value - other.value)
-            is Integer -> Decimal(value - other.value.toDouble())
+            is PrologDecimal -> PrologDecimal(value - other.value)
+            is PrologInteger -> PrologDecimal(value - other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun times(other: PrologNumber) =
         when(other) {
-            is Decimal -> Decimal(value * other.value)
-            is Integer -> Decimal(value * other.value.toDouble())
+            is PrologDecimal -> PrologDecimal(value * other.value)
+            is PrologInteger -> PrologDecimal(value * other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun div(other: PrologNumber) =
         when(other) {
-            is Decimal -> Decimal(value / other.value)
-            is Integer -> Decimal(value / other.value.toDouble())
+            is PrologDecimal -> PrologDecimal(value / other.value)
+            is PrologInteger -> PrologDecimal(value / other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun rem(other: PrologNumber) =
         when(other) {
-            is Decimal -> Decimal(value % other.value)
-            is Integer -> Decimal(value % other.value.toDouble())
+            is PrologDecimal -> PrologDecimal(value % other.value)
+            is PrologInteger -> PrologDecimal(value % other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
-            is Decimal -> Decimal(this.value.pow(other.value))
-            is Integer -> Decimal(this.value.pow(other.value.toDouble()))
+            is PrologDecimal -> PrologDecimal(this.value.pow(other.value))
+            is PrologInteger -> PrologDecimal(this.value.pow(other.value.toDouble()))
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
     }
 
-    override fun unaryPlus(): PrologNumber = Decimal(+this.value)
+    override fun unaryPlus(): PrologNumber = PrologDecimal(+this.value)
 
-    override fun unaryMinus(): PrologNumber = Decimal(-this.value)
+    override fun unaryMinus(): PrologNumber = PrologDecimal(-this.value)
 
     override fun toInteger(): Long = value.roundToLong()
 
@@ -63,19 +63,19 @@ open class Decimal(val value: Double) : PrologNumber {
 
     override fun compareTo(other: PrologNumber) =
         when(other) {
-            is Integer -> this.value.compareTo(other.value)
-            is Decimal -> this.value.compareTo(other.value)
+            is PrologInteger -> this.value.compareTo(other.value)
+            is PrologDecimal -> this.value.compareTo(other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
-        if (rhs is Decimal) {
+        if (rhs is PrologDecimal) {
             if (rhs.value == value) {
                 return Unification.TRUE
             } else {
                 return Unification.FALSE
             }
-        } else if (rhs is Integer) {
+        } else if (rhs is PrologInteger) {
             if (rhs.value.toDouble() == value) {
                 return Unification.TRUE
             } else {
@@ -92,7 +92,7 @@ open class Decimal(val value: Double) : PrologNumber {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is Decimal) return false
+        if (other !is PrologDecimal) return false
 
         if (value != other.value) return false
 
@@ -110,11 +110,11 @@ open class Decimal(val value: Double) : PrologNumber {
             // as the author of this runtime, i deem this suboptimal.
             // this behaves identical to SWI prolog
 
-            is Decimal -> {
+            is PrologDecimal -> {
                 return this.value.compareTo(other.value)
             }
 
-            is Integer -> {
+            is PrologInteger -> {
                 // compare mixed as floating point
                 val integerAsDouble = other.toDecimal()
                 if (this.value == integerAsDouble) return -1 // if equal, the floating point is lesser

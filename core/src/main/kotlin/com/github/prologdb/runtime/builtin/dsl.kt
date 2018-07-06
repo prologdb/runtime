@@ -9,14 +9,7 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.AnonymousVariable
-import com.github.prologdb.runtime.term.Predicate
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologNumber
-import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.term.Decimal as PrologDecimal
-import com.github.prologdb.runtime.term.Integer as PrologInteger
+import com.github.prologdb.runtime.term.*
 
 /**
  * Creates a new [Predicate] with [this] as the name and the

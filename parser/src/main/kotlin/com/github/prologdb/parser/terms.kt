@@ -13,8 +13,6 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import com.github.prologdb.runtime.term.Decimal as PrologDecimal
-import com.github.prologdb.runtime.term.Integer as PrologInteger
 
 interface ParsedTerm : Term {
     val location: SourceLocationRange

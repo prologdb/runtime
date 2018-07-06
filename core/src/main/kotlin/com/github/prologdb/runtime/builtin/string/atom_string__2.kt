@@ -3,12 +3,8 @@ package com.github.prologdb.runtime.builtin.string
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.PrologString
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.term.Decimal as PrologDecimal
-import com.github.prologdb.runtime.term.Integer as PrologInteger
 
 internal val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, _, randomVarsScope ->
     val inputForA = args[0]

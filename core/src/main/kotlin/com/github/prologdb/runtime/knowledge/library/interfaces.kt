@@ -17,7 +17,7 @@ interface PredicatePrototype {
     val arity: Int
 
     /** The prolog-idiomatic representation of this prototype, e.g. for `name=foobar, arity=2` returns `'/'(foobar, 2)` */
-    fun asIdiomatic(): Predicate = object : Predicate("/", arrayOf(Atom(name), com.github.prologdb.runtime.term.Integer(arity.toLong()))) {
+    fun asIdiomatic(): Predicate = object : Predicate("/", arrayOf(Atom(name), com.github.prologdb.runtime.term.PrologInteger(arity.toLong()))) {
         override fun toString(): String = "${this@PredicatePrototype.name}/${this@PredicatePrototype.arity}"
     }
 }

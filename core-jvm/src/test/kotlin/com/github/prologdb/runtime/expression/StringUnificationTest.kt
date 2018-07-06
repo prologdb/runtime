@@ -3,11 +3,11 @@ package com.github.prologdb.runtime.expression
 import com.github.prologdb.runtime.shouldNotUnifyWith
 import com.github.prologdb.runtime.shouldUnifyWith
 import com.github.prologdb.runtime.suchThat
+import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.specs.FreeSpec
-import com.github.prologdb.runtime.term.Integer as PrologInteger
 
 class StringUnificationTest : FreeSpec() { init {
     "equality" {
