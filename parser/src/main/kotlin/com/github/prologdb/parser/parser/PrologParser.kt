@@ -140,6 +140,7 @@ class PrologParser {
         val parsers = listOf<(TransactionalSequence<Token>, OperatorRegistry) -> ParseResult<Term>>(
             this::parseParenthesised,
             this::parseList,
+            this::parseDictionary,
             this::parsePredicateWithInvocationSyntax,
             { ts, _ -> parseAtomicOrVariable(ts) }
         )
@@ -339,6 +340,10 @@ class PrologParser {
             MATCHED,
             reportings
         )
+    }
+
+    fun parseDictionary(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedDictionary> {
+        TODO("not implemented yet")
     }
 
     /**

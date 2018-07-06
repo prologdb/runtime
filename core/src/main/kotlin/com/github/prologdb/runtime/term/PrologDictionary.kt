@@ -3,9 +3,12 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 
-class PrologDictionary(val tag: Term?, val pairs: Map<String, Term>) : Term {
+open class PrologDictionary(givenTag: Term?, open val pairs: Map<String, Term>) : Term {
+
+    open val tag: Term? = givenTag
+
     init {
-        if (tag !is Atom? && tag !is Variable?) {
+        if (givenTag !is Atom? && givenTag !is Variable?) {
             throw IllegalArgumentException("The tag must be an atom or a variable")
         }
     }
@@ -19,12 +22,14 @@ class PrologDictionary(val tag: Term?, val pairs: Map<String, Term>) : Term {
             return Unification.FALSE
         }
 
-        if ((this.tag != null && rhs.tag == null) || (this.tag == null && rhs.tag != null)) {
+        val thisTag = this.tag // invoke overridden getter only once
+
+        if ((thisTag != null && rhs.tag == null) || (thisTag == null && rhs.tag != null)) {
             // tags cannot unify
             return Unification.FALSE
         }
 
-        val tagUnification = if (this.tag == null) Unification.TRUE else this.tag.unify(rhs.tag!!)
+        val tagUnification = if (thisTag == null) Unification.TRUE else thisTag.unify(rhs.tag!!)
         if (tagUnification == null) {
             return Unification.FALSE
         }
@@ -73,6 +78,7 @@ class PrologDictionary(val tag: Term?, val pairs: Map<String, Term>) : Term {
     override val variables: Set<Variable>
         get() {
             var variables = pairs.values.flatMap { it.variables }
+            val tag = this.tag // invoke override getter only once
             if (tag != null && tag is Variable) {
                 if (variables !is MutableList) variables = variables.toMutableList()
                 variables.add(tag)
