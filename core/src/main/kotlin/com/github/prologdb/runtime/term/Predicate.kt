@@ -82,7 +82,7 @@ open class Predicate(override val name: String, arguments: Array<out Term>) : Te
     }
 
     override fun compareTo(other: Term): Int {
-        if (other is Variable || other is Number || other is PrologString || other is Atom || other is PrologList) {
+        if (other is Variable || other is PrologNumber || other is PrologString || other is Atom || other is PrologList) {
             // these are by category lesser than compound terms
             return 1
         }

@@ -15,7 +15,6 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.term.Decimal as PrologDecimal
 import com.github.prologdb.runtime.term.Integer as PrologInteger
-import com.github.prologdb.runtime.term.Number as PrologNumber
 
 interface ParsedTerm : Term {
     val location: SourceLocationRange
@@ -51,7 +50,7 @@ class ParsedAnonymousVariable(override val location: SourceLocationRange) : Pars
     override fun equals(other: Any?): Boolean = AnonymousVariable.equals(other)
 }
 
-class ParsedNumber(
+class ParsedPrologNumber(
     private val delegate: PrologNumber,
     override val location: SourceLocationRange
 ) : ParsedTerm, PrologNumber {

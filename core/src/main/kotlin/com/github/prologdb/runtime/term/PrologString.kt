@@ -105,7 +105,7 @@ open class PrologString private constructor(
     override fun compareTo(other: Term): Int {
         when(other) {
             // variables and numbers are, by category, lesser than strings
-            is Variable, is Number -> return 1
+            is Variable, is PrologNumber -> return 1
 
             // lexicographical order
             is PrologString -> {

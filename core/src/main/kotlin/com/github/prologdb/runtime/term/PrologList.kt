@@ -122,7 +122,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
     }
 
     override fun compareTo(other: Term): Int {
-        if (other is Variable || other is Number || other is PrologString || other is Atom) {
+        if (other is Variable || other is PrologNumber || other is PrologString || other is Atom) {
             // these are by category lesser than compound terms
             return 1
         }

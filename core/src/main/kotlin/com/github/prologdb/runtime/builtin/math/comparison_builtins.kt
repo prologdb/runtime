@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.unification.Unification
 internal val BuiltinGreaterThan = prologBuiltin(">", 2) { args, _, _ ->
     return@prologBuiltin LazySequence.ofNullable(
         Unification.whether(
-            args[0].asNumber > args[1].asNumber
+            args[0].asPrologNumber > args[1].asPrologNumber
         )
     )
 }
@@ -15,7 +15,7 @@ internal val BuiltinGreaterThan = prologBuiltin(">", 2) { args, _, _ ->
 internal val BuiltinGreaterThanOrEqual = prologBuiltin(">=", 2) { args, _, _ ->
     return@prologBuiltin LazySequence.ofNullable(
         Unification.whether(
-            args[0].asNumber >= args[1].asNumber
+            args[0].asPrologNumber >= args[1].asPrologNumber
         )
     )
 }
@@ -23,7 +23,7 @@ internal val BuiltinGreaterThanOrEqual = prologBuiltin(">=", 2) { args, _, _ ->
 internal val BuiltinLessThan = prologBuiltin("<", 2) { args, _, _ ->
     return@prologBuiltin LazySequence.ofNullable(
         Unification.whether(
-            args[0].asNumber < args[1].asNumber
+            args[0].asPrologNumber < args[1].asPrologNumber
         )
     )
 }
@@ -31,7 +31,7 @@ internal val BuiltinLessThan = prologBuiltin("<", 2) { args, _, _ ->
 internal val BuiltinLessThanOrEqual = prologBuiltin("=<", 2) { args, _, _ ->
     return@prologBuiltin LazySequence.ofNullable(
         Unification.whether(
-            args[0].asNumber <= args[1].asNumber
+            args[0].asPrologNumber <= args[1].asPrologNumber
         )
     )
 }

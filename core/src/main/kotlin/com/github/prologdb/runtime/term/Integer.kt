@@ -5,46 +5,46 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 
-open class Integer(val value: Long) : Number {
+open class Integer(val value: Long) : PrologNumber {
 
     override val isInteger = true
 
-    override fun plus(other: Number) =
+    override fun plus(other: PrologNumber) =
         when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value + other.value)
             is Decimal -> Decimal(this.value.toDouble() + other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun minus(other: Number) =
+    override fun minus(other: PrologNumber) =
         when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value - other.value)
             is Decimal -> Decimal(this.value.toDouble() - other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun times(other: Number) =
+    override fun times(other: PrologNumber) =
         when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value * other.value)
             is Decimal -> Decimal(this.value.toDouble() * other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun div(other: Number) =
+    override fun div(other: PrologNumber) =
         when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value / other.value)
             is Decimal -> Decimal(this.value.toDouble() / other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun rem(other: Number) =
+    override fun rem(other: PrologNumber) =
         when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value % other.value)
             is Decimal -> Decimal(this.value.toDouble() % other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun toThe(other: Number): Number {
+    override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
             is Integer -> Integer.createUsingStringOptimizerCache(this.value.toDouble().pow(other.value.toDouble()).toLong())
             is Decimal -> Decimal(this.value.toDouble().pow(other.value))
@@ -52,15 +52,15 @@ open class Integer(val value: Long) : Number {
         }
     }
 
-    override fun unaryPlus(): Number = Integer.createUsingStringOptimizerCache(+this.value)
+    override fun unaryPlus(): PrologNumber = Integer.createUsingStringOptimizerCache(+this.value)
 
-    override fun unaryMinus(): Number = Integer.createUsingStringOptimizerCache(-this.value)
+    override fun unaryMinus(): PrologNumber = Integer.createUsingStringOptimizerCache(-this.value)
 
     override fun toInteger(): Long = value
 
     override fun toDecimal(): Double = value.toDouble()
 
-    override fun compareTo(other: Number) =
+    override fun compareTo(other: PrologNumber) =
         when(other) {
             is Integer -> this.value.compareTo(other.value)
             is Decimal -> this.value.compareTo(other.value)

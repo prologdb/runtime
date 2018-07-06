@@ -2,13 +2,13 @@ package com.github.prologdb.runtime.builtin.math
 
 import com.github.prologdb.runtime.ArityMap
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.term.Number
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.PrologNumber
 
 /**
  * Takes an arithmetic predicate (e.g. +(1,2) or mod(23,4)) and returns the calculated value
  */
-typealias Calculator = (Predicate) -> Number
+typealias Calculator = (Predicate) -> PrologNumber
 
 /**
  * Keeps track of ways to evaluate mathematical predicates. This is global; registring a new calculator
@@ -45,35 +45,35 @@ object MathOperatorRegistry {
     /**
      * Evaluates the given predicate as an arithmetic expression.
      */
-    fun evaluate(predicate: Predicate): Number {
+    fun evaluate(predicate: Predicate): PrologNumber {
         val calculator = getCalculator(predicate.name, predicate.arity) ?: throw PrologRuntimeException("Arithmetic operator ${predicate.name}/${predicate.arity} is not defined")
         return calculator(predicate)
     }
 
-    fun registerOperator(operatorName: String, calculator: (Number) -> Number) {
+    fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {
         registerOperator(operatorName, 1..1, { predicate ->
             if (predicate.arity != 1 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${predicate.name}/${predicate.arity}")
-            calculator(predicate.arguments[0].asNumber)
+            calculator(predicate.arguments[0].asPrologNumber)
         })
     }
 
-    fun registerOperator(operatorName: String, calculator: (Number, Number) -> Number) {
+    fun registerOperator(operatorName: String, calculator: (PrologNumber, PrologNumber) -> PrologNumber) {
         registerOperator(operatorName, 2..2, { predicate ->
             if (predicate.arity != 2 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${predicate.name}/${predicate.arity}")
-            calculator(predicate.arguments[0].asNumber, predicate.arguments[1].asNumber)
+            calculator(predicate.arguments[0].asPrologNumber, predicate.arguments[1].asPrologNumber)
         })
     }
 
     init {
         // common binary operators
-        registerOperator("+", Number::plus)
-        registerOperator("-", Number::minus)
-        registerOperator("*", Number::times)
-        registerOperator("/", Number::div)
-        registerOperator("mod", Number::rem)
-        registerOperator("^", Number::toThe)
+        registerOperator("+", PrologNumber::plus)
+        registerOperator("-", PrologNumber::minus)
+        registerOperator("*", PrologNumber::times)
+        registerOperator("/", PrologNumber::div)
+        registerOperator("mod", PrologNumber::rem)
+        registerOperator("^", PrologNumber::toThe)
 
-        registerOperator("+", Number::unaryPlus)
-        registerOperator("-", Number::unaryMinus)
+        registerOperator("+", PrologNumber::unaryPlus)
+        registerOperator("-", PrologNumber::unaryMinus)
     }
 }

@@ -27,7 +27,7 @@ open class Atom(val name: String) : Term {
     override fun compareTo(other: Term): Int {
         return when (other) {
             // variables, numbers and strings are, by category, lesser than atoms
-            is Variable, is Number, is PrologString -> 1
+            is Variable, is PrologNumber, is PrologString -> 1
 
             // lexicographical order
             is Atom -> this.name.compareTo(other.name)

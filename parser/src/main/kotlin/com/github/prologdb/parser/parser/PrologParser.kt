@@ -438,10 +438,10 @@ class PrologParser {
             val tokenNumber = token.number
 
             val number = when(tokenNumber) {
-                is Int -> ParsedNumber(PrologInteger(tokenNumber.toLong()), token.location)
-                is Long -> ParsedNumber(PrologInteger(tokenNumber), token.location)
-                is Float -> ParsedNumber(PrologDecimal(tokenNumber.toDouble()), token.location)
-                is Double -> ParsedNumber(PrologDecimal(tokenNumber), token.location)
+                is Int -> ParsedPrologNumber(PrologInteger(tokenNumber.toLong()), token.location)
+                is Long -> ParsedPrologNumber(PrologInteger(tokenNumber), token.location)
+                is Float -> ParsedPrologNumber(PrologDecimal(tokenNumber.toDouble()), token.location)
+                is Double -> ParsedPrologNumber(PrologDecimal(tokenNumber), token.location)
                 else -> throw InternalParserError("Unsupported number type in numeric literal token")
             }
 
@@ -504,12 +504,12 @@ class PrologParser {
         fun handleOperator(definition: ParsedPredicate) {
             val opPredicate = definition.arguments[0] as? ParsedPredicate ?: throw InternalParserError("IllegalArgument")
             val priorityArgument = opPredicate.arguments[0]
-            if (priorityArgument !is com.github.prologdb.runtime.term.Number || !priorityArgument.isInteger) {
+            if (priorityArgument !is com.github.prologdb.runtime.term.PrologNumber || !priorityArgument.isInteger) {
                 reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
                 return
             }
 
-            val precedenceAsLong = (priorityArgument as com.github.prologdb.runtime.term.Number).toInteger()
+            val precedenceAsLong = (priorityArgument as com.github.prologdb.runtime.term.PrologNumber).toInteger()
             if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
                 reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opPredicate.arguments[0].location))
                 return

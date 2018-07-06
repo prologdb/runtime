@@ -6,46 +6,46 @@ import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-open class Decimal(val value: Double) : Number {
+open class Decimal(val value: Double) : PrologNumber {
 
     override val isInteger = true
 
-    override fun plus(other: Number) =
+    override fun plus(other: PrologNumber) =
         when(other) {
             is Decimal -> Decimal(value + other.value)
             is Integer -> Decimal(value + other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun minus(other: Number) =
+    override fun minus(other: PrologNumber) =
         when(other) {
             is Decimal -> Decimal(value - other.value)
             is Integer -> Decimal(value - other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun times(other: Number) =
+    override fun times(other: PrologNumber) =
         when(other) {
             is Decimal -> Decimal(value * other.value)
             is Integer -> Decimal(value * other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun div(other: Number) =
+    override fun div(other: PrologNumber) =
         when(other) {
             is Decimal -> Decimal(value / other.value)
             is Integer -> Decimal(value / other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun rem(other: Number) =
+    override fun rem(other: PrologNumber) =
         when(other) {
             is Decimal -> Decimal(value % other.value)
             is Integer -> Decimal(value % other.value.toDouble())
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
-    override fun toThe(other: Number): Number {
+    override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
             is Decimal -> Decimal(this.value.pow(other.value))
             is Integer -> Decimal(this.value.pow(other.value.toDouble()))
@@ -53,15 +53,15 @@ open class Decimal(val value: Double) : Number {
         }
     }
 
-    override fun unaryPlus(): Number = Decimal(+this.value)
+    override fun unaryPlus(): PrologNumber = Decimal(+this.value)
 
-    override fun unaryMinus(): Number = Decimal(-this.value)
+    override fun unaryMinus(): PrologNumber = Decimal(-this.value)
 
     override fun toInteger(): Long = value.roundToLong()
 
     override fun toDecimal(): Double = value
 
-    override fun compareTo(other: Number) =
+    override fun compareTo(other: PrologNumber) =
         when(other) {
             is Integer -> this.value.compareTo(other.value)
             is Decimal -> this.value.compareTo(other.value)
