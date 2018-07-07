@@ -25,10 +25,7 @@ class AtomUnificationTest : FreeSpec() {init {
         val X = Variable("X")
 
         a shouldUnifyWith X suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("instantiates X to a") {
-                it.variableValues[X] == a
-            }
+             it.variableValues[X] == a
         }
     }
 
@@ -37,10 +34,7 @@ class AtomUnificationTest : FreeSpec() {init {
         val X = Variable("X")
 
         X shouldUnifyWith a suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("instantiates X to a") {
-                it.variableValues[X] == a
-            }
+            it.variableValues[X] == a
         }
     }
 }}

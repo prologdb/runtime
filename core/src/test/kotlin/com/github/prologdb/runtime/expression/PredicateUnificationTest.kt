@@ -19,7 +19,9 @@ class PredicateUnificationTest : FreeSpec(){init {
         val fact2 = Predicate("a", arrayOf(mockAtom2))
 
         // ASSERT
-        fact1 shouldUnifyWith fact2 suchThat { itHasExactlyOneSolution() }
+        fact1 shouldUnifyWith fact2 suchThat {
+            it.variableValues.isEmpty
+        }
     }
 
     "both equal, two arguments" {
@@ -33,7 +35,9 @@ class PredicateUnificationTest : FreeSpec(){init {
         val fact2 = Predicate("a", arrayOf(mockAtomA2, mockAtomB2))
 
         // ASSERT
-        fact1 shouldUnifyWith fact2 suchThat { itHasExactlyOneSolution() }
+        fact1 shouldUnifyWith fact2 suchThat {
+            it.variableValues.isEmpty
+        }
     }
 
     "different argument indexes" {
@@ -106,10 +110,7 @@ class PredicateUnificationTest : FreeSpec(){init {
         val X = Variable("X")
 
         f(a) shouldUnifyWith f(X) suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("X is instantiated to a") {
-                it.variableValues[X] == a
-            }
+            it.variableValues[X] == a
         }
     }
 
@@ -120,9 +121,7 @@ class PredicateUnificationTest : FreeSpec(){init {
         val B = Variable("B")
 
         g(X, X) shouldUnifyWith g(A, B) suchThat {
-            itHasASolutionSuchThat("A = B") {
-                it.variableValues[A] == B
-            }
+            it.variableValues[A] == B
         }
     }
 
@@ -151,12 +150,9 @@ class PredicateUnificationTest : FreeSpec(){init {
         val rhs = k(X, t(w))
 
         lhs shouldUnifyWith rhs suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("X = s(g), Y = t(w)") {
-                it.variableValues[X] == s(g)
-                &&
-                it.variableValues[Y] == t(w)
-            }
+            it.variableValues[X] == s(g)
+            &&
+            it.variableValues[Y] == t(w)
         }
     }
 }}

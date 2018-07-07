@@ -8,15 +8,24 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
+typealias UnificationGenerator = () -> Unification
 typealias UnificationSequenceGenerator = () -> LazySequence<Unification>
 
-infix fun Term.shouldUnifyWith(rhs: Term): UnificationSequenceGenerator {
+infix fun Term.shouldUnifyWith(rhs: Term): UnificationGenerator {
     val unification: Unification = this.unify(rhs) ?: throw AssertionError("$this should unify with $rhs but does not")
-    return { LazySequence.of(unification) }
+    return { unification }
 }
 
+@JvmName("suchThatMany")
 infix fun UnificationSequenceGenerator.suchThat(asserter: UnificationSequenceAssertionReceiver.() -> Unit) {
     UnificationSequenceAssertionReceiver(this).asserter()
+}
+
+@JvmName("suchThatSingle")
+infix fun UnificationGenerator.suchThat(asserter: (Unification) -> Boolean) {
+    if (!asserter(this())) {
+        throw AssertionError()
+    }
 }
 
 class UnificationSequenceAssertionReceiver(private val generator: UnificationSequenceGenerator) {

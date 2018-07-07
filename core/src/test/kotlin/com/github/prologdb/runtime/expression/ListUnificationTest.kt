@@ -29,43 +29,31 @@ class ListUnificationTest : FreeSpec() {init {
 
     "[a] = [X]" {
         PrologList(listOf(a)) shouldUnifyWith PrologList(listOf(X)) suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("X = a") {
-                it.variableValues[X] == a
-            }
+            it.variableValues[X] == a
         }
     }
 
     "[H|T] = [a]" {
         PrologList(listOf(H), T) shouldUnifyWith PrologList(listOf(a)) suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("H = a, T = []") {
-                it.variableValues[H] == a
-                &&
-                it.variableValues[T] == PrologList(emptyList())
-            }
+            it.variableValues[H] == a
+            &&
+            it.variableValues[T] == PrologList(emptyList())
         }
     }
 
     "[a] = [H|T]" {
         PrologList(listOf(a)) shouldUnifyWith PrologList(listOf(H), T) suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("H = a, T = []") {
-                it.variableValues[H] == a
-                &&
-                it.variableValues[T] == PrologList(emptyList())
-            }
+            it.variableValues[H] == a
+            &&
+            it.variableValues[T] == PrologList(emptyList())
         }
     }
 
     "[H|T] = [a,b]" {
         PrologList(listOf(H), T) shouldUnifyWith PrologList(listOf(a,b)) suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("H = a, T = [b]") {
-                it.variableValues[H] == a
-                &&
-                it.variableValues[T] == PrologList(listOf(b))
-            }
+            it.variableValues[H] == a
+            &&
+            it.variableValues[T] == PrologList(listOf(b))
         }
     }
 

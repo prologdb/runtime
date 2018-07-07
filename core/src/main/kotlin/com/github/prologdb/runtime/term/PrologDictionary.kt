@@ -2,14 +2,33 @@ package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
-open class PrologDictionary(givenTag: Term?, open val pairs: Map<Atom, Term>) : Term {
+open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : Term {
 
-    open val tag: Term? = givenTag
+    val tail: Variable?
+
+    open val pairs: Map<Atom, Term>
 
     init {
-        if (givenTag !is Atom? && givenTag !is Variable?) {
-            throw IllegalArgumentException("The tag must be an atom or a variable")
+        if (givenTail !is Variable? && givenTail !is PrologDictionary?) {
+            throw IllegalArgumentException("The tail must be a dict, variable or absent")
+        }
+
+        if (givenTail is PrologDictionary) {
+            val combinedPairs = givenPairs as? MutableMap ?: givenPairs.toMutableMap()
+            var pivot: Variable? = givenTail as Variable?
+            while (pivot is PrologDictionary) {
+                pivot.pairs.forEach { combinedPairs[it.key] = it.value }
+                pivot = pivot.tail
+            }
+
+            pairs = combinedPairs
+            tail = pivot
+        }
+        else {
+            pairs = givenPairs
+            tail = givenTail as Variable?
         }
     }
 
@@ -18,77 +37,81 @@ open class PrologDictionary(givenTag: Term?, open val pairs: Map<Atom, Term>) : 
 
         if (rhs !is PrologDictionary) return Unification.FALSE
 
-        if (this.pairs.size != rhs.pairs.size) {
-            return Unification.FALSE
-        }
+        val carryUnification = Unification()
+        val commonKeys = this.pairs.keys.intersect(rhs.pairs.keys)
 
-        val thisTag = this.tag // invoke overridden getter only once
-
-        if ((thisTag != null && rhs.tag == null) || (thisTag == null && rhs.tag != null)) {
-            // tags cannot unify
-            return Unification.FALSE
-        }
-
-        val tagUnification = if (thisTag == null) Unification.TRUE else thisTag.unify(rhs.tag!!)
-        if (tagUnification == null) {
-            return Unification.FALSE
-        }
-
-        if (pairs.isEmpty()) {
-            return tagUnification
-        }
-
-        val vars = tagUnification.variableValues
-        for (pair in pairs) {
-            val rhsValue = rhs.pairs[pair.key]?.substituteVariables(vars.asSubstitutionMapper())
-            if (rhsValue == null) {
-                // rhs has no value for this key, cannot possibly unify
+        if (this.pairs.size > commonKeys.size) {
+            // LHS has more pairs than are common; those will have to go into RHSs tail
+            if (rhs.tail == null) {
+                // impossible => no unification
                 return Unification.FALSE
             }
-
-            val lhsValue = pair.value.substituteVariables(vars.asSubstitutionMapper())
-            val pairUnification = lhsValue.unify(rhsValue, randomVarsScope)
-
-            if (pairUnification == null) {
-                // the values for the keys do not unify => the dicts don't unify
-                return Unification.FALSE
-            }
-
-            for ((variable, value) in pairUnification.variableValues.values) {
-                if (value != null) {
-                    // substitute all instantiated variables for simplicity and performance
-                    val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
-                    if (vars.isInstantiated(variable)) {
-                        if (vars[variable] != substitutedValue && vars[variable] != value) {
-                            // instantiated to different value => no unification
-                            return Unification.FALSE
-                        }
-                    }
-                    else {
-                        vars.instantiate(variable, substitutedValue)
-                    }
+            else {
+                val subDict = PrologDictionary(pairs.filterKeys { it !in commonKeys })
+                try {
+                    carryUnification.variableValues.incorporate(
+                        rhs.tail.unify(subDict).variableValues
+                    )
+                }
+                catch (ex: VariableDiscrepancyException) {
+                    return Unification.FALSE
                 }
             }
         }
 
-        // we made it through all arguments without issues => great
-        return Unification(vars)
-    }
-
-    override val variables: Set<Variable>
-        get() {
-            var variables = pairs.values.flatMap { it.variables }
-            val tag = this.tag // invoke override getter only once
-            if (tag != null && tag is Variable) {
-                if (variables !is MutableList) variables = variables.toMutableList()
-                variables.add(tag)
+        if (rhs.pairs.size > commonKeys.size) {
+            // RHS has more pairs than are common; those will have to go into this' tail
+            if (this.tail == null) {
+                // impossible => no unification
+                return Unification.FALSE
             }
-
-            return variables.toSet()
+            else {
+                val subDict = PrologDictionary(rhs.pairs.filterKeys { it !in commonKeys })
+                try {
+                    carryUnification.variableValues.incorporate(
+                        this.tail.unify(subDict).variableValues
+                    )
+                }
+                catch (ex: VariableDiscrepancyException) {
+                    return Unification.FALSE
+                }
+            }
         }
 
+        for (commonKey in commonKeys) {
+            val thisValue = this.pairs[commonKey]!!
+            val rhsValue = rhs.pairs[commonKey]!!
+            val keyUnification = thisValue.unify(rhsValue)
+
+            if (keyUnification == null) {
+                // common key did not unify => we're done
+                return Unification.FALSE
+            }
+
+            try
+            {
+                carryUnification.variableValues.incorporate(keyUnification.variableValues)
+            } catch (ex: VariableDiscrepancyException) {
+                return Unification.FALSE
+            }
+        }
+
+        return carryUnification
+    }
+
+    override val variables: Set<Variable> = {
+            var variables = pairs.values.flatMap { it.variables }
+            val tail = this.tail // invoke override getter only once
+            if (tail != null) {
+                if (variables !is MutableList) variables = variables.toMutableList()
+                variables.add(tail)
+            }
+
+            variables.toSet()
+        }()
+
     override fun substituteVariables(mapper: (Variable) -> Term): Term
-        = PrologDictionary(tag, pairs.mapValues { it.value.substituteVariables(mapper) })
+        = PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
 
     override val prologTypeName = "dict"
 
@@ -102,31 +125,33 @@ open class PrologDictionary(givenTag: Term?, open val pairs: Map<Atom, Term>) : 
         return 0
     }
 
+    override fun toString(): String {
+        var str = pairs.entries
+            .joinToString(
+                separator = ", ",
+                transform = { it.key.toString() + ": " + it.value.toString() }
+            )
+
+        if (tail != null) {
+            str += "|$tail"
+        }
+
+        return "{$str}"
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (other !is PrologDictionary) return false
 
-        other as PrologDictionary
-
+        if (tail != other.tail) return false
         if (pairs != other.pairs) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        return pairs.hashCode()
-    }
-
-    override fun toString(): String {
-        var str = tag?.toString() ?: ""
-        str += pairs.entries
-            .joinToString(
-                prefix = "{",
-                separator = ", ",
-                postfix = "}",
-                transform = { it.key.toString() + ": " + it.value.toString() }
-            )
-
-        return str
+        var result = tail?.hashCode() ?: 0
+        result = 31 * result + pairs.hashCode()
+        return result
     }
 }
