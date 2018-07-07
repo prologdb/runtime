@@ -50,27 +50,31 @@ class VariableBucket private constructor(
         return variableMap[variable] != null
     }
 
-    fun combinedWith(other: VariableBucket): VariableBucket {
-        val copy = copy()
-        for ((variableName, othersValue) in other.variableMap) {
-            if (variableName !in copy.variableMap) {
-                copy.variableMap[variableName] = othersValue
-            }
-            else {
-                val thisValue = copy.variableMap[variableName]
-                if (thisValue != null && othersValue != null) {
-                    if (thisValue != othersValue) {
-                        // same variable instantiated to different value
-                        throw VariableDiscrepancyException("Cannot combine: variable $variableName is instantiated to unequal values: ${thisValue} and ${othersValue}")
-                    }
+    /**
+     * Copies all instantiations from the given variable bucket to this one
+     * @throws VariableDiscrepancyException if the same variable is instantiated to different values in `this` and
+     *                                      in `variables`
+     */
+    fun incorporate(variables: VariableBucket) {
+        for ((variable, value) in variables.values) {
+            if (variable in variableMap) {
+                val thisValue = variableMap[variable]
+                if (thisValue != null && thisValue != value) {
+                    throw VariableDiscrepancyException("Cannot combine: variable $variable is instantiated to unequal values: ${value} and ${thisValue}")
                 }
-                else if (othersValue != null) {
-                    // this does not have an instantiation, but others does => fine
-                    copy.variableMap[variableName] = othersValue
-                }
-                // else: no need to act
             }
         }
+
+        for ((variable, value) in variables.values) {
+            if (value != null) {
+                instantiate(variable, value)
+            }
+        }
+    }
+
+    fun combineWith(other: VariableBucket): VariableBucket {
+        val copy = copy()
+        copy.incorporate(other)
 
         return copy
     }
