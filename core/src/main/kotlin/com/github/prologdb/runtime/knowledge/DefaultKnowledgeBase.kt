@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.builtin.ComparisonLibrary
 import com.github.prologdb.runtime.builtin.EqualityLibrary
+import com.github.prologdb.runtime.builtin.dict.DictLibrary
 import com.github.prologdb.runtime.builtin.dynamic.DynamicsLibrary
 import com.github.prologdb.runtime.builtin.lists.ListsLibrary
 import com.github.prologdb.runtime.builtin.math.MathLibrary
@@ -27,6 +28,7 @@ class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
         load(MathLibrary)
         load(StringsLibrary)
         load(ListsLibrary)
+        load(DictLibrary)
         load(DynamicsLibrary)
     }
 
