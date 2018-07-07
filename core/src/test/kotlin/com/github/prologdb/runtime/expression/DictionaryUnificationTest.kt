@@ -9,106 +9,247 @@ import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.specs.FreeSpec
 
 class DictionaryUnificationTest : FreeSpec() { init {
-    "empty, no tag" {
-        val a = PrologDictionary(null, emptyMap())
-        val b = PrologDictionary(null, emptyMap())
+    "empty" {
+        val a = PrologDictionary(emptyMap())
+        val b = PrologDictionary(emptyMap())
 
         a shouldUnifyWith b suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("no instantiations") { it.variableValues.isEmpty }
+            it.variableValues.isEmpty
         }
     }
 
-    "empty, with equal tag" {
-        val a = PrologDictionary(Atom("a"), emptyMap())
-        val b = PrologDictionary(Atom("a"), emptyMap())
-
-        a shouldUnifyWith b suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("no instantiations") { it.variableValues.isEmpty }
-        }
-    }
-
-    "empty, with different tags" {
-        val a = PrologDictionary(Atom("a"), emptyMap())
-        val b = PrologDictionary(Atom("b"), emptyMap())
-
-        a shouldNotUnifyWith b
-    }
-
-    "empty, one with variable tag, other with atom tag" {
-        val B = Variable("B")
+    "both without tail, matching keys and values" {
         val a = Atom("a")
-        val dA = PrologDictionary(a, emptyMap())
-        val dB = PrologDictionary(B, emptyMap())
+        val dA = PrologDictionary(mapOf(a to a))
+        val dB = PrologDictionary(mapOf(a to a))
 
         dA shouldUnifyWith dB suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("B = a") {
-                it.variableValues[B] == a
-            }
+            it.variableValues.isEmpty
         }
     }
 
-    "empty, both with variable tag" {
-        val B = Variable("B")
-        val A = Variable("A")
-        val dA = PrologDictionary(A, emptyMap())
-        val dB = PrologDictionary(B, emptyMap())
-
-        dA shouldUnifyWith dB suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("B = A") {
-                if (it.variableValues.isInstantiated(B)) {
-                    it.variableValues[B] == B
-                } else {
-                    it.variableValues[A] == B
-                }
-            }
-        }
-    }
-
-    "with pairs, no tags - fails because of missing values" {
+    "both without tail, matching keys, discrepant values" {
         val a = Atom("a")
         val b = Atom("b")
-
-        val dA = PrologDictionary(null, mapOf(a to a))
-        val dB = PrologDictionary(null, mapOf(a to a, b to b))
+        val dA = PrologDictionary(mapOf(a to a))
+        val dB = PrologDictionary(mapOf(a to b))
 
         dA shouldNotUnifyWith dB
     }
 
-    "with pairs, no tags - succeeds" {
+    "both without tail, discrepant keys" {
         val a = Atom("a")
         val b = Atom("b")
-        val A = Variable("A")
-        val B = Variable("B")
+        val dA = PrologDictionary(mapOf(a to a))
+        val dB = PrologDictionary(mapOf(b to b))
 
-        val dA = PrologDictionary(null, mapOf(a to a, b to B))
-        val dB = PrologDictionary(null, mapOf(a to A, b to b))
+        dA shouldNotUnifyWith dB
+    }
 
-        dA shouldUnifyWith dB suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("A = a, B = b") {
-                it.variableValues[A] == a
-                &&
-                it.variableValues[B] == b
+    "only LHS with tail" - {
+        "rhs with extra keys" - {
+            "values for common keys match" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to a), T)
+                val dB = PrologDictionary(mapOf(a to a, b to b))
+
+                dA shouldUnifyWith dB suchThat {
+                    it.variableValues[T] == PrologDictionary(mapOf(b to b))
+                }
             }
+
+            "values for common keys discrepant" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to a), T)
+                val dB = PrologDictionary(mapOf(a to b, b to b))
+
+                dA shouldNotUnifyWith dB
+            }
+        }
+
+        "rhs with same keys" - {
+            "matching values" {
+                val a = Atom("a")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to a), T)
+                val dB = PrologDictionary(mapOf(a to a))
+
+                dA shouldUnifyWith dB suchThat {
+                    it.variableValues[T] == PrologDictionary.EMPTY
+                }
+            }
+
+            "discrepant values" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to a), T)
+                val dB = PrologDictionary(mapOf(a to b))
+
+                dA shouldNotUnifyWith dB
+            }
+        }
+
+        "rhs with fewer keys, values match for common keys" {
+            val a = Atom("a")
+            val b = Atom("b")
+            val T = Variable("T")
+            val dA = PrologDictionary(mapOf(a to a, b to b), T)
+            val dB = PrologDictionary(mapOf(a to a))
+
+            dA shouldNotUnifyWith dB
         }
     }
 
-    "with tag in pairs" {
-        val a = Atom("a")
-        val b = Atom("b")
-        val A = Variable("A")
+    // the same as "only LHS with tail", but inverted
+    "only RHS with tail" - {
+        "lhs with extra keys" - {
+            "values for common keys match" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to a, b to b))
+                val dB = PrologDictionary(mapOf(a to a), T)
 
-        val dA = PrologDictionary(a, mapOf(a to a, b to b))
-        val dB = PrologDictionary(A, mapOf(a to A, b to b))
+                dA shouldUnifyWith dB suchThat {
+                    it.variableValues[T] == PrologDictionary(mapOf(b to b))
+                }
+            }
 
-        dA shouldUnifyWith dB suchThat {
-            itHasExactlyOneSolution()
-            itHasASolutionSuchThat("A = a") {
-                it.variableValues[A] == a
+            "values for common keys discrepant" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to b, b to b))
+                val dB = PrologDictionary(mapOf(a to a), T)
+
+                dA shouldNotUnifyWith dB
+            }
+        }
+
+        "lhs with same keys" - {
+            "matching values" {
+                val a = Atom("a")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to a))
+                val dB = PrologDictionary(mapOf(a to a), T)
+
+                dA shouldUnifyWith dB suchThat {
+                    it.variableValues[T] == PrologDictionary.EMPTY
+                }
+            }
+
+            "discrepant values" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val T = Variable("T")
+                val dA = PrologDictionary(mapOf(a to b))
+                val dB = PrologDictionary(mapOf(a to a), T)
+
+                dA shouldNotUnifyWith dB
+            }
+        }
+
+        "lhs with fewer keys, values match for common keys" {
+            val a = Atom("a")
+            val b = Atom("b")
+            val T = Variable("T")
+            val dA = PrologDictionary(mapOf(a to a))
+            val dB = PrologDictionary(mapOf(a to a, b to b), T)
+
+            dA shouldNotUnifyWith dB
+        }
+    }
+
+    "both with tail" - {
+        "only common keys" - {
+            "values match" {
+                val a = Atom("a")
+                val TA = Variable("TA")
+                val TB = Variable("TB")
+                val dA = PrologDictionary(mapOf(a to a), TA)
+                val dB = PrologDictionary(mapOf(a to a), TB)
+
+                dA shouldUnifyWith dB suchThat {
+                    it.variableValues[TA] == PrologDictionary.EMPTY
+                    &&
+                    it.variableValues[TB] == PrologDictionary.EMPTY
+                }
+            }
+
+            "values discrepant" {
+                val a = Atom("a")
+                val b = Atom("b")
+                val TA = Variable("TA")
+                val TB = Variable("TB")
+                val dA = PrologDictionary(mapOf(a to a), TA)
+                val dB = PrologDictionary(mapOf(a to b), TB)
+
+                dA shouldNotUnifyWith dB
+            }
+        }
+
+        "LHS with extra keys" - {
+            "RHS only with common keys" - {
+                "values match" {
+                    val a = Atom("a")
+                    val b = Atom("b")
+                    val TA = Variable("TA")
+                    val TB = Variable("TB")
+                    val dA = PrologDictionary(mapOf(a to a, b to b), TA)
+                    val dB = PrologDictionary(mapOf(a to a), TB)
+
+                    dA shouldUnifyWith dB suchThat {
+                        it.variableValues[TB] == PrologDictionary(mapOf(b to b))
+                        &&
+                        it.variableValues[TA] == PrologDictionary.EMPTY
+                    }
+                }
+
+                "values discrepant" {
+                    val a = Atom("a")
+                    val b = Atom("b")
+                    val TA = Variable("TA")
+                    val TB = Variable("TB")
+                    val dA = PrologDictionary(mapOf(a to a, b to b), TA)
+                    val dB = PrologDictionary(mapOf(a to b), TB)
+
+                    dA shouldNotUnifyWith dB
+                }
+            }
+
+            "RHS with extra keys" - {
+                "values for common keys match" {
+                    val a = Atom("a")
+                    val b = Atom("b")
+                    val c = Atom("c")
+                    val TA = Variable("TA")
+                    val TB = Variable("TB")
+                    val dA = PrologDictionary(mapOf(a to a, b to b), TA)
+                    val dB = PrologDictionary(mapOf(a to a, c to c), TB)
+
+                    dA shouldUnifyWith dB suchThat {
+                        it.variableValues[TA] == PrologDictionary(mapOf(c to c))
+                        &&
+                        it.variableValues[TB] == PrologDictionary(mapOf(b to b))
+                    }
+                }
+
+                "values for common keys discrepant" {
+                    val a = Atom("a")
+                    val b = Atom("b")
+                    val c = Atom("c")
+                    val TA = Variable("TA")
+                    val TB = Variable("TB")
+                    val dA = PrologDictionary(mapOf(a to a, b to b), TA)
+                    val dB = PrologDictionary(mapOf(a to b, c to c), TB)
+
+                    dA shouldNotUnifyWith dB
+                }
             }
         }
     }

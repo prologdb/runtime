@@ -12,11 +12,3 @@ internal val IsDictBuiltin = prologBuiltin("is_dict", 1) { args, _, _ ->
         )
     )
 }
-
-internal val IsDictOfTagBuiltin = prologBuiltin("is_dict", 2) { args, _, _ ->
-    val arg0 = args[0] as? PrologDictionary ?: return@prologBuiltin Unification.NONE
-
-    return@prologBuiltin LazySequence.ofNullable(
-        arg0.tag?.unify(args[1])
-    )
-}

@@ -57,6 +57,15 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
                     return Unification.FALSE
                 }
             }
+        } else if (rhs.tail != null) {
+            try {
+                carryUnification.variableValues.incorporate(
+                    rhs.tail.unify(PrologDictionary.EMPTY).variableValues
+                )
+            }
+            catch (ex: VariableDiscrepancyException) {
+                return Unification.FALSE
+            }
         }
 
         if (rhs.pairs.size > commonKeys.size) {
@@ -75,6 +84,15 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
                 catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }
+            }
+        } else if (this.tail != null) {
+            try {
+                carryUnification.variableValues.incorporate(
+                    this.tail.unify(PrologDictionary.EMPTY).variableValues
+                )
+            }
+            catch (ex: VariableDiscrepancyException) {
+                return Unification.FALSE
             }
         }
 
@@ -153,5 +171,9 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
         var result = tail?.hashCode() ?: 0
         result = 31 * result + pairs.hashCode()
         return result
+    }
+
+    companion object {
+        val EMPTY = PrologDictionary(emptyMap())
     }
 }
