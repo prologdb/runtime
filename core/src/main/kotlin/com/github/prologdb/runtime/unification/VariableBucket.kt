@@ -72,7 +72,7 @@ class VariableBucket private constructor(
         }
     }
 
-    fun combineWith(other: VariableBucket): VariableBucket {
+    fun combinedWith(other: VariableBucket): VariableBucket {
         val copy = copy()
         copy.incorporate(other)
 
