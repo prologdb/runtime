@@ -367,7 +367,7 @@ class PrologParser {
 
         val firstLocation = tag?.location?.start ?: next.location.start
 
-        val pairs = mutableListOf<Triple<String, ParsedTerm, SourceLocationRange>>()
+        val pairs = mutableListOf<Triple<Atom, ParsedTerm, SourceLocationRange>>()
         val reportings = mutableSetOf<Reporting>()
         do {
             val nextPairResult = parseDictionaryPair(tokens, opRegistry)
@@ -486,7 +486,7 @@ class PrologParser {
         )
     }
 
-    fun parseDictionaryPair(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Triple<String, ParsedTerm, SourceLocationRange>> {
+    fun parseDictionaryPair(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Triple<Atom, ParsedTerm, SourceLocationRange>> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
 
         tokens.mark() // A
@@ -520,7 +520,7 @@ class PrologParser {
             tokens.commit() // A
             return ParseResult(
                 Triple(
-                    keyIdentifier.textContent,
+                    Atom(keyIdentifier.textContent),
                     pairValueResult.item!!,
                     firstLocation .. pairValueResult.item.location
                 ),

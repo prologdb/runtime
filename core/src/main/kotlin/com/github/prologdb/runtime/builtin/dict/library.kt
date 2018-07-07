@@ -9,5 +9,6 @@ val DictLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStor
     init {
         add(IsDictBuiltin)
         add(IsDictOfTagBuiltin)
+        add(GetDictBuiltin)
     }
 }

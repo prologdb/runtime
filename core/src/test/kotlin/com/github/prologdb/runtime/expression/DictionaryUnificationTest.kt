@@ -70,22 +70,22 @@ class DictionaryUnificationTest : FreeSpec() { init {
 
     "with pairs, no tags - fails because of missing values" {
         val a = Atom("a")
-        val b = Atom("a")
+        val b = Atom("b")
 
-        val dA = PrologDictionary(null, mapOf("a" to a))
-        val dB = PrologDictionary(null, mapOf("a" to a, "b" to b))
+        val dA = PrologDictionary(null, mapOf(a to a))
+        val dB = PrologDictionary(null, mapOf(a to a, b to b))
 
         dA shouldNotUnifyWith dB
     }
 
     "with pairs, no tags - succeeds" {
         val a = Atom("a")
-        val b = Atom("a")
+        val b = Atom("b")
         val A = Variable("A")
         val B = Variable("B")
 
-        val dA = PrologDictionary(null, mapOf("a" to a, "b" to B))
-        val dB = PrologDictionary(null, mapOf("a" to A, "b" to b))
+        val dA = PrologDictionary(null, mapOf(a to a, b to B))
+        val dB = PrologDictionary(null, mapOf(a to A, b to b))
 
         dA shouldUnifyWith dB suchThat {
             itHasExactlyOneSolution()
@@ -102,8 +102,8 @@ class DictionaryUnificationTest : FreeSpec() { init {
         val b = Atom("b")
         val A = Variable("A")
 
-        val dA = PrologDictionary(a, mapOf("a" to a, "b" to b))
-        val dB = PrologDictionary(A, mapOf("a" to A, "b" to b))
+        val dA = PrologDictionary(a, mapOf(a to a, b to b))
+        val dB = PrologDictionary(A, mapOf(a to A, b to b))
 
         dA shouldUnifyWith dB suchThat {
             itHasExactlyOneSolution()

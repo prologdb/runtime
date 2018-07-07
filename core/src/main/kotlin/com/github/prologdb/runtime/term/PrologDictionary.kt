@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 
-open class PrologDictionary(givenTag: Term?, open val pairs: Map<String, Term>) : Term {
+open class PrologDictionary(givenTag: Term?, open val pairs: Map<Atom, Term>) : Term {
 
     open val tag: Term? = givenTag
 
@@ -124,7 +124,7 @@ open class PrologDictionary(givenTag: Term?, open val pairs: Map<String, Term>) 
                 prefix = "{",
                 separator = ", ",
                 postfix = "}",
-                transform = { it.key + ": " + it.value.toString() }
+                transform = { it.key.toString() + ": " + it.value.toString() }
             )
 
         return str

@@ -35,7 +35,7 @@ open class ParsedPredicate(name: String, arguments: Array<out ParsedTerm>, overr
     override val arguments: Array<out ParsedTerm> = arguments
 }
 
-class ParsedDictionary(override val tag: ParsedTerm?, override val pairs: Map<String, ParsedTerm>, override val location: SourceLocationRange): ParsedTerm, PrologDictionary(tag, pairs)
+class ParsedDictionary(override val tag: ParsedTerm?, override val pairs: Map<Atom, ParsedTerm>, override val location: SourceLocationRange): ParsedTerm, PrologDictionary(tag, pairs)
 
 class ParsedVariable(name: String, override val location: SourceLocationRange) : ParsedTerm, Variable(name)
 class ParsedAnonymousVariable(override val location: SourceLocationRange) : ParsedTerm, Variable("_") {
