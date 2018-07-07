@@ -35,6 +35,8 @@ class DefaultOperatorRegistry(withIsoOps: Boolean) : MutableOperatorRegistry {
 
             defineOperator(OperatorDefinition(1000, XFY, ","))
 
+            defineOperator(OperatorDefinition(600, XFY, ":"))
+
             // equality and inequality operators are defined in EqualityLibrary
             // mathematic operators are defined in MathLibrary; /2 is an exception
             // because it is used to denote predicates with dynamic, e.g.: :- dynamic predicateName/3.
