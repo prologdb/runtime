@@ -11,7 +11,9 @@ import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.Variable
+import io.kotlintest.forAll
 import io.kotlintest.matchers.*
 import io.kotlintest.specs.FreeSpec
 
@@ -33,6 +35,9 @@ class PrologParserTest : FreeSpec() {
 
     fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
     fun parseList(code: String) = parseList(tokensOf(code))
+
+    fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
+    fun parseDict(code: String) = parseDict(tokensOf(code))
 
     fun parseParenthesised(tokens: TransactionalSequence<Token>) = PrologParser().parseParenthesised(tokens, operators)
     fun parseParenthesised(code: String) = parseParenthesised(tokensOf(code))
@@ -323,6 +328,96 @@ class PrologParserTest : FreeSpec() {
             result.item!!.elements.size shouldEqual 3
             assert(result.item!!.tail is ParsedVariable)
             (result.item!!.tail as ParsedVariable).name shouldEqual "T"
+        }
+    }
+
+    "dict" - {
+        "{}" {
+            val result = parseDict("{}")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.entries should beEmpty()
+            result.item!!.tail shouldBe null
+        }
+
+        "{a:1}" {
+            val result = parseDict("{a:1}")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.size shouldEqual 1
+            result.item!!.tail shouldBe null
+
+            val pair = result.item!!.pairs.entries.first()
+            pair.key shouldEqual Atom("a")
+            pair.value shouldEqual PrologInteger(1)
+        }
+
+        "{a : 1, b : 2}" {
+            val result = parseDict("{a : 1, b : 2}")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.size shouldEqual 2
+            result.item!!.tail shouldBe null
+
+            result.item!!.pairs[Atom("a")]!! shouldEqual PrologInteger(1)
+            result.item!!.pairs[Atom("b")]!! shouldEqual PrologInteger(2)
+        }
+
+        "{a : 1, b : 2 | T}" {
+            val result = parseDict("{a : 1, b : 2 | T}")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.size shouldEqual 2
+            result.item!!.tail shouldEqual Variable("T")
+
+            result.item!!.pairs[Atom("a")]!! shouldEqual PrologInteger(1)
+            result.item!!.pairs[Atom("b")]!! shouldEqual PrologInteger(2)
+        }
+
+        "{a}" {
+            val result = parseDict("{a}")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldBe 1
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.entries should beEmpty()
+            result.item!!.tail shouldBe null
+
+            result.reportings.first() as SyntaxError
+        }
+
+        "{T:1}" {
+            val result = parseDict("{T:1}")
+
+            result.certainty shouldEqual MATCHED
+            result.reportings.size shouldBe 1
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.entries should beEmpty()
+            result.item!!.tail shouldBe null
+
+            result.reportings.first() as SyntaxError
+        }
+
+        "{a:1, a:2, b:3, b:4}" {
+            val result = parseDict("{a:1, a:2, b:3, b:4}")
+
+            result.certainty shouldBe MATCHED
+            result.reportings.size shouldEqual 2
+            assert(result.item is ParsedDictionary)
+            result.item!!.pairs.size shouldEqual 2
+            result.item!!.tail shouldBe null
+
+            forAll(result.reportings) {
+                it shouldBe instanceOf(SemanticWarning::class)
+            }
         }
     }
 

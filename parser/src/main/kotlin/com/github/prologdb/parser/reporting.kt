@@ -26,4 +26,8 @@ class SyntaxError(message: String, location: SourceLocation): Reporting(message,
     override fun toString() = "$message in $location"
 }
 
+class SemanticWarning(message: String, location: SourceLocation): Reporting(message, location) {
+    override fun toString() = "$message in $location"
+}
+
 open class ReportingException(val reporting: Reporting, cause: Throwable? = null) : Exception(reporting.message, cause)

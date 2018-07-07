@@ -11,8 +11,6 @@ import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.parser.parser.ParseResultCertainty.*
-import com.github.prologdb.parser.source.SourceLocation
-import javax.xml.transform.Source
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -343,198 +341,119 @@ class PrologParser {
     }
 
     fun parseDictionary(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedDictionary> {
-        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("identifier or ${Operator.CURLY_OPEN}")))
+        // copied from parseList and adapted
 
-        tokens.mark() // A
+        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("dict")))
 
-        val tagResult = parseAtomicOrVariable(tokens)
-        val tag = tagResult.item
+        tokens.mark()
 
+        val openingCurlyToken = tokens.next()
+        if (openingCurlyToken !is OperatorToken || openingCurlyToken.operator != CURLY_OPEN) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(openingCurlyToken, CURLY_OPEN)))
+        }
+
+        // detect empty dict
         if (!tokens.hasNext()) {
-            tokens.rollback() // A
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("dict content or ${CURLY_CLOSE}")))
+        }
+        tokens.mark()
+        var token = tokens.next()
+        if (token is OperatorToken && token.operator == CURLY_CLOSE) {
+            tokens.commit()
+            tokens.commit()
             return ParseResult(
-                null,
-                NOT_RECOGNIZED,
-                tagResult.reportings + setOf(UnexpectedEOFError(CURLY_OPEN))
+                ParsedDictionary(emptyMap(), null,openingCurlyToken.location..token.location),
+                MATCHED,
+                emptySet()
             )
         }
+        // else: dict with content
+        tokens.rollback()
 
-        var next = tokens.next()
-        if (next !is OperatorToken || next.operator != CURLY_OPEN) {
-            tokens.rollback() // A
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(next, Operator.CURLY_OPEN)))
+        val elementsResult = parseTerm(tokens, opRegistry, { t -> stopAtOperator(HEAD_TAIL_SEPARATOR)(t) || stopAtOperator(CURLY_CLOSE)(t) })
+        if (!elementsResult.isSuccess) {
+            tokens.rollback()
+            return ParseResult(null, NOT_RECOGNIZED, elementsResult.reportings)
         }
 
-        val firstLocation = tag?.location?.start ?: next.location.start
+        val reportings: MutableSet<Reporting> = elementsResult.reportings.toMutableSet()
 
-        val pairs = mutableListOf<Triple<Atom, ParsedTerm, SourceLocationRange>>()
-        val reportings = mutableSetOf<Reporting>()
-        do {
-            val nextPairResult = parseDictionaryPair(tokens, opRegistry)
-            if (nextPairResult.isSuccess) {
-                pairs.add(nextPairResult.item!!)
-                reportings.addAll(nextPairResult.reportings)
+        val elements = commaPredicateToList(elementsResult.item ?: throw InternalParserError()).item ?: throw InternalParserError()
 
-                if (!tokens.hasNext()) {
-                    reportings += UnexpectedEOFError(CURLY_CLOSE, COMMA)
+        // complain about every element that is not an instance of :/2 with the first argument being an atom
+        val (elementsInstanceOfPairArity2, elementsNotInstanceOfPair) = elements.partition { it is Predicate && it.name == ":" && it.arity == 2 }
+        val (validPairs, elementsWithKeyNotAnAtom) = elementsInstanceOfPairArity2.partition { (it as Predicate).arguments[0] is Atom }
 
-                    tokens.rollback() // A
-                    return ParseResult(
-                        ParsedDictionary(
-                            tag,
-                            pairs.map { it.first to it.second }.toMap(),
-                            firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
-                        ),
-                        MATCHED,
-                        reportings
-                    )
-                }
+        elementsNotInstanceOfPair.forEach {
+            reportings.add(SyntaxError("Elements in a dict literal must be instances of :/2", it.location))
+        }
+        elementsWithKeyNotAnAtom.forEach {
+            reportings.add(SyntaxError("Keys in dict pairs must be atoms", (it as ParsedPredicate).arguments[0].location))
+        }
 
-                tokens.mark() // C
-                next = tokens.next()
-                if (next is OperatorToken) {
-                    if (next.operator == COMMA) {
-                        // perfectly valid, just continue
-                        tokens.commit() // C
-                    }
-                    else if (next.operator == CURLY_CLOSE) {
-                        // also valid, but this should be handles further down
-                        tokens.rollback() // C
-                    }
-                    else {
-                        // not valid
-                        reportings += UnexpectedTokenError(next, CURLY_CLOSE, COMMA)
-                        tokens.rollback() // C
-                        tokens.commit() // A
-
-                        return ParseResult(
-                            ParsedDictionary(
-                                tag,
-                                pairs.map { it.first to it.second }.toMap(),
-                                firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
-                            ),
-                            MATCHED,
-                            reportings
-                        )
-                    }
-                } else {
-                    reportings += UnexpectedTokenError(next, CURLY_CLOSE, COMMA)
-                    tokens.rollback() // C
-                    tokens.commit() // A
-
-                    return ParseResult(
-                        ParsedDictionary(
-                            tag,
-                            pairs.map { it.first to it.second }.toMap(),
-                            firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
-                        ),
-                        MATCHED,
-                        reportings
-                    )
-                }
+        val pairsAsKotlinPairs: List<Pair<Atom, ParsedTerm>> = validPairs
+            .map {
+                it as Predicate
+                (it.arguments[0] as Atom) to (it.arguments[1] as ParsedTerm)
             }
-        } while (nextPairResult.isSuccess)
+        val pairsAsKotlinMap = pairsAsKotlinPairs.toMap()
 
-        tokens.commit() // A
+        if (pairsAsKotlinMap.size < pairsAsKotlinPairs.size) {
+            // there were duplicates, issue a warning each
+            pairsAsKotlinPairs
+                .groupBy { it.first }
+                .filter { it.value.size > 1 }
+                .forEach {
+                    reportings.add(SemanticWarning("Duplicate key in dict: ${it.key.name}", openingCurlyToken.location..elementsResult.item.location))
+                }
+        }
 
-        val pairsMap = pairs.map { it.first to it.second }.toMap()
-
-        tokens.mark() // B
         if (!tokens.hasNext()) {
+            tokens.commit()
+            return ParseResult(
+                ParsedDictionary(pairsAsKotlinMap, null, openingCurlyToken.location..elementsResult.item.location),
+                MATCHED,
+                elementsResult.reportings + UnexpectedEOFError(HEAD_TAIL_SEPARATOR, CURLY_CLOSE)
+            )
+        }
+
+        tokens.mark()
+        val tokenAfterElements = tokens.next()
+        var tail: ParsedTerm?
+        val tokenAfterList: Token?
+        val dictEndLocation: SourceLocationRange
+
+        if (tokenAfterElements is OperatorToken && tokenAfterElements.operator == HEAD_TAIL_SEPARATOR) {
+            tokens.commit()
+            tokens.mark()
+            val tailResult = parseTerm(tokens, opRegistry, stopAtOperator(CURLY_CLOSE))
+            tail = tailResult.item
+            reportings += tailResult.reportings
+
+            tokenAfterList = if (tokens.hasNext()) tokens.next() else null
+            dictEndLocation = tokenAfterList?.location ?: tokenAfterElements.location
+        } else {
+            tokenAfterList = tokenAfterElements
+            dictEndLocation = tokenAfterList.location
+            tail = null
+        }
+
+        if (tokenAfterList == null) {
             reportings += UnexpectedEOFError(CURLY_CLOSE)
-
-            tokens.rollback() // B
-
-            return ParseResult(
-                ParsedDictionary(
-                    tag,
-                    pairsMap,
-                    firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
-                ),
-                MATCHED,
-                reportings
-            )
+        }
+        else if (tokenAfterList !is OperatorToken || tokenAfterList.operator != CURLY_CLOSE) {
+            tokens.rollback()
+            reportings += UnexpectedTokenError(tokenAfterList, CURLY_CLOSE)
         }
 
-        next = tokens.next()
-        if (next !is OperatorToken || next.operator != CURLY_CLOSE) {
-            reportings += UnexpectedTokenError(next, CURLY_CLOSE)
-
-            tokens.rollback() // B
-
-            return ParseResult(
-                ParsedDictionary(
-                    tag,
-                    pairsMap,
-                    firstLocation .. (pairs.lastOrNull()?.third?.end ?: firstLocation)
-                ),
-                MATCHED,
-                reportings
-            )
-        }
-
-        tokens.commit() // B
-
+        tokens.commit()
         return ParseResult(
-            ParsedDictionary(
-                tag,
-                pairsMap,
-                firstLocation .. next.location.end
-            ),
+            ParsedDictionary(pairsAsKotlinMap, tail, openingCurlyToken.location..dictEndLocation),
             MATCHED,
             reportings
         )
-    }
-
-    fun parseDictionaryPair(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Triple<Atom, ParsedTerm, SourceLocationRange>> {
-        if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
-
-        tokens.mark() // A
-        var next = tokens.next()
-        if (next !is IdentifierToken) {
-            tokens.rollback() // A
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(next, IDENTIFIER)))
-        }
-
-        val keyIdentifier = next
-        val firstLocation = next.location.start
-
-        if (!tokens.hasNext()) {
-            tokens.rollback() // A
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(DICT_KEY_VALUE_SEPARATOR)))
-        }
-
-        next = tokens.next()
-        if (next !is OperatorToken || next.operator != DICT_KEY_VALUE_SEPARATOR) {
-            tokens.rollback() // A
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(next, DICT_KEY_VALUE_SEPARATOR)))
-        }
-
-        if (!tokens.hasNext()) {
-            tokens.rollback() // A
-            return ParseResult(null, MATCHED, setOf(UnexpectedTokenError(next, "term")))
-        }
-
-        val pairValueResult = parseSingle(tokens, opRegistry)
-        if (pairValueResult.isSuccess) {
-            tokens.commit() // A
-            return ParseResult(
-                Triple(
-                    Atom(keyIdentifier.textContent),
-                    pairValueResult.item!!,
-                    firstLocation .. pairValueResult.item.location
-                ),
-                MATCHED,
-                pairValueResult.reportings
-            )
-        } else {
-            tokens.rollback() // A
-            return ParseResult(
-                null,
-                MATCHED,
-                pairValueResult.reportings
-            )
-        }
     }
 
     /**

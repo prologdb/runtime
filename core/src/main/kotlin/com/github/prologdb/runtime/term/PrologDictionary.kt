@@ -117,7 +117,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
         return carryUnification
     }
 
-    override val variables: Set<Variable> = {
+    override val variables: Set<Variable> by lazy {
             var variables = pairs.values.flatMap { it.variables }
             val tail = this.tail // invoke override getter only once
             if (tail != null) {
@@ -126,7 +126,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
             }
 
             variables.toSet()
-        }()
+        }
 
     override fun substituteVariables(mapper: (Variable) -> Term): Term
         = PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
