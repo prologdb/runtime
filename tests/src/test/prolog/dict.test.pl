@@ -3,16 +3,6 @@ test "is_dict/1" by [
     not(is_dict([]))
 ].
 
-test "is_dict/2" by [
-    is_dict(a{a:1}, T),
-    T = a,
-
-    is_dict(X{a:1}, T),
-    T = X,
-
-    not(is_dict({}, _))
-].
-
 test "get_dict/3 with all instantiated" by [
     get_dict(a, {a:1}, 1),
 
@@ -35,4 +25,11 @@ test "get_dict/3 with key and value unbound" by [
     member(a-1, R),
     member(b-2, R),
     member(c-3, R)
+].
+
+test "destructuring" by [
+    {a: A, c: C, d: D |_} = {a: 1, b: 2, c: 3, d: e, f: g},
+    A = 1,
+    C = 3,
+    D = e
 ].
