@@ -63,10 +63,7 @@ class VariableBucket private constructor(
                     throw VariableDiscrepancyException("Cannot combine: variable $variable is instantiated to unequal values: ${value} and ${thisValue}")
                 }
             }
-        }
-
-        for ((variable, value) in variables.values) {
-            if (value != null) {
+            else if (value != null) {
                 instantiate(variable, value)
             }
         }
