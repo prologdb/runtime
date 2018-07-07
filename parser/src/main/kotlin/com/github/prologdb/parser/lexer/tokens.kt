@@ -48,6 +48,8 @@ enum class Operator(val text: String) {
     BACKTICK("`"),
     NON_PROVABLE("\\+"),
 
+    DICT_KEY_VALUE_SEPARATOR(":"),
+
     TERM_GREATER_THAN("@>"),
     TERM_GREATER_THAN_OR_EQUAL("@>="),
     TERM_LESS_THAN("@<"),
