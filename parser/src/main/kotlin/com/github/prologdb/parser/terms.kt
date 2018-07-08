@@ -1,6 +1,7 @@
 package com.github.prologdb.parser
 
 import com.github.prologdb.parser.source.SourceLocationRange
+import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
@@ -14,8 +15,13 @@ import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-interface ParsedTerm : Term {
+interface ParsedTerm : Term, HasPrologSource {
     val location: SourceLocationRange
+
+    override val sourceFileName: String
+        get() = location.unit.identifier
+    override val sourceFileLine: Int
+        get() = location.line
 }
 
 class ParsedAtom(name: String, override val location: SourceLocationRange): ParsedTerm, Atom(name)
