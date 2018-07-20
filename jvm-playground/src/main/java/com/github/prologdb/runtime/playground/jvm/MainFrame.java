@@ -1,11 +1,20 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.nio.file.Path;
+import java.util.Optional;
+
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
 
 public class MainFrame extends JFrame {
-    public MainFrame() {
-        super("Kt-Prolog Playground");
+
+    private final Optional<Path> statePersistenceFile;
+
+    public MainFrame(Optional<Path> statePersistenceFile) {
+        super("PrologDB Dialect Playground");
+
+        this.statePersistenceFile = statePersistenceFile;
 
         initComponents();
     }
