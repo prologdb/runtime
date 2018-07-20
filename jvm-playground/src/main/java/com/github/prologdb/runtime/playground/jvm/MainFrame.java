@@ -12,7 +12,7 @@ public class MainFrame extends JFrame {
     private final Optional<Path> statePersistenceFile;
 
     public MainFrame(Optional<Path> statePersistenceFile) {
-        super("PrologDB Dialect Playground");
+        super("PrologDB Playground");
 
         this.statePersistenceFile = statePersistenceFile;
 

@@ -69,7 +69,7 @@ public class Starter {
             persistenceDir = (new File(System.getProperty("user.home")).toPath()).resolve(".prologdb-playground");
         }
 
-        if (!Files.notExists(persistenceDir)) {
+        if (Files.notExists(persistenceDir)) {
             Files.createDirectory(persistenceDir);
         }
 
