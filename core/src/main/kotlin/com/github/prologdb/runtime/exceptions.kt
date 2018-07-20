@@ -25,3 +25,8 @@ class IllegalDirectiveException(message: String, cause: Throwable? = null) : Pro
             }
     )
 }
+
+data class PrologStackTraceElement(
+    val goalPredicate: Predicate,
+    val sourceInformation: PrologSourceInformation
+)
