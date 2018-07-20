@@ -1,6 +1,8 @@
 package com.github.prologdb.parser.source
 
-class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : SourceLocation(start.unit, start.line, start.column, start.sourceIndex) {
+import com.github.prologdb.runtime.PrologSourceInformation
+
+class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : SourceLocation(start.unit, start.line, start.column, start.sourceIndex), PrologSourceInformation {
     init {
         if (start.unit != end.unit) {
             throw IllegalArgumentException("The two given locations must have the same source unit.")
@@ -19,6 +21,9 @@ class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : 
             return SourceLocationRange(this, other)
         }
     }
+
+    override val sourceFileName: String = unit.identifier
+    override val sourceFileLine: Int? = start.line
 
     companion object {
         val EOF = SourceLocationRange(SourceLocation.EOF, SourceLocation.EOF)

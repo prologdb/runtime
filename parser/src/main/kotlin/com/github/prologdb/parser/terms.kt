@@ -2,6 +2,7 @@ package com.github.prologdb.parser
 
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
@@ -16,16 +17,11 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
 interface ParsedTerm : Term, HasPrologSource {
-    val location: SourceLocationRange
-
-    override val sourceFileName: String
-        get() = location.unit.identifier
-    override val sourceFileLine: Int
-        get() = location.line
+    override val sourceInformation: SourceLocationRange
 }
 
-class ParsedAtom(name: String, override val location: SourceLocationRange): ParsedTerm, Atom(name)
-class ParsedList(givenElements: List<ParsedTerm>, tail: ParsedTerm?, override val location: SourceLocationRange) : ParsedTerm, PrologList(givenElements, tail) {
+class ParsedAtom(name: String, override val sourceInformation: SourceLocationRange): ParsedTerm, Atom(name)
+class ParsedList(givenElements: List<ParsedTerm>, tail: ParsedTerm?, override val sourceInformation: SourceLocationRange) : ParsedTerm, PrologList(givenElements, tail) {
     override val elements: List<ParsedTerm> = {
         val elements = mutableListOf<ParsedTerm>()
         elements.addAll(givenElements)
@@ -37,11 +33,11 @@ class ParsedList(givenElements: List<ParsedTerm>, tail: ParsedTerm?, override va
         elements
     }()
 }
-open class ParsedPredicate(name: String, arguments: Array<out ParsedTerm>, override val location: SourceLocationRange) : ParsedTerm, Predicate(name, arguments) {
+open class ParsedPredicate(name: String, arguments: Array<out ParsedTerm>, override val sourceInformation: SourceLocationRange) : ParsedTerm, Predicate(name, arguments) {
     override val arguments: Array<out ParsedTerm> = arguments
 }
 
-class ParsedDictionary(givenPairs: Map<Atom, ParsedTerm>, tail: ParsedTerm?, override val location: SourceLocationRange): ParsedTerm, PrologDictionary(givenPairs, tail) {
+class ParsedDictionary(givenPairs: Map<Atom, ParsedTerm>, tail: ParsedTerm?, override val sourceInformation: SourceLocationRange): ParsedTerm, PrologDictionary(givenPairs, tail) {
     override val pairs: Map<Atom, ParsedTerm> = {
         val pairs = mutableMapOf<Atom, ParsedTerm>()
         pairs.putAll(givenPairs)
@@ -54,8 +50,8 @@ class ParsedDictionary(givenPairs: Map<Atom, ParsedTerm>, tail: ParsedTerm?, ove
     }()
 }
 
-class ParsedVariable(name: String, override val location: SourceLocationRange) : ParsedTerm, Variable(name)
-class ParsedAnonymousVariable(override val location: SourceLocationRange) : ParsedTerm, Variable("_") {
+class ParsedVariable(name: String, override val sourceInformation: SourceLocationRange) : ParsedTerm, Variable(name)
+class ParsedAnonymousVariable(override val sourceInformation: SourceLocationRange) : ParsedTerm, Variable("_") {
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification = AnonymousVariable.unify(rhs, randomVarsScope)
 
     override val variables: Set<Variable> = AnonymousVariable.variables
@@ -69,7 +65,7 @@ class ParsedAnonymousVariable(override val location: SourceLocationRange) : Pars
 
 class ParsedPrologNumber(
     private val delegate: PrologNumber,
-    override val location: SourceLocationRange
+    override val sourceInformation: SourceLocationRange
 ) : ParsedTerm, PrologNumber {
     override val variables: Set<Variable> = delegate.variables
     override fun equals(other: Any?) = delegate.equals(other)
@@ -96,20 +92,20 @@ class ParsedPrologNumber(
 
 class ParsedPrologString(
     stringContent: String,
-    override val location: SourceLocationRange
+    override val sourceInformation: SourceLocationRange
 ) : ParsedTerm, PrologString(stringContent)
 
-interface ParsedQuery : Query {
-    val location: SourceLocationRange
+interface ParsedQuery : Query, HasPrologSource {
+    override val sourceInformation: SourceLocationRange
 }
 
 class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicate), ParsedQuery {
-    override val location = predicate.location
+    override val sourceInformation = predicate.sourceInformation
 }
 
-class ParsedAndQuery(goals: Array<out ParsedQuery>, override val location: SourceLocationRange) : AndQuery(goals), ParsedQuery
-class ParsedOrQuery(goals: Array<out ParsedQuery>, override val location: SourceLocationRange) : OrQuery(goals), ParsedQuery
-class EmptyQuery(override val location: SourceLocationRange): ParsedQuery {
+class ParsedAndQuery(goals: Array<out ParsedQuery>, override val sourceInformation: SourceLocationRange) : AndQuery(goals), ParsedQuery
+class ParsedOrQuery(goals: Array<out ParsedQuery>, override val sourceInformation: SourceLocationRange) : OrQuery(goals), ParsedQuery
+class EmptyQuery(override val sourceInformation: SourceLocationRange): ParsedQuery {
     override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
         return Unification.NONE
     }
@@ -123,4 +119,4 @@ class EmptyQuery(override val location: SourceLocationRange): ParsedQuery {
     }
 }
 
-class ParsedRule(head: ParsedPredicate, query: ParsedQuery, val location: SourceLocationRange): Rule(head, query)
+class ParsedRule(head: ParsedPredicate, query: ParsedQuery, override val sourceInformation: SourceLocationRange): Rule(head, query), HasPrologSource
