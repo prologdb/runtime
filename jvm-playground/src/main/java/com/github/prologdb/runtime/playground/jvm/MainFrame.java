@@ -1,20 +1,20 @@
 package com.github.prologdb.runtime.playground.jvm;
 
 import java.awt.BorderLayout;
-import java.nio.file.Path;
-import java.util.Optional;
 
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 
+import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundStatePersistenceService;
+
 public class MainFrame extends JFrame {
 
-    private final Optional<Path> statePersistenceFile;
+    private final PlaygroundStatePersistenceService statePersistenceService;
 
-    public MainFrame(Optional<Path> statePersistenceFile) {
+    public MainFrame(PlaygroundStatePersistenceService statePersistenceService) {
         super("PrologDB Playground");
 
-        this.statePersistenceFile = statePersistenceFile;
+        this.statePersistenceService = statePersistenceService;
 
         initComponents();
     }

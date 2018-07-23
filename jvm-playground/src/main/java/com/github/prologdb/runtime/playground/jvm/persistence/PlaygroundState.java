@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.playground.jvm;
+package com.github.prologdb.runtime.playground.jvm.persistence;
 
 import java.nio.file.Path;
 
