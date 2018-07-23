@@ -227,13 +227,12 @@ public class SolutionExplorerPanel {
 
             if (pivot instanceof PrologException) {
                 ((PrologException) pivot).getPrologStackTrace().forEach(pste -> {
-                    sb.append('\n');
+                    sb.append("\n\tat ");
                     sb.append(pste.toString());
                 });
             } else {
                 for (StackTraceElement jste : pivot.getStackTrace()) {
-                    sb.append('\n');
-                    sb.append("\tat ");
+                    sb.append("\n\tat ");
                     sb.append(jste.getClassName());
                     sb.append('.');
                     sb.append(jste.getLineNumber());

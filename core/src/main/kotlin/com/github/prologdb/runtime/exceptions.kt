@@ -40,7 +40,7 @@ data class PrologStackTraceElement(
     val goalPredicate: Predicate,
     val sourceInformation: PrologSourceInformation
 ){
-    override fun toString() = "\tat $goalPredicate (${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine})"
+    override fun toString() = "$goalPredicate   ${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
 }
 
 /**
