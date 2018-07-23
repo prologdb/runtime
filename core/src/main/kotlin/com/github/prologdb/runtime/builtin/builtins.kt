@@ -1,7 +1,6 @@
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.lazysequence.LazySequence
@@ -82,13 +81,32 @@ private val voidQuery = object : Query {
 }
 
 fun prologBuiltin(name: String, arity: Int, code: PrologBuiltinImplementation): Rule {
-    val predicate = Predicate(name, builtinArgumentVariables.sliceArray(0 until arity))
+    val predicate = object : Predicate(name, builtinArgumentVariables.sliceArray(0 until arity)) {
+        override fun toString() = "$name/$arity"
+    }
+    val builtinStackFrame = PrologStackTraceElement(
+        predicate,
+        getInvocationStackFrame().prologSourceInformation
+    )
+
     return object : Rule(predicate, voidQuery) {
         override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
             if (predicate.arity != this.arity) return Unification.NONE
             if (predicate.name != this.name) return Unification.NONE
 
-            return code.invoke(predicate.arguments, kb, randomVariableScope)
+            try {
+                return code.invoke(predicate.arguments, kb, randomVariableScope)
+            }
+            catch (ex: PrologException) {
+                ex.addPrologStackFrame(builtinStackFrame)
+                throw ex
+            }
+            catch (ex: Throwable) {
+                val newEx = PrologRuntimeException(ex.message ?: "", ex)
+                newEx.addPrologStackFrame(builtinStackFrame)
+
+                throw newEx
+            }
         }
 
         override fun toString() = "$predicate :- __nativeCode"

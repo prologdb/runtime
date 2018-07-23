@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.term.Variable
 internal val Term.asPrologNumber: PrologNumber
     get() = when(this) {
         is PrologNumber -> this
-        is Variable -> throw PrologRuntimeException("is/2: Arguments not sufficiently instantiated: $this")
+        is Variable -> throw PrologRuntimeException("Arguments not sufficiently instantiated: $this")
         is Predicate -> MathOperatorRegistry.evaluate(this)
-        else -> throw PrologRuntimeException("is/2: expected number, got ${this.prologTypeName}")
+        else -> throw PrologRuntimeException("expected number, got ${this.prologTypeName}")
     }

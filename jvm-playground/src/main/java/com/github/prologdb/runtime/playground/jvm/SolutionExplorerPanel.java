@@ -1,13 +1,27 @@
 package com.github.prologdb.runtime.playground.jvm;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.util.NoSuchElementException;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.border.EmptyBorder;
+
+import com.github.prologdb.runtime.PrologException;
 import com.github.prologdb.runtime.PrologRuntimeException;
 import com.github.prologdb.runtime.lazysequence.LazySequence;
 import com.github.prologdb.runtime.unification.Unification;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.util.NoSuchElementException;
 
 public class SolutionExplorerPanel {
 
@@ -81,7 +95,9 @@ public class SolutionExplorerPanel {
     }
 
     private JComponent createErrorComponent(String errorMessage) {
-        JLabel label = new JLabel(errorMessage);
+        String errorMessageAsHtml = "<html><pre>" + errorMessage + "</pre></html>";
+
+        JLabel label = new JLabel(errorMessageAsHtml);
         label.setForeground(new Color(0xE2, 0x40, 0x00));
         label.setBackground(new Color(242, 140, 137));
         label.setFont(label.getFont().deriveFont(Font.BOLD));
@@ -135,7 +151,7 @@ public class SolutionExplorerPanel {
             setDepleated();
         }
         catch (PrologRuntimeException e) {
-            addSolutionComponent(createErrorComponent("Error: " + e.getMessage()));
+            addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
             e.printStackTrace(System.err);
             setDepleated();
         }
@@ -162,7 +178,7 @@ public class SolutionExplorerPanel {
             }
         }
         catch (PrologRuntimeException e) {
-            addSolutionComponent(createErrorComponent("Error: " + e.getMessage()));
+            addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
             e.printStackTrace(System.err);
             setDepleated();
         }
@@ -200,5 +216,42 @@ public class SolutionExplorerPanel {
         showNextBT.setEnabled(false);
         showAllRemainingBT.setEnabled(false);
         currentSolutionIndex = -1;
+    }
+
+    private String formatPrologException(PrologException ex) {
+        StringBuilder sb = new StringBuilder();
+
+        Throwable pivot = ex;
+        while (pivot != null) {
+            sb.append(pivot.getMessage());
+
+            if (pivot instanceof PrologException) {
+                ((PrologException) pivot).getPrologStackTrace().forEach(pste -> {
+                    sb.append('\n');
+                    sb.append(pste.toString());
+                });
+            } else {
+                for (StackTraceElement jste : pivot.getStackTrace()) {
+                    sb.append('\n');
+                    sb.append("\tat ");
+                    sb.append(jste.getClassName());
+                    sb.append('.');
+                    sb.append(jste.getLineNumber());
+                    sb.append('(');
+                    sb.append(jste.getFileName());
+                    sb.append(':');
+                    sb.append(Integer.toString(jste.getLineNumber(), 10));
+                    sb.append(')');
+                }
+            }
+
+            pivot = pivot.getCause();
+            if (pivot != null) {
+                sb.append('\n');
+                sb.append("caused by ");
+            }
+        }
+
+        return sb.toString();
     }
 }

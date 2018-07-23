@@ -60,36 +60,64 @@ fun PrologList.tail(tail: Term): PrologList {
 
 // these functions model the logic operators in all the different combinations
 
-infix fun Predicate.AND(rhs: Predicate): Query = AndQuery(arrayOf(
-    PredicateQuery(this),
-    PredicateQuery(rhs)
-))
+infix fun Predicate.AND(rhs: Predicate): Query {
+    val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
-infix fun Predicate.AND(rhs: Query): Query = rhs.AND(this)
+    return AndQuery(arrayOf(
+        PredicateQuery(this, callerSourceInfo),
+        PredicateQuery(rhs, callerSourceInfo)
+    ))
+}
+
+infix fun Predicate.AND(rhs: Query): Query {
+    val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
+
+    return AndQuery(arrayOf(
+        PredicateQuery(this, callerSourceInfo),
+        rhs
+    ))
+}
 
 infix fun Query.AND(rhs: Predicate): Query {
+    val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
     if (this is AndQuery) {
-        return AndQuery(Array(this.goals.size + 1, { index ->
-            if (index < this.goals.size) this.goals[index] else PredicateQuery(rhs)
-        }))
+        return AndQuery(
+            Array(this.goals.size + 1, { index ->
+                if (index < this.goals.size) this.goals[index] else PredicateQuery(rhs, callerSourceInfo)
+            })
+        )
     } else {
-        return AndQuery(arrayOf(this, PredicateQuery(rhs)))
+
+        return AndQuery(arrayOf(this, PredicateQuery(rhs, callerSourceInfo)))
     }
 }
 
-infix fun Predicate.OR(rhs: Predicate): Query = OrQuery(arrayOf(
-    PredicateQuery(this),
-    PredicateQuery(rhs)
-))
+infix fun Predicate.OR(rhs: Predicate): Query {
+    val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
-infix fun Predicate.OR(rhs: Query): Query = rhs.OR(this)
+    return OrQuery(arrayOf(
+        PredicateQuery(this, callerSourceInfo),
+        PredicateQuery(rhs, callerSourceInfo)
+    ))
+}
+
+infix fun Predicate.OR(rhs: Query): Query {
+    val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
+
+    return OrQuery(arrayOf(
+        PredicateQuery(this, callerSourceInfo),
+        rhs
+    ))
+}
 
 infix fun Query.OR(rhs: Predicate): Query {
+    val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
+
     if (this is OrQuery) {
         return OrQuery(Array(this.goals.size + 1, { index ->
-            if (index < this.goals.size) this.goals[index] else PredicateQuery(rhs)
+            if (index < this.goals.size) this.goals[index] else PredicateQuery(rhs, callerSourceInfo)
         }))
     } else {
-        return OrQuery(arrayOf(this, PredicateQuery(rhs)))
+        return OrQuery(arrayOf(this, PredicateQuery(rhs, callerSourceInfo)))
     }
 }

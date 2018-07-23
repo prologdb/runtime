@@ -5,7 +5,13 @@ import com.github.prologdb.runtime.term.Predicate
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
  */
-open class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message)
+open class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message) {
+    private val _prologStackTrace = mutableListOf<PrologStackTraceElement>()
+
+    fun addPrologStackFrame(frameInfo: PrologStackTraceElement) = _prologStackTrace.add(frameInfo)
+
+    val prologStackTrace: List<PrologStackTraceElement> = _prologStackTrace
+}
 
 /**
  * Thrown when errors or warnings occur during the interpretation of a prolog program.
@@ -29,4 +35,6 @@ class IllegalDirectiveException(message: String, cause: Throwable? = null) : Pro
 data class PrologStackTraceElement(
     val goalPredicate: Predicate,
     val sourceInformation: PrologSourceInformation
-)
+){
+    override fun toString() = "\tat $goalPredicate (${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine})"
+}

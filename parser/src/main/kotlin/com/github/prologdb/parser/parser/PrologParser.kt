@@ -5,12 +5,13 @@ import com.github.prologdb.parser.lexer.*
 import com.github.prologdb.parser.lexer.Operator.*
 import com.github.prologdb.parser.lexer.TokenType.IDENTIFIER
 import com.github.prologdb.parser.lexer.TokenType.NUMERIC_LITERAL
+import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
+import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.term.*
-import com.github.prologdb.parser.parser.ParseResultCertainty.*
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -882,7 +883,7 @@ private val TokenOrTerm.textContent: String
 private val TokenOrTerm.location: SourceLocationRange
     get() = when(this) {
         is Token -> location
-        is ParsedTerm -> location
+        is ParsedTerm -> sourceInformation
         else -> throw InternalParserError()
     }
 

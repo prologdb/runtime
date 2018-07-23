@@ -1,14 +1,24 @@
 package com.github.prologdb.runtime.query
 
+import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.builtin.getInvocationStackFrame
+import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-open class PredicateQuery(val predicate: Predicate) : Query {
+open class PredicateQuery(
+    val predicate: Predicate,
+    override val sourceInformation: PrologSourceInformation
+) : Query, HasPrologSource
+{
+    constructor(predicate: Predicate) : this(predicate, getInvocationStackFrame().prologSourceInformation)
+
     override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
         val substitutedPredicate = predicate.substituteVariables(initialVariables.asSubstitutionMapper())
 
@@ -17,13 +27,15 @@ open class PredicateQuery(val predicate: Predicate) : Query {
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateQuery(
-            randomVarsScope.withRandomVariables(predicate, mapping) as Predicate
+            randomVarsScope.withRandomVariables(predicate, mapping) as Predicate,
+            sourceInformation
         )
     }
 
     override fun substituteVariables(variableValues: VariableBucket): Query {
         return PredicateQuery(
-            predicate.substituteVariables(variableValues.asSubstitutionMapper())
+            predicate.substituteVariables(variableValues.asSubstitutionMapper()),
+            sourceInformation
         )
     }
 

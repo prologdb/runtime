@@ -28,7 +28,6 @@ import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import java.lang.invoke.MethodHandles
-import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
@@ -135,7 +134,7 @@ class PrologTest : FreeSpec() { init {
                         val failedAssertion = testQuery.goals[testQuery.failures[0].failingGoalIndex]
                         var message = "Assertion failed: $failedAssertion"
                         if (failedAssertion is ParsedQuery) {
-                            message += " in ${failedAssertion.location}"
+                            message += " in ${failedAssertion.sourceInformation}"
                         }
                         callback.onTestFailure(testName, message)
                     }
@@ -218,7 +217,7 @@ private fun predicateToQuery(predicate: ParsedPredicate): ParsedQuery {
         }
 
         goals.add(predicateToQuery(pivot))
-        return ParsedAndQuery(goals.toTypedArray(), predicate.location);
+        return ParsedAndQuery(goals.toTypedArray(), predicate.sourceInformation)
     }
     else if (predicate.name == ";") {
         val goals = mutableListOf<ParsedQuery>()
@@ -231,7 +230,7 @@ private fun predicateToQuery(predicate: ParsedPredicate): ParsedQuery {
         }
 
         goals.add(predicateToQuery(pivot))
-        return ParsedOrQuery(goals.toTypedArray(), predicate.location)
+        return ParsedOrQuery(goals.toTypedArray(), predicate.sourceInformation)
     }
     else {
         return ParsedPredicateQuery(predicate)
@@ -241,7 +240,7 @@ private fun predicateToQuery(predicate: ParsedPredicate): ParsedQuery {
 private fun ParsedTerm.asPredicate(): ParsedPredicate {
     if (this is ParsedPredicate) return this
 
-    throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", location))
+    throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", sourceInformation))
 }
 
 /**
