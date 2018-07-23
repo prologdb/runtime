@@ -1,5 +1,7 @@
 package com.github.prologdb.runtime.playground.jvm;
 
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.IOException;
 
 import javax.swing.JOptionPane;
@@ -43,7 +45,32 @@ public class Starter {
                 );
             }
 
-            new MainFrame(statePersistenceService).setVisible(true);
+            MainFrame mf = new MainFrame(statePersistenceService);
+            mf.addWindowListener(new WindowListener() {
+                @Override
+                public void windowOpened(WindowEvent e) { }
+
+                @Override
+                public void windowClosing(WindowEvent e) { }
+
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    System.exit(-1);
+                }
+
+                @Override
+                public void windowIconified(WindowEvent e) { }
+
+                @Override
+                public void windowDeiconified(WindowEvent e) { }
+
+                @Override
+                public void windowActivated(WindowEvent e) { }
+
+                @Override
+                public void windowDeactivated(WindowEvent e) { }
+            });
+            mf.setVisible(true);
         });
     }
 

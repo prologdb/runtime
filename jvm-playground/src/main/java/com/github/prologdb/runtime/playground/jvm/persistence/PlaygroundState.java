@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.playground.jvm.persistence;
 
-import java.nio.file.Path;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -9,14 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class PlaygroundState {
     /**
-     * Path to the current file. If null, there is no related file.
-     */
-    private Path openKnowledgeBaseFile;
-
-    /**
-     * The actual text in the knowledge base window. Might differ from
-     * the contents of {@link #openKnowledgeBaseFile} in case changes were
-     * made and the playground was closed without saving the file.
+     * The actual text in the knowledge base window.
      */
     private String knowledgeBaseText;
 
@@ -24,16 +17,6 @@ public class PlaygroundState {
      * The contents of the query field.
      */
     private String query;
-
-    @JsonProperty
-    public Path getOpenKnowledgeBaseFile() {
-        return openKnowledgeBaseFile;
-    }
-
-    @JsonProperty
-    public void setOpenKnowledgeBaseFile(Path openKnowledgeBaseFile) {
-        this.openKnowledgeBaseFile = openKnowledgeBaseFile;
-    }
 
     @JsonProperty
     public String getKnowledgeBaseText() {
@@ -54,5 +37,20 @@ public class PlaygroundState {
     @JsonProperty
     public void setQuery(String query) {
         this.query = query;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PlaygroundState)) return false;
+        PlaygroundState that = (PlaygroundState) o;
+        return Objects.equals(getKnowledgeBaseText(), that.getKnowledgeBaseText()) &&
+                Objects.equals(getQuery(), that.getQuery());
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(getKnowledgeBaseText(), getQuery());
     }
 }
