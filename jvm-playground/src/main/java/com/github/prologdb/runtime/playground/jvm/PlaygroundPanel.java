@@ -1,5 +1,14 @@
 package com.github.prologdb.runtime.playground.jvm;
 
+import java.awt.BorderLayout;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.text.ParseException;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+
 import com.github.prologdb.parser.ParsedQuery;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
@@ -11,13 +20,8 @@ import com.github.prologdb.runtime.RandomVariableScope;
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase;
 import com.github.prologdb.runtime.knowledge.library.Library;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
+import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
 import com.github.prologdb.runtime.unification.VariableBucket;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.text.ParseException;
 
 import static java.util.stream.Collectors.joining;
 
@@ -54,6 +58,20 @@ public class PlaygroundPanel {
 
     public JPanel asJPanel() {
         return panel;
+    }
+
+    /** @return the current state of the playground */
+    public PlaygroundState getCurrentState() {
+        PlaygroundState state = new PlaygroundState();
+        state.setKnowledgeBaseText(knowledgeBaseEditorPanel.getCodeAsString());
+        state.setQuery(queryPanel.getCodeAsString());
+
+        return state;
+    }
+
+    public void setCurrentState(PlaygroundState state) {
+        knowledgeBaseEditorPanel.setCodeAsString(state.getKnowledgeBaseText());
+        queryPanel.setCodeAsString(state.getQuery());
     }
 
     private void initComponents() {

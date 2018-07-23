@@ -1,11 +1,12 @@
 package com.github.prologdb.runtime.playground.jvm.editor;
 
+import java.awt.BorderLayout;
+import java.awt.event.KeyListener;
+
+import javax.swing.JPanel;
+
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rtextarea.RTextScrollPane;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyListener;
 
 public class PrologEditorPanel {
 
@@ -27,6 +28,10 @@ public class PrologEditorPanel {
 
     public String getCodeAsString() {
         return textArea.getText();
+    }
+
+    public void setCodeAsString(String code) {
+        textArea.setText(code);
     }
 
     public void addKeyListener(KeyListener l) {
