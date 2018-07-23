@@ -20,9 +20,11 @@ internal val BuiltinFindAll = prologBuiltin("findall", 3) { args, knowledgeBase,
         throw PrologRuntimeException("Type error: third argument to findall/3 must be a list or not instantiated.")
     }
 
-    val resultList = knowledgeBase.fulfill(goalInput, randomVarsScope).mapRemaining { solution ->
-        templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
-    }.remainingToList()
+    val resultList = knowledgeBase.fulfill(goalInput, randomVarsScope)
+        .mapRemaining { solution ->
+            templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
+        }
+        .remainingToList()
 
     val resultListUnified = solutionInput.unify(PrologList(resultList), randomVarsScope)
     resultListUnified?.variableValues?.retainAll(templateInput.variables + solutionInput.variables)

@@ -43,6 +43,10 @@ data class PrologStackTraceElement(
     override fun toString() = "\tat $goalPredicate (${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine})"
 }
 
+/**
+ * Runs the code; if it throws a [PrologException], amends the [PrologException.stackTrace] with
+ * the given [PrologStackTraceElement].
+ */
 inline fun <T> prologTry(onErrorStackTraceElement: PrologStackTraceElement, code: () -> T): T {
     try {
         return code()
@@ -53,7 +57,16 @@ inline fun <T> prologTry(onErrorStackTraceElement: PrologStackTraceElement, code
     }
 }
 
-fun <T> LazySequence<T>.prologTryOnRemaining(onErrorStackTraceElement: PrologStackTraceElement): LazySequence<T> {
+/**
+ * Maps the sequence; for every [PrologException] thrown from the original sequence as a result
+ * of invocations to [LazySequence.tryAdvance] the [PrologException.prologStackTrace] is amended
+ * with the given stack trace element (as if each call to `tryAdvance` were wrapped in [prologTry]).
+ *
+ * This has to be included in all calls made by the interpreter that should show up in the prolog
+ * stacktraces; this is definitely for all calls the interpreter starts on behalf of user code.
+ * Calls the interpreter does on its own behalf **may** use this.
+ */
+fun <T> LazySequence<T>.amendExceptionsWithStackTraceOnRemaining(onErrorStackTraceElement: PrologStackTraceElement): LazySequence<T> {
     return this.transformExceptionsOnRemaining { e: PrologException ->
         e.addPrologStackFrame(onErrorStackTraceElement)
         e

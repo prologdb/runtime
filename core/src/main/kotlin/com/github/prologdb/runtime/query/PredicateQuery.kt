@@ -27,7 +27,7 @@ open class PredicateQuery(
         val substitutedPredicate = predicate.substituteVariables(initialVariables.asSubstitutionMapper())
 
         return kb.fulfill(substitutedPredicate, randomVarsScope)
-            .prologTryOnRemaining(stackFrame)
+            .amendExceptionsWithStackTraceOnRemaining(stackFrame)
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
