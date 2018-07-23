@@ -1,9 +1,6 @@
 package com.github.prologdb.runtime.query
 
-import com.github.prologdb.runtime.HasPrologSource
-import com.github.prologdb.runtime.PrologSourceInformation
-import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
@@ -19,10 +16,18 @@ open class PredicateQuery(
 {
     constructor(predicate: Predicate) : this(predicate, getInvocationStackFrame().prologSourceInformation)
 
+    private val stackFrame: PrologStackTraceElement by lazy {
+        PrologStackTraceElement(
+            predicate,
+            sourceInformation
+        )
+    }
+
     override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
         val substitutedPredicate = predicate.substituteVariables(initialVariables.asSubstitutionMapper())
 
         return kb.fulfill(substitutedPredicate, randomVarsScope)
+            .prologTryOnRemaining(stackFrame)
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {

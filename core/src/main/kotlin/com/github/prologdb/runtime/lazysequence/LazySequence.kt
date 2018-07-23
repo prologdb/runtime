@@ -318,6 +318,23 @@ fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
     = MappedLazySequence(this, mapper)
 
 /**
+ * Returns a [LazySequence] where exceptions thrown on each call to [LazySequence.tryAdvance]
+ * are first put through the given mapper before being rethrown.
+ *
+ * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
+ */
+inline fun <T, reified E> LazySequence<T>.transformExceptionsOnRemaining(noinline mapper: (E) -> Throwable): LazySequence<T>
+where E : Throwable {
+    if (E::class == Throwable::class) {
+        return RethrowingExceptionMappingLazySequence(this, mapper as (Throwable) -> Throwable)
+    } else {
+        return RethrowingExceptionMappingLazySequence(this, { e: Throwable ->
+            if (e is E) mapper(e) else e
+        })
+    }
+}
+
+/**
  * Invokes the given action for all remaining elements in this [LazySequence]
  */
 inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {

@@ -1,5 +1,7 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.lazysequence.transformExceptionsOnRemaining
 import com.github.prologdb.runtime.term.Predicate
 
 /**
@@ -8,7 +10,9 @@ import com.github.prologdb.runtime.term.Predicate
 open class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message) {
     private val _prologStackTrace = mutableListOf<PrologStackTraceElement>()
 
-    fun addPrologStackFrame(frameInfo: PrologStackTraceElement) = _prologStackTrace.add(frameInfo)
+    fun addPrologStackFrame(frameInfo: PrologStackTraceElement) {
+        _prologStackTrace.add(frameInfo)
+    }
 
     val prologStackTrace: List<PrologStackTraceElement> = _prologStackTrace
 }
@@ -37,4 +41,21 @@ data class PrologStackTraceElement(
     val sourceInformation: PrologSourceInformation
 ){
     override fun toString() = "\tat $goalPredicate (${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine})"
+}
+
+inline fun <T> prologTry(onErrorStackTraceElement: PrologStackTraceElement, code: () -> T): T {
+    try {
+        return code()
+    }
+    catch (ex: PrologException) {
+        ex.addPrologStackFrame(onErrorStackTraceElement)
+        throw ex
+    }
+}
+
+fun <T> LazySequence<T>.prologTryOnRemaining(onErrorStackTraceElement: PrologStackTraceElement): LazySequence<T> {
+    return this.transformExceptionsOnRemaining { e: PrologException ->
+        e.addPrologStackFrame(onErrorStackTraceElement)
+        e
+    }
 }
