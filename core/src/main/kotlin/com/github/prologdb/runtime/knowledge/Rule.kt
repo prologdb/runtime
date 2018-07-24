@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-open class Rule(val head: Predicate, private val query: Query) : LibraryEntry {
+open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
     override val name = head.name
     override val arity = head.arity
 
