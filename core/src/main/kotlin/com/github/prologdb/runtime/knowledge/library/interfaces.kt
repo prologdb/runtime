@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.runtime.ArityMap
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.lazysequence.LazySequence
@@ -7,6 +8,7 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
+import java.util.*
 
 /**
  * A indicator of a predicate, e.g. `likes/2`.
@@ -19,11 +21,42 @@ interface HasNameAndArity {
 /**
  * A indicator of a predicate, e.g. `likes/2`.
  */
-data class PredicateIndicator(
+data class PredicateIndicator private constructor(
     val name: String,
     val arity: Int
 ) {
     override fun toString() = "$name/$arity"
+
+    companion object {
+        /**
+         * Cache for [of]
+         */
+        private val cache = ArityMap<MutableMap<String, PredicateIndicator>>()
+
+        /**
+         * @return An instance of [PredicateIndicator] where [name] and [arity]
+         * equal the given arguments. Utilizes a weak-reference cache.
+         */
+        fun of(name: String, arity: Int): PredicateIndicator {
+            // assure name-map is present
+            if (arity !in cache) {
+                synchronized(cache) {
+                    if (arity !in cache) {
+                        cache[arity] = WeakHashMap<String, PredicateIndicator>()
+                    }
+                }
+            }
+
+            val mapByName = cache[arity] ?: throw RuntimeException("Internal error; see stacktrace and source code.")
+            return mapByName[name] ?: {
+                val newly = PredicateIndicator(name, arity)
+                mapByName[name] = newly
+                newly
+            }()
+        }
+
+        fun of(predicate: Predicate): PredicateIndicator = of (predicate.name, predicate.arity)
+    }
 }
 
 /**
