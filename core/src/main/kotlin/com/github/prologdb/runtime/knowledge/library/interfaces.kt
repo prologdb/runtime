@@ -3,7 +3,6 @@ package com.github.prologdb.runtime.knowledge.library
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -12,15 +11,19 @@ import com.github.prologdb.runtime.unification.Unification
 /**
  * A indicator of a predicate, e.g. `likes/2`.
  */
-interface PredicateIndicator {
+interface HasNameAndArity {
     val name: String
     val arity: Int
+}
 
-    /** The prolog-idiomatic representation of this indicator, e.g. for `name=foobar, arity=2` is `'/'(foobar, 2)` */
-    val idiomaticIndicator: Predicate
-        get() = object : Predicate("/", arrayOf(Atom(name), com.github.prologdb.runtime.term.PrologInteger(arity.toLong()))) {
-            override fun toString(): String = "${this@PredicateIndicator.name}/${this@PredicateIndicator.arity}"
-        }
+/**
+ * A indicator of a predicate, e.g. `likes/2`.
+ */
+data class PredicateIndicator(
+    val name: String,
+    val arity: Int
+) {
+    override fun toString() = "$name/$arity"
 }
 
 /**
@@ -28,7 +31,7 @@ interface PredicateIndicator {
  * @see Predicate
  * @see com.github.prologdb.runtime.knowledge.Rule
  */
-interface LibraryEntry : PredicateIndicator {
+interface LibraryEntry : HasNameAndArity {
     /**
      * Unifies the given predicate (`other`) with this entry; if this is a fact (a [Predicate]), unifies with
      * the given predicate and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
