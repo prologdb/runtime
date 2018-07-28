@@ -148,8 +148,7 @@
                             <id>sign-artifacts</id>
                             <phase>verify</phase>
                             <configuration>
-                                <keyname>20DAB483</keyname>
-                                <skip>true</skip>
+                                <keyname>DC413BFB</keyname>
                             </configuration>
                             <goals>
                                 <goal>sign</goal>
