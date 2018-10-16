@@ -21,6 +21,11 @@ interface WorkableLazySequence<T> : LazySequence<T> {
      * When this method is called in state [State.RESULTS_AVAILABLE],
      * it is not defined whether calculations are done.
      *
+     * This function can only be run by one thread at a time.
+     * Implementations are inclined to use [synchronized] to achieve
+     * this behaviour, [java.util.concurrent.locks.Lock]s are another
+     * option, though.
+     *
      * @return the state of this sequence after this call
      */
     fun step(): State

@@ -27,7 +27,7 @@
     </modules>
 
     <properties>
-        <kotlin.version>1.2.51</kotlin.version>
+        <kotlin.version>1.2.71</kotlin.version>
         <kotlin.plugin.version>${kotlin.version}</kotlin.plugin.version>
     </properties>
 
