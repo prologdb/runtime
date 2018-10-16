@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin.typesafety
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.async.LazySequence
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList

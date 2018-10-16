@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.async
+package com.github.prologdb.async
 
 class MappedLazySequence<T, M>(
     private val base: LazySequence<T>,

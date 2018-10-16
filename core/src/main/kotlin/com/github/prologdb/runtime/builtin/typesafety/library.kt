@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.builtin.typesafety
 
-import com.github.prologdb.runtime.async.LazySequence
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.builtin.X
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.knowledge.Rule

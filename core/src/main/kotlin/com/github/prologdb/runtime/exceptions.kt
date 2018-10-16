@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime
 
-import com.github.prologdb.runtime.async.LazySequence
-import com.github.prologdb.runtime.async.transformExceptionsOnRemaining
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.transformExceptionsOnRemaining
 import com.github.prologdb.runtime.term.Predicate
 
 /**

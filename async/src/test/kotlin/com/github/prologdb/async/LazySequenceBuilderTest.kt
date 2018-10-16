@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.async
+package com.github.prologdb.async
 
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec

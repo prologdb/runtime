@@ -19,6 +19,7 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <modules>
+        <module>async</module>
         <module>core</module>
         <module>parser</module>
         <module>tests</module>
@@ -105,6 +106,11 @@
                 <artifactId>kotlin-reflect</artifactId>
                 <version>${kotlin.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.prologdb</groupId>
+                <artifactId>runtime-async</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.prologdb</groupId>

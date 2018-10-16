@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.knowledge
 
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.async.LazySequence
-import com.github.prologdb.runtime.async.buildLazySequence
 import com.github.prologdb.runtime.builtin.ComparisonLibrary
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.dict.DictLibrary

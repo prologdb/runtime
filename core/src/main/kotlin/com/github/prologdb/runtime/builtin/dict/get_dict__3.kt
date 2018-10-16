@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.builtin.dict
 
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.async.LazySequence
-import com.github.prologdb.runtime.async.buildLazySequence
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary

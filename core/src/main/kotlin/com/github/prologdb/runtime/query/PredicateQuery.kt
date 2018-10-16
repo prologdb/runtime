@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.query
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.async.LazySequence
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.knowledge.KnowledgeBase

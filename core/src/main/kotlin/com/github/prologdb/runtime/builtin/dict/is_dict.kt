@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.builtin.dict
 
-import com.github.prologdb.runtime.async.LazySequence
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.unification.Unification
