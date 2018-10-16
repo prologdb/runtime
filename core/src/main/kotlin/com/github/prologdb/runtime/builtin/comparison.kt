@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin
 
+import com.github.prologdb.runtime.async.LazySequence
 import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.unification.Unification
 

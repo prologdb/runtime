@@ -1,11 +1,11 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.async.LazySequence
 import com.github.prologdb.runtime.knowledge.library.EmptyOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.knowledge.library.MutableOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification

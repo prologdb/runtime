@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.async.LazySequence
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term

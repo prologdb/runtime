@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.lazysequence
+package com.github.prologdb.runtime.async
 
 class DistinctLazySequence<T, K>(
     private val base: LazySequence<out T>,

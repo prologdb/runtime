@@ -8,13 +8,13 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.async.LazySequence
+import com.github.prologdb.runtime.async.LazySequenceBuilder
+import com.github.prologdb.runtime.async.buildLazySequence
+import com.github.prologdb.runtime.async.forEachRemaining
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.lazysequence.LazySequenceBuilder
-import com.github.prologdb.runtime.lazysequence.buildLazySequence
-import com.github.prologdb.runtime.lazysequence.forEachRemaining
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.AnonymousVariable

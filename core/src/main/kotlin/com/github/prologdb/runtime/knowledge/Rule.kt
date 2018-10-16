@@ -2,9 +2,9 @@ package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.async.LazySequence
+import com.github.prologdb.runtime.async.mapRemaining
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.lazysequence.mapRemaining
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification

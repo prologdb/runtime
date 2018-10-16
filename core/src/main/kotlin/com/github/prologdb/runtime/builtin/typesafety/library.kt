@@ -1,10 +1,10 @@
 package com.github.prologdb.runtime.builtin.typesafety
 
+import com.github.prologdb.runtime.async.LazySequence
 import com.github.prologdb.runtime.builtin.X
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification

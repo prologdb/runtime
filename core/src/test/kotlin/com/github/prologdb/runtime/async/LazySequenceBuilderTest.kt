@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.lazysequence
+package com.github.prologdb.runtime.async
 
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec

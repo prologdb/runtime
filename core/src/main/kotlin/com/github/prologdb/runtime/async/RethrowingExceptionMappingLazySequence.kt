@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.lazysequence
+package com.github.prologdb.runtime.async
 
 class RethrowingExceptionMappingLazySequence<T>(
     private val nested: LazySequence<T>,

@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.lazysequence
+package com.github.prologdb.runtime.async
 
 /**
  * A lazysequence that calculates / obtains the next element only when it is actually needed (as opposed to when
