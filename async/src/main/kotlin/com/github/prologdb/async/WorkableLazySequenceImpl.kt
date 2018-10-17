@@ -133,7 +133,7 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
 
                 InnerState.WAITING_ON_FUTURE -> {
                     val future = currentWaitingFuture!!
-                    if (future.isDone || future.isCancelled) {
+                    if (future.isDone) {
                         val result = try {
                             future.get()
                         } catch (ex: Throwable) {
