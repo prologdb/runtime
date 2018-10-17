@@ -6,6 +6,7 @@ import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldThrow
 import io.kotlintest.specs.FreeSpec
+import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import kotlin.concurrent.thread
 
@@ -189,5 +190,166 @@ class WorkableFutureTest : FreeSpec({
         (completedAt - earliestStart) should beGreaterThanOrEqualTo(200L)
     }
 
+    "await workable future" {
+        val stepOneCompleted = CompletableFuture<Unit>()
+        val blockerAfterStepOne = CompletableFuture<String>()
+
+        val waitingOn = WorkableFutureImpl {
+            stepOneCompleted.complete(Unit)
+            await(blockerAfterStepOne)
+        }
+
+        val future = WorkableFutureImpl {
+            await(waitingOn)
+        }
+
+        future.isDone shouldBe false
+
+        future.step()
+
+        future.isDone shouldBe false
+        stepOneCompleted.isDone shouldBe false
+
+        future.step()
+
+        future.isDone shouldBe false
+        stepOneCompleted.isDone shouldBe true
+        waitingOn.isDone shouldBe false
+
+        future.step()
+
+        future.isDone shouldBe false
+        waitingOn.isDone shouldBe false
+
+        blockerAfterStepOne.complete("Fuzz")
+
+        future.isDone shouldBe false
+        waitingOn.isDone shouldBe false
+
+        future.step()
+
+        future.isDone shouldBe true
+        future.get() shouldBe "Fuzz"
+    }
+
+    "cancel should stop at next suspension point" - {
+        "cancelled after suspension point hit" {
+            val beforeCancel = CompletableFuture<Unit>()
+            val afterCancel = CompletableFuture<Unit>()
+            val waitingOn = CompletableFuture<Unit>()
+
+            val future = WorkableFutureImpl {
+                beforeCancel.complete(Unit)
+                await(waitingOn)
+                afterCancel.complete(Unit)
+            }
+
+            future.step()
+
+            future.isDone shouldBe false
+            future.isCancelled shouldBe false
+
+            future.cancel(true)
+
+            future.isDone shouldBe true
+            future.isCancelled shouldBe true
+            afterCancel.isDone shouldBe false
+
+            future.step() shouldBe true
+            future.isCancelled shouldBe true
+            afterCancel.isDone shouldBe false
+        }
+
+        "cancelled before suspension point hit" - {
+            "suspension point completed when hit" {
+                var beforeSuspension: () -> Unit = {}
+                val afterSuspension = CompletableFuture<Unit>()
+                val waitingOn = CompletedFuture(Unit, null)
+
+                val future = WorkableFutureImpl {
+                    beforeSuspension()
+                    val i = 3
+                    await(waitingOn)
+                    afterSuspension.complete(Unit)
+                }
+
+                beforeSuspension = {
+                    future.cancel(true) // cancel, before the suspension point was hit
+                }
+
+                future.step()
+
+                future.isDone shouldBe true
+                future.isCancelled shouldBe true
+                shouldThrow<CancellationException> {
+                    future.get()
+                }
+
+                future.isDone shouldBe true
+                future.isCancelled shouldBe true
+                shouldThrow<CancellationException> {
+                    future.get()
+                }
+
+                // waitingOn was already completed when await was called
+                // the workable future must not continue
+
+                future.step() shouldBe true
+                afterSuspension.isDone shouldBe false
+
+                future.isDone shouldBe true
+                future.isCancelled shouldBe true
+                shouldThrow<CancellationException> {
+                    future.get()
+                }
+            }
+
+            "suspension point not completed when hit" {
+                var beforeSuspension: () -> Unit = {}
+                val afterSuspension = CompletableFuture<Unit>()
+                val waitingOn = CompletableFuture<Unit>()
+
+                val future = WorkableFutureImpl {
+                    beforeSuspension()
+                    await(waitingOn)
+                    afterSuspension.complete(Unit)
+                }
+
+                beforeSuspension = {
+                    future.cancel(true) // cancel, before the suspension point was hit
+                }
+
+                future.step()
+
+                future.isDone shouldBe true
+                future.isCancelled shouldBe true
+                afterSuspension.isDone shouldBe false
+                shouldThrow<CancellationException> {
+                    future.get()
+                }
+
+                // waitingOn is not completed. completing it must not
+                // change the state of the workable future
+
+                waitingOn.complete(Unit)
+
+                afterSuspension.isDone shouldBe false
+                future.isDone shouldBe true
+                future.isCancelled shouldBe true
+                shouldThrow<CancellationException> {
+                    future.get()
+                }
+
+                future.step() shouldBe true
+                afterSuspension.isDone shouldBe false
+
+                future.isDone shouldBe true
+                future.isCancelled shouldBe true
+                shouldThrow<CancellationException> {
+                    future.get()
+                }
+            }
+        }
+    }
     // TODO: test cancel
 })

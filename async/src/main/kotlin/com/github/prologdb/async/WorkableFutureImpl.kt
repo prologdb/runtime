@@ -17,9 +17,6 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                     result = value!!
                     state = State.COMPLETED
                 }
-                else {
-                    throw IllegalStateException("Future is in state $state, cannot complete")
-                }
             }
         }
 
@@ -28,9 +25,6 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                 if (state == State.RUNNING) {
                     error = exception
                     state = State.COMPLETED
-                }
-                else {
-                    throw IllegalStateException("Future is in state $state, cannot complete exceptionally")
                 }
             }
         }
@@ -52,7 +46,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
     @Volatile
     private var currentWaitingFuture: Future<*>? = null
 
-    override fun isDone(): Boolean = state == State.COMPLETED
+    override fun isDone(): Boolean = state == State.COMPLETED || state == State.CANCELLED
 
     override fun isCancelled(): Boolean = state == State.CANCELLED
 
@@ -68,7 +62,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                 throw IllegalStateException("Future is in state $state, cannot wait for a future.")
             }
 
-            if (future.isDone || future.isCancelled) {
+            if (future.isDone) {
                 return try {
                     future.get()
                 }
@@ -96,10 +90,18 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                 State.RUNNING -> continuation.resume(Unit)
                 State.WAITING_ON_FUTURE -> {
                     val future = currentWaitingFuture!!
-                    if (future.isDone || future.isCancelled) {
+
+                    if (future.isDone) {
                         state = State.RUNNING
                         currentWaitingFuture = null
                         continuation.resume(Unit)
+                    }
+                    else if (future is WorkableFuture) {
+                        if (future.step()) {
+                            state = State.RUNNING
+                            currentWaitingFuture = null
+                            continuation.resume(Unit)
+                        }
                     }
                 }
                 State.COMPLETED, State.CANCELLED -> { }
@@ -119,7 +121,16 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                 State.WAITING_ON_FUTURE -> {
                     try {
                         currentWaitingFuture!!.get()
-                    } catch (handleLater: Exception) {}
+                    }
+                    catch (handleLater: Exception) {
+                        /* calling get() will complete the future
+                         * the next iteration will call step()
+                         * step() will detect that the future is
+                         * completed and update the state accordingly
+                         * the CANCELLED branch of this when() will
+                         * pick that up
+                         */
+                    }
                 }
             }
         } while (true)
@@ -135,7 +146,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                 State.RUNNING, State.WAITING_ON_FUTURE -> {
                     state = State.CANCELLED
                     error = CancellationException()
-                    currentWaitingFuture!!.cancel(true)
+                    currentWaitingFuture?.cancel(true)
                     currentWaitingFuture = null
 
                     return true
