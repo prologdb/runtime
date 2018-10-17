@@ -42,21 +42,6 @@ interface LazySequence<T> {
         = DistinctLazySequence(this, selector)
 
     /**
-     * Accumulates value starting with [initial] value and applying [accumulator] for each remaining element in this
-     * sequence.
-     *
-     * @see Sequence.fold
-     */
-    fun <C> foldRemaining(initial: C, accumulator: (C, T) -> C): C {
-        var carry: C = initial
-        forEachRemaining {
-            carry = accumulator(carry, it)
-        }
-
-        return carry
-    }
-
-    /**
      * Consumes all of the remaining elements in this sequence.
      *
      * @return the least element, according to [comparator] or `null` if there are no elements in this sequence
