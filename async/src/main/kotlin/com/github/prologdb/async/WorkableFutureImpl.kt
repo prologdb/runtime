@@ -43,6 +43,9 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
     @Volatile
     private var currentWaitingFuture: Future<*>? = null
 
+    @Volatile
+    private var currentWaitingSequence: WorkableLazySequence<*>? = null
+
     override fun isDone(): Boolean = state == State.COMPLETED || state == State.CANCELLED
 
     override fun isCancelled(): Boolean = state == State.CANCELLED
@@ -65,6 +68,23 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                             currentWaitingFuture = null
                             continuation.resume(Unit)
                         }
+                    }
+                }
+                State.WAITING_ON_SEQUENCE -> {
+                    val sequence = currentWaitingSequence!!
+                    var seqState = sequence.state
+                    if (seqState == WorkableLazySequence.State.PENDING) {
+                        seqState = sequence.step()
+                    }
+
+                    if (seqState != WorkableLazySequence.State.PENDING) {
+                        // sequence done or result available
+                        // the suspend function will call tryAdvance, trusting it will
+                        // not do work
+                        state = State.RUNNING
+                        currentWaitingSequence = null
+
+                        continuation.resume(Unit)
                     }
                 }
                 State.COMPLETED, State.CANCELLED -> { }
@@ -95,6 +115,11 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                          */
                     }
                 }
+                State.WAITING_ON_SEQUENCE -> {
+                    // the suspend fun will call tryAdvance() and thus do
+                    // all work necessary.
+                    continuation.resume(Unit)
+                }
             }
         } while (true)
     }
@@ -113,6 +138,9 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                     currentWaitingFuture = null
 
                     return true
+                }
+                State.WAITING_ON_SEQUENCE -> {
+                    currentWaitingSequence?.close()
                 }
                 State.COMPLETED, State.CANCELLED -> {
                     return false
@@ -164,6 +192,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
         RUNNING,
         COMPLETED,
         CANCELLED,
-        WAITING_ON_FUTURE
+        WAITING_ON_FUTURE,
+        WAITING_ON_SEQUENCE
     }
 }

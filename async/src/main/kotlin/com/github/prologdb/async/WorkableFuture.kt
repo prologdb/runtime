@@ -37,10 +37,19 @@ interface WorkableFutureBuilder {
      * @return the futures value
      * @throws Exception Forwarded from the [Future], including [CancellationException]
      */
-    suspend fun <E> await(future: Future<E>): E
+    suspend fun <T> await(future: Future<T>): T
+
+    /**
+     * Logically like [LazySequence.foldRemaining] with these differences in
+     * technical behaviour:
+     * * if this future is cancelled, the sequence is closed.
+     * * if the sequence is a [WorkableLazySequence]
+     *   * calls to [WorkableFuture.step] are deferred to the sequence
+     */
+    suspend fun <T, C> foldRemaining(sequence: LazySequence<T>, initial: C, accumulator: (C, T) -> C): C
 }
 
-inline fun <T> launchWorkableFuture(noinline code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
+fun <T> launchWorkableFuture(code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
 
 inline fun <R, F> awaitAndThenWorkable(future: Future<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
     code(await(future))
