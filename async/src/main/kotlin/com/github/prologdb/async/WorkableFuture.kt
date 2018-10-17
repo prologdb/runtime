@@ -40,3 +40,8 @@ interface WorkableFutureBuilder {
     suspend fun <E> await(future: Future<E>): E
 }
 
+inline fun <T> launchWorkableFuture(noinline code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
+
+inline fun <R, F> awaitAndThenWorkable(future: Future<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
+    code(await(future))
+}
