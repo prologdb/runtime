@@ -6,7 +6,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.*
 
-class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : WorkableFutureBuilder, WorkableFuture<T> {
+class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
     private val onComplete = object : Continuation<T> {
         override val context: CoroutineContext = EmptyCoroutineContext
@@ -33,9 +33,6 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
     private val mutex = Any()
 
     @Volatile
-    private var continuation: Continuation<Unit> = code.createCoroutine(this, onComplete)
-
-    @Volatile
     private var result: T? = null
     @Volatile
     private var error: Throwable? = null
@@ -49,40 +46,6 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
     override fun isDone(): Boolean = state == State.COMPLETED || state == State.CANCELLED
 
     override fun isCancelled(): Boolean = state == State.CANCELLED
-
-    override suspend fun <E> await(future: Future<E>): E {
-        synchronized(mutex) {
-            if (state == State.CANCELLED) {
-                // this has been cancelled, shut it down right here
-                suspendCoroutine<Unit> { /* not picking up the continuation aborts the coroutine. */ }
-                throw Exception("This should never have been thrown")
-            }
-
-            if (state != State.RUNNING) {
-                throw IllegalStateException("Future is in state $state, cannot wait for a future.")
-            }
-
-            if (future.isDone) {
-                return try {
-                    future.get()
-                }
-                catch (ex: ExecutionException) {
-                    throw ex.cause ?: ex
-                }
-            }
-
-            currentWaitingFuture = future
-            state = State.WAITING_ON_FUTURE
-        }
-
-        suspendCoroutine<Any> { continuation = it }
-        return try {
-            future.get()
-        }
-        catch (ex: ExecutionException) {
-            throw ex.cause ?: ex
-        }
-    }
 
     override fun step(): Boolean {
         synchronized(mutex) {
@@ -157,6 +120,45 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
             }
         }
     }
+
+    private val Builder = object : WorkableFutureBuilder {
+        override suspend fun <E> await(future: Future<E>): E {
+            synchronized(mutex) {
+                if (state == State.CANCELLED) {
+                    // this has been cancelled, shut it down right here
+                    suspendCoroutine<Unit> { /* not picking up the continuation aborts the coroutine. */ }
+                    throw Exception("This should never have been thrown")
+                }
+
+                if (state != State.RUNNING) {
+                    throw IllegalStateException("Future is in state $state, cannot wait for a future.")
+                }
+
+                if (future.isDone) {
+                    return try {
+                        future.get()
+                    }
+                    catch (ex: ExecutionException) {
+                        throw ex.cause ?: ex
+                    }
+                }
+
+                currentWaitingFuture = future
+                state = State.WAITING_ON_FUTURE
+            }
+
+            suspendCoroutine<Any> { continuation = it }
+            return try {
+                future.get()
+            }
+            catch (ex: ExecutionException) {
+                throw ex.cause ?: ex
+            }
+        }
+    }
+
+    @Volatile
+    private var continuation: Continuation<Unit> = code.createCoroutine(Builder, onComplete)
 
     private enum class State {
         RUNNING,
