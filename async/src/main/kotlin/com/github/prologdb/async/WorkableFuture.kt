@@ -27,7 +27,7 @@ interface WorkableFuture<T> : Future<T> {
 }
 
 @RestrictsSuspension
-interface WorkableFutureBuilder {
+interface WorkableFutureBuilder<T> {
     /**
      * Suspends this coroutine until the given future is present.
      *
@@ -37,7 +37,7 @@ interface WorkableFutureBuilder {
      * @return the futures value
      * @throws Exception Forwarded from the [Future], including [CancellationException]
      */
-    suspend fun <T> await(future: Future<T>): T
+    suspend fun <E> await(future: Future<E>): E
 
     /**
      * Logically like [LazySequence.foldRemaining] with these differences in
@@ -46,11 +46,11 @@ interface WorkableFutureBuilder {
      * * if the sequence is a [WorkableLazySequence]
      *   * calls to [WorkableFuture.step] are deferred to the sequence
      */
-    suspend fun <T, C> foldRemaining(sequence: LazySequence<T>, initial: C, accumulator: (C, T) -> C): C
+    suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C
 }
 
-fun <T> launchWorkableFuture(code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
+fun <T> launchWorkableFuture(code: suspend WorkableFutureBuilder<T>.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
 
-inline fun <R, F> awaitAndThenWorkable(future: Future<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
+inline fun <R, F> awaitAndThenWorkable(future: Future<F>, crossinline code: suspend WorkableFutureBuilder<R>.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
     code(await(future))
 }

@@ -6,7 +6,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.*
 
-class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
+class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : WorkableFuture<T> {
 
     private val onComplete = object : Continuation<T> {
         override val context: CoroutineContext = EmptyCoroutineContext
@@ -140,7 +140,11 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
                     return true
                 }
                 State.WAITING_ON_SEQUENCE -> {
+                    state = State.CANCELLED
+                    error = CancellationException()
                     currentWaitingSequence?.close()
+                    currentWaitingSequence = null
+                    return true
                 }
                 State.COMPLETED, State.CANCELLED -> {
                     return false
@@ -149,7 +153,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
         }
     }
 
-    private val Builder = object : WorkableFutureBuilder {
+    private val Builder = object : WorkableFutureBuilder<T> {
         override suspend fun <E> await(future: Future<E>): E {
             synchronized(mutex) {
                 if (state == State.CANCELLED) {
