@@ -149,6 +149,7 @@
                             <phase>verify</phase>
                             <configuration>
                                 <keyname>DC413BFB</keyname>
+                                <skip>true</skip>
                             </configuration>
                             <goals>
                                 <goal>sign</goal>

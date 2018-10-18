@@ -9,4 +9,4 @@ cache:
   - $HOME/.m2/repository
 
 script:
-  - mvn -U -Dgpg.skip clean install -am
+  - mvn -U clean install -am
