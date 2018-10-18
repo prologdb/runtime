@@ -27,7 +27,7 @@ interface WorkableFuture<T> : Future<T> {
 }
 
 @RestrictsSuspension
-interface WorkableFutureBuilder<T> {
+interface WorkableFutureBuilder {
     /**
      * Suspends this coroutine until the given future is present.
      *
@@ -49,8 +49,8 @@ interface WorkableFutureBuilder<T> {
     suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C
 }
 
-fun <T> launchWorkableFuture(code: suspend WorkableFutureBuilder<T>.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
+fun <T> launchWorkableFuture(code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
 
-inline fun <R, F> awaitAndThenWorkable(future: Future<F>, crossinline code: suspend WorkableFutureBuilder<R>.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
+inline fun <R, F> awaitAndThen(future: Future<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
     code(await(future))
 }

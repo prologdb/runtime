@@ -1,8 +1,6 @@
 # Package com.github.prologdb.async
 
-Facilities to model and simplify asynchronous processing. The Sequence classes provided
-by Kotlin are not suitable for application in prolog search trees (explained below).
-
+Facilities to model and simplify asynchronous processing.
 ## Motivation
 
 Java provides `Future<T>`. For simple operations (e.g. [java.nio.channels.AsynchronousFileChannel.read]),
@@ -16,16 +14,11 @@ of prolog search trees are executed in parallel.
 
 The interface `Sequence<T>` has only one method: it exposes an `Iterator<T>`, so lets look
 at that.  
-`Iterator<T>` has the method `hasNext(): Boolean` and this does not fit with prolog
-solution search: As long as there are choice-points left, it is not known whether there are
-any more solutions. Calling `hasNext()` is **forced** to calculate the next solution so that
-it can return according to the contract. This means that `hasNext()` will block the thread for
-a significant amount of time when faced with non-trivial searches. This behaviour does not work
-well in consumer code, especially the kotlin built-in for-loop (as opposed to the
-`forEachRemaining` method).
-
-Declaring a new interface forces consumer code to take that into consideration. Also,
-as you will see with `WorkableLazySequence`, a custom coroutine builder was not avoidable. 
+`Iterator<T>` has the method `hasNext(): Boolean`. `hasNext()` implies a reading action. 
+However, to determine whether there are more solutions, the next solution must be calculated.
+In prolog, calculating a solution can have side effects (e.g. `retract/1`). This mismatch
+is the primary reason for this custom built code. Also, as you will see later,
+a custom coroutine builder was not avoidable. 
 
 ---
 
@@ -34,33 +27,79 @@ mutex that will block multiple threads from performing work and can easily lead 
 However, it is safe to have multiple threads call methods on the same object as long as
 they don't do so simultaneously. An external locking mechanism is **strongly advised**.
 
+## WorkableFuture<T>
+
+Fully implements `Future<T>`. For futures whichs result is built from a mix of calculation
+and waiting on other futures, the user is given the opportunity to use resources on the
+entire process step-by-step (in order to avoid blocking a thread when waiting for I/O).  
+This is done with the `step()` method (see Dokka docs).
+
+### Example
+
+```kotlin
+fun insertRecord(val id: Long, data: ByteArray): WorkableFuture<Unit> {
+    val existingRecord: WorkableFuture<ByteArray?> = readRecord(id)
+    awaitAndThen(existingRecord) { data: ByteArray? ->
+        if (data == null) {
+            // record does not exist => write
+            await(syncFileChannel.write(data, targetOffset))
+        } else {
+            throw IOException("Record with id $id already exists")
+        }
+    }
+}
+
+val future = insertRecord(121, ByteArray(20))
+
+assert(future.step() == false)
+// goes until awaitAndThen and then waits for the disk read
+// let some time pass, disk read completed
+
+assert(future.step() == false)
+// goes until await() and then waits for the disk write
+// let some time pass, disk write completed
+
+assert(future.isDone == false)
+
+assert(future.step() == true)
+// resumes from await() and completes the future
+
+assert(future.isDone == true)
+future.get() // returns Unit immediately 
+
+// ------
+
+// attempt to insert duplicate
+val future = insertRecord(121, ByteArray(21))
+
+assert(future.step() == false)
+// goes until awaitAndThen and then waits for the disk read
+// let some time pass, disk read completed
+
+assert(future.step() == true)
+// sees that the record exists and throws exception; is not forwarded by step()
+
+assert(future.isDone)
+assertThrows<IOException>() {
+    future.get()
+}
+```
+
 ## LazySequence
 
-Like `Future<T>`, but with an (arbitrarily) sorted list of results (instead of only one).
-Is designed for work that is entirely CPU or memory bound.
-
-From a resource-efficiency viewpoint, there is no reason to split CPU/memory bound tasks. Prolog,
-in its design, already has a pretty clear split: one search tree can yield multiple solutions
-where each solution is calculated individually, step-by-step.  
-The idea behind LazySequence is to allow the caller to control when the solutions are calculated.
-As in prolog shells, the calculation is only attempted when more results are requested.
-Upon request, only the next solution is calculated and the process is put on hold until the
-next request comes in.
+Like `WorkableFuture<T>`, but for multiple results.
 
 ### Consuming a LazySequence
 
-This exact same semantic is mapped by the method [LazySequence.tryAdvance]: it attempts to
-calculate the next solution. If it finds one, the solution is returned. If there are no more
-solutions left, it returns null (the search is depleted).  
+[LazySequence.tryAdvance] attempts to calculate the next solution. If it finds one, the
+solution is returned. If there are no more solutions left, it returns null (the search is depleted).  
 Calling `tryAdvance()` is exactly the same thing as typing `;` into a prolog prompt during
 a search.
 
-Further, these sequences can be closed before being depleted. If
-a user decides that they don't need any further solutions, they
-can quit the search without having used any resources on the
-solutions they didn't actually use. This is modeled by
-the [LazySequence.close] method. It also allows the system to release
-memory & disk space associated with the search.  
+Further, these sequences can be closed before being depleted. If a user decides that they
+don't need any further solutions, they can quit the search without having used any resources
+on the solutions they didn't actually use. This is modeled by the [LazySequence.close] method.
+It also allows the system to release memory & disk space associated with the search.  
 Calling `close()` is exactly the same thing as typing `.` into a prolog prompt during
 a search.
 
@@ -68,7 +107,7 @@ There are a couple of member methods defined on [LazySequence] that are implemen
 of calling tryAdvance() and sometimes discarding the result (like `skip(Int)`) but could also
 be implemented more efficiently, depending on implementation details.
 
-Other methods known from working with the usual Kotlin sequences are availble as extension methods,
+Other methods known from working with the usual Kotlin sequences are available as extension methods,
 e.g. `map` or `maxBy`.
 
 ### Providing a LazySequence
@@ -120,28 +159,26 @@ assert(mapped.tryAdvance() == 2) // mapped from "BB"
 assert(sequence.tryAdvance() == "CCC")
 ```
 
-## WorkableLazySequence
+## LazySequence.step()
 
 Things get more complicated when disk or network I/O is necessary in order to compute a
 solution. As you may have guessed, `tryAdvance()` is blocking: it either does all working
 (and wasteful waiting!) to get to the next solutions or it declares the solutions depleted.
 Blocking on I/O is bad for efficiency and is exactly what this module tries to avoid.
 
-### Consuming a WorkableLazySequence
-
-WorkableLazySequence to the rescue: it provides the additional method `step(): State`:  
+You can use the `step()` method on `LazySequence` to avoid blocking a thread during I/O:
 When called, it attempts to do the next package of work. If there is useful work to be
 done, the calculation will continue until it comes to a point where the process has to wait
 for an external resource.
 If that work results in a solution being available `step()` will return `State.RESULTS_AVAILABLE`.
-In that case it is guaranteed that the next call to `tryAdvance()` will return a solution immediately
-without doing any expensive work.  
+In that case it is guaranteed that the next call to `tryAdvance()` will return a solution
+immediately without doing any expensive work.  
 If the work done in the `step()` invocation did not yield a result yet, `step()` will return
 `State.PENDING`.  
 When `step()` is called while the resource the process is waiting for has not yet returned its
 result the return value of `step()` will also be `PENDING`. 
 
-When there are many `WorkableLazySequence`s to work on resource usage can be made more efficient by
+When there are many `LazySequence`s to work on resource usage can be made more efficient by
 having (one or multiple) worker threads call `step()` on each of them in a round-robin fashion.
 As soon as any of the sequences return `RESULTS_AVAILABLE`, the solution can be published to the
 interested party.  
@@ -156,17 +193,19 @@ val allDone = CompletableFuture<Unit>()
 
 // start the worker
 thread {
-    val sequences: List<WorkableLazySequence<String>>
+    val sequences: List<LazySequence<String>>
     while (sequences.isNotEmpty()) {
         val iterator = sequences.iterator()
         while (iterator.hasNext()) {
             val sequence = iterator.next()
             var state = sequence.step()
-            if (state == WorkableLazySequence.State.RESULTS_AVAILABLE) {
+           
+            if (state == LazySequence.State.RESULTS_AVAILABLE) {
                 results.add(sequence.tryAdvance())
                 state = sequence.state 
             }
-            if (state == WorkableLazySequence.State.DEPLETED) {
+            
+            if (state == LazySequence.State.DEPLETED || state == LazySequence.State.FAILED) {
                 iterator.remove()
             }
         }
@@ -204,67 +243,12 @@ work on the sequence.
 
 As per the contract of LazySequence, `tryAdvance()` **must** either find the next solution
 or, once and for all, declare the sequence as finished. Thus, if you call `tryAdvance()` on
-a WorkableLazySequence, it will repeatedly call `step()` until a solution is available (
+a LazySequence, it will repeatedly call `step()` until a solution is available (
 optimizations like `Future.join()` included not to waste CPU in a `while(true)`)
 
 In cause you just need to check whether there are solutions and want to avoid possibility spending
-precious time doing work on the sequence, use the [WorkableLazySequence.state] property. If that
+precious time doing work on the sequence, use the [LazySequence.state] property. If that
 returns `RESULTS_AVAILABLE`, you are guaranteed that `tryAdvance()` will immediately return a
 non-null value.
-
-## WorkableFuture
-
-Implements `Future<T>` and adds the `step()` method with the same semantics as in
-`WorkableLazySequence`. Calling `get()` on a workable future will call `step()` repeatedly
-until done.
-
-```kotlin
-fun insertRecord(val id: Long, data: ByteArray): WorkableFuture<Unit> {
-    val existingRecord: WorkableFuture<ByteArray?> = readRecord(id)
-    awaitAndThenWorkable(existingRecord) { data: ByteArray? ->
-        if (data == null) {
-            // record does not exist => write
-            await(syncFileChannel.write(data, targetOffset))
-        } else {
-            throw IOException("Record with id $id already exists")
-        }
-    }
-}
-
-val future = insertRecord(121, ByteArray(20))
-
-assert(future.step() == false)
-// goes until awaitAndThenWorkable and then waits for the disk read
-// let some time pass, disk read completed
-
-assert(future.step() == false)
-// goes until await() and then waits for the disk write
-// let some time pass, disk write completed
-
-assert(future.isDone == false)
-
-assert(future.step() == true)
-// resumes from await() and completes the future
-
-assert(future.isDone == true)
-future.get() // returns Unit immediately 
-
-// ------
-
-// attempt to insert duplicate
-val future = insertRecord(121, ByteArray(21))
-
-assert(future.step() == false)
-// goes until awaitAndThenWorkable and then waits for the disk read
-// let some time pass, disk read completed
-
-assert(future.step() == true)
-// sees that the record exists and throws exception; is not forwarded by step()
-
-assert(future.isDone)
-assertThrows<IOException>() {
-    future.get()
-}
-```
 
 [java.nio.channels.AsynchronousFileChannel.read]: https://docs.oracle.com/javase/10/docs/api/java/nio/channels/AsynchronousFileChannel.html#read(java.nio.ByteBuffer,long)

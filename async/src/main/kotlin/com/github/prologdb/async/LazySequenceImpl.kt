@@ -1,19 +1,11 @@
 package com.github.prologdb.async
 
-import java.util.concurrent.CancellationException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.coroutines.experimental.*
 
-/**
- * Implements [WorkableLazySequence] with the following characteristics:
- * * Calling [step] when [state] is [WorkableLazySequence.State.RESULTS_AVAILABLE] attempts
- *   to do more work. While waiting for a sub-sequence (see [WorkableLazySequenceBuilder.yieldAll]),
- *   the behaviour depends on that sequence.
- */
-class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.() -> Unit) : WorkableLazySequence<T> {
-
+internal class LazySequenceImpl<T>(code: suspend LazySequenceBuilder<T>.() -> Unit) : LazySequence<T> {
     /**
      * The sequence itself is always working. Results are cached if
      * [step] is called more often than necessary for one result.
@@ -25,7 +17,7 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
         RUNNING,
 
         /**
-         * The coroutine has called [WorkableLazySequenceBuilder.yieldAll].
+         * The coroutine has called [LazySequenceBuilder.yieldAll].
          * Calculations and result access is to be done on the subsequence.
          */
         SUBSEQUENCE,
@@ -52,9 +44,7 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
     @Volatile private var innerState: InnerState = InnerState.RUNNING
 
     /* These are important in state SUBSEQUENCE */
-    @Volatile private var currentSubSequenceSimple: LazySequence<T>? = null
-    @Volatile private var currentSubSequenceWorkable: WorkableLazySequence<T>? = null
-    @Volatile private var currentSubSequenceIsWorkable: Boolean = false
+    @Volatile private var currentSubSequence: LazySequence<T>? = null
 
     /* These are important in state WAITING_ON_FUTURE */
     @Volatile private var currentWaitingFuture: Future<*>? = null
@@ -62,13 +52,13 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
     /* These are important in state FAILED */
     @Volatile private var error: Throwable? = null
 
-    override val state: WorkableLazySequence.State
-        get() = if (queuedResults.isNotEmpty()) WorkableLazySequence.State.RESULTS_AVAILABLE else when (innerState) {
+    override val state: LazySequence.State
+        get() = if (queuedResults.isNotEmpty()) LazySequence.State.RESULTS_AVAILABLE else when (innerState) {
             InnerState.RUNNING,
             InnerState.SUBSEQUENCE,
-            InnerState.WAITING_ON_FUTURE -> WorkableLazySequence.State.PENDING
-            InnerState.DEPLETED -> WorkableLazySequence.State.DEPLETED
-            InnerState.FAILED -> WorkableLazySequence.State.FAILED
+            InnerState.WAITING_ON_FUTURE -> LazySequence.State.PENDING
+            InnerState.DEPLETED -> LazySequence.State.DEPLETED
+            InnerState.FAILED -> LazySequence.State.FAILED
         }
 
     private val onComplete = object : Continuation<Unit> {
@@ -84,7 +74,7 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
         }
     }
 
-    private val builder = object : WorkableLazySequenceBuilder<T> {
+    private val builder = object : LazySequenceBuilder<T> {
         override suspend fun <E> await(future: Future<E>): E {
             currentWaitingFuture = future
             innerState = InnerState.WAITING_ON_FUTURE
@@ -106,16 +96,16 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
             suspendCoroutine<Any> { continuation = it }
         }
 
+        override suspend fun yieldAll(results: Collection<T>) {
+            queuedResults.addAll(results)
+            innerState = InnerState.RUNNING
+
+            suspendCoroutine<Any> { continuation = it }
+        }
+
         override suspend fun yieldAll(results: LazySequence<T>) {
-            if (results is WorkableLazySequence) {
-                currentSubSequenceIsWorkable = true
-                currentSubSequenceSimple = null
-                currentSubSequenceWorkable = results
-            } else {
-                currentSubSequenceIsWorkable = false
-                currentSubSequenceWorkable = null
-                currentSubSequenceSimple = results
-            }
+            currentSubSequence = results
+            innerState = InnerState.SUBSEQUENCE
 
             suspendCoroutine<Any> { continuation = it }
         }
@@ -125,7 +115,7 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
 
     private val stepMutex = Any()
 
-    override fun step(): WorkableLazySequence.State {
+    override fun step(): LazySequence.State {
         synchronized(stepMutex) {
             when (innerState) {
                 InnerState.FAILED,
@@ -153,43 +143,31 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
                 InnerState.RUNNING -> continuation.resume(Unit)
 
                 InnerState.SUBSEQUENCE -> {
-                    if (currentSubSequenceIsWorkable) {
-                        val subSeq = currentSubSequenceWorkable!!
-                        var subState = subSeq.step()
+                    val subSeq = currentSubSequence!!
+                    var subState = subSeq.step()
 
-                        if (subState == WorkableLazySequence.State.DEPLETED) {
-                            innerState = InnerState.RUNNING
-                            currentSubSequenceWorkable = null
-                            continuation.resume(Unit)
-                        }
-                        else
-                        {
-                            while (subState == WorkableLazySequence.State.RESULTS_AVAILABLE) {
-                                queuedResults.add(subSeq.tryAdvance() ?: break)
-                                subState = subSeq.state
-                            }
-
-                            when (subState) {
-                                WorkableLazySequence.State.DEPLETED -> {
-                                    innerState = InnerState.RUNNING
-                                    currentSubSequenceWorkable = null
-                                }
-                                WorkableLazySequence.State.FAILED -> {
-                                    innerState = InnerState.FAILED
-                                    currentSubSequenceWorkable = null
-                                }
-                                else -> { /* all good, go on */ }
-                            }
-                        }
+                    if (subState == LazySequence.State.DEPLETED) {
+                        innerState = InnerState.RUNNING
+                        currentSubSequence = null
+                        continuation.resume(Unit)
                     }
-                    else {
-                        val subResult = currentSubSequenceSimple!!.tryAdvance()
-                        if (subResult != null) {
-                            queuedResults.add(subResult)
-                        } else {
-                            // sub sequence depleted
-                            innerState = InnerState.RUNNING
-                            currentSubSequenceSimple = null
+                    else
+                    {
+                        while (subState == LazySequence.State.RESULTS_AVAILABLE) {
+                            queuedResults.add(subSeq.tryAdvance() ?: break)
+                            subState = subSeq.state
+                        }
+
+                        when (subState) {
+                            LazySequence.State.DEPLETED -> {
+                                innerState = InnerState.RUNNING
+                                currentSubSequence = null
+                            }
+                            LazySequence.State.FAILED -> {
+                                innerState = InnerState.FAILED
+                                currentSubSequence = null
+                            }
+                            else -> { /* all good, go on */ }
                         }
                     }
                 }
@@ -225,33 +203,9 @@ class WorkableLazySequenceImpl<T>(code: suspend WorkableLazySequenceBuilder<T>.(
 
         synchronized(stepMutex) {
             innerState = InnerState.DEPLETED
-            currentSubSequenceWorkable?.close()
-            currentSubSequenceSimple?.close()
-            currentWaitingFuture?.cancel(true)
         }
+
+        currentSubSequence?.close()
+        currentWaitingFuture?.cancel(true)
     }
-}
-
-interface WorkableLazySequenceBuilder<T> {
-    /**
-     * Suspends this coroutine until the given future is present.
-     *
-     * If the given future is already done or cancelled, returns/throws
-     * immediately without suspending the coroutine.
-     *
-     * @return the futures value
-     * @throws Exception Forwarded from the [Future], including [CancellationException]
-     */
-    suspend fun <E> await(future: Future<E>): E
-
-    /**
-     * Yields the given object as one result to the lazy sequence
-     */
-    suspend fun yield(result: T)
-
-    /**
-     * Yields all results of the given lazy sequence to this
-     * lazy sequence.
-     */
-    suspend fun yieldAll(results: LazySequence<T>)
 }

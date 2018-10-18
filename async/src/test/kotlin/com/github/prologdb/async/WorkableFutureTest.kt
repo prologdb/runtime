@@ -351,5 +351,27 @@ class WorkableFutureTest : FreeSpec({
             }
         }
     }
-    // TODO: test cancel
+
+    "folding" {
+        val foldable = buildLazySequence {
+            yield(1)
+            yield(2)
+            yield(3)
+            yield(5)
+            yield(102)
+        }
+
+        val future = WorkableFutureImpl {
+            foldRemaining(foldable, 0, Int::plus) + 4
+        }
+
+        future.step() shouldBe false
+        future.step() shouldBe false
+        future.step() shouldBe false
+        future.step() shouldBe false
+        future.step() shouldBe false
+        future.step() shouldBe false
+        future.step() shouldBe true
+        future.get() shouldBe 1 + 2 + 3 + 5 + 102 + 4
+    }
 })

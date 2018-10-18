@@ -1,24 +1,24 @@
 package com.github.prologdb.async
 
 class DistinctLazySequence<T, K>(
-    private val base: LazySequence<out T>,
-    private val selector: (T) -> K
+    base: LazySequence<out T>,
+    selector: (T) -> K
 ) : LazySequence<T> {
-    val keys: MutableSet<K> = HashSet()
+    private val seenKeys: MutableSet<K> = HashSet()
 
-    override fun tryAdvance(): T? {
-        var baseValue: T
-        var key: K
-
-        do {
-            baseValue = base.tryAdvance() ?: return null
-            key = selector(baseValue)
-        } while (!keys.add(key))
-
-        return baseValue
+    private val wrapped = FilteredLazySequence(base) { value ->
+        val key = selector(value)
+        seenKeys.add(key) // if add returns false it was already there so not unique
     }
 
+    override fun step() = wrapped.step()
+
+    override val state = wrapped.state
+
+    override fun tryAdvance() = wrapped.tryAdvance()
+
     override fun close() {
-        base.close()
+        wrapped.close()
+        seenKeys.clear()
     }
 }

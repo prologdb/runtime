@@ -4,6 +4,10 @@ class RethrowingExceptionMappingLazySequence<T>(
     private val nested: LazySequence<T>,
     private val mapper: (Throwable) -> Throwable
 ) : LazySequence<T> {
+    override fun step() = nested.step()
+
+    override val state = nested.state
+
     override fun tryAdvance(): T? {
         try {
             return nested.tryAdvance()

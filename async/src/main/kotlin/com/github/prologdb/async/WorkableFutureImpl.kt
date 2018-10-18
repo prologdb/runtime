@@ -6,7 +6,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.*
 
-class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : WorkableFuture<T> {
+class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
     private val onComplete = object : Continuation<T> {
         override val context: CoroutineContext = EmptyCoroutineContext
@@ -44,7 +44,11 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : Wo
     private var currentWaitingFuture: Future<*>? = null
 
     @Volatile
-    private var currentWaitingSequence: WorkableLazySequence<*>? = null
+    private var currentFoldingSequence: LazySequence<*>? = null
+    @Volatile
+    private var currentFoldingCarry: Any? = null
+    @Volatile
+    private var currentFoldingAccumulator: ((Any, Any) -> Any)? = null
 
     override fun isDone(): Boolean = state == State.COMPLETED || state == State.CANCELLED
 
@@ -70,21 +74,46 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : Wo
                         }
                     }
                 }
-                State.WAITING_ON_SEQUENCE -> {
-                    val sequence = currentWaitingSequence!!
+                State.FOLDING_SEQUENCE -> {
+                    val sequence = currentFoldingSequence!!
                     var seqState = sequence.state
-                    if (seqState == WorkableLazySequence.State.PENDING) {
+                    if (seqState == LazySequence.State.PENDING) {
                         seqState = sequence.step()
                     }
 
-                    if (seqState != WorkableLazySequence.State.PENDING) {
-                        // sequence done or result available
-                        // the suspend function will call tryAdvance, trusting it will
-                        // not do work
-                        state = State.RUNNING
-                        currentWaitingSequence = null
+                    when (seqState) {
+                        LazySequence.State.DEPLETED -> {
+                            // great, accumulation is done
+                            val result = currentFoldingCarry!!
 
-                        continuation.resume(Unit)
+                            state = State.RUNNING
+                            sequence.close()
+                            currentFoldingSequence = null
+                            currentFoldingCarry = null
+                            currentFoldingCarry = null
+
+                            continuation.resume(result)
+                        }
+                        LazySequence.State.RESULTS_AVAILABLE -> {
+                            val element = sequence.tryAdvance()!!
+                            currentFoldingCarry = currentFoldingAccumulator!!(currentFoldingCarry!!, element)
+                        }
+                        LazySequence.State.FAILED -> {
+                            val exception = try {
+                                sequence.tryAdvance()
+                                null
+                            } catch (ex: Throwable) {
+                                ex
+                            } ?: throw IllegalStateException("Subsequence failed but did not throw the execption when tryAdvance() was called")
+
+                            state = State.RUNNING
+                            currentFoldingCarry = null
+                            currentFoldingSequence = null
+                            currentFoldingAccumulator = null
+
+                            continuation.resumeWithException(exception)
+                        }
+                        LazySequence.State.PENDING -> { /* cannot do anything */ }
                     }
                 }
                 State.COMPLETED, State.CANCELLED -> { }
@@ -115,7 +144,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : Wo
                          */
                     }
                 }
-                State.WAITING_ON_SEQUENCE -> {
+                State.FOLDING_SEQUENCE -> {
                     // the suspend fun will call tryAdvance() and thus do
                     // all work necessary.
                     continuation.resume(Unit)
@@ -139,11 +168,11 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : Wo
 
                     return true
                 }
-                State.WAITING_ON_SEQUENCE -> {
+                State.FOLDING_SEQUENCE -> {
                     state = State.CANCELLED
                     error = CancellationException()
-                    currentWaitingSequence?.close()
-                    currentWaitingSequence = null
+                    currentFoldingSequence?.close()
+                    currentFoldingSequence = null
                     return true
                 }
                 State.COMPLETED, State.CANCELLED -> {
@@ -153,7 +182,7 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : Wo
         }
     }
 
-    private val Builder = object : WorkableFutureBuilder<T> {
+    private val Builder = object : WorkableFutureBuilder {
         override suspend fun <E> await(future: Future<E>): E {
             synchronized(mutex) {
                 if (state == State.CANCELLED) {
@@ -187,16 +216,37 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder<T>.() -> T) : Wo
                 throw ex.cause ?: ex
             }
         }
+
+        override suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
+            synchronized(mutex) {
+                if (state == State.CANCELLED) {
+                    // this has been cancelled, shut it down right here
+                    suspendCoroutine<Unit> { /* not picking up the continuation aborts the coroutine. */ }
+                    throw Exception("This should never have been thrown")
+                }
+
+                if (state != State.RUNNING) {
+                    throw IllegalStateException("Future is in state $state, cannot fold a sequence")
+                }
+
+                currentFoldingSequence = sequence
+                currentFoldingCarry = initial
+                currentFoldingAccumulator = accumulator as (Any, Any) -> Any
+                state = State.FOLDING_SEQUENCE
+            }
+
+            return suspendCoroutine<C> { continuation = it as Continuation<Any> }
+        }
     }
 
     @Volatile
-    private var continuation: Continuation<Unit> = code.createCoroutine(Builder, onComplete)
+    private var continuation: Continuation<Any> = code.createCoroutine(Builder, onComplete) as Continuation<Any>
 
     private enum class State {
         RUNNING,
         COMPLETED,
         CANCELLED,
         WAITING_ON_FUTURE,
-        WAITING_ON_SEQUENCE
+        FOLDING_SEQUENCE
     }
 }

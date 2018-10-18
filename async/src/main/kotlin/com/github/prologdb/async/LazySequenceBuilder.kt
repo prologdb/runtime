@@ -1,138 +1,33 @@
 package com.github.prologdb.async
 
-import kotlin.coroutines.experimental.*
+import java.util.concurrent.Future
 
-@RestrictsSuspension
-class LazySequenceBuilder<T>(searchFun: suspend LazySequenceBuilder<T>.() -> Unit) {
+interface LazySequenceBuilder<T> {
+    /**
+     * Suspends this coroutine until the given future is present.
+     *
+     * If the given future is already done or cancelled, returns/throws
+     * immediately without suspending the coroutine.
+     *
+     * @return the futures value
+     * @throws Exception Forwarded from the [Future], including [CancellationException]
+     */
+    suspend fun <E> await(future: Future<E>): E
 
-    private val sequenceImpl = SequenceImpl<T>()
-    private var continuation: Continuation<Unit> = searchFun.createCoroutine(this, sequenceImpl.onComplete)
+    /**
+     * Yields the given object as one result to the lazy sequence
+     */
+    suspend fun yield(result: T)
 
-    val sequence: LazySequence<T> = sequenceImpl
+    /**
+     * Yields all results of the given collection from this lazy sequence.
+     */
+    suspend fun yieldAll(results: Collection<T>)
 
-    private enum class SequenceState {
-        /** State after creation, no element has been found yet */
-        INITIAL,
-
-        /** An element has been found and is available to be returned from tryAdvance() */
-        ELEMENT_AVAILABLE,
-
-        /**
-         * A lazysequence of elements has been found and tryAdvance() can return its elements first before resuming
-         * the coroutine
-         */
-        SUBSEQUENCE_AVAILABLE,
-
-        /** A subsequence has been depleted and the original coroutine can be resumed */
-        AFTER_SUBSEQUENCE,
-
-        /** Sequence is completed, no more elements available */
-        COMPLETED,
-
-        /** Sequence was aborted because of an exception; the exception is stored in [SequenceImpl.exception] */
-        ERRORED
-    }
-
-    private inner class SequenceImpl<T> : LazySequence<T> {
-
-        var state: SequenceState = SequenceState.INITIAL
-
-        val isCompleted: Boolean
-            get() = state == SequenceState.COMPLETED || state == SequenceState.ERRORED
-
-        var currentElement: T? = null
-        var currentSubSequence: LazySequence<out T>? = null
-        var exception: Throwable? = null
-
-        /** used to synchronize all mutations on this object */
-        val mutex = Any()
-
-        internal val onComplete: Continuation<Unit> = object : Continuation<Unit> {
-            override val context: CoroutineContext = EmptyCoroutineContext
-
-            override fun resume(value: Unit) {
-                synchronized(mutex) {
-                    if (isCompleted) throw IllegalStateException()
-
-                    close()
-                }
-            }
-
-            override fun resumeWithException(exception: Throwable) {
-                synchronized(mutex) {
-                    if (isCompleted) throw IllegalStateException()
-
-                    this@SequenceImpl.exception = exception
-                    state = SequenceState.ERRORED
-                    currentElement = null
-                    currentSubSequence = null
-                }
-            }
-        }
-
-        internal fun onElementAvailable(element: T) {
-            synchronized(mutex) {
-                currentElement = element
-                state = SequenceState.ELEMENT_AVAILABLE
-                currentSubSequence = null
-            }
-        }
-
-        internal fun onSubSequenceAvailable(sequence: LazySequence<out T>) {
-            synchronized(mutex) {
-                currentSubSequence = sequence
-                state = SequenceState.SUBSEQUENCE_AVAILABLE
-                currentElement = null
-            }
-        }
-
-        override fun tryAdvance(): T? {
-            synchronized(mutex) {
-                if (isCompleted) return null
-
-                if (state == SequenceState.SUBSEQUENCE_AVAILABLE) {
-                    val result = currentSubSequence!!.tryAdvance()
-                    if (result != null) {
-                        return result
-                    }
-
-                    state = SequenceState.AFTER_SUBSEQUENCE
-                    currentSubSequence = null
-                }
-
-                continuation.resume(Unit)
-
-                return when (state) {
-                    SequenceState.ELEMENT_AVAILABLE     -> currentElement
-                    SequenceState.COMPLETED             -> null
-                    SequenceState.SUBSEQUENCE_AVAILABLE -> tryAdvance()
-
-                    SequenceState.ERRORED               -> throw exception ?: IllegalStateException()
-                    SequenceState.AFTER_SUBSEQUENCE     -> throw IllegalStateException()
-                    SequenceState.INITIAL               -> throw IllegalStateException()
-                }
-            }
-        }
-
-        override fun close() {
-            synchronized(mutex) {
-                state = SequenceState.COMPLETED
-                currentElement = null
-                currentSubSequence = null
-            }
-        }
-    }
-
-    suspend fun yield(element: T) {
-        sequenceImpl.onElementAvailable(element)
-        suspendCoroutine<Unit> { continuation = it }
-    }
-
-    suspend fun yieldAll(sequence: LazySequence<out T>) {
-        sequenceImpl.onSubSequenceAvailable(sequence)
-        suspendCoroutine<Unit> { continuation = it }
-    }
+    /**
+     * Yields all results of the given lazy sequence to this lazy sequence.
+     */
+    suspend fun yieldAll(results: LazySequence<T>)
 }
 
-fun <T> buildLazySequence(searchFun: suspend LazySequenceBuilder<T>.() -> Unit): LazySequence<T>
-    = LazySequenceBuilder(searchFun).sequence
+fun <T> buildLazySequence(code: suspend LazySequenceBuilder<T>.() -> Unit): LazySequence<T> = LazySequenceImpl(code)

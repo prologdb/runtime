@@ -4,9 +4,11 @@ class MappedLazySequence<T, M>(
     private val base: LazySequence<T>,
     private val mapper: (T) -> M
 ) : LazySequence<M> {
-    override fun tryAdvance(): M? {
-        return mapper(base.tryAdvance() ?: return null)
-    }
+    override fun step() = base.step()
+
+    override val state = base.state
+
+    override fun tryAdvance() = base.tryAdvance()?.let(mapper)
 
     override fun close() = base.close()
 }
