@@ -1,5 +1,7 @@
 package com.github.prologdb.async
 
+import java.util.concurrent.Future
+
 /**
  * A lazysequence that calculates / obtains the next element only when it is actually needed (as opposed to when
  * the presence is queried, e.g. like [Iterator.hasNext]). This class is used over [Iterator] because [Iterator.hasNext]
@@ -14,6 +16,13 @@ package com.github.prologdb.async
  * that there are no more). For more fine grained control and information use [step] and [state].
  */
 interface LazySequence<T> {
+    /**
+     * The concurrency principal. Instead of [Thread], this is used to obtain locks and mutexes in the
+     * name of the coroutine. Traditional [synchronized] blocks are still used to prevent multiple threads
+     * from running the same coroutine simultaneously.
+     */
+    val principal: Principal
+
     /**
      * Performs CPU&memory bound work for the next element in the
      * sequence and returns when waiting for I/O bound tasks
@@ -212,6 +221,7 @@ interface LazySequence<T> {
             if (elements.size == 1) return singleton(elements[0])
 
             return object : LazySequence<T> {
+                override val principal = IrrelevantPrincipal
                 private var index = 0
                 private var closed = false
 
@@ -239,6 +249,7 @@ interface LazySequence<T> {
             if (element == null) throw IllegalArgumentException("The given element must not be null.")
 
             return object : LazySequence<T> {
+                override val principal = IrrelevantPrincipal
                 private var consumed = false
 
                 override val state: State
@@ -261,8 +272,15 @@ interface LazySequence<T> {
          */
         fun <T> ofNullable(thing: T?): LazySequence<T> = if (thing == null) empty() else singleton(thing)
 
+        /**
+         * Creates an infinite [LazySequence] that obtains its values from the given [generator]. Ends
+         * once [close] is called.
+         *
+         * @param generator Must not modify shared state or read from mutable shared state (in other words: be pure).
+         */
         fun <T> fromGenerator(generator: () -> T?): LazySequence<T> {
             return object : LazySequence<T> {
+                override val principal = IrrelevantPrincipal
                 var closed = false
                 var cached: T? = null
 
@@ -303,6 +321,7 @@ interface LazySequence<T> {
         }
 
         private val emptySequence = object : LazySequence<Any> {
+            override val principal = IrrelevantPrincipal
             override val state = State.DEPLETED
             override fun step() = State.DEPLETED
             override fun tryAdvance(): Any? = null
@@ -310,7 +329,7 @@ interface LazySequence<T> {
         }
 
         fun <T> empty(): LazySequence<T> {
-            @Suppress("unchecked_cast") // no elements returned from the sequence; the size does not matter
+            @Suppress("unchecked_cast") // no elements returned from the sequence; the type does not matter
             return emptySequence as LazySequence<T>
         }
     }
@@ -344,6 +363,42 @@ interface LazySequence<T> {
         FAILED
     }
 }
+
+interface LazySequenceBuilder<T> {
+    /** The principal of the sequence being built. To be used to initialize sub-sequences. */
+    val principal: Any
+
+    /**
+     * Suspends this coroutine until the given future is present.
+     *
+     * If the given future is already done or cancelled, returns/throws
+     * immediately without suspending the coroutine.
+     *
+     * @return the futures value
+     * @throws Exception Forwarded from the [Future], including [CancellationException]
+     * @throws PrincipalConflictException If the given future is a [WorkableFuture] and has a different [principal]
+     *                                    than this one.
+     */
+    suspend fun <E> await(future: Future<E>): E
+
+    /**
+     * Yields the given object as one result to the lazy sequence
+     */
+    suspend fun yield(result: T)
+
+    /**
+     * Yields all results of the given collection from this lazy sequence.
+     */
+    suspend fun yieldAll(results: Collection<T>)
+
+    /**
+     * Yields all results of the given lazy sequence to this lazy sequence.
+     * @throws PrincipalConflictException If the given sequence is of another principal.
+     */
+    suspend fun yieldAll(results: LazySequence<T>)
+}
+
+fun <T> buildLazySequence(principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit): LazySequence<T> = LazySequenceImpl(principal, code)
 
 /**
  * Adds all elements remaining in this [LazySequence] to the collection obtained by invoking the given [supplier].
@@ -402,7 +457,7 @@ fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
 inline fun <T, reified E> LazySequence<T>.transformExceptionsOnRemaining(noinline mapper: (E) -> Throwable): LazySequence<T>
-where E : Throwable {
+    where E : Throwable {
     if (E::class == Throwable::class) {
         return RethrowingExceptionMappingLazySequence(this, mapper as (Throwable) -> Throwable)
     } else {

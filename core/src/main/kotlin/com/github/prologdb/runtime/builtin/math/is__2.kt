@@ -9,25 +9,19 @@ import com.github.prologdb.runtime.unification.Unification
 /**
  * Implements the is/2 builtin that evaluates mathematical expressions
  */
-internal val BuiltinIs = prologBuiltin("is", 2) { args, _, _ ->
+internal val BuiltinIs = prologBuiltin("is", 2) { args, _ ->
     val inputForA = args[0]
     val inputForB = args[1]
 
     if (inputForA is Variable) {
-        return@prologBuiltin LazySequence.of(inputForA.unify(inputForB.asPrologNumber))
+        yield(inputForA.unify(inputForB.asPrologNumber))
     }
 
     if (inputForB is Variable) {
-        return@prologBuiltin LazySequence.of(inputForB.unify(inputForA.asPrologNumber))
+        yield(inputForB.unify(inputForA.asPrologNumber))
     }
 
     if (inputForA is PrologNumber) {
-        return@prologBuiltin LazySequence.ofNullable(
-            Unification.whether(
-                inputForB.asPrologNumber == inputForA
-            )
-        )
+        if (inputForB.asPrologNumber == inputForA) yield(Unification.TRUE)
     }
-
-    return@prologBuiltin Unification.NONE
 }

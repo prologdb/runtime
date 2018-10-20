@@ -5,7 +5,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.coroutines.experimental.*
 
-internal class LazySequenceImpl<T>(code: suspend LazySequenceBuilder<T>.() -> Unit) : LazySequence<T> {
+internal class LazySequenceImpl<T>(override val principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit) : LazySequence<T> {
     /**
      * The sequence itself is always working. Results are cached if
      * [step] is called more often than necessary for one result.
@@ -75,7 +75,13 @@ internal class LazySequenceImpl<T>(code: suspend LazySequenceBuilder<T>.() -> Un
     }
 
     private val builder = object : LazySequenceBuilder<T> {
+        override val principal = this@LazySequenceImpl.principal
+
         override suspend fun <E> await(future: Future<E>): E {
+            if (future is WorkableFuture && future.principal != principal) {
+                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
+            }
+
             currentWaitingFuture = future
             innerState = InnerState.WAITING_ON_FUTURE
 
@@ -104,6 +110,10 @@ internal class LazySequenceImpl<T>(code: suspend LazySequenceBuilder<T>.() -> Un
         }
 
         override suspend fun yieldAll(results: LazySequence<T>) {
+            if (results.principal != principal) {
+                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = results.principal)
+            }
+
             currentSubSequence = results
             innerState = InnerState.SUBSEQUENCE
 
@@ -154,7 +164,11 @@ internal class LazySequenceImpl<T>(code: suspend LazySequenceBuilder<T>.() -> Un
                     else
                     {
                         while (subState == LazySequence.State.RESULTS_AVAILABLE) {
-                            queuedResults.add(subSeq.tryAdvance() ?: break)
+                            val result = try {
+                                subSeq.tryAdvance()
+                            } catch (handledRightBelow: Throwable) { null }
+
+                            queuedResults.add(result ?: break)
                             subState = subSeq.state
                         }
 
@@ -164,6 +178,14 @@ internal class LazySequenceImpl<T>(code: suspend LazySequenceBuilder<T>.() -> Un
                                 currentSubSequence = null
                             }
                             LazySequence.State.FAILED -> {
+                                val ex = try {
+                                    subSeq.tryAdvance()
+                                    null
+                                } catch (ex: Throwable) {
+                                    ex
+                                } ?: RuntimeException("Sub-Sequence reported state FAILED but tryAdvance() did not throw.")
+
+                                error = ex
                                 innerState = InnerState.FAILED
                                 currentSubSequence = null
                             }

@@ -11,6 +11,13 @@ import kotlin.coroutines.experimental.RestrictsSuspension
  */
 interface WorkableFuture<T> : Future<T> {
     /**
+     * The concurrency principal. Instead of [Thread], this is used to obtain locks and mutexes in the
+     * name of the coroutine. Traditional [synchronized] blocks are still used to prevent multiple threads
+     * from running the same coroutine simultaneously.
+     */
+    val principal: Principal
+
+    /**
      * Performs CPU&memory bound work on this task returns when waiting for
      * I/O bound tasks (disk, memory, ...).
      *
@@ -36,6 +43,8 @@ interface WorkableFutureBuilder {
      *
      * @return the futures value
      * @throws Exception Forwarded from the [Future], including [CancellationException]
+     * @throws PrincipalConflictException If the given future is a [WorkableFuture] and has a different [principal]
+     *                                    than this one.
      */
     suspend fun <E> await(future: Future<E>): E
 
@@ -45,12 +54,17 @@ interface WorkableFutureBuilder {
      * * if this future is cancelled, the sequence is closed.
      * * if the sequence is a [WorkableLazySequence]
      *   * calls to [WorkableFuture.step] are deferred to the sequence
+     * @throws PrincipalConflictException If the given sequence belongs to another principal.
      */
     suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C
 }
 
-fun <T> launchWorkableFuture(code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(code)
+fun <T> launchWorkableFuture(principal: Any, code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(principal, code)
 
-inline fun <R, F> awaitAndThen(future: Future<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl {
+inline fun <R, F> awaitAndThen(principal: Any, future: Future<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl(principal) {
+    code(await(future))
+}
+
+inline fun <R, F> awaitAndThen(future: WorkableFuture<F>, crossinline code: suspend WorkableFutureBuilder.(F) -> R): WorkableFuture<R> = WorkableFutureImpl(future.principal) {
     code(await(future))
 }

@@ -4,6 +4,8 @@ class FilteredLazySequence<T>(
     private val base: LazySequence<out T>,
     private val predicate: (T) -> Boolean
 ) : LazySequence<T> {
+    override val principal = base.principal
+
     /** True when closed or errored */
     var closed = false
 

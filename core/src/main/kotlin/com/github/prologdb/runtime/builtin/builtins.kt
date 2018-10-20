@@ -1,8 +1,9 @@
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
@@ -11,8 +12,6 @@ import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-internal val surrogateVarLHS = Variable("LHS")
-internal val surrogateVarRHS = Variable("RHS")
 internal val A = Variable("A")
 internal val B = Variable("B")
 internal val C = Variable("C")
@@ -39,7 +38,7 @@ abstract class BuiltinPredicate(name: String, vararg arguments: Term) : Predicat
  * 2. The knowledge base within which the builtin is being executed
  * 3. Source of random variables to prevent collisions
  */
-typealias PrologBuiltinImplementation  = (Array<out Term>, KnowledgeBase, RandomVariableScope) -> LazySequence<Unification>
+typealias PrologBuiltinImplementation = suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit
 
 /**
  * [Variable]s to be used in the "prolog"-ish representation of builtins. E.g.
@@ -65,9 +64,7 @@ private val builtinArgumentVariables = arrayOf(
  * kotlin code implements the builtin.
  */
 private val voidQuery = object : Query {
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
-        return Unification.NONE
-    }
+    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { _, _  -> }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return this
@@ -84,31 +81,32 @@ fun prologBuiltin(name: String, arity: Int, code: PrologBuiltinImplementation): 
     val predicate = object : Predicate(name, builtinArgumentVariables.sliceArray(0 until arity)) {
         override fun toString() = "$name/$arity"
     }
+
+    val invocationStackFrame = getInvocationStackFrame()
+    val stringRepresentation = """$predicate :- __nativeCode("${invocationStackFrame.fileName}:${invocationStackFrame.lineNumber}")"""
+
     val builtinStackFrame = PrologStackTraceElement(
         predicate,
-        getInvocationStackFrame().prologSourceInformation
+        invocationStackFrame.prologSourceInformation
     )
 
     return object : Rule(predicate, voidQuery) {
-        override fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
-            if (predicate.arity != this.arity) return Unification.NONE
-            if (predicate.name != this.name) return Unification.NONE
+        override val fulfill: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit = { other, context ->
+            if (predicate.arity == other.arity && predicate.name == other.name) {
+                try {
+                    code(this, other.arguments, context)
+                } catch (ex: PrologException) {
+                    ex.addPrologStackFrame(builtinStackFrame)
+                    throw ex
+                } catch (ex: Throwable) {
+                    val newEx = PrologRuntimeException(ex.message ?: "", ex)
+                    newEx.addPrologStackFrame(builtinStackFrame)
 
-            try {
-                return code.invoke(predicate.arguments, kb, randomVariableScope)
-            }
-            catch (ex: PrologException) {
-                ex.addPrologStackFrame(builtinStackFrame)
-                throw ex
-            }
-            catch (ex: Throwable) {
-                val newEx = PrologRuntimeException(ex.message ?: "", ex)
-                newEx.addPrologStackFrame(builtinStackFrame)
-
-                throw newEx
+                    throw newEx
+                }
             }
         }
 
-        override fun toString() = "$predicate :- __nativeCode"
+        override fun toString() = stringRepresentation
     }
 }

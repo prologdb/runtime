@@ -6,7 +6,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.experimental.*
 
-class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
+class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
     private val onComplete = object : Continuation<T> {
         override val context: CoroutineContext = EmptyCoroutineContext
@@ -184,6 +184,10 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
 
     private val Builder = object : WorkableFutureBuilder {
         override suspend fun <E> await(future: Future<E>): E {
+            if (future is WorkableFuture && future.principal != principal) {
+                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
+            }
+
             synchronized(mutex) {
                 if (state == State.CANCELLED) {
                     // this has been cancelled, shut it down right here
@@ -218,6 +222,10 @@ class WorkableFutureImpl<T>(code: suspend WorkableFutureBuilder.() -> T) : Worka
         }
 
         override suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
+            if (sequence.principal != principal) {
+                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = sequence.principal)
+            }
+
             synchronized(mutex) {
                 if (state == State.CANCELLED) {
                     // this has been cancelled, shut it down right here

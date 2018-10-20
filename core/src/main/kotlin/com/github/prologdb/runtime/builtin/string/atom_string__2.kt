@@ -1,12 +1,11 @@
 package com.github.prologdb.runtime.builtin.string
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
-internal val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, _, randomVarsScope ->
+internal val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, context ->
     val inputForA = args[0]
     val inputForB = args[1]
 
@@ -29,12 +28,14 @@ internal val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, _, rand
         }
 
         if (inputForA is Variable) {
-            return@prologBuiltin LazySequence.ofNullable(inputForA.unify(Atom(inputForB.toKotlinString()), randomVarsScope))
+            val result = inputForA.unify(Atom(inputForB.toKotlinString()), context.randomVariableScope)
+            if (result != null) yield(result)
         } else {
-            return@prologBuiltin LazySequence.ofNullable(Unification.whether(convertInputForAToKotlinString() == inputForB.toKotlinString()))
+            if (convertInputForAToKotlinString() == inputForB.toKotlinString()) yield(Unification.TRUE)
         }
     }
 
     // implicit: b is not instantiated
-    return@prologBuiltin LazySequence.ofNullable(inputForB.unify(PrologString(convertInputForAToKotlinString())))
+    val result = inputForB.unify(PrologString(convertInputForAToKotlinString()))
+    if (result != null) yield(result)
 }

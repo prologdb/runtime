@@ -1,15 +1,12 @@
 package com.github.prologdb.runtime.builtin.dict
 
-import com.github.prologdb.async.LazySequence
-import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 
-internal val GetDictBuiltin = prologBuiltin("get_dict", 3) { args, _, _ ->
+internal val GetDictBuiltin = prologBuiltin("get_dict", 3) { args, _ ->
     val keyArg = args[0]
     val dictArg = args[1]
     val valueArg = args[2]
@@ -27,19 +24,17 @@ internal val GetDictBuiltin = prologBuiltin("get_dict", 3) { args, _, _ ->
     }
 
     if (keyArg is Variable) {
-        return@prologBuiltin buildLazySequence<Unification> {
-            for ((dictKey, dictValue) in dictArg.pairs) {
-                val valueUnification = valueArg.unify(dictValue)
-                if (valueUnification != null) {
-                    if (valueUnification.variableValues.isInstantiated(keyArg)) {
-                        if (valueUnification.variableValues[keyArg] == dictKey) {
-                            yield(valueUnification)
-                        }
-                    }
-                    else {
-                        valueUnification.variableValues.instantiate(keyArg, dictKey)
+        for ((dictKey, dictValue) in dictArg.pairs) {
+            val valueUnification = valueArg.unify(dictValue)
+            if (valueUnification != null) {
+                if (valueUnification.variableValues.isInstantiated(keyArg)) {
+                    if (valueUnification.variableValues[keyArg] == dictKey) {
                         yield(valueUnification)
                     }
+                }
+                else {
+                    valueUnification.variableValues.instantiate(keyArg, dictKey)
+                    yield(valueUnification)
                 }
             }
         }
@@ -49,13 +44,9 @@ internal val GetDictBuiltin = prologBuiltin("get_dict", 3) { args, _, _ ->
         keyArg as Atom
         val valueForArg = dictArg.pairs[keyArg]
 
-        if (valueForArg == null) {
-            // key not in dict
-            return@prologBuiltin Unification.NONE
+        if (valueForArg != null) {
+            val unification = valueArg.unify(valueForArg)
+            if (unification != null) yield(unification)
         }
-
-        return@prologBuiltin LazySequence.ofNullable(
-            valueArg.unify(valueForArg)
-        )
     }
 }

@@ -1,24 +1,22 @@
 package com.github.prologdb.runtime.query
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapToArray
 
 open class AndQuery(val goals: Array<out Query>) : Query {
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
+
+    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { context, initialVariables ->
         val substitutedGoals = goals
             .map { it.substituteVariables(initialVariables) }
 
-        return buildLazySequence {
-            fulfillAllGoals(substitutedGoals, kb, randomVarsScope, initialVariables.copy())
-        }
+
+        fulfillAllGoals(substitutedGoals, context, initialVariables.copy())
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
@@ -37,12 +35,11 @@ open class AndQuery(val goals: Array<out Query>) : Query {
         return goals.mapToArray { it.toString() }.joinToString(", ")
     }
 
-    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, kb: KnowledgeBase,
-                                                                         randomVarsScope: RandomVariableScope,
+    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
                                                                          vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
 
-        kb.fulfill(goal, randomVarsScope).forEachRemaining { goalUnification ->
+        context.knowledgeBase.fulfill(goal, context).forEachRemaining { goalUnification ->
             val goalVars = vars.copy()
             for ((variable, value) in goalUnification.variableValues.values) {
                 if (value != null) {
@@ -66,7 +63,7 @@ open class AndQuery(val goals: Array<out Query>) : Query {
                 yield(Unification(goalVars))
             }
             else {
-                fulfillAllGoals(goals.subList(1, goals.size), kb, randomVarsScope, goalVars)
+                fulfillAllGoals(goals.subList(1, goals.size), context, goalVars)
             }
         }
     }

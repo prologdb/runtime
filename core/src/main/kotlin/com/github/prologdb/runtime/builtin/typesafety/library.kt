@@ -1,6 +1,5 @@
 package com.github.prologdb.runtime.builtin.typesafety
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.builtin.X
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.knowledge.Rule
@@ -47,11 +46,7 @@ val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEnt
  * the given predicate.
  */
 private inline fun typeCheckBuiltin(name: String, crossinline test: (Term) -> Boolean): LibraryEntry {
-    return prologBuiltin(name, 1) { args, _, _ ->
-        return@prologBuiltin LazySequence.ofNullable(
-            Unification.whether(
-                test(args[0])
-            )
-        )
+    return prologBuiltin(name, 1) { args, _ ->
+        if (test(args[0])) yield(Unification.TRUE)
     }
 }

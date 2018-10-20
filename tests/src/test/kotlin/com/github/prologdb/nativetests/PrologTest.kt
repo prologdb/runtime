@@ -14,6 +14,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.Query
@@ -247,13 +248,11 @@ private fun ParsedTerm.asPredicate(): ParsedPredicate {
  * Acts just like an [AndQuery]. Additionally, provides information about failing goals.
  */
 private class ReportingAndQuery(val goals: Array<Query>) : Query {
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
+    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { context, initialVariables ->
         val substitutedGoals = goals
             .map { it.substituteVariables(initialVariables) }
 
-        return buildLazySequence {
-            fulfillAllGoals(substitutedGoals, kb, randomVarsScope, initialVariables.copy())
-        }
+        fulfillAllGoals(substitutedGoals, context, initialVariables.copy())
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
@@ -272,13 +271,12 @@ private class ReportingAndQuery(val goals: Array<Query>) : Query {
         return goals.joinToString(", ")
     }
 
-    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, kb: KnowledgeBase,
-                                                                         randomVarsScope: RandomVariableScope,
+    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
                                                                          vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
         var goalHadAtLeastOneSolution = false
 
-        kb.fulfill(goal, randomVarsScope).forEachRemaining { goalUnification ->
+        context.knowledgeBase.fulfill(goal, context).forEachRemaining { goalUnification ->
             goalHadAtLeastOneSolution = true
             val goalVars = vars.copy()
             for ((variable, value) in goalUnification.variableValues.values) {
@@ -303,7 +301,7 @@ private class ReportingAndQuery(val goals: Array<Query>) : Query {
                 yield(Unification(goalVars))
             }
             else {
-                fulfillAllGoals(goals.subList(1, goals.size), kb, randomVarsScope, goalVars)
+                fulfillAllGoals(goals.subList(1, goals.size), context, goalVars)
             }
         }
 

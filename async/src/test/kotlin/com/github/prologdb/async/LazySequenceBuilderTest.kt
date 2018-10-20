@@ -5,7 +5,7 @@ import io.kotlintest.specs.FreeSpec
 
 class LazySequenceBuilderTest : FreeSpec() { init {
     "yield - single element" {
-        val seq = buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
             yield("foobar")
         }
 
@@ -14,7 +14,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yield - multiple elements" {
-        val seq = buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
             yield("foo")
             yield("bar")
         }
@@ -25,8 +25,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yieldAll - single element" {
-        val seq = buildLazySequence {
-            yieldAll(buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+            yieldAll(buildLazySequence(principal) {
                 yield("foobar")
             })
         }
@@ -36,8 +36,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yieldAll - multiple elements" {
-        val seq = buildLazySequence {
-            yieldAll(buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+            yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
             })
@@ -49,10 +49,10 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yield then yieldAll" {
-        val seq = buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
             yield("baz")
 
-            yieldAll(buildLazySequence {
+            yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
             })
@@ -65,8 +65,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yieldAll then yield" {
-        val seq = buildLazySequence {
-            yieldAll(buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+            yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
             })
@@ -80,9 +80,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yield then yieldAll then yield" {
-        val seq = buildLazySequence {
+        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
             yield("beep")
-            yieldAll(buildLazySequence {
+            yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
             })

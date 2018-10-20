@@ -14,7 +14,7 @@ class WorkableFutureTest : FreeSpec({
     "immediate return" {
         val hasRun = CompletableFuture<Unit>()
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             hasRun.complete(Unit)
             "foobar"
         }
@@ -30,7 +30,7 @@ class WorkableFutureTest : FreeSpec({
     "immediate throw" {
         val hasRun = CompletableFuture<Unit>()
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             hasRun.complete(Unit)
             throw Exception("Faiiilleeeed!!!")
         }
@@ -49,7 +49,7 @@ class WorkableFutureTest : FreeSpec({
         val returnedAfterWait = CompletableFuture<Unit>()
         val waitingOn = CompletableFuture<String>()
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             hasStarted.complete(Unit)
 
             val result = await(waitingOn)
@@ -97,7 +97,7 @@ class WorkableFutureTest : FreeSpec({
         val hasStarted = CompletableFuture<Unit>()
         val waitingOn = CompletableFuture<String>()
 
-        val future = WorkableFutureImpl<Any> {
+        val future = WorkableFutureImpl<Any>(RANDOM_PRINCIPAL) {
             hasStarted.complete(Unit)
 
             try {
@@ -134,7 +134,7 @@ class WorkableFutureTest : FreeSpec({
         val waitingOn = CompletableFuture<Unit>()
         val caught = CompletableFuture<Throwable>()
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             try {
                 await(waitingOn)
             }
@@ -160,7 +160,7 @@ class WorkableFutureTest : FreeSpec({
     "await completed does not suspend" {
         val waitingOn = CompletedFuture(Unit, null)
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             await(waitingOn)
             "Done"
         }
@@ -173,7 +173,7 @@ class WorkableFutureTest : FreeSpec({
     "get waits on await future" {
         val waitingOn = CompletableFuture<Unit>()
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             await(waitingOn)
             "Done"
         }
@@ -193,13 +193,14 @@ class WorkableFutureTest : FreeSpec({
     "await workable future" {
         val stepOneCompleted = CompletableFuture<Unit>()
         val blockerAfterStepOne = CompletableFuture<String>()
+        val principal = RANDOM_PRINCIPAL
 
-        val waitingOn = WorkableFutureImpl {
+        val waitingOn = WorkableFutureImpl(principal) {
             stepOneCompleted.complete(Unit)
             await(blockerAfterStepOne)
         }
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(principal) {
             await(waitingOn)
         }
 
@@ -238,7 +239,7 @@ class WorkableFutureTest : FreeSpec({
             val afterCancel = CompletableFuture<Unit>()
             val waitingOn = CompletableFuture<Unit>()
 
-            val future = WorkableFutureImpl {
+            val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
                 beforeCancel.complete(Unit)
                 await(waitingOn)
                 afterCancel.complete(Unit)
@@ -266,9 +267,8 @@ class WorkableFutureTest : FreeSpec({
                 val afterSuspension = CompletableFuture<Unit>()
                 val waitingOn = CompletedFuture(Unit, null)
 
-                val future = WorkableFutureImpl {
+                val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
                     beforeSuspension()
-                    val i = 3
                     await(waitingOn)
                     afterSuspension.complete(Unit)
                 }
@@ -309,7 +309,7 @@ class WorkableFutureTest : FreeSpec({
                 val afterSuspension = CompletableFuture<Unit>()
                 val waitingOn = CompletableFuture<Unit>()
 
-                val future = WorkableFutureImpl {
+                val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
                     beforeSuspension()
                     await(waitingOn)
                     afterSuspension.complete(Unit)
@@ -353,7 +353,8 @@ class WorkableFutureTest : FreeSpec({
     }
 
     "folding" {
-        val foldable = buildLazySequence {
+        val principal = RANDOM_PRINCIPAL
+        val foldable = buildLazySequence(principal) {
             yield(1)
             yield(2)
             yield(3)
@@ -361,7 +362,7 @@ class WorkableFutureTest : FreeSpec({
             yield(102)
         }
 
-        val future = WorkableFutureImpl {
+        val future = WorkableFutureImpl(principal) {
             foldRemaining(foldable, 0, Int::plus) + 4
         }
 

@@ -4,6 +4,8 @@ class DistinctLazySequence<T, K>(
     base: LazySequence<out T>,
     selector: (T) -> K
 ) : LazySequence<T> {
+    override val principal = base.principal
+
     private val seenKeys: MutableSet<K> = HashSet()
 
     private val wrapped = FilteredLazySequence(base) { value ->

@@ -1,32 +1,23 @@
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
-val BuiltinNot = prologBuiltin("not", 1) { args, knowledgeBase, randomVarsScope ->
-    val arg0 = args[0] as? Predicate ?: return@prologBuiltin Unification.NONE
+val BuiltinNot = prologBuiltin("not", 1) { args, context ->
+    val arg0 = args[0] as? Predicate ?: return@prologBuiltin
 
-    val proofSequence = knowledgeBase.fulfill(arg0, randomVarsScope)
+    val proofSequence = context.knowledgeBase.fulfill(arg0, context)
     val hasProof = proofSequence.tryAdvance() != null
     proofSequence.close()
 
-    return@prologBuiltin LazySequence.ofNullable(
-        Unification.whether(
-            !hasProof // this is the core logic here
-        )
-    )
+    if (!hasProof) yield(Unification.TRUE) // this is the core logic here
 }
 
-val BuiltinIdentity = prologBuiltin("==", 2) { args, _, _ ->
-    return@prologBuiltin LazySequence.ofNullable(
-        Unification.whether(
-            args[0] == args[1]
-        )
-    )
+val BuiltinIdentity = prologBuiltin("==", 2) { args, _ ->
+    if (args[0] == args[1]) yield(Unification.TRUE)
 }
 
 /**

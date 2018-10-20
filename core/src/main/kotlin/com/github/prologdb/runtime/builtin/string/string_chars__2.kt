@@ -1,18 +1,16 @@
 package com.github.prologdb.runtime.builtin.string
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 
 /**
  * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
  */
-internal val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _, _ ->
+internal val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _ ->
     val inputA = args[0]
     val inputB = args[1]
 
@@ -43,13 +41,13 @@ internal val BuiltinStringChars = prologBuiltin("string_chars", 2) { args, _, _ 
 
     if (inputA is PrologString) {
         val referenceValueForB = convertInputAToListOfCharacters()
-        return@prologBuiltin LazySequence.ofNullable(referenceValueForB.unify(inputB))
+        val result = referenceValueForB.unify(inputB)
+        if (result != null) yield(result)
     }
 
     if (inputB is PrologList) {
         val referenceValueForA = convertInputBToPrologString()
-        return@prologBuiltin LazySequence.ofNullable(referenceValueForA.unify(inputA))
+        val result = referenceValueForA.unify(inputA)
+        if (result != null) yield(result)
     }
-
-    return@prologBuiltin Unification.NONE
 }

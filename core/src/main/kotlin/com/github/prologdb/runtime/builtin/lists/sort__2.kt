@@ -1,6 +1,5 @@
 package com.github.prologdb.runtime.builtin.lists
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
@@ -9,7 +8,7 @@ import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
 internal val SortBuiltin = listOf<LibraryEntry>(
-    prologBuiltin("sort", 2, { args, _, _ ->
+    prologBuiltin("sort", 2, { args, context ->
         val inputUnsorted = args[0]
         val inputSorted = args[1]
 
@@ -30,8 +29,10 @@ internal val SortBuiltin = listOf<LibraryEntry>(
             }
         }
 
-        return@prologBuiltin LazySequence.ofNullable(
-            PrologList(inputElementsSortedUnique, inputUnsorted.tail).unify(inputSorted)
-        )
+        val sorted = PrologList(inputElementsSortedUnique, inputUnsorted.tail)
+        val result = sorted.unify(inputSorted, context.randomVariableScope)
+        if (result != null) {
+            yield(result)
+        }
     })
 )

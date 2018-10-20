@@ -1,11 +1,13 @@
 package com.github.prologdb.parser
 
 import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -105,9 +107,7 @@ class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicat
 class ParsedAndQuery(goals: Array<out ParsedQuery>, override val sourceInformation: SourceLocationRange) : AndQuery(goals), ParsedQuery
 class ParsedOrQuery(goals: Array<out ParsedQuery>, override val sourceInformation: SourceLocationRange) : OrQuery(goals), ParsedQuery
 class EmptyQuery(override val sourceInformation: SourceLocationRange): ParsedQuery {
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
-        return Unification.NONE
-    }
+    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { _, _ -> }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return this
