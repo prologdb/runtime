@@ -1,9 +1,15 @@
-package com.github.prologdb.runtime.lazysequence
+package com.github.prologdb.async
 
 class RethrowingExceptionMappingLazySequence<T>(
     private val nested: LazySequence<T>,
     private val mapper: (Throwable) -> Throwable
 ) : LazySequence<T> {
+    override val principal = nested.principal
+
+    override fun step() = nested.step()
+
+    override val state = nested.state
+
     override fun tryAdvance(): T? {
         try {
             return nested.tryAdvance()

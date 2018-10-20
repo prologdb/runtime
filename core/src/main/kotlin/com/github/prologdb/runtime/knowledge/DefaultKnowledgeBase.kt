@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.builtin.ComparisonLibrary
 import com.github.prologdb.runtime.builtin.EqualityLibrary
@@ -11,10 +12,9 @@ import com.github.prologdb.runtime.builtin.math.MathLibrary
 import com.github.prologdb.runtime.builtin.string.StringsLibrary
 import com.github.prologdb.runtime.builtin.typesafety.TypeSafetyLibrary
 import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.lazysequence.buildLazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
+import java.lang.IllegalArgumentException
 
 class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
 
@@ -34,15 +34,17 @@ class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
 
     override val operatorRegistry = library
 
-    override fun fulfill(predicate: Predicate, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
+    override fun fulfill(predicate: Predicate, context: ProofSearchContext): LazySequence<Unification> {
+        if (context.knowledgeBase != this) throw IllegalArgumentException("Given context must belong to the same knowledge base")
+
         // replace all variables in the term with random ones to prevent name collisions
         val termMappings = VariableMapping()
-        val replaced = randomVarsScope.withRandomVariables(predicate, termMappings)
+        val replaced = context.randomVariableScope.withRandomVariables(predicate, termMappings)
 
-        return buildLazySequence<Unification> {
+        return buildLazySequence<Unification>(context.principal) {
             for (libEntry in library.findFor(predicate)) {
                 if (libEntry is Predicate) {
-                    val knownPredicateReplaced = randomVarsScope.withRandomVariables(libEntry, VariableMapping())
+                    val knownPredicateReplaced = context.randomVariableScope.withRandomVariables(libEntry, VariableMapping())
                     val unification = knownPredicateReplaced.unify(replaced)
                     if (unification != null) {
                         val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
@@ -51,7 +53,7 @@ class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
                     }
                 }
                 else {
-                    yieldAll(libEntry.unifyWithKnowledge(predicate, this@DefaultKnowledgeBase, randomVarsScope))
+                    libEntry.unifyWithKnowledge(this, predicate, context)
                 }
             }
         }

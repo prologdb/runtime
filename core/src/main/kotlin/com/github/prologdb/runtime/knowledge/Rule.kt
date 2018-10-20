@@ -1,10 +1,10 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.lazysequence.mapRemaining
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
@@ -14,25 +14,24 @@ open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
     override val name = head.name
     override val arity = head.arity
 
-    open fun fulfill(predicate: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
+    open val fulfill: suspend LazySequenceBuilder<Unification>.(predicate: Predicate, context: ProofSearchContext) -> Unit = { predicate, context ->
         val predicateRandomVarsMapping = VariableMapping()
-        val randomPredicate = randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
+        val randomPredicate = context.randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
 
         val ruleRandomVarsMapping = VariableMapping()
-        val randomHead = randomVariableScope.withRandomVariables(head, ruleRandomVarsMapping)
+        val randomHead = context.randomVariableScope.withRandomVariables(head, ruleRandomVarsMapping)
 
         val predicateAndHeadUnification = randomHead.unify(randomPredicate)
-        if (predicateAndHeadUnification == null) {
-            // this rule cannot be used to fulfill the given predicate
-            return Unification.NONE
-        }
+        if (predicateAndHeadUnification != null) {
+            val randomQuery = query
+                .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
+                .substituteVariables(predicateAndHeadUnification.variableValues)
 
-        val randomQuery = query
-            .withRandomVariables(randomVariableScope, ruleRandomVarsMapping)
-            .substituteVariables(predicateAndHeadUnification.variableValues)
+            val randomResults = buildLazySequence<Unification>(context.principal) {
+                randomQuery.findProofWithin(this, context, VariableBucket())
+            }
 
-        return randomQuery.findProofWithin(kb, VariableBucket(), randomVariableScope)
-            .mapRemaining { unification ->
+            yieldAll(randomResults.mapRemaining { unification ->
                 val solutionVars = VariableBucket()
 
                 for (randomPredicateVariable in randomPredicate.variables)
@@ -52,12 +51,13 @@ open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
 
                 Unification(solutionVars
                     .withVariablesResolvedFrom(predicateRandomVarsMapping))
-            }
+            })
+        }
+        // else: does not match the rule head
     }
 
-    override fun unifyWithKnowledge(other: Predicate, kb: KnowledgeBase, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
-        return fulfill(other, kb, randomVariableScope)
-    }
+    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: Predicate, context: ProofSearchContext) -> Unit
+        get() = fulfill
 
     override fun toString() = "$head :- $query"
 }

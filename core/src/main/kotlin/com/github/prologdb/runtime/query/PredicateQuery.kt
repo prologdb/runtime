@@ -1,10 +1,10 @@
 package com.github.prologdb.runtime.query
 
+import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
-import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -23,11 +23,13 @@ open class PredicateQuery(
         )
     }
 
-    override fun findProofWithin(kb: KnowledgeBase, initialVariables: VariableBucket, randomVarsScope: RandomVariableScope): LazySequence<Unification> {
+    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { context, initialVariables ->
         val substitutedPredicate = predicate.substituteVariables(initialVariables.asSubstitutionMapper())
 
-        return kb.fulfill(substitutedPredicate, randomVarsScope)
-            .amendExceptionsWithStackTraceOnRemaining(stackFrame)
+        yieldAll(
+            context.knowledgeBase.fulfill(substitutedPredicate, context)
+                .amendExceptionsWithStackTraceOnRemaining(stackFrame)
+        )
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {

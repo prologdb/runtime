@@ -10,18 +10,13 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>runtime-core</artifactId>
+    <artifactId>runtime-async</artifactId>
     
     <dependencies>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.github.prologdb</groupId>
-            <artifactId>runtime-async</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest</artifactId>

@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -19,14 +18,14 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * is consulted; e.g. `set([1, 1, 2], X, ==)` would try to proof `=(1, 1)` to check
  * whether the two `1`s are equal.
  */
-internal val Set3Builtin = prologBuiltin("set", 3, { args, knowledgeBase, _ ->
+internal val Set3Builtin = prologBuiltin("set", 3, { args, context ->
     val arg0 = args[0]
     val arg1 = args[1]
     val comparatorName = args[2] as? Atom ?: throw PrologRuntimeException("Type error: argument 3 to set/3 must be an atom")
 
     fun <T : Term> Collection<T>.toSetUsingComparator(comparatorName: Atom): List<T> {
         fun Term.isEqualToAccordingToComparator(rhs: Term): Boolean {
-            val result = knowledgeBase.fulfill(Predicate(comparatorName.name, arrayOf(this, rhs)))
+            val result = context.knowledgeBase.fulfill(Predicate(comparatorName.name, arrayOf(this, rhs)))
             val areEqual = result.tryAdvance() != null
             result.close()
             return areEqual
@@ -51,7 +50,7 @@ internal val Set3Builtin = prologBuiltin("set", 3, { args, knowledgeBase, _ ->
         val arg0asSet = arg0.elements.toSetUsingComparator(comparatorName)
         val result = VariableBucket()
         result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        return@prologBuiltin LazySequence.of(Unification(result))
+        yield(Unification(result))
     }
     else
     {
@@ -62,11 +61,7 @@ internal val Set3Builtin = prologBuiltin("set", 3, { args, knowledgeBase, _ ->
         if (isSet) {
             val result = VariableBucket()
             result.instantiate(arg0, arg1)
-            return@prologBuiltin LazySequence.of(Unification(result))
-        }
-        else
-        {
-            return@prologBuiltin Unification.NONE
+            yield(Unification(result))
         }
     }
 })

@@ -9,6 +9,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
+import com.github.prologdb.async.LazySequence;
+import com.github.prologdb.async.LazySequenceKt;
+import com.github.prologdb.async.PrincipalKt;
 import com.github.prologdb.parser.ParsedQuery;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
@@ -18,9 +21,11 @@ import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.RandomVariableScope;
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase;
+import com.github.prologdb.runtime.knowledge.ProofSearchContext;
 import com.github.prologdb.runtime.knowledge.library.Library;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
+import com.github.prologdb.runtime.unification.Unification;
 import com.github.prologdb.runtime.unification.VariableBucket;
 
 import static java.util.stream.Collectors.joining;
@@ -158,7 +163,11 @@ public class PlaygroundPanel {
             return;
         }
 
-        solutionExplorerPanel.setSolutions(queryParseResult.getItem().findProofWithin(knowledgeBase, new VariableBucket(), new RandomVariableScope()));
+        ProofSearchContext context = ProofSearchContext.Companion.createFor(knowledgeBase);
+        LazySequence<Unification> solutions = LazySequenceKt.buildLazySequence(context.getPrincipal(), (builder, continuation) ->
+            queryParseResult.getItem().getFindProofWithin().invoke(builder, context, new VariableBucket(), continuation)
+        );
+        solutionExplorerPanel.setSolutions(solutions);
         solutionExplorerPanel.showNextSolution();
         this.panel.revalidate();
         this.panel.repaint();

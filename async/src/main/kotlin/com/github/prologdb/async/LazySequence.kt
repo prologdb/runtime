@@ -1,12 +1,47 @@
-package com.github.prologdb.runtime.lazysequence
+package com.github.prologdb.async
+
+import java.util.concurrent.Future
 
 /**
  * A lazysequence that calculates / obtains the next element only when it is actually needed (as opposed to when
  * the presence is queried, e.g. like [Iterator.hasNext]). This class is used over [Iterator] because [Iterator.hasNext]
  * implies a read-only action. But prolog solution sequences can have side-effects (e.g. with `retract/1`) and that
  * implication would be misleading.
+ *
+ * The calculation of results can be done step by step where the steps, ideally, are at boundaries between
+ * CPU/memory bound tasks and I/O bound tasks. This aims to optimize resource utilization in a situation where
+ * there are large numbers of [LazySequence]s open at the same time.
+ *
+ * Calling [tryAdvance] will perform **all** necessary steps to calculate the next result (or determine
+ * that there are no more). For more fine grained control and information use [step] and [state].
  */
 interface LazySequence<T> {
+    /**
+     * The concurrency principal. Instead of [Thread], this is used to obtain locks and mutexes in the
+     * name of the coroutine. Traditional [synchronized] blocks are still used to prevent multiple threads
+     * from running the same coroutine simultaneously.
+     */
+    val principal: Principal
+
+    /**
+     * Performs CPU&memory bound work for the next element in the
+     * sequence and returns when waiting for I/O bound tasks
+     * (disk, memory, ...).
+     *
+     * When this method is called in state [State.RESULTS_AVAILABLE],
+     * it is not defined whether calculations are done.
+     *
+     * This function can only be run by one thread at a time.
+     * Implementations are inclined to use [synchronized] to achieve
+     * this behaviour, [java.util.concurrent.locks.Lock]s are another
+     * option, though.
+     *
+     * @return the state of this sequence after this call
+     */
+    fun step(): State
+
+    val state: State
+
     /**
      * Attempts to compute or obtain the next element.
      * @return the next element in the [LazySequence] or `null` when there are no more elements.
@@ -40,21 +75,6 @@ interface LazySequence<T> {
      */
     fun <K> distinctBy(selector: (T) -> K): LazySequence<T>
         = DistinctLazySequence(this, selector)
-
-    /**
-     * Accumulates value starting with [initial] value and applying [accumulator] for each remaining element in this
-     * sequence.
-     *
-     * @see Sequence.fold
-     */
-    fun <C> foldRemaining(initial: C, accumulator: (C, T) -> C): C {
-        var carry: C = initial
-        forEachRemaining {
-            carry = accumulator(carry, it)
-        }
-
-        return carry
-    }
 
     /**
      * Consumes all of the remaining elements in this sequence.
@@ -189,7 +209,7 @@ interface LazySequence<T> {
 
     /**
      * Consumes all elements of this sequence. Useful for sequences where consuming has side effects and the user
-     * only care about the side effects (instead of the elements).
+     * only cares about the side effects (instead of the elements).
      */
     fun consumeAll() {
         while (true) tryAdvance() ?: break
@@ -201,8 +221,15 @@ interface LazySequence<T> {
             if (elements.size == 1) return singleton(elements[0])
 
             return object : LazySequence<T> {
+                override val principal = IrrelevantPrincipal
                 private var index = 0
                 private var closed = false
+
+                override fun step(): State = state
+
+                override val state: State
+                    get() = if (closed || index >= elements.size) State.DEPLETED else State.RESULTS_AVAILABLE
+
                 override fun tryAdvance(): T? {
                     if (closed || index >= elements.size) return null
                     return elements[index++]
@@ -222,8 +249,16 @@ interface LazySequence<T> {
             if (element == null) throw IllegalArgumentException("The given element must not be null.")
 
             return object : LazySequence<T> {
+                override val principal = IrrelevantPrincipal
                 private var consumed = false
+
+                override val state: State
+                    get() = if (consumed) State.DEPLETED else State.RESULTS_AVAILABLE
+
+                override fun step() = state
+
                 override fun tryAdvance(): T? = if (consumed) null else { consumed = true; element }
+
                 override fun close() {
                     consumed = true
                 }
@@ -237,16 +272,46 @@ interface LazySequence<T> {
          */
         fun <T> ofNullable(thing: T?): LazySequence<T> = if (thing == null) empty() else singleton(thing)
 
+        /**
+         * Creates an infinite [LazySequence] that obtains its values from the given [generator]. Ends
+         * once [close] is called.
+         *
+         * @param generator Must not modify shared state or read from mutable shared state (in other words: be pure).
+         */
         fun <T> fromGenerator(generator: () -> T?): LazySequence<T> {
             return object : LazySequence<T> {
+                override val principal = IrrelevantPrincipal
                 var closed = false
+                var cached: T? = null
+
+                override fun step(): State {
+                    if (closed) return State.DEPLETED
+                    if (cached == null) {
+                        cached = generator()
+                        if (cached == null) {
+                            closed = true
+                            return State.DEPLETED
+                        }
+                    }
+
+                    return State.RESULTS_AVAILABLE
+                }
+
+                override val state: State
+                    get() = if (closed) State.DEPLETED else if (cached == null) State.PENDING else State.RESULTS_AVAILABLE
 
                 override fun tryAdvance(): T? {
                     if (closed) return null
 
-                    val result = generator()
-                    if (result == null) closed = true
-                    return result
+                    when (step()) {
+                        State.RESULTS_AVAILABLE -> {
+                            val result = cached
+                            cached = null
+                            return result
+                        }
+                        State.DEPLETED -> return null
+                        else -> throw IllegalStateException()
+                    }
                 }
 
                 override fun close() {
@@ -256,16 +321,84 @@ interface LazySequence<T> {
         }
 
         private val emptySequence = object : LazySequence<Any> {
+            override val principal = IrrelevantPrincipal
+            override val state = State.DEPLETED
+            override fun step() = State.DEPLETED
             override fun tryAdvance(): Any? = null
             override fun close() = Unit
         }
 
         fun <T> empty(): LazySequence<T> {
-            @Suppress("unchecked_cast") // no elements returned from the sequence; the size does not matter
+            @Suppress("unchecked_cast") // no elements returned from the sequence; the type does not matter
             return emptySequence as LazySequence<T>
         }
     }
+
+    enum class State {
+        /**
+         * No results are immediately available. Either applies:
+         * * the next step is also CPU&memory bound and calling [step] again would
+         *   advance the process of calculating the solution
+         * * the next step is I/O bound and is waiting for that to finish. In this case,
+         *   calling [step] again does not have any effect.
+         */
+        PENDING,
+
+        /**
+         * Results are available for immediate grab without calculation
+         * from [tryAdvance]. After grabbing all results the sequence will
+         * transition to any of the other states.
+         */
+        RESULTS_AVAILABLE,
+
+        /**
+         * All results have been calculated and obtained via [tryAdvance]
+         */
+        DEPLETED,
+
+        /**
+         * An error occured while calculating the next result.
+         * [tryAdvance] will throw that error.
+         */
+        FAILED
+    }
 }
+
+interface LazySequenceBuilder<T> {
+    /** The principal of the sequence being built. To be used to initialize sub-sequences. */
+    val principal: Any
+
+    /**
+     * Suspends this coroutine until the given future is present.
+     *
+     * If the given future is already done or cancelled, returns/throws
+     * immediately without suspending the coroutine.
+     *
+     * @return the futures value
+     * @throws Exception Forwarded from the [Future], including [CancellationException]
+     * @throws PrincipalConflictException If the given future is a [WorkableFuture] and has a different [principal]
+     *                                    than this one.
+     */
+    suspend fun <E> await(future: Future<E>): E
+
+    /**
+     * Yields the given object as one result to the lazy sequence
+     */
+    suspend fun yield(result: T)
+
+    /**
+     * Yields all results of the given collection from this lazy sequence.
+     */
+    suspend fun yieldAll(results: Collection<T>)
+
+    /**
+     * Yields all results of the given lazy sequence to this lazy sequence.
+     * @throws PrincipalConflictException If the given sequence is of another principal.
+     */
+    suspend fun yieldAll(results: LazySequence<T>)
+}
+
+fun <T> buildLazySequence(principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit): LazySequence<T> = LazySequenceImpl(principal, code)
 
 /**
  * Adds all elements remaining in this [LazySequence] to the collection obtained by invoking the given [supplier].
@@ -298,7 +431,7 @@ fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
  * @return a [LazySequence] of all the elements remaining in this [LazySequence] that are not null.
  */
 fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
-    = @Suppress("unchecked") FilteredLazySequence(this, { it != null}) as LazySequence<T>
+    = @Suppress("unchecked") DistinctLazySequence(this, { it != null}) as LazySequence<T>
 
 /**
  * Returns a [LazySequence] of only those elements remaining in this [LazySequence] that match the given predicate.
@@ -306,7 +439,7 @@ fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
 fun <T> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
-    = FilteredLazySequence(this, predicate)
+    = DistinctLazySequence(this, predicate)
 
 /**
  * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
@@ -324,7 +457,7 @@ fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
 inline fun <T, reified E> LazySequence<T>.transformExceptionsOnRemaining(noinline mapper: (E) -> Throwable): LazySequence<T>
-where E : Throwable {
+    where E : Throwable {
     if (E::class == Throwable::class) {
         return RethrowingExceptionMappingLazySequence(this, mapper as (Throwable) -> Throwable)
     } else {

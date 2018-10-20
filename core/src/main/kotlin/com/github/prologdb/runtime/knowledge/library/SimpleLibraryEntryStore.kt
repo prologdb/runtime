@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 

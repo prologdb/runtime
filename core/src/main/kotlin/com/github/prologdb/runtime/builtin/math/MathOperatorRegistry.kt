@@ -51,17 +51,17 @@ object MathOperatorRegistry {
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {
-        registerOperator(operatorName, 1..1, { predicate ->
+        registerOperator(operatorName, 1..1) { predicate ->
             if (predicate.arity != 1 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${predicate.name}/${predicate.arity}")
             calculator(predicate.arguments[0].asPrologNumber)
-        })
+        }
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber, PrologNumber) -> PrologNumber) {
-        registerOperator(operatorName, 2..2, { predicate ->
+        registerOperator(operatorName, 2..2) { predicate ->
             if (predicate.arity != 2 || predicate.name != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${predicate.name}/${predicate.arity}")
             calculator(predicate.arguments[0].asPrologNumber, predicate.arguments[1].asPrologNumber)
-        })
+        }
     }
 
     init {

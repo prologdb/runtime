@@ -1,9 +1,8 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
+import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.lazysequence.mapRemaining
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
@@ -24,7 +23,7 @@ import com.github.prologdb.runtime.term.Variable
  *   first solution is found, the proof search is aborted and the resources are released. `A` is then,
  *   equally as before, instantiated to the first solution.
  */
-internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, knowledgeBase, randomVarsScope ->
+internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args[1]
     val solutionInput = args[2]
@@ -33,17 +32,18 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, kno
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3
-        return@prologBuiltin knowledgeBase.fulfill(Predicate("findall", args))
+        yieldAll(context.knowledgeBase.fulfill(Predicate("findall", args), context))
     }
 
     solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall/3 must be a list or not instantiated.")
 
     if (solutionInput.tail == null || solutionInput.tail != Variable.ANONYMOUS) {
         // this cannot be optimized, it requires all solutions for correct behaviour
-        return@prologBuiltin knowledgeBase.fulfill(Predicate("findall", args))
+        context.knowledgeBase.fulfill(Predicate("findall", args), context)
+        return@prologBuiltin
     }
 
-    val resultSequence = knowledgeBase.fulfill(goalInput, randomVarsScope).mapRemaining { solution ->
+    val resultSequence = context.knowledgeBase.fulfill(goalInput, context).mapRemaining { solution ->
         templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
     }
 
@@ -54,8 +54,9 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, kno
 
     resultSequence.close()
 
-    val resultListUnified = solutionInput.unify(PrologList(resultList), randomVarsScope)
-    resultListUnified?.variableValues?.retainAll(templateInput.variables + solutionInput.variables)
-
-    return@prologBuiltin LazySequence.ofNullable(resultListUnified)
+    val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
+    if (resultListUnified != null) {
+        resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
+        yield(resultListUnified)
+    }
 }

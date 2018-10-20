@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.prologBuiltin
-import com.github.prologdb.runtime.lazysequence.LazySequence
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -18,7 +17,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
-internal val Set2Builtin = prologBuiltin("set", 2, { args, _, _ ->
+internal val Set2Builtin = prologBuiltin("set", 2, { args, _ ->
     val arg0 = args[0]
     val arg1 = args[1]
 
@@ -31,7 +30,7 @@ internal val Set2Builtin = prologBuiltin("set", 2, { args, _, _ ->
         val arg0asSet = arg0.elements.toSet()
         val result = VariableBucket()
         result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        return@prologBuiltin LazySequence.of(Unification(result))
+        yield(Unification(result))
     }
     else
     {
@@ -42,11 +41,7 @@ internal val Set2Builtin = prologBuiltin("set", 2, { args, _, _ ->
         if (isSet) {
             val result = VariableBucket()
             result.instantiate(arg0, arg1)
-            return@prologBuiltin LazySequence.of(Unification(result))
-        }
-        else
-        {
-            return@prologBuiltin Unification.NONE
+            yield(Unification(result))
         }
     }
 })

@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.unification
 
-import com.github.prologdb.runtime.lazysequence.LazySequence
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.term.Variable
 
 /**

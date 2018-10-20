@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.find
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
-import com.github.prologdb.runtime.lazysequence.LazySequence
-import com.github.prologdb.runtime.lazysequence.find
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term

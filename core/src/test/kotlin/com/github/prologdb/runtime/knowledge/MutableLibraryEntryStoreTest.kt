@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.knowledge
 
+import com.github.prologdb.async.remainingTo
 import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.lazysequence.remainingTo
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Atom
