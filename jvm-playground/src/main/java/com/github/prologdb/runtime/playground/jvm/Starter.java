@@ -1,20 +1,16 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
-import java.io.IOException;
-
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-
-import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
-import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
-
 import com.github.prologdb.runtime.playground.jvm.editor.JFlexPrologTokenMaker;
 import com.github.prologdb.runtime.playground.jvm.persistence.AppDataPlagroundStatePersistenceService;
 import com.github.prologdb.runtime.playground.jvm.persistence.NullPlaygroundStatePersistenceService;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundStatePersistenceService;
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
+
+import javax.swing.*;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.IOException;
 
 public class Starter {
     public static void main(final String... args) {

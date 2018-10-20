@@ -1,12 +1,12 @@
 package com.github.prologdb.runtime.playground.jvm.persistence;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Implements {@link PlaygroundStatePersistenceService} by writing the state as

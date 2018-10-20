@@ -1,21 +1,16 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Font;
+import com.github.prologdb.parser.parser.PrologParser;
+import com.github.prologdb.parser.source.SourceUnit;
+import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
+
+import javax.swing.*;
+import javax.swing.event.EventListenerList;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.EventListener;
-
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.event.EventListenerList;
-
-import com.github.prologdb.parser.parser.PrologParser;
-import com.github.prologdb.parser.source.SourceUnit;
-import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 
 public class QueryPanel {
 

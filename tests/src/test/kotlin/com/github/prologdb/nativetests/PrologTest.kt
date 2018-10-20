@@ -1,8 +1,6 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
 import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
@@ -13,7 +11,6 @@ import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery

@@ -1,19 +1,15 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import java.awt.BorderLayout;
+import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
+import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundStatePersistenceService;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
-import javax.swing.WindowConstants;
-
-import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
-import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundStatePersistenceService;
 
 public class MainFrame extends JFrame {
 

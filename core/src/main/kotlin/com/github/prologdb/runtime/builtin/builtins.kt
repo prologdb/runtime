@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.Query

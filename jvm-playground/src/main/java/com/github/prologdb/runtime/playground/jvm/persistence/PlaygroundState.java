@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.playground.jvm.persistence;
 
-import java.util.Objects;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Objects;
 
 /**
  * Models the state of the playground, supporting persistence

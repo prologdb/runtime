@@ -3,9 +3,9 @@ package com.github.prologdb.parser.parser
 import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.lexer.Token
+import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
-import com.github.prologdb.parser.parser.ParseResultCertainty.*
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*

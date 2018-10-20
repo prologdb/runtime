@@ -1,9 +1,7 @@
 package com.github.prologdb.runtime.term
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.library.LibraryEntry
 import com.github.prologdb.runtime.unification.Unification

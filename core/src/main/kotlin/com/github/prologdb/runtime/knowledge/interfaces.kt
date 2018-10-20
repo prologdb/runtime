@@ -10,7 +10,6 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import java.lang.IllegalArgumentException
 
 interface KnowledgeBase {
 

@@ -28,8 +28,7 @@ internal val BuiltinAtomString = prologBuiltin("atom_string", 2) { args, context
         }
 
         if (inputForA is Variable) {
-            val result = inputForA.unify(Atom(inputForB.toKotlinString()), context.randomVariableScope)
-            if (result != null) yield(result)
+            yield(inputForA.unify(Atom(inputForB.toKotlinString()), context.randomVariableScope))
         } else {
             if (convertInputForAToKotlinString() == inputForB.toKotlinString()) yield(Unification.TRUE)
         }

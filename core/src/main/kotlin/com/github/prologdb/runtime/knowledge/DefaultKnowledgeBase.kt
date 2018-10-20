@@ -14,7 +14,6 @@ import com.github.prologdb.runtime.builtin.typesafety.TypeSafetyLibrary
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
-import java.lang.IllegalArgumentException
 
 class DefaultKnowledgeBase(val library: MutableLibrary) : MutableKnowledgeBase {
 

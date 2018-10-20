@@ -1,17 +1,7 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import java.awt.BorderLayout;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.text.ParseException;
-
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JSplitPane;
-
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.async.LazySequenceKt;
-import com.github.prologdb.async.PrincipalKt;
 import com.github.prologdb.parser.ParsedQuery;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
@@ -19,7 +9,6 @@ import com.github.prologdb.parser.lexer.LineEndingNormalizer;
 import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
-import com.github.prologdb.runtime.RandomVariableScope;
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase;
 import com.github.prologdb.runtime.knowledge.ProofSearchContext;
 import com.github.prologdb.runtime.knowledge.library.Library;
@@ -27,6 +16,12 @@ import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
 import com.github.prologdb.runtime.unification.Unification;
 import com.github.prologdb.runtime.unification.VariableBucket;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.text.ParseException;
 
 import static java.util.stream.Collectors.joining;
 
