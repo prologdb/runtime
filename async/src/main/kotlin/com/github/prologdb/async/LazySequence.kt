@@ -431,7 +431,7 @@ fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
  * @return a [LazySequence] of all the elements remaining in this [LazySequence] that are not null.
  */
 fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
-    = @Suppress("unchecked") DistinctLazySequence(this, { it != null}) as LazySequence<T>
+    = @Suppress("unchecked") FilteredLazySequence(this, { it != null}) as LazySequence<T>
 
 /**
  * Returns a [LazySequence] of only those elements remaining in this [LazySequence] that match the given predicate.
@@ -439,7 +439,7 @@ fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
 fun <T> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
-    = DistinctLazySequence(this, predicate)
+    = FilteredLazySequence(this, predicate)
 
 /**
  * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
