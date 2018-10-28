@@ -16,6 +16,8 @@ class VariableBucket private constructor(
     val isEmpty
         get() = variableMap.isEmpty()
 
+    val variables: Set<Variable> = variableMap.keys
+
     private val substitutionMapper: (Variable) -> Term = { variable ->
         if (isInstantiated(variable) && this[variable] != variable) {
             this[variable].substituteVariables(this.asSubstitutionMapper())

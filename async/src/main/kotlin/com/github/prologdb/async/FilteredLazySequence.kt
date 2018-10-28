@@ -72,7 +72,7 @@ class FilteredLazySequence<T>(
         return state
     }
 
-    override fun tryAdvance(): T? {
+    override tailrec fun tryAdvance(): T? {
         when {
             error != null -> throw error!!
             closed -> return null
