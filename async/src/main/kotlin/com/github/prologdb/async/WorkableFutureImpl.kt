@@ -234,7 +234,18 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 if (state == State.CANCELLED) {
                     // this has been cancelled, shut it down right here
 
-                    tearDown()
+                    teardownLogic?.let {
+                        // the issue is: if there is teardown to be executed it depends on the future being completed
+                        // possibly reversing what that future does. So we have to wait for completion before we
+                        // can run tearDown() and then finally put the coroutine to rest
+
+                        try {
+                            future.get()
+                        }
+                        catch (swalloed: Throwable) {}
+
+                        tearDown()
+                    }
 
                     suspendCoroutine<Unit> { /* not picking up the continuation effectively aborts the coroutine. */ }
                     throw Exception("This should never have been thrown")
