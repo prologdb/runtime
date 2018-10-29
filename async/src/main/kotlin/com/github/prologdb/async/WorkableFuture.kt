@@ -49,6 +49,23 @@ interface WorkableFutureBuilder {
     suspend fun <E> await(future: Future<E>): E
 
     /**
+     * Same as [await(Future)] but calls [finally] first. This is effectively syntax sugar
+     * so that the finally code appears in the order it actually runs.
+     */
+    suspend fun <E> awaitAndFinally(future: Future<E>, finally: () -> Any?) {
+        finally(finally)
+        await(future)
+    }
+
+    /**
+     * The given code will run before this future completes (Also when cancelled).
+     *
+     * When the this function is called multiple times the different functions will
+     * be executed in reverse order.
+     */
+    fun finally(code: () -> Any?)
+
+    /**
      * Logically like [LazySequence.foldRemaining] with these differences in
      * technical behaviour:
      * * if this future is cancelled, the sequence is closed.

@@ -1,5 +1,6 @@
 package com.github.prologdb.async
 
+import java.util.*
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
@@ -13,20 +14,18 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
 
         override fun resume(value: T) {
             synchronized(mutex) {
-                if (state == State.RUNNING) {
-                    result = value!!
-                    state = State.COMPLETED
-                }
+                result = value!!
+                state = State.COMPLETED
             }
         }
 
         override fun resumeWithException(exception: Throwable) {
             synchronized(mutex) {
-                if (state == State.RUNNING) {
-                    error = exception
-                    state = State.COMPLETED
-                }
+                error = exception
+                state = State.COMPLETED
             }
+
+            tearDown()
         }
     }
 
@@ -36,6 +35,9 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     private var result: T? = null
     @Volatile
     private var error: Throwable? = null
+        set(value) {
+            field = value
+        }
 
     @Volatile
     private var state: State = State.RUNNING
@@ -49,6 +51,14 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     private var currentFoldingCarry: Any? = null
     @Volatile
     private var currentFoldingAccumulator: ((Any, Any) -> Any)? = null
+
+    /**
+     * Teardown code, in the reverse order as it was added using [WorkableFutureBuilder.finally]; see
+     * [LinkedList.addFirst].
+     * Is set on the first call to [WorkableFutureBuilder.finally] because it is expected
+     * that most futures will not have teardown logic.
+     */
+    private var teardownLogic: LinkedList<() -> Any?>? = null
 
     override fun isDone(): Boolean = state == State.COMPLETED || state == State.CANCELLED
 
@@ -163,21 +173,53 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 State.RUNNING, State.WAITING_ON_FUTURE -> {
                     state = State.CANCELLED
                     error = CancellationException()
+                    currentFoldingSequence?.close()
                     currentWaitingFuture?.cancel(true)
                     currentWaitingFuture = null
+
+                    // tear down will happen on the next suspend
 
                     return true
                 }
                 State.FOLDING_SEQUENCE -> {
                     state = State.CANCELLED
                     error = CancellationException()
+                    currentWaitingFuture?.cancel(true)
                     currentFoldingSequence?.close()
                     currentFoldingSequence = null
+
+                    tearDown()
+
                     return true
                 }
                 State.COMPLETED, State.CANCELLED -> {
                     return false
                 }
+            }
+        }
+    }
+
+    private fun tearDown() {
+        teardownLogic?.let {
+            var errors: ArrayList<Throwable>? = null
+
+            it.forEach { tearDown ->
+                try {
+                    tearDown()
+                }
+                catch (ex: Throwable) {
+                    if (errors == null) errors = ArrayList()
+                    errors!!.add(ex)
+                }
+            }
+
+            if (errors != null && errors!!.isNotEmpty()) {
+                val topEx = RuntimeException("TearDown code errored after cancel", errors!!.first())
+                val errorIt = errors!!.iterator()
+                errorIt.next() // skip first, is set as cause
+                errorIt.forEachRemaining(topEx::addSuppressed)
+
+                throw topEx
             }
         }
     }
@@ -191,7 +233,10 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             synchronized(mutex) {
                 if (state == State.CANCELLED) {
                     // this has been cancelled, shut it down right here
-                    suspendCoroutine<Unit> { /* not picking up the continuation aborts the coroutine. */ }
+
+                    tearDown()
+
+                    suspendCoroutine<Unit> { /* not picking up the continuation effectively aborts the coroutine. */ }
                     throw Exception("This should never have been thrown")
                 }
 
@@ -244,6 +289,13 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             }
 
             return suspendCoroutine<C> { continuation = it as Continuation<Any> }
+        }
+
+        override fun finally(code: () -> Any?) {
+            if (teardownLogic == null) {
+                teardownLogic = LinkedList()
+            }
+            teardownLogic!!.addFirst(code)
         }
     }
 
