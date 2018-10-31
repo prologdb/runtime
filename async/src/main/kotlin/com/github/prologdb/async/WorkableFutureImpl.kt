@@ -225,6 +225,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     private val Builder = object : WorkableFutureBuilder {
+        override val principal = this@WorkableFutureImpl.principal
+
         override suspend fun <E> await(future: Future<E>): E {
             if (future is WorkableFuture && future.principal != principal) {
                 throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)

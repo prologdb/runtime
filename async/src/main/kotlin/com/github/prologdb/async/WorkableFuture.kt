@@ -36,6 +36,11 @@ interface WorkableFuture<T> : Future<T> {
 @RestrictsSuspension
 interface WorkableFutureBuilder {
     /**
+     * The principal this future is running as.
+     */
+    val principal: Principal
+
+    /**
      * Suspends this coroutine until the given future is present.
      *
      * If the given future is already done or cancelled, returns/throws
