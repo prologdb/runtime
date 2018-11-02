@@ -389,7 +389,11 @@ interface LazySequenceBuilder<T> {
     /**
      * Yields all results of the given collection from this lazy sequence.
      */
-    suspend fun yieldAll(results: Collection<T>)
+    suspend fun yieldAll(results: Collection<T>) {
+        for (result in results) {
+            yield(result)
+        }
+    }
 
     /**
      * Yields all results of the given lazy sequence to this lazy sequence.
@@ -449,6 +453,15 @@ fun <T> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence
  */
 fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
     = MappedLazySequence(this, mapper)
+
+/**
+ * For every remaining element in `this`, invokes the given mapper, drains the resulting sequence yielding
+ * every element.
+ *
+ * *[LazySequence.step]ing and [LazySequence.tryAdvance]ing this sequence may consume elements from this [LazySequence]*
+ */
+fun <T, M> LazySequence<T>.flatMapRemaining(mapper: suspend LazySequenceBuilder<M>.(T) -> Unit): LazySequence<M>
+    = FlatMapLazySequence(this, mapper)
 
 /**
  * Returns a [LazySequence] where exceptions thrown on each call to [LazySequence.tryAdvance]
