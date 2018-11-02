@@ -35,9 +35,6 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     private var result: T? = null
     @Volatile
     private var error: Throwable? = null
-        set(value) {
-            field = value
-        }
 
     @Volatile
     private var state: State = State.RUNNING
@@ -60,9 +57,9 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
      */
     private var teardownLogic: LinkedList<() -> Any?>? = null
 
-    override fun isDone(): Boolean = state == State.COMPLETED || state == State.CANCELLED
+    override fun isDone(): Boolean = state == State.COMPLETED
 
-    override fun isCancelled(): Boolean = state == State.CANCELLED
+    override fun isCancelled(): Boolean = false
 
     override fun step(): Boolean {
         synchronized(mutex) {
@@ -126,7 +123,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                         LazySequence.State.PENDING -> { /* cannot do anything */ }
                     }
                 }
-                State.COMPLETED, State.CANCELLED -> { }
+                State.COMPLETED -> { }
             }
         }
 
@@ -138,7 +135,6 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             step()
             when(state) {
                 State.COMPLETED -> return result ?: throw error!!
-                State.CANCELLED -> throw error as CancellationException
                 State.RUNNING -> { /* do nothing, keep looping */ }
                 State.WAITING_ON_FUTURE -> {
                     try {
@@ -168,35 +164,10 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     override fun cancel(mayInterruptIfRunning: Boolean): Boolean {
-        synchronized(mutex) {
-            when (state) {
-                State.RUNNING, State.WAITING_ON_FUTURE -> {
-                    state = State.CANCELLED
-                    error = CancellationException()
-                    currentFoldingSequence?.close()
-                    currentWaitingFuture?.cancel(true)
-                    currentWaitingFuture = null
-
-                    // tear down will happen on the next suspend
-
-                    return true
-                }
-                State.FOLDING_SEQUENCE -> {
-                    state = State.CANCELLED
-                    error = CancellationException()
-                    currentWaitingFuture?.cancel(true)
-                    currentFoldingSequence?.close()
-                    currentFoldingSequence = null
-
-                    tearDown()
-
-                    return true
-                }
-                State.COMPLETED, State.CANCELLED -> {
-                    return false
-                }
-            }
-        }
+        // workable futures cannot be cancelled. the associated RAII logic is too complex
+        // to be worth the hassle right now (no real usecase where cancelling improves efficiency
+        // noticeably).
+        return false
     }
 
     private fun tearDown() {
@@ -233,26 +204,6 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             }
 
             synchronized(mutex) {
-                if (state == State.CANCELLED) {
-                    // this has been cancelled, shut it down right here
-
-                    teardownLogic?.let {
-                        // the issue is: if there is teardown to be executed it depends on the future being completed
-                        // possibly reversing what that future does. So we have to wait for completion before we
-                        // can run tearDown() and then finally put the coroutine to rest
-
-                        try {
-                            future.get()
-                        }
-                        catch (swalloed: Throwable) {}
-
-                        tearDown()
-                    }
-
-                    suspendCoroutine<Unit> { /* not picking up the continuation effectively aborts the coroutine. */ }
-                    throw Exception("This should never have been thrown")
-                }
-
                 if (state != State.RUNNING) {
                     throw IllegalStateException("Future is in state $state, cannot wait for a future.")
                 }
@@ -285,12 +236,6 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             }
 
             synchronized(mutex) {
-                if (state == State.CANCELLED) {
-                    // this has been cancelled, shut it down right here
-                    suspendCoroutine<Unit> { /* not picking up the continuation aborts the coroutine. */ }
-                    throw Exception("This should never have been thrown")
-                }
-
                 if (state != State.RUNNING) {
                     throw IllegalStateException("Future is in state $state, cannot fold a sequence")
                 }
@@ -318,7 +263,6 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     private enum class State {
         RUNNING,
         COMPLETED,
-        CANCELLED,
         WAITING_ON_FUTURE,
         FOLDING_SEQUENCE
     }
