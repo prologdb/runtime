@@ -54,6 +54,25 @@ interface WorkableFutureBuilder {
     suspend fun <E> await(future: Future<E>): E
 
     /**
+     * Same as [await(Future)] but calls [finally] first. This is effectively syntax sugar
+     * so that the finally code appears in the order it actually runs.
+     *
+     * Turns
+     *
+     *     val future = startProcess()
+     *     finally { cleanUp(); }
+     *     val result = await(future)
+     *
+     * into
+     *
+     *     val result = awaitAndFinally(startProcess()) { cleanUp() }
+     */
+    suspend fun <E> awaitAndFinally(future: Future<E>, finally: () -> Any?): E {
+        finally(finally)
+        return await(future)
+    }
+
+    /**
      * The given code will run before this future completes (Also when cancelled).
      *
      * When the this function is called multiple times the different functions will
