@@ -366,7 +366,7 @@ interface LazySequence<T> {
 
 interface LazySequenceBuilder<T> {
     /** The principal of the sequence being built. To be used to initialize sub-sequences. */
-    val principal: Any
+    val principal: Principal
 
     /**
      * Suspends this coroutine until the given future is present.
