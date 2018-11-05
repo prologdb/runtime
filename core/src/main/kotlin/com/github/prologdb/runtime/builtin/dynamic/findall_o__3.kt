@@ -28,14 +28,14 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, con
     val goalInput = args[1]
     val solutionInput = args[2]
 
-    if (goalInput !is Predicate) throw PrologRuntimeException("Type error: second argument to findall/3 must be a predicate.")
+    if (goalInput !is Predicate) throw PrologRuntimeException("Type error: second argument to findall_o/3 must be a query.")
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3
         yieldAll(context.knowledgeBase.fulfill(Predicate("findall", args), context))
     }
 
-    solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall/3 must be a list or not instantiated.")
+    solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
 
     if (solutionInput.tail == null || solutionInput.tail != Variable.ANONYMOUS) {
         // this cannot be optimized, it requires all solutions for correct behaviour
@@ -43,7 +43,7 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, con
         return@prologBuiltin
     }
 
-    val resultSequence = context.knowledgeBase.fulfill(goalInput, context).mapRemaining { solution ->
+    val resultSequence = context.knowledgeBase.fulfill(predicateToQuery(goalInput), context).mapRemaining { solution ->
         templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
     }
 
