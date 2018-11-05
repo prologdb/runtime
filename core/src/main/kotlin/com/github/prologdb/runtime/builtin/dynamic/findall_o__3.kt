@@ -37,7 +37,7 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, con
 
     solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
 
-    if (solutionInput.tail == null || solutionInput.tail != Variable.ANONYMOUS) {
+    if (solutionInput.tail != null && solutionInput.tail != Variable.ANONYMOUS) {
         // this cannot be optimized, it requires all solutions for correct behaviour
         context.knowledgeBase.fulfill(Predicate("findall", args), context)
         return@prologBuiltin
@@ -47,8 +47,16 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, con
         templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
     }
 
+    var nResultsToCalculate = solutionInput.elements.size
+    // if the tail is the anonymous variable, we do not need more
+    // if there is no tail, this needs to fail if there are not exactly
+    // as many solutions as there are elements in solutionInput
+    // calculating solutionInput.size+1 solutions suffices to make that
+    // decision (implicitly when unifying resultList with solutionInput)
+    if (solutionInput.tail == null) nResultsToCalculate++
+
     val resultList = mutableListOf<Term>()
-    for (i in 0 until solutionInput.elements.size) {
+    for (i in 0 until nResultsToCalculate) {
         resultList.add(resultSequence.tryAdvance() ?: break)
     }
 
