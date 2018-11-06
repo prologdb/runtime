@@ -72,3 +72,47 @@ enum class OperatorType(val arity: Int) {
     val isInfix by lazy { this == XFX || this == XFY || this == YFX }
     val isPostfix by lazy { this == XF || this == YF }
 }
+
+/**
+ * A simple implementation of [MutableOperatorRegistry].
+ */
+class DefaultOperatorRegistry : MutableOperatorRegistry {
+
+    private val operators: OperatorMap = mutableMapOf()
+
+    override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operators[name] ?: emptySet()
+
+    override fun defineOperator(definition: OperatorDefinition) {
+        var targetSet = operators[definition.name]
+        if (targetSet == null) {
+            targetSet = HashSet()
+            operators[definition.name] = targetSet
+        }
+
+        targetSet.add(definition)
+    }
+
+    override val allOperators: Iterable<OperatorDefinition>
+        get() = operators.values.flatten()
+
+    fun include(other: OperatorRegistry) {
+        if (other is DefaultOperatorRegistry) {
+            for (name in other.operators.keys) {
+                if (name in this.operators) {
+                    this.operators[name]!!.addAll(other.operators[name]!!)
+                } else {
+                    this.operators[name] = mutableSetOf()
+                }
+            }
+        } else {
+            other.allOperators.forEach(this::defineOperator)
+        }
+    }
+}
+
+private typealias OperatorMap = MutableMap<String,MutableSet<OperatorDefinition>>
+
+object EmptyOperatorRegistry : OperatorRegistry {
+    override val allOperators: Set<OperatorDefinition> = emptySet()
+    override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = allOperators
+}

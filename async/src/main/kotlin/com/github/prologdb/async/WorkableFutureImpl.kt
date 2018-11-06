@@ -199,7 +199,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
         override val principal = this@WorkableFutureImpl.principal
 
         override suspend fun <E> await(future: Future<E>): E {
-            if (future is WorkableFuture && future.principal != principal) {
+            if (future is WorkableFuture && future.principal != principal && future.principal != IrrelevantPrincipal) {
                 throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
             }
 
@@ -231,7 +231,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
         }
 
         override suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
-            if (sequence.principal != principal) {
+            if (sequence.principal != principal && sequence.principal != IrrelevantPrincipal) {
                 throw PrincipalConflictException(principalInError = principal, violatedPrincipal = sequence.principal)
             }
 

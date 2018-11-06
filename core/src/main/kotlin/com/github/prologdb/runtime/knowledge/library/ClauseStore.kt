@@ -1,6 +1,10 @@
 package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.Principal
+import com.github.prologdb.runtime.ArityMap
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -13,29 +17,19 @@ interface ClauseStore {
     val clauses: Iterable<Clause>
 
     /**
-     * Finds entries within [exports] that possibly unify with the given [Predicate] (facts or rule heads). This
-     * method may just return [exports] but may also implement sophisticated indexing or involve a database engine.
+     * Finds entries within [clauses] that possibly unify with the given [Predicate] (facts or rule heads). This
+     * method may just return [clauses] but may also implement sophisticated indexing or involve persistent storage.
      *
      * The default implementation of this method uses the kotlin stdlib [filter] method.
      */
-    fun findFor(predicate: Predicate): Iterable<Clause> = exports.filter { it.arity == predicate.arity && it.name == predicate.name }
+    fun findFor(predicate: Predicate): Iterable<Clause> = clauses.filter { it.arity == predicate.arity && it.name == predicate.name }
 }
 
 interface MutableClauseStore : ClauseStore {
     /**
      * Adds the given entry to the library; acts like `assertz/1`: adds the entry to the **end** of the knowledge base.
      */
-    fun add(entry: Clause)
-
-    /**
-     * Includes all of the exports of the given library into this library.
-     *
-     * This is defined as a separate method to allow indexing strategies to be hidden
-     * and reused. The default implementation of this method simply does `other.exports.forEach(this::add)`.
-     */
-    fun include(other: ClauseStore) {
-        other.exports.forEach(this::add)
-    }
+    fun assertz(entry: Clause)
 
     /**
      * Removes facts that unify with the given [Predicate] from the entry store.
@@ -83,5 +77,182 @@ interface MutableClauseStore : ClauseStore {
      */
     fun abolish(functor: String, arity: Int) {
         retractAll(Predicate(functor, Array<Term>(arity, { Variable.ANONYMOUS })))
+    }
+}
+
+private typealias ArityMapToLibraryEntries = ArityMap<MutableList<Clause>>
+
+/**
+ * The most simple implementation of [MutableClauseStore] possible: is
+ * based on a plain [MutableList] and uses the default implementations
+ * declared in [ReadableClauseStore] and [MutableClauseStore]
+ */
+class SimpleClauseStore(givenEntries: Iterable<Clause> = emptyList()) : MutableClauseStore {
+    private val entries = ArrayList(givenEntries.toList())
+
+    override val clauses = entries
+
+    override fun assertz(entry: Clause) {
+        entries.add(entry)
+    }
+
+    override fun retractFact(fact: Predicate): LazySequence<Unification> {
+        return LazySequence.fromGenerator {
+            for (index in 0 until entries.size) {
+                val entry = entries[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(fact)
+                    if (unification != null) {
+                        entries.removeAt(index)
+                        return@fromGenerator unification
+                    }
+                }
+            }
+
+            null
+        }
+    }
+
+    override fun retract(unifiesWith: Predicate): LazySequence<Unification> {
+        return LazySequence.fromGenerator {
+            for (index in 0 until entries.size) {
+                val entry = entries[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(unifiesWith)
+                    if (unification != null) {
+                        entries.removeAt(index)
+                        return@fromGenerator unification
+                    }
+                } else if (entry is Rule) {
+                    val headUnification = entry.head.unify(unifiesWith)
+                    if (headUnification != null) {
+                        entries.removeAt(index)
+                        return@fromGenerator headUnification
+                    }
+                } else {
+                    throw PrologRuntimeException("Cannot test whether to retract an entry: is neither a fact nor a rule")
+                }
+            }
+
+            null
+        }
+    }
+
+    override fun abolishFacts(functor: String, arity: Int) {
+        entries.removeAll(entries.filter { it.arity == arity && it is Predicate && it.name == functor  })
+    }
+
+    override fun abolish(functor: String, arity: Int) {
+        entries.removeAll(entries.filter { it.arity == arity && it.name == functor })
+    }
+}
+
+/**
+ * Indexes entries by arity and name in maps.
+ */
+class DoublyIndexedClauseStore : MutableClauseStore {
+    /**
+     * The index. The key in the outer map corresponds to [Clause.name] and the
+     * key of the inner map corresponds to [Clause.arity].
+     */
+    private val index = mutableMapOf<String, ArityMapToLibraryEntries>()
+
+    override fun findFor(predicate: Predicate): Iterable<Clause> {
+        val arityMap = index[predicate.name] ?: return emptyList()
+        return arityMap[predicate.arity] ?: emptyList()
+    }
+
+    override fun assertz(entry: Clause) {
+        val arityIndex: ArityMapToLibraryEntries
+
+        if (entry.name !in index) {
+            arityIndex = ArityMap()
+            index[entry.name] = arityIndex
+        } else {
+            arityIndex = index[entry.name]!!
+        }
+
+        val entryList: MutableList<Clause>
+
+        if (entry.arity !in arityIndex) {
+            entryList = mutableListOf()
+            arityIndex[entry.arity] = entryList
+        } else {
+            entryList = arityIndex[entry.arity]!!
+        }
+
+        entryList.add(entry)
+        indexChangedSinceLastExportsCalculation = true
+    }
+
+    private var indexChangedSinceLastExportsCalculation = true
+    private var cachedExports: Iterable<Clause>? = null
+    override val clauses: Iterable<Clause>
+        get() {
+            if (indexChangedSinceLastExportsCalculation) {
+                cachedExports = index.flatMap { it.value.arities.flatMap { arity -> it.value[arity]!! }}
+                indexChangedSinceLastExportsCalculation = false
+            }
+
+            return cachedExports!!
+        }
+
+    override fun retractFact(fact: Predicate): LazySequence<Unification> {
+        val arityIndex = index[fact.name] ?: return Unification.NONE
+        val entryList = arityIndex[fact.arity] ?: return Unification.NONE
+
+        return LazySequence.fromGenerator {
+            for (index in 0 until entryList.size) {
+                val entry = entryList[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(fact)
+                    if (unification != null) {
+                        entryList.removeAt(index)
+                        return@fromGenerator unification
+                    }
+                }
+            }
+
+            null
+        }
+    }
+
+    override fun retract(unifiesWith: Predicate): LazySequence<Unification> {
+        val arityIndex = index[unifiesWith.name] ?: return Unification.NONE
+        val entryList = arityIndex[unifiesWith.arity] ?: return Unification.NONE
+
+        return LazySequence.fromGenerator {
+            for (index in 0 until entryList.size) {
+                val entry = entryList[index]
+                if (entry is Predicate) {
+                    val unification = entry.unify(unifiesWith)
+                    if (unification != null) {
+                        entryList.removeAt(index)
+                        return@fromGenerator unification
+                    }
+                } else if (entry is Rule) {
+                    val headUnification = entry.head.unify(unifiesWith)
+                    if (headUnification != null) {
+                        entryList.removeAt(index)
+                        return@fromGenerator headUnification
+                    }
+                } else {
+                    throw PrologRuntimeException("Cannot determine whether entry should be retracted: is neither a predicate nor a rule.")
+                }
+            }
+
+            null
+        }
+    }
+
+    override fun abolish(functor: String, arity: Int) {
+        index[functor]?.remove(arity)
+    }
+
+    override fun abolishFacts(functor: String, arity: Int) {
+        val arityMap = index[functor] ?: return
+        val entryList = arityMap[arity] ?: return
+
+        entryList.removeAll(entryList.filter { it is Predicate })
     }
 }

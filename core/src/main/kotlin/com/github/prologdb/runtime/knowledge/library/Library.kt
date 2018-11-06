@@ -3,7 +3,16 @@ package com.github.prologdb.runtime.knowledge.library
 import com.github.prologdb.runtime.ArityMap
 import com.github.prologdb.runtime.term.Predicate
 
+/**
+ * A library of predicates. Intended to be used for static code (such as read from a .pl file),
+ * has no facilities for dynamic updates.
+ *
+ * For dynamic predicates use [ClauseStore].
+ */
 class Library(
+    /** A name for the library, e.g. `lists` */
+    val name: String,
+
     /**
      * The clauses that make up this library. The order exposed by this
      * iterable also defines the order in which the clauses will be considered
@@ -12,11 +21,17 @@ class Library(
     givenClauses: Iterable<Clause>,
 
     /**
-     * The types of clauses (must be a subset of [exports]) that this
-     * library intends to be protected (not amended by any other
-     * clause of the same type from another source).
+     * The types of clauses (not necessarily a subset of [exports]) that this
+     * library intends to be dynamic (can be modified by user code,
+     * affecting only the user knowledge base, not this library instance).
      */
-    val protectedExports: Set<ClauseIndicator>
+    val dynamicExports: Set<ClauseIndicator>,
+
+    /**
+     * The operators defined in this registry (using `op/3`). Will be registered
+     * with the knowledge base upon loading.
+     */
+    val operators: OperatorRegistry
 ) {
     /**
      * The types of clauses exported by this library.
@@ -24,12 +39,6 @@ class Library(
     val exports: Set<ClauseIndicator> = givenClauses.asSequence()
         .map { ClauseIndicator.of(it) }
         .toSet()
-
-    init {
-        protectedExports.firstOrNull { it !in exports } ?.let {
-            throw IllegalArgumentException("Cannot declare $it as protected without also defining clauses for it.")
-        }
-    }
 
     private val index: ArityMap<HashMap<String, ArrayList<Clause>>> = ArityMap()
 
@@ -58,7 +67,17 @@ class Library(
      * "likely" means at least same name and arity; further optimizations are
      * implementation detail.
      */
-    fun findLikelyToUnifyWith(predicate: Predicate): Iterable<Clause> {
+    fun findFor(predicate: Predicate): Iterable<Clause> {
         return index[predicate.arity]?.get(predicate.name) ?: emptyList()
+    }
+
+    /**
+     * Finds all clauses for the given indicator.
+     *
+     * The behaviour of this method is undefined for indicators that
+     * are not listed in [exports].
+     */
+    fun findFor(indicator: ClauseIndicator): Iterable<Clause> {
+        return index[indicator.arity]?.get(indicator.name) ?: emptyList()
     }
 }

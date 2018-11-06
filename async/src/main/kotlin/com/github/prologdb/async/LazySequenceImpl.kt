@@ -78,7 +78,7 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
         override val principal = this@LazySequenceImpl.principal
 
         override suspend fun <E> await(future: Future<E>): E {
-            if (future is WorkableFuture && future.principal != principal) {
+            if (future is WorkableFuture && future.principal != principal && future.principal != IrrelevantPrincipal) {
                 throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
             }
 
@@ -110,7 +110,7 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
         }
 
         override suspend fun yieldAll(results: LazySequence<T>) {
-            if (results.principal != principal) {
+            if (results.principal != principal && results.principal != IrrelevantPrincipal) {
                 throw PrincipalConflictException(principalInError = principal, violatedPrincipal = results.principal)
             }
 

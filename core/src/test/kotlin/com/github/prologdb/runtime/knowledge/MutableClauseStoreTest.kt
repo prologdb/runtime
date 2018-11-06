@@ -15,7 +15,7 @@ import io.kotlintest.specs.FreeSpec
 class MutableClauseStoreTest : FreeSpec() {
     override val oneInstancePerTest = true
 init {
-    val implementationsToTest: Array<() -> MutableClauseStore> = arrayOf(
+    val implementationsToTest: Array<() -> WritableClauseStore> = arrayOf(
         { SimpleClauseStore() },
         { DoublyIndexedClauseStore() }
     )
@@ -41,7 +41,7 @@ init {
                 // SETUP
                 entryStore = implementationFactory()
                 val prediate = Predicate("pred", arrayOf(Atom("y")))
-                val fakeLibrary = object : ClauseStore {
+                val fakeLibrary = object : ReadableClauseStore {
                     override val exports: Iterable<Clause> = listOf(prediate)
                 }
 
