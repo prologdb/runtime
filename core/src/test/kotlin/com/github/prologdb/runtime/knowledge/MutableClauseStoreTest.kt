@@ -15,7 +15,7 @@ import io.kotlintest.specs.FreeSpec
 class MutableClauseStoreTest : FreeSpec() {
     override val oneInstancePerTest = true
 init {
-    val implementationsToTest: Array<() -> WritableClauseStore> = arrayOf(
+    val implementationsToTest: Array<() -> MutableClauseStore> = arrayOf(
         { SimpleClauseStore() },
         { DoublyIndexedClauseStore() }
     )
@@ -27,7 +27,7 @@ init {
                 // SETUP
                 entryStore = implementationFactory()
                 val predicate = Predicate("foo", arrayOf(Atom("x"), Atom("y")))
-                entryStore.add(predicate)
+                entryStore.assertz(predicate)
 
                 // ACT
                 val result = entryStore.findFor(predicate).toList()
@@ -37,23 +37,6 @@ init {
                 result.first() shouldEqual predicate
             }
 
-            "facts added through include() should be returned through findFor()" {
-                // SETUP
-                entryStore = implementationFactory()
-                val prediate = Predicate("pred", arrayOf(Atom("y")))
-                val fakeLibrary = object : ReadableClauseStore {
-                    override val exports: Iterable<Clause> = listOf(prediate)
-                }
-
-                // ACT
-                entryStore.include(fakeLibrary)
-                val result = entryStore.findFor(prediate).toList()
-
-                // ASSERT
-                result.size shouldEqual 1
-                result.first() shouldEqual prediate
-            }
-
             "findFor should respect arity" {
                 // SETUP
                 entryStore = implementationFactory()
@@ -61,8 +44,8 @@ init {
                 val entryArity2 = Rule(Predicate("foo", arrayOf(Atom("x"), Atom("y"))), PredicateQuery(Predicate("hans", arrayOf())))
 
                 // ACT
-                entryStore.add(entryArity1)
-                entryStore.add(entryArity2)
+                entryStore.assertz(entryArity1)
+                entryStore.assertz(entryArity2)
                 val resultArity1 = entryStore.findFor(entryArity1).toList()
                 val resultArity2 = entryStore.findFor(entryArity2.head).toList()
 
@@ -81,8 +64,8 @@ init {
                 val entryFunctorB = Rule(Predicate("barfoo", arrayOf(Atom("x"))), PredicateQuery(Predicate("hans", arrayOf())))
 
                 // ACT
-                entryStore.add(entryFunctorA)
-                entryStore.add(entryFunctorB)
+                entryStore.assertz(entryFunctorA)
+                entryStore.assertz(entryFunctorB)
                 val resultFunctorA = entryStore.findFor(entryFunctorA).toList()
                 val resultFunctorB = entryStore.findFor(entryFunctorB.head).toList()
 
@@ -101,10 +84,10 @@ init {
                 val factB = Predicate("barfoo", arrayOf(Atom("x")))
 
                 // ACT
-                entryStore.add(factA)
-                entryStore.add(factB)
-                entryStore.exports.toList() should contain<Clause>(factA)
-                entryStore.exports.toList() should contain<Clause>(factA)
+                entryStore.assertz(factA)
+                entryStore.assertz(factB)
+                entryStore.clauses.toList() should contain<Clause>(factA)
+                entryStore.clauses.toList() should contain<Clause>(factA)
 
                 "facts removed through retractFact" - {
 
@@ -112,8 +95,8 @@ init {
 
                     "should not be contained in exports" {
                         // ASSERT
-                        entryStore.exports.toList() shouldNot contain<Clause>(factA)
-                        entryStore.exports.toList() should contain<Clause>(factB)
+                        entryStore.clauses.toList() shouldNot contain<Clause>(factA)
+                        entryStore.clauses.toList() should contain<Clause>(factB)
                     }
 
                     "should not be returned by findFor" {
@@ -128,8 +111,8 @@ init {
 
                     "should not be contained in exports" {
                         // ASSERT
-                        entryStore.exports.toList() shouldNot contain<Clause>(factA)
-                        entryStore.exports.toList() should contain<Clause>(factB)
+                        entryStore.clauses.toList() shouldNot contain<Clause>(factA)
+                        entryStore.clauses.toList() should contain<Clause>(factB)
                     }
 
                     "should not be returned by findFor" {
@@ -141,13 +124,13 @@ init {
 
                 "rules removed through retract" - {
                     val rule = Rule(Predicate("head", arrayOf(Variable("X"))), PredicateQuery(factA))
-                    entryStore.add(rule)
+                    entryStore.assertz(rule)
                     entryStore.findFor(rule.head).toList().size shouldEqual 1
 
                     entryStore.retract(rule.head).tryAdvance()
 
                     "should not be contained in exports" {
-                        entryStore.exports.toList() shouldNot contain<Clause>(rule)
+                        entryStore.clauses.toList() shouldNot contain<Clause>(rule)
                     }
 
                     "should not be returned by findFor" {
@@ -160,8 +143,8 @@ init {
                     val fact1 = Predicate("foo", arrayOf(Atom("x")))
                     val fact2 = Predicate("foo", arrayOf(Atom("x")))
 
-                    entryStore.add(fact1)
-                    entryStore.add(fact2)
+                    entryStore.assertz(fact1)
+                    entryStore.assertz(fact2)
 
                     entryStore.findFor(fact1).toList().size shouldEqual 2
 
@@ -178,8 +161,8 @@ init {
                     val fact1 = Predicate("foo", arrayOf(Atom("x")))
                     val fact2 = Predicate("foo", arrayOf(Atom("x")))
 
-                    entryStore.add(fact1)
-                    entryStore.add(fact2)
+                    entryStore.assertz(fact1)
+                    entryStore.assertz(fact2)
 
                     entryStore.findFor(fact1).toList().size shouldEqual 2
 
@@ -197,8 +180,8 @@ init {
                     val fact1 = Predicate("foo", arrayOf(Atom("x")))
                     val fact2 = Predicate("foo", arrayOf(Atom("x")))
 
-                    entryStore.add(fact1)
-                    entryStore.add(fact2)
+                    entryStore.assertz(fact1)
+                    entryStore.assertz(fact2)
 
                     entryStore.findFor(fact1).toList().size shouldEqual 2
 
@@ -206,7 +189,7 @@ init {
                     entryStore.retractAllFacts(fact1)
 
                     // ASSERT
-                    entryStore.exports.toList()should beEmpty()
+                    entryStore.clauses.toList()should beEmpty()
                     entryStore.findFor(fact1).toList() should beEmpty()
                     entryStore.findFor(fact2).toList() should beEmpty()
                 }
@@ -218,9 +201,9 @@ init {
                     val fact2 = Predicate("foo", arrayOf(Atom("x")))
                     val rule2 = Rule(fact1, mock<Query>())
 
-                    entryStore.add(fact1)
-                    entryStore.add(fact2)
-                    entryStore.add(rule2)
+                    entryStore.assertz(fact1)
+                    entryStore.assertz(fact2)
+                    entryStore.assertz(rule2)
 
                     entryStore.findFor(fact1).toList().size shouldEqual 3
 
@@ -228,7 +211,7 @@ init {
                     entryStore.retractAll(fact1)
 
                     // ASSERT
-                    entryStore.exports.toList() should beEmpty()
+                    entryStore.clauses.toList() should beEmpty()
                     entryStore.findFor(fact2).toList() should beEmpty()
                 }
 
@@ -241,7 +224,7 @@ init {
                         val expectedUnification = fact.unify(retractionFact)!!
 
                         // ACT
-                        entryStore.add(fact)
+                        entryStore.assertz(fact)
                         val result = entryStore.retractFact(retractionFact)
 
                         // ASSERT
@@ -260,8 +243,8 @@ init {
                         val expectedFactUnification = fact.unify(retractionFact)
                         val expectedRuleUnification = ruleHead.unify(retractionFact)
 
-                        entryStore.add(fact)
-                        entryStore.add(rule)
+                        entryStore.assertz(fact)
+                        entryStore.assertz(rule)
 
                         // ACT
                         val result = entryStore.retract(retractionFact).remainingTo(::ArrayList)

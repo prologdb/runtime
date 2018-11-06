@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
+import com.github.prologdb.runtime.builtin.nativeLibrary
 import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
 import com.github.prologdb.runtime.knowledge.library.Library
@@ -9,18 +10,16 @@ import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 
-val DynamicsLibrary : Library = object : SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry()) {
-    init {
-        add(BuiltinFindAll)
-        add(BuiltinFindAllOptimized)
-    }
+val DynamicsLibrary = nativeLibrary("dynamics") {
+    add(BuiltinFindAll)
+    add(BuiltinFindAllOptimized)
 }
 
 /**
  * Converts compund predicates (instances of `,/2` and `;/2` to
  * queries).
  */
-internal fun predicateToQuery(predicate: Predicate): Query {
+fun predicateToQuery(predicate: Predicate): Query {
     if (predicate.arity != 2) {
         return PredicateQuery(predicate)
     }

@@ -14,7 +14,17 @@ open class Rule(val head: Predicate, val query: Query) : Clause {
     override val name = head.name
     override val arity = head.arity
 
-    open val fulfill: suspend LazySequenceBuilder<Unification>.(predicate: Predicate, context: ProofSearchContext) -> Unit = { predicate, context ->
+    /**
+     * Calls this predicate with the given invocation predicate.
+     *
+     * Default behaviour:
+     * Randomizes all variables in the head, query and `predicate`. Then unifies `predicate` with
+     * the head. Carries the resulting variable mappings over to the query and continues the
+     * proof-search coroutine with solutions for the resulting query.
+     *
+     * This can be re-defined for built-ins.
+     */
+    open val fulfill: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit = { predicate, context ->
         val predicateRandomVarsMapping = VariableMapping()
         val randomPredicate = context.randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
 

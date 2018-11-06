@@ -4,12 +4,13 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 internal val A = Variable("A")
 internal val B = Variable("B")
@@ -27,7 +28,7 @@ abstract class BuiltinPredicate(name: String, vararg arguments: Term) : Predicat
 
 /**
  * Provides the implementation to a builtin. Is intended to be used **ONLY** in
- * combination with [prologBuiltin] to help ensure all preconditions for [invoke].
+ * combination with [nativeRule] to help ensure all preconditions for [invoke].
  *
  * Is invoked when the builtin is invoked from prolog. When invoked, it must be assured that:
  * * the predicate invoked from the prolog code actually matches the builtin (name & arity)
@@ -58,54 +59,80 @@ private val builtinArgumentVariables = arrayOf(
 )
 
 /**
- * This query never has any results. It is used as a placeholder for builtins where
- * an instance of [Query] is required but the actual query never gets invoked because
- * kotlin code implements the builtin.
+ * This query is used as a placeholder for builtins where an instance of [Query] is required
+ * but the actual query never gets invoked because kotlin code implements the builtin.
  */
-private val voidQuery = object : Query {
-    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { _, _  -> }
+private val nativeCodeQuery = PredicateQuery(Predicate("__nativeCode", emptyArray()))
 
-    override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
-        return this
-    }
+class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation) : Rule(
+    Predicate(name, builtinArgumentVariables.sliceArray(0 until arity)),
+    nativeCodeQuery
+) {
+    private val invocationStackFrame = definedAt
+    private val stringRepresentation = """$head :- __nativeCode("${invocationStackFrame.fileName}:${invocationStackFrame.lineNumber}")"""
 
-    override fun substituteVariables(variableValues: VariableBucket): Query {
-        return this
-    }
-
-    override fun toString() = "__void"
-}
-
-fun prologBuiltin(name: String, arity: Int, code: PrologBuiltinImplementation): Rule {
-    val predicate = object : Predicate(name, builtinArgumentVariables.sliceArray(0 until arity)) {
-        override fun toString() = "$name/$arity"
-    }
-
-    val invocationStackFrame = getInvocationStackFrame()
-    val stringRepresentation = """$predicate :- __nativeCode("${invocationStackFrame.fileName}:${invocationStackFrame.lineNumber}")"""
-
-    val builtinStackFrame = PrologStackTraceElement(
-        predicate,
+    private val builtinStackFrame = PrologStackTraceElement(
+        head,
         invocationStackFrame.prologSourceInformation
     )
 
-    return object : Rule(predicate, voidQuery) {
-        override val fulfill: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit = { other, context ->
-            if (predicate.arity == other.arity && predicate.name == other.name) {
-                try {
-                    code(this, other.arguments, context)
-                } catch (ex: PrologException) {
-                    ex.addPrologStackFrame(builtinStackFrame)
-                    throw ex
-                } catch (ex: Throwable) {
-                    val newEx = PrologRuntimeException(ex.message ?: "", ex)
-                    newEx.addPrologStackFrame(builtinStackFrame)
+    val callDirectly: PrologBuiltinImplementation = code
 
-                    throw newEx
-                }
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit = { other, context ->
+        if (head.arity == other.arity && head.name == other.name) {
+            try {
+                code(this, other.arguments, context)
+            } catch (ex: PrologException) {
+                ex.addPrologStackFrame(builtinStackFrame)
+                throw ex
+            } catch (ex: Throwable) {
+                val newEx = PrologRuntimeException(ex.message ?: "", ex)
+                newEx.addPrologStackFrame(builtinStackFrame)
+
+                throw newEx
             }
         }
+    }
 
-        override fun toString() = stringRepresentation
+    override fun toString() = stringRepresentation
+}
+
+fun nativeRule(name: String, arity: Int, code: PrologBuiltinImplementation): NativeCodeRule {
+    val definedAt = getInvocationStackFrame()
+    return NativeCodeRule(name, arity, definedAt, code)
+}
+
+fun nativeLibrary(name: String, initCode: NativeLibraryBuilder.() -> Any?): Library = NativeLibraryBuilder.build(name, initCode)
+
+class NativeLibraryBuilder {
+    private val clauses = mutableListOf<Clause>()
+    private val dynamics = mutableSetOf<ClauseIndicator>()
+    private val opRegistry = DefaultOperatorRegistry()
+
+    fun add(clause: Clause) {
+        clauses.add(clause)
+    }
+
+    fun defineOperator(def: OperatorDefinition) {
+        opRegistry.defineOperator(def)
+    }
+
+    operator fun String.div(arity: Int) = ClauseIndicator.of(this, arity)
+
+    private fun build(name: String): Library {
+        return Library(
+            name,
+            clauses,
+            dynamics,
+            opRegistry
+        )
+    }
+
+    companion object {
+        internal fun build(name: String, initCode: NativeLibraryBuilder.() -> Any?): Library {
+            val builder = NativeLibraryBuilder()
+            builder.initCode()
+            return builder.build(name)
+        }
     }
 }

@@ -208,6 +208,14 @@ interface LazySequence<T> {
     }
 
     /**
+     * @return A sequence that, of the remaining elements, emits at most [n]. As soon as [n]
+     *         elements have been emitted, both this sequence and the returned sequence are closed.
+     */
+    fun limitRemaining(n: Long): LazySequence<T> {
+        return LimitingLazySequence(this, n)
+    }
+
+    /**
      * Consumes all elements of this sequence. Useful for sequences where consuming has side effects and the user
      * only cares about the side effects (instead of the elements).
      */

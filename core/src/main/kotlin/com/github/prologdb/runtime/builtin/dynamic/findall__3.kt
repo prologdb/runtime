@@ -1,14 +1,17 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.async.remainingToList
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.prologBuiltin
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 
-internal val BuiltinFindAll = prologBuiltin("findall", 3) { args, context ->
+internal val BuiltinFindAll = nativeRule("findall", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args[1]
     val solutionInput = args[2]
@@ -19,7 +22,9 @@ internal val BuiltinFindAll = prologBuiltin("findall", 3) { args, context ->
         throw PrologRuntimeException("Type error: third argument to findall/3 must be a list or not instantiated.")
     }
 
-    val resultList = context.knowledgeBase.fulfill(predicateToQuery(goalInput), context)
+    val resultList = buildLazySequence<Unification>(principal) {
+        context.fulfillAttach(this, predicateToQuery(goalInput), VariableBucket())
+    }
         .mapRemaining { solution ->
             templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
         }

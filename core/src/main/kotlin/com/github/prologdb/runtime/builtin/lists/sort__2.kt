@@ -1,14 +1,14 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.prologBuiltin
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
 internal val SortBuiltin = listOf<Clause>(
-    prologBuiltin("sort", 2, { args, context ->
+    nativeRule("sort", 2, { args, context ->
         val inputUnsorted = args[0]
         val inputSorted = args[1]
 

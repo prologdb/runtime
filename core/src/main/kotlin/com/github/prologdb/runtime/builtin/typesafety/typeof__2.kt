@@ -1,14 +1,14 @@
 package com.github.prologdb.runtime.builtin.typesafety
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.prologBuiltin
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
-val TypeofBuiltin = prologBuiltin("typeof", 2, { args, _ ->
+val TypeofBuiltin = nativeRule("typeof", 2, { args, _ ->
     val arg0 = args[0]
     val arg1 = args[1]
 

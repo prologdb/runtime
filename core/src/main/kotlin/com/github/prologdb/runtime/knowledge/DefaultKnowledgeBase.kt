@@ -2,6 +2,14 @@ package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.*
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.builtin.EqualityLibrary
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.builtin.dict.DictLibrary
+import com.github.prologdb.runtime.builtin.dynamic.DynamicsLibrary
+import com.github.prologdb.runtime.builtin.lists.ListsLibrary
+import com.github.prologdb.runtime.builtin.math.MathLibrary
+import com.github.prologdb.runtime.builtin.string.StringsLibrary
+import com.github.prologdb.runtime.builtin.typesafety.TypeSafetyLibrary
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -11,16 +19,18 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import java.util.*
 
 /**
  * A knowledge base, the most important prerequisite for a default, prolog REPL system.
  */
 class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedClauseStore()) : KnowledgeBase {
-    override val operators: OperatorRegistry = DefaultOperatorRegistry()
+    private val _operators = DefaultOperatorRegistry()
+    override val operators: OperatorRegistry = _operators
 
-    override fun fulfill(asPrincipal: Principal, query: Query, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
-        return buildLazySequence(asPrincipal) {
-            DefaultProofSearchContext(asPrincipal, randomVariableScope).fulfillAttach(this, query, VariableBucket())
+    override fun fulfill(query: Query, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
+        return buildLazySequence(UUID.randomUUID()) {
+            DefaultProofSearchContext(principal, randomVariableScope).fulfillAttach(this, query, VariableBucket())
         }
     }
 
@@ -41,7 +51,7 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
      */
     private val dynamicPredicates = HashSet<ClauseIndicator>()
 
-    override fun load(library: Library) {
+    fun load(library: Library) {
         // non-unique name?
         loadedLibraries.firstOrNull { it.name == library.name && it !== library }?.let {
             throw PrologRuntimeException("Duplicate library name ${library.name}: already loaded ${System.identityHashCode(it)}, attempted to load ${System.identityHashCode(library)}")
@@ -81,7 +91,7 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
             }
 
         // all good; load dynamic exports into dynamic store
-        // and link up the static ones
+        // and link up the static ones; define operators
         library.dynamicExports.asSequence()
             .flatMap { library.findFor(it).asSequence() }
             .forEach(store::assertz)
@@ -94,6 +104,8 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
             }()
             nameMap[indicator.name] = library
         }
+
+        _operators.include(library.operators)
     }
 
     /**
@@ -185,7 +197,8 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
     private inner class DefaultProofSearchContext(
         override val principal: Principal,
         override val randomVariableScope: RandomVariableScope
-    ) : ProofSearchContext {
+    ) : ProofSearchContext
+    {
         override val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, VariableBucket) -> Unit = { q, variables ->
             when (q) {
                 is AndQuery -> fulfillAndQuery(q, variables)
@@ -258,11 +271,9 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
             val termMappings = VariableMapping()
             val replaced = randomVariableScope.withRandomVariables(predicate, termMappings)
 
-
-
-            for (libEntry in findFor(predicate)) {
-                if (libEntry is Predicate) {
-                    val knownPredicateReplaced = randomVariableScope.withRandomVariables(libEntry, VariableMapping())
+            for (clause in findFor(predicate)) {
+                if (clause is Predicate) {
+                    val knownPredicateReplaced = randomVariableScope.withRandomVariables(clause, VariableMapping())
                     val unification = knownPredicateReplaced.unify(replaced)
                     if (unification != null) {
                         val resolvedBucket = unification.variableValues.withVariablesResolvedFrom(termMappings)
@@ -270,8 +281,45 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
                         yield(Unification(resolvedBucket))
                     }
                 }
-                else TODO()
+                else if (clause is Rule) {
+                    yieldAll(
+                        buildLazySequence<Unification>(principal) {
+                            clause.unifyWithKnowledge(this, predicate, this@DefaultProofSearchContext)
+                        }.amendExceptionsWithStackTraceOnRemaining(query.stackFrame)
+                    )
+                }
+                else {
+                    throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name}")
+                }
             }
         }
     }
+}
+
+/**
+ * A [DefaultKnowledgeBase] that is loaded with these things:
+ * * The ISO operators, see [ISOOpsOperatorRegistry]
+ * * The following builtin libraries:
+ *   * equality
+ *   * math
+ *   * lists
+ *   * strings
+ *   * typesafety
+ *   * dynamic
+ *   * dict
+ */
+fun DefaultKnowledgeBase.createWithDefaults(): DefaultKnowledgeBase {
+    val kb = DefaultKnowledgeBase()
+
+    (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
+
+    kb.load(EqualityLibrary)
+    kb.load(MathLibrary)
+    kb.load(ListsLibrary)
+    kb.load(StringsLibrary)
+    kb.load(TypeSafetyLibrary)
+    kb.load(DynamicsLibrary)
+    kb.load(DictLibrary)
+
+    return kb
 }

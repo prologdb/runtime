@@ -1,12 +1,16 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.prologBuiltin
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 
 /**
  * findall/3 always finds all solutions and then unifies a list of those with the input. This
@@ -30,7 +34,7 @@ import com.github.prologdb.runtime.term.Variable
  *   If the number of solutions found exactly matches the number of elements, unification can proceed
  *   as usual; exposing the same behaviour as `findall/3`.
  */
-internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, context ->
+internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args[1]
     val solutionInput = args[2]
@@ -39,39 +43,41 @@ internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, con
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3
-        yieldAll(context.knowledgeBase.fulfill(Predicate("findall", args), context))
+        BuiltinFindAll.callDirectly(this, args, context)
     }
+    else {
+        solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
 
-    solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
+        if (solutionInput.tail != null && solutionInput.tail != Variable.ANONYMOUS) {
+            // this cannot be optimized, it requires all solutions for correct behaviour
+            BuiltinFindAll.callDirectly(this, args, context)
+        }
+        else {
+            var nResultsToCalculate = solutionInput.elements.size
+            // if the tail is the anonymous variable, we do not need more
+            // if there is no tail, this needs to fail if there are not exactly
+            // as many solutions as there are elements in solutionInput
+            // calculating solutionInput.size+1 solutions suffices to make that
+            // decision (implicitly when unifying resultList with solutionInput)
+            if (solutionInput.tail == null) nResultsToCalculate++
 
-    if (solutionInput.tail != null && solutionInput.tail != Variable.ANONYMOUS) {
-        // this cannot be optimized, it requires all solutions for correct behaviour
-        context.knowledgeBase.fulfill(Predicate("findall", args), context)
-        return@prologBuiltin
-    }
+            val resultList = await(launchWorkableFuture(principal) {
+                val resultSequence = buildLazySequence<Unification>(principal) {
+                    context.fulfillAttach(this, predicateToQuery(goalInput), VariableBucket())
+                }
+                    .limitRemaining(nResultsToCalculate.toLong())
+                    .mapRemaining { solution ->
+                        templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
+                    }
 
-    val resultSequence = context.knowledgeBase.fulfill(predicateToQuery(goalInput), context).mapRemaining { solution ->
-        templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
-    }
+                foldRemaining(resultSequence, mutableListOf<Term>()) { l, t -> l.add(t); l }
+            })
 
-    var nResultsToCalculate = solutionInput.elements.size
-    // if the tail is the anonymous variable, we do not need more
-    // if there is no tail, this needs to fail if there are not exactly
-    // as many solutions as there are elements in solutionInput
-    // calculating solutionInput.size+1 solutions suffices to make that
-    // decision (implicitly when unifying resultList with solutionInput)
-    if (solutionInput.tail == null) nResultsToCalculate++
-
-    val resultList = mutableListOf<Term>()
-    for (i in 0 until nResultsToCalculate) {
-        resultList.add(resultSequence.tryAdvance() ?: break)
-    }
-
-    resultSequence.close()
-
-    val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
-    if (resultListUnified != null) {
-        resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
-        yield(resultListUnified)
+            val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
+            if (resultListUnified != null) {
+                resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
+                yield(resultListUnified)
+            }
+        }
     }
 }

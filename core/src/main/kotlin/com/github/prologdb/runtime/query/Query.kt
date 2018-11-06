@@ -1,12 +1,9 @@
 package com.github.prologdb.runtime.query
 
-import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.term.Predicate
-import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapToArray
 
@@ -59,19 +56,13 @@ open class PredicateQuery(
 {
     constructor(predicate: Predicate) : this(predicate, getInvocationStackFrame().prologSourceInformation)
 
-    private val stackFrame: PrologStackTraceElement by lazy {
+    /**
+     * The stack frame to use in exceptions for this query.
+     */
+    val stackFrame: PrologStackTraceElement by lazy {
         PrologStackTraceElement(
             predicate,
             sourceInformation
-        )
-    }
-
-    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { context, initialVariables ->
-        val substitutedPredicate = predicate.substituteVariables(initialVariables.asSubstitutionMapper())
-
-        yieldAll(
-            context.knowledgeBase.fulfill(substitutedPredicate, context)
-                .amendExceptionsWithStackTraceOnRemaining(stackFrame)
         )
     }
 

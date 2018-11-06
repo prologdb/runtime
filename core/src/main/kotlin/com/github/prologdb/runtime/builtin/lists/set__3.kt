@@ -1,7 +1,9 @@
 package com.github.prologdb.runtime.builtin.lists
 
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.prologBuiltin
+import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -18,14 +20,14 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * is consulted; e.g. `set([1, 1, 2], X, ==)` would try to proof `=(1, 1)` to check
  * whether the two `1`s are equal.
  */
-internal val Set3Builtin = prologBuiltin("set", 3, { args, context ->
+internal val Set3Builtin = nativeRule("set", 3, { args, context ->
     val arg0 = args[0]
     val arg1 = args[1]
     val comparatorName = args[2] as? Atom ?: throw PrologRuntimeException("Type error: argument 3 to set/3 must be an atom")
 
     fun <T : Term> Collection<T>.toSetUsingComparator(comparatorName: Atom): List<T> {
         fun Term.isEqualToAccordingToComparator(rhs: Term): Boolean {
-            val result = context.knowledgeBase.fulfill(Predicate(comparatorName.name, arrayOf(this, rhs)))
+            val result = buildLazySequence<Unification>(principal) { context.fulfillAttach(this, PredicateQuery(Predicate(comparatorName.name, arrayOf(this@isEqualToAccordingToComparator, rhs))), VariableBucket()) }
             val areEqual = result.tryAdvance() != null
             result.close()
             return areEqual
