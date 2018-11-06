@@ -22,6 +22,13 @@ import com.github.prologdb.runtime.term.Variable
  *   `A` to the first one found. `findall_o(N, a(N), [A|_])` starts the proof search. As soon as the
  *   first solution is found, the proof search is aborted and the resources are released. `A` is then,
  *   equally as before, instantiated to the first solution.
+ * * the third argument is a list and does not have a tail. Looks for `N+1` solutions where `N` is
+ *   the number of elements in the list.
+ *   This works because the lack of a tail requires the number of solutions to the query to be exactly
+ *   the number of elements in the list. To disprove that, it suffices to proove that there are strictly
+ *   less or more solutions than elements (regardless of how many solutions there actually are).
+ *   If the number of solutions found exactly matches the number of elements, unification can proceed
+ *   as usual; exposing the same behaviour as `findall/3`.
  */
 internal val BuiltinFindAllOptimized = prologBuiltin("findall_o", 3) { args, context ->
     val templateInput = args[0]
