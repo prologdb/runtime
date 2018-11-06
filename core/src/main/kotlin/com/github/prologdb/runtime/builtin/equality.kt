@@ -23,7 +23,7 @@ val BuiltinIdentity = prologBuiltin("==", 2) { args, _ ->
 /**
  * Defines the ISO equality and inequality predicates and operators.
  */
-val EqualityLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+val EqualityLibrary : Library = object : SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry()) {
     init {
         // =(X, X)
         add(Predicate("=", arrayOf(X, X)))

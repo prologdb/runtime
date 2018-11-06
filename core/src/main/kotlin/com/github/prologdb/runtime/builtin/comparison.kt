@@ -45,7 +45,7 @@ val BuiltinCompare = prologBuiltin("compare", 3) { args, _ ->
 /**
  * Defines predicates for the standard order of terms.
  */
-val ComparisonLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+val ComparisonLibrary : Library = object : SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry()) {
     init {
         add(BuiltinTermLessThan)
         add(BuiltinTermLessThanOrEqual)

@@ -598,7 +598,7 @@ class PrologParser {
     }
 
     fun parseLibrary(tokens: TransactionalSequence<Token>): ParseResult<Library> {
-        return parseLibrary(tokens, { SimpleLibrary(SimpleLibraryEntryStore(), DefaultOperatorRegistry()) })
+        return parseLibrary(tokens, { SimpleLibrary(SimpleClauseStore(), DefaultOperatorRegistry()) })
     }
 
     /**

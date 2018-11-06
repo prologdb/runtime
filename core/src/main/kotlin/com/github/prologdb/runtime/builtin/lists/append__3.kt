@@ -5,7 +5,7 @@ import com.github.prologdb.runtime.builtin.B
 import com.github.prologdb.runtime.builtin.C
 import com.github.prologdb.runtime.builtin.X
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.LibraryEntry
+import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologList
@@ -16,7 +16,7 @@ import com.github.prologdb.runtime.term.PrologList
  *     append([], L, L).
  *     append([H|T], L2, [H|R]) :- append(T, L2, R).
  */
-internal val AppendBuiltin = listOf<LibraryEntry>(
+internal val AppendBuiltin = listOf<Clause>(
     // append([], L, L) :- list(L).
     Predicate("append", arrayOf(
         PrologList(emptyList()),

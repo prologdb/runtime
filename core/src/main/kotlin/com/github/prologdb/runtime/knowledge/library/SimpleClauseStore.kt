@@ -7,16 +7,16 @@ import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 
 /**
- * The most simple implementation of [MutableLibraryEntryStore] possible: is
+ * The most simple implementation of [MutableClauseStore] possible: is
  * based on a plain [MutableList] and uses the default implementations
- * declared in [LibraryEntryStore] and [MutableLibraryEntryStore]
+ * declared in [ClauseStore] and [MutableClauseStore]
  */
-class SimpleLibraryEntryStore(givenEntries: Iterable<LibraryEntry> = emptyList()) : MutableLibraryEntryStore {
+class SimpleClauseStore(givenEntries: Iterable<Clause> = emptyList()) : MutableClauseStore {
     private val entries = ArrayList(givenEntries.toList())
 
     override val exports = entries
 
-    override fun add(entry: LibraryEntry) {
+    override fun add(entry: Clause) {
         entries.add(entry)
     }
 

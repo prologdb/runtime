@@ -12,12 +12,12 @@ import io.kotlintest.matchers.*
 import io.kotlintest.mock.mock
 import io.kotlintest.specs.FreeSpec
 
-class MutableLibraryEntryStoreTest : FreeSpec() {
+class MutableClauseStoreTest : FreeSpec() {
     override val oneInstancePerTest = true
 init {
-    val implementationsToTest: Array<() -> MutableLibraryEntryStore> = arrayOf(
-        { SimpleLibraryEntryStore() },
-        { DoublyIndexedLibraryEntryStore() }
+    val implementationsToTest: Array<() -> MutableClauseStore> = arrayOf(
+        { SimpleClauseStore() },
+        { DoublyIndexedClauseStore() }
     )
 
     for (implementationFactory in implementationsToTest) {
@@ -41,8 +41,8 @@ init {
                 // SETUP
                 entryStore = implementationFactory()
                 val prediate = Predicate("pred", arrayOf(Atom("y")))
-                val fakeLibrary = object : LibraryEntryStore {
-                    override val exports: Iterable<LibraryEntry> = listOf(prediate)
+                val fakeLibrary = object : ClauseStore {
+                    override val exports: Iterable<Clause> = listOf(prediate)
                 }
 
                 // ACT
@@ -103,8 +103,8 @@ init {
                 // ACT
                 entryStore.add(factA)
                 entryStore.add(factB)
-                entryStore.exports.toList() should contain<LibraryEntry>(factA)
-                entryStore.exports.toList() should contain<LibraryEntry>(factA)
+                entryStore.exports.toList() should contain<Clause>(factA)
+                entryStore.exports.toList() should contain<Clause>(factA)
 
                 "facts removed through retractFact" - {
 
@@ -112,8 +112,8 @@ init {
 
                     "should not be contained in exports" {
                         // ASSERT
-                        entryStore.exports.toList() shouldNot contain<LibraryEntry>(factA)
-                        entryStore.exports.toList() should contain<LibraryEntry>(factB)
+                        entryStore.exports.toList() shouldNot contain<Clause>(factA)
+                        entryStore.exports.toList() should contain<Clause>(factB)
                     }
 
                     "should not be returned by findFor" {
@@ -128,8 +128,8 @@ init {
 
                     "should not be contained in exports" {
                         // ASSERT
-                        entryStore.exports.toList() shouldNot contain<LibraryEntry>(factA)
-                        entryStore.exports.toList() should contain<LibraryEntry>(factB)
+                        entryStore.exports.toList() shouldNot contain<Clause>(factA)
+                        entryStore.exports.toList() should contain<Clause>(factB)
                     }
 
                     "should not be returned by findFor" {
@@ -147,7 +147,7 @@ init {
                     entryStore.retract(rule.head).tryAdvance()
 
                     "should not be contained in exports" {
-                        entryStore.exports.toList() shouldNot contain<LibraryEntry>(rule)
+                        entryStore.exports.toList() shouldNot contain<Clause>(rule)
                     }
 
                     "should not be returned by findFor" {

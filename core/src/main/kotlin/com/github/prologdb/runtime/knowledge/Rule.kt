@@ -4,13 +4,13 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.knowledge.library.LibraryEntry
+import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
+open class Rule(val head: Predicate, val query: Query) : Clause {
     override val name = head.name
     override val arity = head.arity
 
@@ -28,7 +28,7 @@ open class Rule(val head: Predicate, val query: Query) : LibraryEntry {
                 .substituteVariables(predicateAndHeadUnification.variableValues)
 
             val randomResults = buildLazySequence<Unification>(context.principal) {
-                randomQuery.findProofWithin(this, context, VariableBucket())
+                context.fulfillAttach(this, randomQuery, VariableBucket())
             }
 
             yieldAll(randomResults.mapRemaining { unification ->

@@ -8,7 +8,10 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
+import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
+import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
+import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.PrologInteger
@@ -644,7 +647,7 @@ class PrologParserTest : FreeSpec() {
     }
 
     "library" {
-        val library = SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry(true))
+        val library = SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry(true))
         library.include(EqualityLibrary)
 
         fun parseLibrary(tokens: TransactionalSequence<Token>) = PrologParser().parseLibrary(tokens, { library })

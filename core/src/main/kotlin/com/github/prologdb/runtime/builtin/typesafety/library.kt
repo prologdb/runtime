@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
-val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry()) {
 
     init {
         // all of these are /1 tests
@@ -45,7 +45,7 @@ val TypeSafetyLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEnt
  * @return a predicate with the given name and arity 1 that suceeds if the first argument passes
  * the given predicate.
  */
-private inline fun typeCheckBuiltin(name: String, crossinline test: (Term) -> Boolean): LibraryEntry {
+private inline fun typeCheckBuiltin(name: String, crossinline test: (Term) -> Boolean): Clause {
     return prologBuiltin(name, 1) { args, _ ->
         if (test(args[0])) yield(Unification.TRUE)
     }

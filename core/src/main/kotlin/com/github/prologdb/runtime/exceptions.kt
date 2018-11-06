@@ -2,6 +2,7 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.transformExceptionsOnRemaining
+import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.term.Predicate
 
 /**
@@ -21,6 +22,13 @@ open class PrologException(message: String, override val cause: Throwable? = nul
  * Thrown when errors or warnings occur during the interpretation of a prolog program.
  */
 open class PrologRuntimeException(message: String, cause: Throwable? = null) : PrologException(message, cause)
+
+open class PredicateNotDynamicException(private val indicator: ClauseIndicator, message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause) {
+    constructor(indicator: ClauseIndicator) : this(
+        indicator,
+        "Predicate $indicator is not dynamic"
+    )
+}
 
 /**
  * Thrown when a prolog system is asked to handle a directive that is not supported. Directives are instances of

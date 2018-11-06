@@ -2,7 +2,7 @@ package com.github.prologdb.runtime.builtin.math
 
 import com.github.prologdb.runtime.knowledge.library.*
 
-val MathLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+val MathLibrary : Library = object : SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry()) {
 
     init {
         add(BuiltinIs)

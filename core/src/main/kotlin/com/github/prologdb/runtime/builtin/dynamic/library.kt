@@ -1,16 +1,15 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
 import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.DoublyIndexedLibraryEntryStore
+import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
 import com.github.prologdb.runtime.knowledge.library.Library
-import com.github.prologdb.runtime.knowledge.library.SimpleLibrary
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 
-val DynamicsLibrary : Library = object : SimpleLibrary(DoublyIndexedLibraryEntryStore(), DefaultOperatorRegistry()) {
+val DynamicsLibrary : Library = object : SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry()) {
     init {
         add(BuiltinFindAll)
         add(BuiltinFindAllOptimized)

@@ -10,19 +10,19 @@ import com.github.prologdb.runtime.unification.Unification
 /**
  * Indexes entries by arity and name in maps.
  */
-class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
+class DoublyIndexedClauseStore : MutableClauseStore {
     /**
-     * The index. The key in the outer map corresponds to [LibraryEntry.name] and the
-     * key of the inner map corresponds to [LibraryEntry.arity].
+     * The index. The key in the outer map corresponds to [Clause.name] and the
+     * key of the inner map corresponds to [Clause.arity].
      */
     private val index = mutableMapOf<String, ArityMapToLibraryEntries>()
 
-    override fun findFor(predicate: Predicate): Iterable<LibraryEntry> {
+    override fun findFor(predicate: Predicate): Iterable<Clause> {
         val arityMap = index[predicate.name] ?: return emptyList()
         return arityMap[predicate.arity] ?: emptyList()
     }
 
-    override fun add(entry: LibraryEntry) {
+    override fun add(entry: Clause) {
         val arityIndex: ArityMapToLibraryEntries
 
         if (entry.name !in index) {
@@ -32,7 +32,7 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
             arityIndex = index[entry.name]!!
         }
 
-        val entryList: MutableList<LibraryEntry>
+        val entryList: MutableList<Clause>
 
         if (entry.arity !in arityIndex) {
             entryList = mutableListOf()
@@ -45,8 +45,8 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
         indexChangedSinceLastExportsCalculation = true
     }
 
-    override fun include(other: LibraryEntryStore) {
-        if (other is DoublyIndexedLibraryEntryStore) {
+    override fun include(other: ClauseStore) {
+        if (other is DoublyIndexedClauseStore) {
             // merge the indexes
             for ((name, othersArityMap) in other.index) {
                 if (name in this.index) {
@@ -72,8 +72,8 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
     }
 
     private var indexChangedSinceLastExportsCalculation = true
-    private var cachedExports: Iterable<LibraryEntry>? = null
-    override val exports: Iterable<LibraryEntry>
+    private var cachedExports: Iterable<Clause>? = null
+    override val exports: Iterable<Clause>
         get() {
             if (indexChangedSinceLastExportsCalculation) {
                 cachedExports = index.flatMap { it.value.arities.flatMap { arity -> it.value[arity]!! }}
@@ -143,15 +143,15 @@ class DoublyIndexedLibraryEntryStore : MutableLibraryEntryStore {
     }
 }
 
-private typealias ArityMapToLibraryEntries = ArityMap<MutableList<LibraryEntry>>
+private typealias ArityMapToLibraryEntries = ArityMap<MutableList<Clause>>
 
 /**
  * Creates a reference copy of this map. Changes to the copy do not
- * reflect onto this map; changes on the [LibraryEntry]s within **do**.
+ * reflect onto this map; changes on the [Clause]s within **do**.
  */
 private fun ArityMapToLibraryEntries.copy() =
-    ArityMap<MutableList<LibraryEntry>>(kotlin.Array(capacity + 1, {
-        val listCopy = kotlin.collections.mutableListOf<LibraryEntry>()
+    ArityMap<MutableList<Clause>>(kotlin.Array(capacity + 1, {
+        val listCopy = kotlin.collections.mutableListOf<Clause>()
         listCopy.addAll(this[it]!!)
         listCopy
     }))
