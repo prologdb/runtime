@@ -1,28 +1,30 @@
 package com.github.prologdb.runtime.playground.jvm;
 
+import java.awt.BorderLayout;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.text.ParseException;
+
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+
 import com.github.prologdb.async.LazySequence;
-import com.github.prologdb.async.LazySequenceKt;
-import com.github.prologdb.parser.ParsedQuery;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
 import com.github.prologdb.parser.lexer.LineEndingNormalizer;
 import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
+import com.github.prologdb.runtime.RandomVariableScope;
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase;
-import com.github.prologdb.runtime.knowledge.ProofSearchContext;
 import com.github.prologdb.runtime.knowledge.library.Library;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
+import com.github.prologdb.runtime.query.Query;
 import com.github.prologdb.runtime.unification.Unification;
-import com.github.prologdb.runtime.unification.VariableBucket;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.text.ParseException;
-
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
 ;
@@ -110,7 +112,7 @@ public class PlaygroundPanel {
 
     private void assureKnowledgeBaseIsUpToDate() throws ParseException {
         if (knowledgeBaseChangeIndicator || knowledgeBase == null) {
-            DefaultKnowledgeBase newKnowledgeBase = new DefaultKnowledgeBase();
+            DefaultKnowledgeBase newKnowledgeBase = DefaultKnowledgeBase.Companion.createWithDefaults();
             Lexer lexer = new Lexer(
                 new SourceUnit("knowledge base"),
                 new LineEndingNormalizer(
@@ -119,9 +121,10 @@ public class PlaygroundPanel {
                     ).iterator()
                 )
             );
-            ParseResult<? extends Library> result = parser.parseLibrary(lexer, newKnowledgeBase::getLibrary);
+            ParseResult<Library> result = parser.parseLibrary("user", lexer, newKnowledgeBase.getOperators());
 
             if (result.getReportings().isEmpty()) {
+                newKnowledgeBase.load(requireNonNull(result.getItem()));
                 knowledgeBase = newKnowledgeBase;
                 knowledgeBaseChangeIndicator = false;
             } else {
@@ -147,7 +150,7 @@ public class PlaygroundPanel {
                 new CharacterIterable(queryCode).iterator()
             )
         );
-        ParseResult<ParsedQuery> queryParseResult = parser.parseQuery(queryLexer, knowledgeBase.getOperatorRegistry());
+        ParseResult<Query> queryParseResult = parser.parseQuery(queryLexer, knowledgeBase.getOperators());
         if (!queryParseResult.getReportings().isEmpty() || queryParseResult.getItem() == null) {
             JOptionPane.showMessageDialog(
                 null,
@@ -158,10 +161,8 @@ public class PlaygroundPanel {
             return;
         }
 
-        ProofSearchContext context = ProofSearchContext.Companion.createFor(knowledgeBase);
-        LazySequence<Unification> solutions = LazySequenceKt.buildLazySequence(context.getPrincipal(), (builder, continuation) ->
-            queryParseResult.getItem().getFindProofWithin().invoke(builder, context, new VariableBucket(), continuation)
-        );
+        LazySequence<Unification> solutions = knowledgeBase.fulfill(queryParseResult.getItem(), new RandomVariableScope());
+
         solutionExplorerPanel.setSolutions(solutions);
         solutionExplorerPanel.showNextSolution();
         this.panel.revalidate();

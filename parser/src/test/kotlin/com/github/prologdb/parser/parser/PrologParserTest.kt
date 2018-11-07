@@ -7,9 +7,10 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.builtin.EqualityLibrary
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
 import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.term.Atom
@@ -25,7 +26,8 @@ class PrologParserTest : FreeSpec() {
 
     init{
 
-    val operators = DefaultOperatorRegistry(true)
+    val operators = DefaultOperatorRegistry()
+    operators.include(ISOOpsOperatorRegistry)
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "prefixOpFX200"))
@@ -647,10 +649,11 @@ class PrologParserTest : FreeSpec() {
     }
 
     "library" {
-        val library = SimpleLibrary(DoublyIndexedClauseStore(), DefaultOperatorRegistry(true))
-        library.include(EqualityLibrary)
+        val kb = DefaultKnowledgeBase()
+        (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
+        kb.load(EqualityLibrary)
 
-        fun parseLibrary(tokens: TransactionalSequence<Token>) = PrologParser().parseLibrary(tokens, { library })
+        fun parseLibrary(tokens: TransactionalSequence<Token>) = PrologParser().parseLibrary("test", tokens, kb.operators)
         fun parseLibrary(code: String) = parseLibrary(tokensOf(code))
 
         val result = parseLibrary("""
@@ -664,6 +667,9 @@ class PrologParserTest : FreeSpec() {
 
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
+
+        val library = result.item!!
+        library.name shouldBe "test"
 
         val rules = library.findFor(Predicate("isDead", arrayOf(Variable("X")))).toList()
         rules.size shouldBe 1

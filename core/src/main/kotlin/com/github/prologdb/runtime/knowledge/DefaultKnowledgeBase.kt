@@ -295,32 +295,34 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
             }
         }
     }
-}
 
-/**
- * A [DefaultKnowledgeBase] that is loaded with these things:
- * * The ISO operators, see [ISOOpsOperatorRegistry]
- * * The following builtin libraries:
- *   * equality
- *   * math
- *   * lists
- *   * strings
- *   * typesafety
- *   * dynamic
- *   * dict
- */
-fun DefaultKnowledgeBase.createWithDefaults(): DefaultKnowledgeBase {
-    val kb = DefaultKnowledgeBase()
+    companion object {
+        /**
+         * A [DefaultKnowledgeBase] that is loaded with these things:
+         * * The ISO operators, see [ISOOpsOperatorRegistry]
+         * * The following builtin libraries:
+         *   * equality
+         *   * math
+         *   * lists
+         *   * strings
+         *   * typesafety
+         *   * dynamic
+         *   * dict
+         */
+        fun createWithDefaults(): DefaultKnowledgeBase {
+            val kb = DefaultKnowledgeBase()
 
-    (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
+            (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
 
-    kb.load(EqualityLibrary)
-    kb.load(MathLibrary)
-    kb.load(ListsLibrary)
-    kb.load(StringsLibrary)
-    kb.load(TypeSafetyLibrary)
-    kb.load(DynamicsLibrary)
-    kb.load(DictLibrary)
+            kb.load(EqualityLibrary)
+            kb.load(MathLibrary)
+            kb.load(ListsLibrary)
+            kb.load(StringsLibrary)
+            kb.load(TypeSafetyLibrary)
+            kb.load(DynamicsLibrary)
+            kb.load(DictLibrary)
 
-    return kb
+            return kb
+        }
+    }
 }

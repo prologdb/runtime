@@ -1,24 +1,25 @@
 package com.github.prologdb.nativetests
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.forEachRemaining
 import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
+import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.Library
+import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
+import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.query.AndQuery
+import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.AnonymousVariable
-import com.github.prologdb.runtime.term.Predicate
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import io.kotlintest.matchers.fail
@@ -86,7 +87,7 @@ class PrologTest : FreeSpec() { init {
         val sourceUnit = SourceUnit(path.toString())
         val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
 
-        return PrologParser().parseLibrary(lexer, { createFreshTestingKnowledgeBase().library })
+        return PrologParser().parseLibrary(path.fileName.toString(), lexer, createFreshTestingKnowledgeBase().operators)
     }
 
     private fun getPrologTestCases(library: Library, parseErrorCallback: (Collection<Reporting>) -> Any?): Set<PrologTestCase> {
@@ -120,7 +121,8 @@ class PrologTest : FreeSpec() { init {
                 override val name = testName
 
                 override fun runWith(callback: TestResultCallback) {
-                    val runtimeEnv = DefaultKnowledgeBase(library.clone())
+                    val runtimeEnv = DefaultKnowledgeBase.createWithDefaults()
+                    runtimeEnv.load(library)
                     testQuery.clearFailures()
                     val result = runtimeEnv.fulfill(testQuery)
                     val hadAtLeastOneSolution = result.tryAdvance() != null
@@ -131,7 +133,7 @@ class PrologTest : FreeSpec() { init {
                     } else {
                         val failedAssertion = testQuery.goals[testQuery.failures[0].failingGoalIndex]
                         var message = "Assertion failed: $failedAssertion"
-                        if (failedAssertion is ParsedQuery) {
+                        if (failedAssertion is HasPrologSource) {
                             message += " in ${failedAssertion.sourceInformation}"
                         }
                         callback.onTestFailure(testName, message)
@@ -178,21 +180,22 @@ private interface PrologTestCase {
 }
 
 private fun createFreshTestingKnowledgeBase(): DefaultKnowledgeBase {
-    val kb = DefaultKnowledgeBase()
-    kb.operatorRegistry.defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
-    kb.operatorRegistry.defineOperator(OperatorDefinition(800, OperatorType.XFX, "by"))
+    val kb = DefaultKnowledgeBase.createWithDefaults()
+    kb.defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
+    kb.defineOperator(OperatorDefinition(800, OperatorType.XFX, "by"))
 
     return kb
 }
 
-private fun Library.clone(): MutableLibrary {
-    val entryStore = DoublyIndexedLibraryEntryStore()
-    exports.forEach(entryStore::add)
-
-    val opRegistry = DefaultOperatorRegistry(false)
-    allOperators.forEach(opRegistry::defineOperator)
-
-    return SimpleLibrary(entryStore, opRegistry)
+private fun KnowledgeBase.defineOperator(def: OperatorDefinition) {
+    fulfill(PredicateQuery(Predicate(
+        ":-",
+        arrayOf(Predicate("op", arrayOf(
+            PrologInteger(def.precedence.toLong()),
+            Atom(def.type.name.toLowerCase()),
+            Atom(def.name)
+        )))
+    ))).consumeAll()
 }
 
 private fun goalListToTestingAndQuery(goals: Collection<ParsedTerm>): ReportingAndQuery {
@@ -203,9 +206,9 @@ private fun goalListToTestingAndQuery(goals: Collection<ParsedTerm>): ReportingA
     )
 }
 
-private fun predicateToQuery(predicate: ParsedPredicate): ParsedQuery {
+private fun predicateToQuery(predicate: ParsedPredicate): Query {
     if (predicate.name == ",") {
-        val goals = mutableListOf<ParsedQuery>()
+        val goals = mutableListOf<Query>()
         goals.add(predicateToQuery(predicate.arguments[0].asPredicate()))
 
         var pivot = predicate.arguments[1].asPredicate()
@@ -218,7 +221,7 @@ private fun predicateToQuery(predicate: ParsedPredicate): ParsedQuery {
         return ParsedAndQuery(goals.toTypedArray(), predicate.sourceInformation)
     }
     else if (predicate.name == ";") {
-        val goals = mutableListOf<ParsedQuery>()
+        val goals = mutableListOf<Query>()
         goals.add(predicateToQuery(predicate.arguments[0].asPredicate()))
 
         var pivot = predicate.arguments[1].asPredicate()
