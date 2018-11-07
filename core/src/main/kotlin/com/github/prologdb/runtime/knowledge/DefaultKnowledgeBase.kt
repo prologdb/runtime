@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.*
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.builtin.ComparisonLibrary
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.builtin.dict.DictLibrary
@@ -15,7 +16,9 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
+import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -31,6 +34,49 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
     override fun fulfill(query: Query, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         return buildLazySequence(UUID.randomUUID()) {
             DefaultProofSearchContext(principal, randomVariableScope).fulfillAttach(this, query, VariableBucket())
+        }
+    }
+
+    override fun invokeDirective(name: String, arguments: Array<out Term>): LazySequence<Unification> {
+        return buildLazySequence(IrrelevantPrincipal) {
+            when (name) {
+                "op" -> {
+                    if (arguments.size != 3) {
+                        throw PrologRuntimeException("Directive op/${arguments.size} is not defined")
+                    }
+
+                    val priorityArgument = arguments[0]
+                    if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
+                        throw PrologRuntimeException("operator priority must be an integer")
+                    }
+
+                    val precedenceAsLong = priorityArgument.toInteger()
+                    if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
+                        throw PrologRuntimeException("operator precedence must be between in range [0; 1200]")
+                    }
+                    val precedence = precedenceAsLong.toShort()
+
+                    if (arguments[1] !is Atom) {
+                        throw PrologRuntimeException("Atom expected as operator associativity but found ${arguments[1].prologTypeName}")
+                    }
+
+                    val typeAsUCString = (arguments[1] as Atom).name.toUpperCase()
+                    val operatorType = try {
+                        OperatorType.valueOf(typeAsUCString)
+                    }
+                    catch (ex: IllegalArgumentException) {
+                        throw PrologRuntimeException("${typeAsUCString.toLowerCase()} is not a known operator type")
+                    }
+
+                    if (arguments[2] !is Atom) {
+                        throw PrologRuntimeException("Atom expected as operator name but got ${arguments[2].prologTypeName}")
+                    }
+
+                    _operators.defineOperator(OperatorDefinition(precedence, operatorType, (arguments[2] as Atom).name))
+                    yield(Unification.TRUE)
+                }
+                else -> throw PrologRuntimeException("Directive $name/${arguments.size} is not defined.")
+            }
         }
     }
 
@@ -315,6 +361,7 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
             (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
 
             kb.load(EqualityLibrary)
+            kb.load(ComparisonLibrary)
             kb.load(MathLibrary)
             kb.load(ListsLibrary)
             kb.load(StringsLibrary)

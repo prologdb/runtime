@@ -110,17 +110,7 @@ class DefaultOperatorRegistry : MutableOperatorRegistry {
         get() = operators.values.flatten()
 
     fun include(other: OperatorRegistry) {
-        if (other is DefaultOperatorRegistry) {
-            for (name in other.operators.keys) {
-                if (name in this.operators) {
-                    this.operators[name]!!.addAll(other.operators[name]!!)
-                } else {
-                    this.operators[name] = mutableSetOf()
-                }
-            }
-        } else {
-            other.allOperators.forEach(this::defineOperator)
-        }
+        other.allOperators.forEach(this::defineOperator)
     }
 }
 

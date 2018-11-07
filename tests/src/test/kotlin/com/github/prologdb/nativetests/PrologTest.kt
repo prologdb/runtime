@@ -1,25 +1,19 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.forEachRemaining
+import com.github.prologdb.async.*
 import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
-import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
 import com.github.prologdb.runtime.knowledge.library.OperatorType
-import com.github.prologdb.runtime.query.AndQuery
-import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
@@ -113,7 +107,7 @@ class PrologTest : FreeSpec() { init {
                 testCases.add(PrologTestCase.erroring(testName, IllegalArgumentException("Test cases must be constructed from parsed code so failure locations can be reported.")))
             }
 
-            val goalList = (arg1 as ParsedList).elements.map { it.asPredicate() }.toList()
+            val goalList = (arg1 as ParsedList).elements.map { it.asPredicate().toQuery() }.toList()
 
             testCases.add(object : PrologTestCase {
                 override val name = testName
@@ -121,7 +115,7 @@ class PrologTest : FreeSpec() { init {
                 override fun runWith(callback: TestResultCallback) {
                     val runtimeEnv = DefaultKnowledgeBase.createWithDefaults()
                     runtimeEnv.load(library)
-                    val result = runtimeEnv.runTest(goalList, callback)
+                    TestExecution(runtimeEnv, IrrelevantPrincipal, testName, goalList).run(callback)
                 }
             })
         }
@@ -172,25 +166,26 @@ private fun createFreshTestingKnowledgeBase(): DefaultKnowledgeBase {
 }
 
 private fun KnowledgeBase.defineOperator(def: OperatorDefinition) {
-    fulfill(PredicateQuery(Predicate(
-        ":-",
-        arrayOf(Predicate("op", arrayOf(
-            PrologInteger(def.precedence.toLong()),
-            Atom(def.type.name.toLowerCase()),
-            Atom(def.name)
-        )))
-    ))).consumeAll()
+    invokeDirective("op", arrayOf(
+        PrologInteger(def.precedence.toLong()),
+        Atom(def.type.name.toLowerCase()),
+        Atom(def.name))
+    ).consumeAll()
 }
 
-private fun KnowledgeBase.runTest(goals: List<Query>, listener: TestResultCallback) {
-    suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                         vars: VariableBucket = VariableBucket()) {
+private class TestExecution(private val withinKB: DefaultKnowledgeBase, private val principal: Principal, private val testName: String, private val allGoals: List<Query>) {
+    private var failedGoal: Query? = null
+
+    private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
+                                                                 vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
 
+        var goalHadAnySolutions = false
         buildLazySequence<Unification>(context.principal) {
             context.fulfillAttach(this, goal, VariableBucket())
         }
             .forEachRemaining { goalUnification ->
+                goalHadAnySolutions = true
                 val goalVars = vars.copy()
                 for ((variable, value) in goalUnification.variableValues.values) {
                     if (value != null) {
@@ -217,45 +212,81 @@ private fun KnowledgeBase.runTest(goals: List<Query>, listener: TestResultCallba
                     fulfillAllGoals(goals.subList(1, goals.size), context, goalVars)
                 }
             }
+
+        if (!goalHadAnySolutions) {
+            failedGoal = allGoals[allGoals.size - goals.size]
+        }
     }
 
-    val substitutedGoals = goals
-        .map { it.substituteVariables(VariableBucket()) }
+    fun run(callback: TestResultCallback) {
+        val substitutedGoals = allGoals
+            .map { it.substituteVariables(VariableBucket()) }
 
-    val results = buildLazySequence(UUID.randomUUID()) {
-        fulfillAllGoals(substitutedGoals, )
+        val results = buildLazySequence(UUID.randomUUID()) {
+            fulfillAllGoals(substitutedGoals, TestQueryContext(principal, withinKB), VariableBucket())
+        }
+
+        try {
+            if (results.tryAdvance() != null) {
+                callback.onTestSuccess(testName)
+            } else {
+                callback.onTestFailure(testName, "Goal ${failedGoal!!} failed (did not yield a solution).")
+            }
+        }
+        catch (ex: Throwable) {
+            callback.onTestError(testName, ex)
+        }
+        finally {
+            results.close()
+        }
     }
 }
 
-private fun predicateToQuery(predicate: ParsedPredicate): Query {
-    if (predicate.name == ",") {
-        val goals = mutableListOf<Query>()
-        goals.add(predicateToQuery(predicate.arguments[0].asPredicate()))
+private class TestQueryContext(
+    override val principal: Principal,
+    private val knowledgeBase: DefaultKnowledgeBase
+) : ProofSearchContext {
 
-        var pivot = predicate.arguments[1].asPredicate()
-        while (pivot.name == ",") {
-            goals.add(predicateToQuery(pivot.arguments[0].asPredicate()))
-            pivot = pivot.arguments[1].asPredicate()
+    override val randomVariableScope = RandomVariableScope()
+
+    override val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, VariableBucket) -> Unit = { q, v ->
+        assert(v.isEmpty)
+
+        knowledgeBase.fulfill(q, randomVariableScope).forEachRemaining {
+            yield(it)
         }
-
-        goals.add(predicateToQuery(pivot))
-        return ParsedAndQuery(goals.toTypedArray(), predicate.sourceInformation)
     }
-    else if (predicate.name == ";") {
-        val goals = mutableListOf<Query>()
-        goals.add(predicateToQuery(predicate.arguments[0].asPredicate()))
+}
 
-        var pivot = predicate.arguments[1].asPredicate()
-        while (pivot.name == ";") {
-            goals.add(predicateToQuery(pivot.arguments[0].asPredicate()))
+private fun ParsedPredicate.toQuery(): Query {
+    if (this.name == ",") {
+        val goals = mutableListOf<Query>()
+        goals.add(this.arguments[0].asPredicate().toQuery())
+
+        var pivot = this.arguments[1].asPredicate()
+        while (pivot.name == ",") {
+            goals.add(pivot.arguments[0].asPredicate().toQuery())
             pivot = pivot.arguments[1].asPredicate()
         }
 
-        goals.add(predicateToQuery(pivot))
-        return ParsedOrQuery(goals.toTypedArray(), predicate.sourceInformation)
+        goals.add(pivot.toQuery())
+        return ParsedAndQuery(goals.toTypedArray(), this.sourceInformation)
+    }
+    else if (this.name == ";") {
+        val goals = mutableListOf<Query>()
+        goals.add(this.arguments[0].asPredicate().toQuery())
+
+        var pivot = this.arguments[1].asPredicate()
+        while (pivot.name == ";") {
+            goals.add(pivot.arguments[0].asPredicate().toQuery())
+            pivot = pivot.arguments[1].asPredicate()
+        }
+
+        goals.add(pivot.toQuery())
+        return ParsedOrQuery(goals.toTypedArray(), this.sourceInformation)
     }
     else {
-        return ParsedPredicateQuery(predicate)
+        return ParsedPredicateQuery(this)
     }
 }
 

@@ -4,6 +4,7 @@ import com.github.prologdb.async.LazySequence
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
 import com.github.prologdb.runtime.query.Query
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
 /**
@@ -21,4 +22,9 @@ interface KnowledgeBase {
      * Starts a proof-search as the given principal.
      */
     fun fulfill(query: Query, randomVariableScope: RandomVariableScope = RandomVariableScope()): LazySequence<Unification>
+
+    /**
+     * Invokes the directive with the given name using the given arguments.
+     */
+    fun invokeDirective(name: String, arguments: Array<out Term>): LazySequence<Unification>
 }
