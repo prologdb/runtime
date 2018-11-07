@@ -176,8 +176,8 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
      */
     private val coreBuiltins: MutableMap<String, suspend LazySequenceBuilder<Unification>.(Array<out Term>) -> Unit> = HashMap(8)
     init {
-        coreBuiltins["assertz"] = { args -> assertz(args) }
-        coreBuiltins["assertz"] = coreBuiltins["assertz"]!!
+        coreBuiltins["assertz"] = { args -> assertz(args); yield(Unification.TRUE) }
+        coreBuiltins["assert"] = coreBuiltins["assertz"]!!
         coreBuiltins["retract"] = { args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
             val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
@@ -251,7 +251,6 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
                 is AndQuery -> fulfillAndQuery(q, variables)
                 is OrQuery -> for (goal in q.goals) fulfillOrQuery(q, variables)
                 is PredicateQuery -> fulfillPredicate(q, variables)
-                else -> throw PrologRuntimeException("Unsupported query type: ${q::javaClass.name}")
             }
         }
 
@@ -310,7 +309,16 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
 
             if (predicate.name in coreBuiltins) {
                 val builtin = coreBuiltins[predicate.name]!!
-                builtin(predicate.arguments)
+
+                try {
+                    builtin(predicate.arguments)
+                } catch (ex: PrologRuntimeException) {
+                    if (predicate is HasPrologSource) {
+                        ex.addPrologStackFrame(PrologStackTraceElement(predicate, predicate.sourceInformation))
+                    }
+                    throw ex
+                }
+
                 return
             }
 
