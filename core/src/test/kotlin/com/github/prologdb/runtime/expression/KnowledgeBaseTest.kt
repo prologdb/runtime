@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.expression
 
 import com.github.prologdb.runtime.RandomVariable
-import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
+import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.shouldNotProve
@@ -12,7 +12,7 @@ import io.kotlintest.specs.FreeSpec
 
 class KnowledgeBaseTest : FreeSpec() {init {
     "f(a). f(b). ?- f(X)" {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
         val a = Atom("a")
         val b = Atom("b")
         kb.assertz(Predicate("f", arrayOf(a)))
@@ -33,7 +33,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "separate variable scopes: f(a(X,Y),a(Y,X)). ?-f(a(m,n),X))" {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
         val f = PredicateBuilder("f")
         val a = PredicateBuilder("a")
         val m = Atom("m")
@@ -75,7 +75,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val Z = Variable("Z")
         val P = Variable("P")
 
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
         kb.assertz(
             vertical(line(point(X,Y),point(X,Z)))
         )
@@ -108,7 +108,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "g(X, X). ?- g(A, B)" {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
 
         val g = PredicateBuilder("g")
         val X = Variable("X")
@@ -125,7 +125,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "g(X, X). f(X, Y) :- g(X, Y). ?- f(a, V)" {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
 
         val f = PredicateBuilder("f")
         val g = PredicateBuilder("g")
@@ -146,7 +146,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "list append" - {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
 
         val app = PredicateBuilder("app")
         val L = Variable("L")
@@ -232,7 +232,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val u = Atom("u")
         val v = Atom("v")
 
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
         kb.assertz(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
 
         kb shouldProve a(X, PrologList(listOf(u, v))) suchThat {
@@ -248,7 +248,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "anonymous variable" - {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
         val f = PredicateBuilder("f")
         val _A = Variable.ANONYMOUS
         val X = Variable("X")

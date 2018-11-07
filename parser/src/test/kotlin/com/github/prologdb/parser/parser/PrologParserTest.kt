@@ -8,7 +8,7 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
-import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
+import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
@@ -649,7 +649,7 @@ class PrologParserTest : FreeSpec() {
     }
 
     "library" {
-        val kb = DefaultKnowledgeBase()
+        val kb = LocalKnowledgeBase()
         (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
         kb.load(EqualityLibrary)
 

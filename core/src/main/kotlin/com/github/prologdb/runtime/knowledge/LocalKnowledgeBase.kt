@@ -27,7 +27,7 @@ import java.util.*
 /**
  * A knowledge base, the most important prerequisite for a default, prolog REPL system.
  */
-class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedClauseStore()) : KnowledgeBase {
+class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedClauseStore()) : KnowledgeBase {
     private val _operators = DefaultOperatorRegistry()
     override val operators: OperatorRegistry = _operators
 
@@ -344,7 +344,7 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
 
     companion object {
         /**
-         * A [DefaultKnowledgeBase] that is loaded with these things:
+         * A [LocalKnowledgeBase] that is loaded with these things:
          * * The ISO operators, see [ISOOpsOperatorRegistry]
          * * The following builtin libraries:
          *   * equality
@@ -355,8 +355,8 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
          *   * dynamic
          *   * dict
          */
-        fun createWithDefaults(): DefaultKnowledgeBase {
-            val kb = DefaultKnowledgeBase()
+        fun createWithDefaults(): LocalKnowledgeBase {
+            val kb = LocalKnowledgeBase()
 
             (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
 

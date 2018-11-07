@@ -17,7 +17,7 @@ import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.RandomVariableScope;
-import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase;
+import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase;
 import com.github.prologdb.runtime.knowledge.library.Library;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
@@ -42,7 +42,7 @@ public class PlaygroundPanel {
      * Is set to true whenever the code in the knowledge base changes. Is set back to false in {@link #assureKnowledgeBaseIsUpToDate()}.
      */
     private boolean knowledgeBaseChangeIndicator = false;
-    private DefaultKnowledgeBase knowledgeBase = null;
+    private LocalKnowledgeBase knowledgeBase = null;
 
     public PlaygroundPanel() {
         initComponents();
@@ -112,7 +112,7 @@ public class PlaygroundPanel {
 
     private void assureKnowledgeBaseIsUpToDate() throws ParseException {
         if (knowledgeBaseChangeIndicator || knowledgeBase == null) {
-            DefaultKnowledgeBase newKnowledgeBase = DefaultKnowledgeBase.Companion.createWithDefaults();
+            LocalKnowledgeBase newKnowledgeBase = LocalKnowledgeBase.Companion.createWithDefaults();
             Lexer lexer = new Lexer(
                 new SourceUnit("knowledge base"),
                 new LineEndingNormalizer(

@@ -8,7 +8,7 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.DefaultKnowledgeBase
+import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.library.Library
@@ -113,7 +113,7 @@ class PrologTest : FreeSpec() { init {
                 override val name = testName
 
                 override fun runWith(callback: TestResultCallback) {
-                    val runtimeEnv = DefaultKnowledgeBase.createWithDefaults()
+                    val runtimeEnv = LocalKnowledgeBase.createWithDefaults()
                     runtimeEnv.load(library)
                     TestExecution(runtimeEnv, IrrelevantPrincipal, testName, goalList).run(callback)
                 }
@@ -157,8 +157,8 @@ private interface PrologTestCase {
     }
 }
 
-private fun createFreshTestingKnowledgeBase(): DefaultKnowledgeBase {
-    val kb = DefaultKnowledgeBase.createWithDefaults()
+private fun createFreshTestingKnowledgeBase(): LocalKnowledgeBase {
+    val kb = LocalKnowledgeBase.createWithDefaults()
     kb.defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
     kb.defineOperator(OperatorDefinition(800, OperatorType.XFX, "by"))
 
@@ -173,7 +173,7 @@ private fun KnowledgeBase.defineOperator(def: OperatorDefinition) {
     ).consumeAll()
 }
 
-private class TestExecution(private val withinKB: DefaultKnowledgeBase, private val principal: Principal, private val testName: String, private val allGoals: List<Query>) {
+private class TestExecution(private val withinKB: LocalKnowledgeBase, private val principal: Principal, private val testName: String, private val allGoals: List<Query>) {
     private var failedGoal: Query? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
@@ -244,7 +244,7 @@ private class TestExecution(private val withinKB: DefaultKnowledgeBase, private 
 
 private class TestQueryContext(
     override val principal: Principal,
-    private val knowledgeBase: DefaultKnowledgeBase
+    private val knowledgeBase: LocalKnowledgeBase
 ) : ProofSearchContext {
 
     override val randomVariableScope = RandomVariableScope()
