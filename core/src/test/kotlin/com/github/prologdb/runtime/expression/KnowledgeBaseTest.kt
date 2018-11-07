@@ -15,8 +15,8 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val kb = DefaultKnowledgeBase()
         val a = Atom("a")
         val b = Atom("b")
-        kb.assert(Predicate("f", arrayOf(a)))
-        kb.assert(Predicate("f", arrayOf(b)))
+        kb.assertz(Predicate("f", arrayOf(a)))
+        kb.assertz(Predicate("f", arrayOf(b)))
 
         val X = Variable("X")
         val queryFact = Predicate("f", arrayOf(X))
@@ -41,7 +41,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val X = Variable("X")
         val Y = Variable("Y")
 
-        kb.assert(f(a(X, Y), a(Y, X)))
+        kb.assertz(f(a(X, Y), a(Y, X)))
         kb shouldProve f(a(m, n), X) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = a(n, m)") {
@@ -76,10 +76,10 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val P = Variable("P")
 
         val kb = DefaultKnowledgeBase()
-        kb.assert(
+        kb.assertz(
             vertical(line(point(X,Y),point(X,Z)))
         )
-        kb.assert(
+        kb.assertz(
             horizontal(line(point(X,Y),point(Z,Y)))
         )
 
@@ -114,7 +114,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val X = Variable("X")
         val A = Variable("A")
         val B = Variable("B")
-        kb.assert(g(X, X))
+        kb.assertz(g(X, X))
 
         kb shouldProve g(A, B) suchThat {
             itHasExactlyOneSolution()
@@ -134,8 +134,8 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        kb.defineRule(Rule(f(X, Y), PredicateQuery(g(X, Y))))
-        kb.assert(g(X, X))
+        kb.assertz(Rule(f(X, Y), PredicateQuery(g(X, Y))))
+        kb.assertz(g(X, X))
 
         kb shouldProve f(a, V) suchThat {
             itHasExactlyOneSolution()
@@ -163,10 +163,10 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
 
         // append([],L,L).
-        kb.assert(app(PrologList(emptyList()),L,L))
+        kb.assertz(app(PrologList(emptyList()),L,L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.defineRule(Rule(app(PrologList(listOf(H),T),L2, PrologList(listOf(H),L3)), PredicateQuery(app(T,L2,L3))))
+        kb.assertz(Rule(app(PrologList(listOf(H),T),L2, PrologList(listOf(H),L3)), PredicateQuery(app(T,L2,L3))))
 
         "simple append" {
             kb shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c,d)),R) suchThat {
@@ -233,7 +233,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val v = Atom("v")
 
         val kb = DefaultKnowledgeBase()
-        kb.assert(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
+        kb.assertz(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
 
         kb shouldProve a(X, PrologList(listOf(u, v))) suchThat {
             itHasExactlyOneSolution()
@@ -256,7 +256,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val b = Atom("b")
 
         "case 1" {
-            kb.assert(f(_A))
+            kb.assertz(f(_A))
 
             kb shouldProve f(a) suchThat {
                 itHasExactlyOneSolution()
@@ -267,7 +267,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
 
         "case 2" {
-            kb.assert(f(_A, _A))
+            kb.assertz(f(_A, _A))
 
             kb shouldProve f(a, b) suchThat {
                 itHasExactlyOneSolution()
@@ -278,7 +278,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
 
         "case 3" {
-            kb.assert(f(_A, b))
+            kb.assertz(f(_A, b))
 
             kb shouldProve f(a, X) suchThat {
                 itHasExactlyOneSolution()
@@ -289,7 +289,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
 
         "case 4" {
-            kb.assert(f(_A))
+            kb.assertz(f(_A))
 
             kb shouldProve f(X) suchThat {
                 itHasExactlyOneSolution()

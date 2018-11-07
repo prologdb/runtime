@@ -125,13 +125,13 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
     }
 
     /**
-     * THE absolute CORE builtins that allow anything else to work. These are the assert and retract
+     * THE absolute CORE builtins that allow anything else to work. These are the assertz and retract
      * builtins.
      */
     private val coreBuiltins: MutableMap<String, suspend LazySequenceBuilder<Unification>.(Array<out Term>) -> Unit> = HashMap(8)
     init {
-        coreBuiltins["assert"] = { args -> assert(args) }
-        coreBuiltins["assertz"] = coreBuiltins["assert"]!!
+        coreBuiltins["assertz"] = { args -> assertz(args) }
+        coreBuiltins["assertz"] = coreBuiltins["assertz"]!!
         coreBuiltins["retract"] = { args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
             val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
@@ -175,18 +175,19 @@ class DefaultKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexe
         }
     }
 
-    private fun assert(args: Array<out Term>) {
-        if (args.size != 1) throw PrologRuntimeException("assert/${args.size} is not defined")
+    /**
+     * The core implementation of the assertz builtin.
+     */
+    fun assertz(clause: Clause) {
+        // TODO: detect :-/2 instances and convert to rule
+        assureDynamic(clause)
+        store.assertz(clause)
+    }
 
-        val arg0 = args[0]
-        if (arg0 is Predicate) {
-            assureDynamic(arg0)
-            store.assertz(arg0)
-            // TODO: rules?!
-        }
-        else {
-            throw PrologRuntimeException("Argument 0 to assert/1 must be a predicate.")
-        }
+    private fun assertz(args: Array<out Term>) {
+        if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
+
+        assertz(args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause"))
     }
 
     private fun findFor(predicate: Predicate): Iterable<Clause> {

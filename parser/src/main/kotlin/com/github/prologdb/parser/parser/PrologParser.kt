@@ -11,6 +11,7 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
+import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 
 /** If kotlin had union types this would be `Token | Term` */
@@ -18,14 +19,14 @@ private typealias TokenOrTerm = Any
 
 class PrologParser {
 
-    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedQuery> {
+    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Query> {
         return parseQuery(tokens, opRegistry, stopAtOperator(FULL_STOP))
     }
 
-    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<ParsedQuery> {
+    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Query> {
         val termResult = parseTerm(tokens, opRegistry, shouldStop)
 
-        if (termResult.item == null) return termResult as ParseResult<ParsedQuery>
+        if (termResult.item == null) return termResult as ParseResult<Query>
 
         val transformResult = transformQuery(termResult.item)
 
@@ -597,24 +598,23 @@ class PrologParser {
         }
     }
 
-    fun parseLibrary(tokens: TransactionalSequence<Token>): ParseResult<Library> {
-        return parseLibrary(tokens, { SimpleLibrary(SimpleClauseStore(), DefaultOperatorRegistry()) })
-    }
-
     /**
-     * @param libraryCreator Is invoked once before the parsing starts. All resluts will be added to the library
-     *                       returned from the lambda. The very same instance will be returned in the library entry.
+     * Parse the given tokens as a library file.
+     * @param libraryName The name of the library, will carried over to [Library.name]
+     * @param contextOperators Operators already defined in the context (e.g. a knowledge base)
      */
-    fun parseLibrary(tokens: TransactionalSequence<Token>, libraryCreator: () -> MutableLibrary): ParseResult<MutableLibrary> {
-        val library = libraryCreator()
+    fun parseLibrary(libraryName: String, tokens: TransactionalSequence<Token>, contextOperators: OperatorRegistry): ParseResult<Library> {
+        val carryOpRegistry = DiffOperatorRegistry(contextOperators)
+
+        val clauses = mutableListOf<Clause>()
+        val dynamics = mutableSetOf<ClauseIndicator>()
         val reportings = mutableSetOf<Reporting>()
 
         /**
          * Adds the given operator definition to the library.
-         * @param definition The definition, e.g.: `:- op(400,xf,isDead)`
+         * @param opPredicate The definition, e.g.: `op(400,xf,isDead)`
          */
-        fun handleOperator(definition: ParsedPredicate) {
-            val opPredicate = definition.arguments[0] as? ParsedPredicate ?: throw InternalParserError("IllegalArgument")
+        fun handleOperator(opPredicate: ParsedPredicate) {
             val priorityArgument = opPredicate.arguments[0]
             if (priorityArgument !is com.github.prologdb.runtime.term.PrologNumber || !priorityArgument.isInteger) {
                 reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
@@ -647,7 +647,58 @@ class PrologParser {
                 return
             }
 
-            library.defineOperator(OperatorDefinition(precedence, operatorType, (opPredicate.arguments[2] as Atom).name))
+            carryOpRegistry.defineOperator(OperatorDefinition(precedence, operatorType, (opPredicate.arguments[2] as Atom).name))
+        }
+
+        /**
+         * The dynamic/1 builtin
+         * @param the only parameter to dynamic/1
+         */
+        fun handleDynamicDirective(indicator: ParsedTerm) {
+            if (indicator !is ParsedPredicate || indicator.arity != 2 || indicator.name != "/") {
+                reportings.add(SemanticError(
+                    "The argument to dynamic/1 must be an instance of `/`/2",
+                    indicator.location
+                ))
+                return
+            }
+
+            val name = indicator.arguments[0]
+            val arity = indicator.arguments[1]
+
+            if (name !is Atom) {
+                reportings.add(SemanticError(
+                    "Argument 0 to `/`/2 must be an atom",
+                    name.location
+                ))
+                return
+            }
+
+            if (arity !is PrologInteger || arity.value < 0 || arity.value > Int.MAX_VALUE) {
+                reportings.add(SemanticError(
+                    "Argument 1 to `/`/2 must be an integer in the range [0, ${Int.MAX_VALUE}]",
+                    arity.location
+                ))
+                return
+            }
+
+            dynamics.add(ClauseIndicator.of(name.name, arity.value.toInt()))
+        }
+
+        fun handleDirective(command: ParsedPredicate) {
+            when(command.arity) {
+                3 -> when(command.name) {
+                    "op" -> return handleOperator(command)
+                }
+                1 -> when(command.name) {
+                    "dynamic" -> return handleDynamicDirective(command.arguments[0])
+                }
+            }
+
+            reportings.add(SemanticError(
+                "Directive ${command.name}/${command.arity} is not defined.",
+                command.location
+            ))
         }
 
         fun handleRule(definition: ParsedPredicate) {
@@ -656,14 +707,14 @@ class PrologParser {
             val transformResult = transformQuery(queryTerm)
 
             if (transformResult.item != null) {
-                library.add(ParsedRule(head, transformResult.item, head.location..queryTerm.location))
+                clauses.add(ParsedRule(head, transformResult.item, head.location..queryTerm.location))
             }
 
             reportings += transformResult.reportings
         }
 
         while (tokens.hasNext()) {
-            val parseResult = parseTerm(tokens, library, stopAtOperator(FULL_STOP))
+            val parseResult = parseTerm(tokens, carryOpRegistry, stopAtOperator(FULL_STOP))
             reportings += parseResult.reportings
 
             if (parseResult.isSuccess) {
@@ -671,14 +722,14 @@ class PrologParser {
                 if (item is Predicate) {
                     item as? ParsedPredicate ?: throw InternalParserError("Expected ParsedPredicate, got Predicate")
                     // detect directive
-                    if (item.isOperatorDefinition) {
-                        handleOperator(item)
+                    if (item.isDirectiveInvocation) {
+                        handleDirective(item.arguments[0] as ParsedPredicate)
                     }
                     else if (item.isRuleDefinition) {
                         handleRule(item)
                     }
                     else {
-                        library.add(item)
+                        clauses.add(item)
                     }
                 } else {
                     reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a predicate.", item.location)
@@ -696,7 +747,12 @@ class PrologParser {
         }
 
         return ParseResult(
-            library,
+            Library(
+                libraryName,
+                clauses,
+                dynamics,
+                carryOpRegistry.deltaRegistry
+            ),
             MATCHED,
             reportings
         )
@@ -725,11 +781,11 @@ class PrologParser {
     /**
      * Converts a term given as the second argument to `:-/2` into an instance of [Query].
      */
-    private fun transformQuery(query: ParsedTerm): ParseResult<ParsedQuery> {
+    private fun transformQuery(query: ParsedTerm): ParseResult<Query> {
         if (query is ParsedPredicate) {
             if (query.arity == 2 && (query.name == Operator.COMMA.text || query.name == Operator.SEMICOLON.text)) {
                 val operator = query.name
-                val elements = ArrayList<ParsedQuery>(5)
+                val elements = ArrayList<Query>(5)
                 var pivot: ParsedTerm = query
                 val reportings = mutableSetOf<Reporting>()
 
@@ -750,12 +806,12 @@ class PrologParser {
                         ParsedAndQuery(
                             elements.toTypedArray(),
                             query.location
-                        )
+                        ) as Query
                     } else {
                         ParsedOrQuery(
                             elements.toTypedArray(),
                             query.location
-                        )
+                        ) as Query
                     },
                     MATCHED,
                     reportings
@@ -795,19 +851,8 @@ class PrologParser {
     }
 }
 
-/**
- * Whether this has the form of an operator definition: `:-(op/3)`. Does not look at the types of the arguments
- * to the `op/3` invocation.
- */
-private val ParsedPredicate.isOperatorDefinition: Boolean
-    get() {
-        if (name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is Predicate) {
-            val directivePredicate = arguments[0] as Predicate
-            return directivePredicate.name == "op" && directivePredicate.arity == 3
-        }
-
-        return false
-    }
+private val ParsedPredicate.isDirectiveInvocation: Boolean
+    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is Predicate
 
 private val ParsedPredicate.isRuleDefinition: Boolean
     get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is Predicate

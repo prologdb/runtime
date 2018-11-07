@@ -3,6 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.find
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
 import com.github.prologdb.runtime.term.Term
@@ -86,26 +87,31 @@ infix fun Term.shouldNotUnifyWith(rhs: Term) {
 }
 
 infix fun KnowledgeBase.shouldProve(predicate: Predicate): UnificationSequenceGenerator {
-    this.fulfill(predicate).tryAdvance() ?: throw AssertionError("Failed to fulfill $predicate using knowledge base $this")
-
-    return { this.fulfill(predicate) }
+    return shouldProve(PredicateQuery(predicate))
 }
 
 infix fun KnowledgeBase.shouldProve(query: Query): UnificationSequenceGenerator {
-    this.fulfill(query).tryAdvance() ?: throw AssertionError("Failed to fulfill $query using knowledge base $this")
+    val sequence = this.fulfill(query)
+    val firstSolution = sequence.tryAdvance()
+    sequence.close()
+
+    if (firstSolution == null) throw AssertionError("Failed to fulfill $query using knowledge base $this")
+
     return { this.fulfill(query) }
 }
 
 infix fun KnowledgeBase.shouldNotProve(query: Query) {
-    if (this.fulfill(query).tryAdvance() != null) {
+    val solutions = this.fulfill(query)
+    val firstSolution = solutions.tryAdvance()
+    solutions.close()
+
+    if (firstSolution != null) {
         throw AssertionError("$this should not fulfill $query but does.")
     }
 }
 
 infix fun KnowledgeBase.shouldNotProve(predicate: Predicate) {
-    if (this.fulfill(predicate).tryAdvance() != null) {
-        throw AssertionError("$this should not fulfill $predicate but does.")
-    }
+    shouldNotProve(PredicateQuery(predicate))
 }
 
 private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean

@@ -1,11 +1,8 @@
 package com.github.prologdb.parser
 
-import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -13,7 +10,6 @@ import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 interface ParsedTerm : Term, HasPrologSource {
     override val sourceInformation: SourceLocationRange
@@ -94,26 +90,11 @@ class ParsedPrologString(
     override val sourceInformation: SourceLocationRange
 ) : ParsedTerm, PrologString(stringContent)
 
-interface ParsedQuery : Query, HasPrologSource {
-    override val sourceInformation: SourceLocationRange
-}
-
-class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicate), ParsedQuery {
+class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicate), HasPrologSource {
     override val sourceInformation = predicate.sourceInformation
 }
 
-class ParsedAndQuery(goals: Array<out ParsedQuery>, override val sourceInformation: SourceLocationRange) : AndQuery(goals), ParsedQuery
-class ParsedOrQuery(goals: Array<out ParsedQuery>, override val sourceInformation: SourceLocationRange) : OrQuery(goals), ParsedQuery
-class EmptyQuery(override val sourceInformation: SourceLocationRange): ParsedQuery {
-    override val findProofWithin: suspend LazySequenceBuilder<Unification>.(ProofSearchContext, VariableBucket) -> Unit = { _, _ -> }
+class ParsedAndQuery(goals: Array<out Query>, override val sourceInformation: SourceLocationRange) : AndQuery(goals), HasPrologSource
+class ParsedOrQuery(goals: Array<out Query>, override val sourceInformation: SourceLocationRange) : OrQuery(goals), HasPrologSource
 
-    override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
-        return this
-    }
-
-    override fun substituteVariables(variableValues: VariableBucket): Query {
-        return this
-    }
-}
-
-class ParsedRule(head: ParsedPredicate, query: ParsedQuery, override val sourceInformation: SourceLocationRange): Rule(head, query), HasPrologSource
+class ParsedRule(head: ParsedPredicate, query: Query, override val sourceInformation: SourceLocationRange): Rule(head, query), HasPrologSource
