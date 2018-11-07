@@ -26,6 +26,15 @@ public class MainFrame extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 statePersistenceService.read().ifPresent(playgroundPanel::setCurrentState);
+                statePersistenceService.read().map(PlaygroundState::getGraphicsDeviceID).ifPresent(deviceID -> {
+                    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                    for (GraphicsDevice device : ge.getScreenDevices()) {
+                        if (device.getIDstring().equals(deviceID)) {
+                            moveTo(device);
+                            return;
+                        }
+                    }
+                });
                 (new Timer()).schedule(periodicPersistenceTimerTask, 10000, 15000);
             }
             catch (IOException ex) {
@@ -38,6 +47,20 @@ public class MainFrame extends JFrame {
                 );
             }
         });
+    }
+
+    private void moveTo(GraphicsDevice targetDevice) {
+        GraphicsConfiguration gc = getGraphicsConfiguration();
+        if (gc.getDevice() == targetDevice) return;
+        if (gc.getDevice().getIDstring().equals(targetDevice.getIDstring()));
+
+        // following lines shamelessly stolen from java.awt.Window.init(GraphicsConfiguration)
+        Rectangle targetBounds = targetDevice.getDefaultConfiguration().getBounds();
+        Insets screenInsets = getToolkit().getScreenInsets(gc);
+        setLocation(
+            getX() + targetBounds.x + screenInsets.left,
+            getY() + targetBounds.y + screenInsets.top
+        );
     }
 
     private TimerTask periodicPersistenceTimerTask = new TimerTask() {
@@ -66,6 +89,12 @@ public class MainFrame extends JFrame {
 
     private void persistCurrentState() throws IOException {
         PlaygroundState state = playgroundPanel.getCurrentState();
+        for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+            if (device.getDefaultConfiguration().getBounds().contains(getLocation())) {
+                state.setGraphicsDeviceID(device.getIDstring());
+                break;
+            }
+        }
         statePersistenceService.write(state);
 
         lastPersistedState = state;

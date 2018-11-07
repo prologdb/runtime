@@ -18,6 +18,21 @@ public class PlaygroundState {
      */
     private String query;
 
+    /**
+     * The graphics device last shown on (multi-monitor support)
+     */
+    private String graphicsDeviceID = null;
+
+    @JsonProperty
+    public String getGraphicsDeviceID() {
+        return graphicsDeviceID;
+    }
+
+    @JsonProperty
+    public void setGraphicsDeviceID(String graphicsDeviceID) {
+        this.graphicsDeviceID = graphicsDeviceID;
+    }
+
     @JsonProperty
     public String getKnowledgeBaseText() {
         return knowledgeBaseText;
