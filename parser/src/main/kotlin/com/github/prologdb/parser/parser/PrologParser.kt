@@ -674,15 +674,24 @@ class PrologParser {
                 return
             }
 
-            if (arity !is PrologInteger || arity.value < 0 || arity.value > Int.MAX_VALUE) {
+            if (arity !is PrologNumber || !arity.isInteger) {
                 reportings.add(SemanticError(
-                    "Argument 1 to `/`/2 must be an integer in the range [0, ${Int.MAX_VALUE}]",
+                    "Argument 1 to `/`/2 must be an integer",
                     arity.location
                 ))
                 return
             }
 
-            dynamics.add(ClauseIndicator.of(name.name, arity.value.toInt()))
+            val arityValue = (arity as PrologNumber).toInteger()
+            if (arityValue < 0L || arityValue > Integer.MAX_VALUE.toLong()) {
+                reportings.add(SemanticError(
+                    "Argument 1 to `/`/2 must be an integer in the range [0; ${Int.MAX_VALUE}]",
+                    arity.location
+                ))
+                return
+            }
+
+            dynamics.add(ClauseIndicator.of(name.name, arityValue.toInt()))
         }
 
         fun handleDirective(command: ParsedPredicate) {
