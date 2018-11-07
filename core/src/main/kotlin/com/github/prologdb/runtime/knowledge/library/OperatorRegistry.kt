@@ -71,6 +71,21 @@ enum class OperatorType(val arity: Int) {
     val isPrefix by lazy { this == FX || this == FY }
     val isInfix by lazy { this == XFX || this == XFY || this == YFX }
     val isPostfix by lazy { this == XF || this == YF }
+
+    /**
+     * Whether the argument positioning around the operator type
+     * is the same as with the given.
+     */
+    fun isSameArgumentRelationAs(other: OperatorType): Boolean {
+        return when {
+            other === this -> true
+            this.arity != other.arity -> false
+            this.isPrefix && other.isPrefix -> true
+            this.isPostfix && other.isPostfix -> true
+            this.isInfix && other.isInfix -> true
+            else -> false
+        }
+    }
 }
 
 /**
@@ -83,11 +98,10 @@ class DefaultOperatorRegistry : MutableOperatorRegistry {
     override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operators[name] ?: emptySet()
 
     override fun defineOperator(definition: OperatorDefinition) {
-        var targetSet = operators[definition.name]
-        if (targetSet == null) {
-            targetSet = HashSet()
-            operators[definition.name] = targetSet
-        }
+        var targetSet = operators.computeIfAbsent(definition.name, { _ -> HashSet() })
+
+        // remove overridden definitions
+        targetSet.removeIf { it.type.isSameArgumentRelationAs(definition.type) }
 
         targetSet.add(definition)
     }
