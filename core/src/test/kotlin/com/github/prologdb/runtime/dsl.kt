@@ -3,6 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.find
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Predicate
@@ -91,17 +92,17 @@ infix fun KnowledgeBase.shouldProve(predicate: Predicate): UnificationSequenceGe
 }
 
 infix fun KnowledgeBase.shouldProve(query: Query): UnificationSequenceGenerator {
-    val sequence = this.fulfill(query)
+    val sequence = this.fulfill(query, ReadWriteAuthorization)
     val firstSolution = sequence.tryAdvance()
     sequence.close()
 
     if (firstSolution == null) throw AssertionError("Failed to fulfill $query using knowledge base $this")
 
-    return { this.fulfill(query) }
+    return { this.fulfill(query, ReadWriteAuthorization) }
 }
 
 infix fun KnowledgeBase.shouldNotProve(query: Query) {
-    val solutions = this.fulfill(query)
+    val solutions = this.fulfill(query, ReadWriteAuthorization)
     val firstSolution = solutions.tryAdvance()
     solutions.close()
 

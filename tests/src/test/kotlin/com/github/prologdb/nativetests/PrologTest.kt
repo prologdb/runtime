@@ -8,9 +8,10 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
+import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
+import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
 import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
 import com.github.prologdb.runtime.knowledge.library.OperatorType
@@ -166,7 +167,7 @@ private fun createFreshTestingKnowledgeBase(): LocalKnowledgeBase {
 }
 
 private fun KnowledgeBase.defineOperator(def: OperatorDefinition) {
-    invokeDirective("op", arrayOf(
+    invokeDirective("op", ReadWriteAuthorization, arrayOf(
         PrologInteger(def.precedence.toLong()),
         Atom(def.type.name.toLowerCase()),
         Atom(def.name))
@@ -247,12 +248,14 @@ private class TestQueryContext(
     private val knowledgeBase: LocalKnowledgeBase
 ) : ProofSearchContext {
 
+    override val authorization = ReadWriteAuthorization
+
     override val randomVariableScope = RandomVariableScope()
 
     override val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, VariableBucket) -> Unit = { q, v ->
         assert(v.isEmpty)
 
-        knowledgeBase.fulfill(q, randomVariableScope).forEachRemaining {
+        knowledgeBase.fulfill(q, ReadWriteAuthorization, randomVariableScope).forEachRemaining {
             yield(it)
         }
     }

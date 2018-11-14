@@ -20,6 +20,8 @@ interface ProofSearchContext {
      */
     val randomVariableScope: RandomVariableScope
 
+    val authorization: Authorization
+
     /**
      * Starts a proof search on the given query. This method will take control of
      * the coroutine until the proof search is complete.

@@ -18,6 +18,7 @@ import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.RandomVariableScope;
 import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase;
+import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization;
 import com.github.prologdb.runtime.knowledge.library.Library;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
@@ -26,8 +27,6 @@ import com.github.prologdb.runtime.unification.Unification;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
-
-;
 
 public class PlaygroundPanel {
 
@@ -161,7 +160,7 @@ public class PlaygroundPanel {
             return;
         }
 
-        LazySequence<Unification> solutions = knowledgeBase.fulfill(queryParseResult.getItem(), new RandomVariableScope());
+        LazySequence<Unification> solutions = knowledgeBase.fulfill(queryParseResult.getItem(), ReadWriteAuthorization.INSTANCE, new RandomVariableScope());
 
         solutionExplorerPanel.setSolutions(solutions);
         solutionExplorerPanel.showNextSolution();

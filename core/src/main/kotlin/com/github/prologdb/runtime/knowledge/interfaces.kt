@@ -21,10 +21,10 @@ interface KnowledgeBase {
     /**
      * Starts a proof-search as the given principal.
      */
-    fun fulfill(query: Query, randomVariableScope: RandomVariableScope = RandomVariableScope()): LazySequence<Unification>
+    fun fulfill(query: Query, authorization: Authorization = ReadWriteAuthorization, randomVariableScope: RandomVariableScope = RandomVariableScope()): LazySequence<Unification>
 
     /**
      * Invokes the directive with the given name using the given arguments.
      */
-    fun invokeDirective(name: String, arguments: Array<out Term>): LazySequence<Unification>
+    fun invokeDirective(name: String, authorization: Authorization = ReadWriteAuthorization, arguments: Array<out Term>): LazySequence<Unification>
 }

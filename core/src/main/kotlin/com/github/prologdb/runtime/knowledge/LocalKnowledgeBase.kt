@@ -16,10 +16,7 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.Predicate
-import com.github.prologdb.runtime.term.PrologNumber
-import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import java.util.*
@@ -31,13 +28,13 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
     private val _operators = DefaultOperatorRegistry()
     override val operators: OperatorRegistry = _operators
 
-    override fun fulfill(query: Query, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
+    override fun fulfill(query: Query, authorization: Authorization, randomVariableScope: RandomVariableScope): LazySequence<Unification> {
         return buildLazySequence(UUID.randomUUID()) {
-            DefaultProofSearchContext(principal, randomVariableScope).fulfillAttach(this, query, VariableBucket())
+            DefaultProofSearchContext(principal, authorization, randomVariableScope).fulfillAttach(this, query, VariableBucket())
         }
     }
 
-    override fun invokeDirective(name: String, arguments: Array<out Term>): LazySequence<Unification> {
+    override fun invokeDirective(name: String, authorization: Authorization, arguments: Array<out Term>): LazySequence<Unification> {
         return buildLazySequence(IrrelevantPrincipal) {
             when (name) {
                 "op" -> {
@@ -154,14 +151,20 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         _operators.include(library.operators)
     }
 
+
+
     /**
      * Assures the indicator of the given type is present in [dynamicPredicates].
      * @throws PredicateNotDynamicException If the predicate of the given type is not dynamic.
      */
-    private fun assureDynamic(type: HasNameAndArity) {
-        val indicator = ClauseIndicator.of(type)
+    private fun assureDynamic(type: HasNameAndArity) = assureDynamic(ClauseIndicator.of(type))
 
-        val library = staticIndex[type.arity]?.get(type.name)
+    /**
+     * Assures the given indicator is present in [dynamicPredicates].
+     * @throws PredicateNotDynamicException If the predicate of the given type is not dynamic.
+     */
+    private fun assureDynamic(indicator: ClauseIndicator) {
+        val library = staticIndex[indicator.arity]?.get(indicator.name)
         if (library != null) {
             // a library has registered this as static
             throw PredicateNotDynamicException(indicator, "Predicate $indicator is not dynamic: marked as static by library ${library.name}")
@@ -174,49 +177,95 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
      * THE absolute CORE builtins that allow anything else to work. These are the assertz and retract
      * builtins.
      */
-    private val coreBuiltins: MutableMap<String, suspend LazySequenceBuilder<Unification>.(Array<out Term>) -> Unit> = HashMap(8)
+    private val coreBuiltins: MutableMap<String, suspend LazySequenceBuilder<Unification>.(Authorization, Array<out Term>) -> Unit> = HashMap(8)
     init {
-        coreBuiltins["assertz"] = { args -> assertz(args); yield(Unification.TRUE) }
+        coreBuiltins["assertz"] = { auth, args ->
+            if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
+
+            val clause = args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause")
+
+            val indicator = ClauseIndicator.of(clause)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to assert $indicator")
+
+            assertz(clause)
+            yield(Unification.TRUE)
+        }
         coreBuiltins["assert"] = coreBuiltins["assertz"]!!
-        coreBuiltins["retract"] = { args: Array<out Term> ->
+        coreBuiltins["retract"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
             val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+
+            val indicator = ClauseIndicator.of(arg0)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
+
             assureDynamic(arg0)
             yieldAll(store.retract(arg0))
         }
-        coreBuiltins["retractFact"] = { args: Array<out Term> ->
+        coreBuiltins["retractFact"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
             val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+
+            val indicator = ClauseIndicator.of(arg0)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
+
             assureDynamic(arg0)
             yieldAll(store.retractFact(arg0))
         }
-        coreBuiltins["retractAll"] = { args: Array<out Term> ->
+        coreBuiltins["retractAll"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
             val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+
+            val indicator = ClauseIndicator.of(arg0)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
+
             assureDynamic(arg0)
 
             store.retractAll(arg0)
             yield(Unification.TRUE)
         }
-        coreBuiltins["retractAllFacts"] = { args: Array<out Term> ->
+        coreBuiltins["retractAllFacts"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
-            store.retractAllFacts(args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate"))
+
+            val predicate = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+
+            val indicator = ClauseIndicator.of(predicate)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
+
+            store.retractAllFacts(predicate)
             yield(Unification.TRUE)
         }
-        coreBuiltins["abolish"] = { args: Array<out Term> ->
-            if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
-            val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
-            assureDynamic(arg0)
+        coreBuiltins["abolish"] = { auth, args: Array<out Term> ->
+            if (args.size != 1) throw PrologRuntimeException("abolish/${args.size} is not defined")
+            val arg0 = args[0]
+            if (arg0 !is Predicate || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
+            if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolish/1 must be a predicate indicator")
 
-            store.abolish(arg0.name, arg0.arity)
+            val name = (arg0.arguments[0] as Atom).name
+            val arity = (arg0.arguments[1] as PrologInteger).value.toInt()
+
+            val indicator = ClauseIndicator.of(name, arity)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to write $indicator")
+
+            assureDynamic(indicator)
+
+            store.abolish(name, arity)
             yield(Unification.TRUE)
         }
-        coreBuiltins["abolishFacts"] = { args: Array<out Term> ->
-            if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
-            val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
-            assureDynamic(arg0)
+        coreBuiltins["abolishFacts"] = { auth, args: Array<out Term> ->
+            if (args.size != 1) throw PrologRuntimeException("abolishFacts/${args.size} is not defined")
+            val arg0 = args[0]
+            if (arg0 !is Predicate || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be an instance of `/`/2")
+            if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be a predicate indicator")
 
-            store.abolishFacts(arg0.name, arg0.arity)
+            val name = (arg0.arguments[0] as Atom).name
+            val arity = (arg0.arguments[1] as PrologInteger).value.toInt()
+
+            val indicator = ClauseIndicator.of(name, arity)
+            if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to write $indicator")
+
+            assureDynamic(indicator)
+
+            store.abolishFacts(name, arity)
             yield(Unification.TRUE)
         }
     }
@@ -230,12 +279,6 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         store.assertz(clause)
     }
 
-    private fun assertz(args: Array<out Term>) {
-        if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
-
-        assertz(args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause"))
-    }
-
     private fun findFor(predicate: Predicate): Iterable<Clause> {
         val staticLibrary = staticIndex[predicate.arity]?.get(predicate.name)
         return staticLibrary?.findFor(predicate) ?: store.findFor(predicate)
@@ -243,6 +286,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
 
     private inner class DefaultProofSearchContext(
         override val principal: Principal,
+        override val authorization: Authorization,
         override val randomVariableScope: RandomVariableScope
     ) : ProofSearchContext
     {
@@ -307,11 +351,14 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         private suspend fun LazySequenceBuilder<Unification>.fulfillPredicate(query: PredicateQuery, initialVariables: VariableBucket) {
             val predicate = query.predicate
 
+            val indicator = ClauseIndicator.of(predicate)
+            if (!authorization.mayRead(indicator)) throw PrologPermissionError("Not allowed to read $indicator")
+
             if (predicate.name in coreBuiltins) {
                 val builtin = coreBuiltins[predicate.name]!!
 
                 try {
-                    builtin(predicate.arguments)
+                    builtin(authorization, predicate.arguments)
                 } catch (ex: PrologRuntimeException) {
                     if (predicate is HasPrologSource) {
                         ex.addPrologStackFrame(PrologStackTraceElement(predicate, predicate.sourceInformation))

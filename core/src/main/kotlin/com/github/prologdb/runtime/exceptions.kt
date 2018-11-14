@@ -44,6 +44,8 @@ class IllegalDirectiveException(message: String, cause: Throwable? = null) : Pro
     )
 }
 
+class PrologPermissionError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
+
 data class PrologStackTraceElement(
     val goalPredicate: Predicate,
     val sourceInformation: PrologSourceInformation
