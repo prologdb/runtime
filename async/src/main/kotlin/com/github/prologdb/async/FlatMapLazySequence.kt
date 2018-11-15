@@ -45,6 +45,13 @@ class FlatMapLazySequence<T, M>(
             val nestedState = nested.step()
             if (nestedState != RESULTS_AVAILABLE) {
                 state = nestedState
+                when (state) {
+                    FAILED -> {
+                        error = try {
+                            nested.tryAdvance(); null
+                        } catch (ex: Throwable) { ex }!!
+                    }
+                }
                 return nestedState
             }
 
