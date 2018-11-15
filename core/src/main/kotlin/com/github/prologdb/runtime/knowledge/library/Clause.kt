@@ -31,6 +31,17 @@ data class ClauseIndicator private constructor(
          */
         private val cache = ArityMap<MutableMap<String, ClauseIndicator>>()
 
+        fun parse(indicatorStr: String): ClauseIndicator {
+            val parts = indicatorStr.split('/')
+            if (parts.size != 2) {
+                throw IllegalArgumentException("\"$indicatorStr\" is not a valid clause indicator")
+            }
+
+            if (parts[0].isBlank()) throw IllegalArgumentException("\"$indicatorStr\" is not a valid clause indicator: name is blank")
+            val arity = parts[1].toIntOrNull() ?: throw IllegalArgumentException("\"$indicatorStr\" is not a valid caluse indicator: arity is not numeric.")
+            return of(parts[0], arity)
+        }
+
         /**
          * @return An instance of [ClauseIndicator] where [name] and [arity]
          * equal the given arguments. Utilizes a weak-reference cache.
