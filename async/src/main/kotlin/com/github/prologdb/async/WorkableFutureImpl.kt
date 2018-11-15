@@ -17,6 +17,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 result = value!!
                 state = State.COMPLETED
             }
+
+            tearDown()
         }
 
         override fun resumeWithException(exception: Throwable) {

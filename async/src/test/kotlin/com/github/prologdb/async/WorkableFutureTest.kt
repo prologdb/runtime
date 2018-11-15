@@ -234,30 +234,54 @@ class WorkableFutureTest : FreeSpec({
         future.get() shouldBe "Fuzz"
     }
 
-    "finally" {
-        val finallyExecutions = mutableListOf<Int>()
+    "finally" - {
+        "on error" {
+            val finallyExecutions = mutableListOf<Int>()
 
-        val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
-            await(CompletedFuture(Unit, null))
-            finally {
-                finallyExecutions.add(1)
+            val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
+                await(CompletedFuture(Unit, null))
+                finally {
+                    finallyExecutions.add(1)
+                }
+                finally {
+                    finallyExecutions.add(2)
+                }
+                awaitAndFinally(CompletedFuture(null, Exception("ERROR!"))) {
+                    finallyExecutions.add(3)
+                }
+                finally {
+                    finallyExecutions.add(4)
+                }
             }
-            finally {
-                finallyExecutions.add(2)
+
+            shouldThrow<Exception> {
+                workableFuture.get()
             }
-            awaitAndFinally(CompletedFuture(null, Exception("ERROR!"))) {
-                finallyExecutions.add(3)
-            }
-            finally {
-                finallyExecutions.add(4)
-            }
+
+            finallyExecutions shouldBe listOf(3, 2, 1)
         }
 
-        shouldThrow<Exception> {
+        "on success" {
+            val finallyExecutions = mutableListOf<Int>()
+
+            val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
+                finally {
+                    finallyExecutions.add(1)
+                }
+
+                awaitAndFinally(CompletedFuture(Unit, null)) {
+                    finallyExecutions.add(2)
+                }
+
+                finally {
+                    finallyExecutions.add(3)
+                }
+            }
+
             workableFuture.get()
-        }
 
-        finallyExecutions shouldBe listOf(3, 2, 1)
+            finallyExecutions shouldBe listOf(3, 2, 1)
+        }
     }
 
     "folding" {
