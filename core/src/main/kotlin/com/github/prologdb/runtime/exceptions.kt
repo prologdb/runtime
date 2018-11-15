@@ -52,6 +52,10 @@ data class PrologStackTraceElement(
 ){
     override fun toString() = "$goalPredicate   ${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
 }
+fun Predicate.toStackTraceElement() = PrologStackTraceElement(
+    this,
+    if (this is HasPrologSource) sourceInformation else NullSourceInformation
+)
 
 /**
  * Runs the code; if it throws a [PrologException], amends the [PrologException.stackTrace] with

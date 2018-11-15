@@ -12,3 +12,8 @@ interface PrologSourceInformation {
     /** The line number within [sourceFileName] at which the error occured, null if unknown */
     val sourceFileLine: Int?
 }
+
+object NullSourceInformation : PrologSourceInformation {
+    override val sourceFileLine: Int? = null
+    override val sourceFileName: String? = null
+}
