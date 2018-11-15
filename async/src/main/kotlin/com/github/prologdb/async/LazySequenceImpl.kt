@@ -133,6 +133,10 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
 
                 InnerState.WAITING_ON_FUTURE -> {
                     val future = currentWaitingFuture!!
+                    if (future is WorkableFuture) {
+                        future.step()
+                    }
+
                     if (future.isDone) {
                         val result = try {
                             future.get()
