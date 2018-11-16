@@ -9,6 +9,7 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocationRange
+import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.query.Query
@@ -42,7 +43,7 @@ class PrologParser {
      * @param opRegistry Is used to determine operators, their precedence and associativity
      * @param shouldStop Is invoked with the given token lazysequence. If it returns true the matching will stop.
      */
-    fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<ParsedTerm> {
+    fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
 
         // in prolog, the binary expression (e.g. a op b op c op d) is the concept that can be applied to all
@@ -89,10 +90,10 @@ class PrologParser {
         }
 
         if (collectedElements.size == 1) {
-            if (collectedElements[0] is ParsedTerm) {
+            if (collectedElements[0] is Term) {
                 tokens.commit()
                 return ParseResult(
-                    collectedElements[0] as ParsedTerm,
+                    collectedElements[0] as Term,
                     MATCHED,
                     reportings
                 )
@@ -134,10 +135,10 @@ class PrologParser {
      * * [parseList]
      * * [parseParenthesised]
      */
-    fun parseSingle(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedTerm> {
+    fun parseSingle(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("atom, variable, predicate invocation, list or parenthesised term")))
 
-        val parsers = listOf<(TransactionalSequence<Token>, OperatorRegistry) -> ParseResult<ParsedTerm>>(
+        val parsers = listOf<(TransactionalSequence<Token>, OperatorRegistry) -> ParseResult<Term>>(
             this::parseParenthesised,
             this::parseList,
             this::parseDictionary,
@@ -145,7 +146,7 @@ class PrologParser {
             { ts, _ -> parseAtomicOrVariable(ts) }
         )
 
-        var result: ParseResult<ParsedTerm>? = null
+        var result: ParseResult<Term>? = null
         for (parser in parsers) {
             result = parser(tokens, opRegistry)
             if (result.certainty >= MATCHED) break
@@ -306,7 +307,7 @@ class PrologParser {
 
         tokens.mark()
         val tokenAfterElements = tokens.next()
-        var tail: ParsedTerm?
+        var tail: Term?
         val reportings: MutableSet<Reporting> = elementsResult.reportings.toMutableSet()
         val tokenAfterList: Token?
         val listEndLocation: SourceLocationRange
@@ -395,10 +396,10 @@ class PrologParser {
             reportings.add(SyntaxError("Keys in dict pairs must be atoms", (it as ParsedPredicate).arguments[0].location))
         }
 
-        val pairsAsKotlinPairs: List<Pair<Atom, ParsedTerm>> = validPairs
+        val pairsAsKotlinPairs: List<Pair<Atom, Term>> = validPairs
             .map {
                 it as Predicate
-                (it.arguments[0] as Atom) to (it.arguments[1] as ParsedTerm)
+                (it.arguments[0] as Atom) to it.arguments[1]
             }
         val pairsAsKotlinMap = pairsAsKotlinPairs.toMap()
 
@@ -423,7 +424,7 @@ class PrologParser {
 
         tokens.mark()
         val tokenAfterElements = tokens.next()
-        var tail: ParsedTerm?
+        var tail: Term?
         val tokenAfterList: Token?
         val dictEndLocation: SourceLocationRange
 
@@ -461,7 +462,7 @@ class PrologParser {
     /**
      * Parses a parenthesised term: `(term)`.
      */
-    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedTerm> {
+    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("parenthesised term")))
 
         tokens.mark()
@@ -512,7 +513,7 @@ class PrologParser {
         }
     }
 
-    fun parseAtomicOrVariable(tokens: TransactionalSequence<Token>): ParseResult<ParsedTerm> {
+    fun parseAtomicOrVariable(tokens: TransactionalSequence<Token>): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError(IDENTIFIER)))
 
         tokens.mark()
@@ -551,10 +552,10 @@ class PrologParser {
             val tokenNumber = token.number
 
             val number = when(tokenNumber) {
-                is Int -> ParsedPrologNumber(PrologInteger(tokenNumber.toLong()), token.location)
-                is Long -> ParsedPrologNumber(PrologInteger(tokenNumber), token.location)
-                is Float -> ParsedPrologNumber(PrologDecimal(tokenNumber.toDouble()), token.location)
-                is Double -> ParsedPrologNumber(PrologDecimal(tokenNumber), token.location)
+                is Int -> PrologInteger(tokenNumber.toLong())
+                is Long -> PrologInteger(tokenNumber)
+                is Float -> PrologDecimal(tokenNumber.toDouble())
+                is Double -> PrologDecimal(tokenNumber)
                 else -> throw InternalParserError("Unsupported number type in numeric literal token")
             }
 
@@ -654,7 +655,7 @@ class PrologParser {
          * The dynamic/1 builtin
          * @param the only parameter to dynamic/1
          */
-        fun handleDynamicDirective(indicator: ParsedTerm) {
+        fun handleDynamicDirective(indicator: Term) {
             if (indicator !is ParsedPredicate || indicator.arity != 2 || indicator.name != "/") {
                 reportings.add(SemanticError(
                     "The argument to dynamic/1 must be an instance of `/`/2",
@@ -773,9 +774,9 @@ class PrologParser {
      * elements. The resulting [ParseResult] always has the certainty [MATCHED] and contains
      * [Reporting]s for every error encountered.
      */
-    private fun commaPredicateToList(commaPredicate: ParsedTerm): ParseResult<List<ParsedTerm>> {
+    private fun commaPredicateToList(commaPredicate: Term): ParseResult<List<Term>> {
         var pivot = commaPredicate
-        val list = ArrayList<ParsedTerm>(5)
+        val list = ArrayList<Term>(5)
         while (pivot is Predicate && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
             pivot as? ParsedPredicate ?: throw InternalParserError()
             list.add(pivot.arguments[0])
@@ -790,15 +791,15 @@ class PrologParser {
     /**
      * Converts a term given as the second argument to `:-/2` into an instance of [Query].
      */
-    private fun transformQuery(query: ParsedTerm): ParseResult<Query> {
+    private fun transformQuery(query: Term): ParseResult<Query> {
         if (query is ParsedPredicate) {
             if (query.arity == 2 && (query.name == Operator.COMMA.text || query.name == Operator.SEMICOLON.text)) {
                 val operator = query.name
                 val elements = ArrayList<Query>(5)
-                var pivot: ParsedTerm = query
+                var pivot: Term = query
                 val reportings = mutableSetOf<Reporting>()
 
-                fun addElement(element: ParsedTerm) {
+                fun addElement(element: Term) {
                     val transformResult = transformQuery(element)
                     reportings += transformResult.reportings
                     if (transformResult.item != null) elements += transformResult.item
@@ -937,14 +938,13 @@ private val TokenOrTerm.textContent: String
 private val TokenOrTerm.location: SourceLocationRange
     get() = when(this) {
         is Token -> location
-        is ParsedTerm -> sourceInformation
+        is HasPrologSource -> sourceInformation as? SourceLocationRange
+            ?: throw InternalParserError()
         else -> throw InternalParserError()
     }
 
-private fun TokenOrTerm.asTerm(): ParsedTerm {
-    if (this is Term) {
-        return this as? ParsedTerm ?: throw InternalParserError()
-    }
+private fun TokenOrTerm.asTerm(): Term {
+    if (this is Term) return this
 
     if (this is Token && this is OperatorToken) {
         val text = this.textContent ?: throw InternalParserError()
@@ -961,7 +961,7 @@ private class ExpressionASTBuildingException(reporting: Reporting) : ReportingEx
  *         operator, the operator is null
  * @throws ExpressionASTBuildingException
  */
-private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<ParsedTerm,OperatorDefinition?>> {
+private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<Term,OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
         return ParseResult.of(Pair(elements[0].asTerm(), null))
@@ -979,7 +979,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
     // will store results that can be constructed but are not necessarily the best fit to the input
     // instead of failing with an exception, this one might be returned as a surrogate
-    var preliminaryResult: ParseResult<Pair<ParsedTerm,OperatorDefinition?>>? = null
+    var preliminaryResult: ParseResult<Pair<Term,OperatorDefinition?>>? = null
 
     tryOperatorDefinitionForIndex@ for (operatorDef in leftmostOperatorWithMostPrecedence.second) {
         val reportings = mutableSetOf<Reporting>()

@@ -7,6 +7,8 @@ import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
@@ -293,8 +295,16 @@ private fun ParsedPredicate.toQuery(): Query {
     }
 }
 
-private fun ParsedTerm.asPredicate(): ParsedPredicate {
+private fun Term.asPredicate(): ParsedPredicate {
     if (this is ParsedPredicate) return this
 
-    throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", sourceInformation))
+    val sourceInformation = if (this is HasPrologSource) this.sourceInformation else NullSourceInformation
+    val location = SourceLocation(
+        SourceUnit(sourceInformation.sourceFileName ?: "unknown file"),
+        sourceInformation.sourceFileLine ?: 0,
+        1,
+        1
+    )
+
+    throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", location))
 }
