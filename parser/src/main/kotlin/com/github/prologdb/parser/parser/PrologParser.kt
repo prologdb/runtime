@@ -234,7 +234,7 @@ class PrologParser {
         tokens.rollback() // rollback to before PARENT_OPEN
 
         // arguments
-        val argsTermResult = parseParenthesised(tokens, opRegistry)
+        val argsTermResult = parseParenthesised(tokens, opRegistry, true)
         if (argsTermResult.isSuccess) {
             tokens.commit()
             val argsResult = commaPredicateToList(argsTermResult.item!!)
@@ -459,10 +459,15 @@ class PrologParser {
         )
     }
 
+    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Term> {
+        return parseParenthesised(tokens, opRegistry, false)
+    }
+
     /**
      * Parses a parenthesised term: `(term)`.
+     * @param outmostWithoutProtection If the term within the parenthesis is a predicate, does not set the [Predicate.parenthesisProtection] flag.
      */
-    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Term> {
+    fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, outmostWithoutProtection: Boolean): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("parenthesised term")))
 
         tokens.mark()
@@ -505,8 +510,14 @@ class PrologParser {
             )
         } else {
             tokens.commit()
+            val item = termResult.item
+            if (!outmostWithoutProtection && item is Predicate) {
+                if (item !is ParsedPredicate) throw InternalParserError()
+                item.parenthesisProtection = true
+            }
+
             return ParseResult(
-                termResult.item,
+                item,
                 MATCHED,
                 reportings + termResult.reportings
             )
@@ -777,7 +788,7 @@ class PrologParser {
     private fun commaPredicateToList(commaPredicate: Term): ParseResult<List<Term>> {
         var pivot = commaPredicate
         val list = ArrayList<Term>(5)
-        while (pivot is Predicate && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
+        while (pivot is Predicate && !(pivot as ParsedPredicate).parenthesisProtection && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
             pivot as? ParsedPredicate ?: throw InternalParserError()
             list.add(pivot.arguments[0])
             pivot = pivot.arguments[1]

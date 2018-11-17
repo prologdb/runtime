@@ -8,7 +8,10 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import sensibleHashCode
 
-open class Predicate(override val name: String, arguments: Array<out Term>) : Term, Clause
+open class Predicate(
+    override val name: String,
+    arguments: Array<out Term>
+) : Term, Clause
 {
     open val arguments: Array<out Term> = arguments
 

@@ -648,6 +648,22 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
+    "parenthesis protection" {
+        val tokens = tokensOf("a((b(1), c(1)))")
+        val result = parseTerm(tokens)
+        result.certainty shouldEqual MATCHED
+        result.reportings should beEmpty()
+        val predicate = result.item as Predicate
+        predicate.arguments.size shouldBe 1
+        val arg0 = predicate.arguments[0] as Predicate
+        arg0.name shouldBe ","
+        arg0.arity shouldBe 2
+
+        shouldThrow<IllegalStateException> {
+            tokens.commit()
+        }
+    }
+
     "library" {
         val kb = LocalKnowledgeBase()
         (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
