@@ -1,6 +1,18 @@
 package com.github.prologdb.runtime.term
 
-interface PrologNumber : Term {
+import com.github.prologdb.runtime.HasPrologSource
+
+/**
+ * Numbers in prolog.
+ *
+ * On implementing HasPrologSource: extending the number term types does not
+ * make sense in any way and the calculations can also benefit from not going
+ * through dynamic-dispatch getters to obtain the native prolog nubmers to actually
+ * do the calculation. This is a problem for the parser, however: it cannot create
+ * a subtype of number to attach the source information to. So this class offers
+ * a way to store the source information.
+ */
+interface PrologNumber : Term, HasPrologSource {
     operator fun plus(other: PrologNumber): PrologNumber
     operator fun minus(other: PrologNumber): PrologNumber
     operator fun times(other: PrologNumber): PrologNumber

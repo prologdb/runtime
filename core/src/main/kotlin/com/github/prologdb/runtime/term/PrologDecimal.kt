@@ -1,12 +1,17 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-open class PrologDecimal(val value: Double) : PrologNumber {
+open class PrologDecimal(
+    val value: Double,
+    override val sourceInformation: PrologSourceInformation = NullSourceInformation
+) : PrologNumber {
 
     override val isInteger = true
 

@@ -552,10 +552,10 @@ class PrologParser {
             val tokenNumber = token.number
 
             val number = when(tokenNumber) {
-                is Int -> PrologInteger(tokenNumber.toLong())
-                is Long -> PrologInteger(tokenNumber)
-                is Float -> PrologDecimal(tokenNumber.toDouble())
-                is Double -> PrologDecimal(tokenNumber)
+                is Int -> PrologInteger(tokenNumber.toLong(), token.location)
+                is Long -> PrologInteger(tokenNumber, token.location)
+                is Float -> PrologDecimal(tokenNumber.toDouble(), token.location)
+                is Double -> PrologDecimal(tokenNumber, token.location)
                 else -> throw InternalParserError("Unsupported number type in numeric literal token")
             }
 

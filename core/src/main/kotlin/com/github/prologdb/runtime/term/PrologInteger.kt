@@ -1,11 +1,16 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 
-open class PrologInteger(val value: Long) : PrologNumber {
+open class PrologInteger(
+    val value: Long,
+    override val sourceInformation: PrologSourceInformation = NullSourceInformation
+) : PrologNumber {
 
     override val isInteger = true
 
