@@ -55,10 +55,16 @@ public class SolutionExplorerPanel {
         JPanel solutionsWrapperPanel = new JPanel(new BorderLayout());
         solutionsWrapperPanel.add(solutionsPanel, BorderLayout.NORTH);
 
+        JScrollPane solutionsScrollPane = new JScrollPane(
+            solutionsWrapperPanel,
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        );
+
         panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.add(actionsToolbar, BorderLayout.NORTH);
-        panel.add(solutionsWrapperPanel, BorderLayout.CENTER);
+        panel.add(solutionsScrollPane, BorderLayout.CENTER);
     }
 
     private JComponent createTrueComponent() {
