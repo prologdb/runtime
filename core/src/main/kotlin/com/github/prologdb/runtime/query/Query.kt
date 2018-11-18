@@ -4,10 +4,14 @@ import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapToArray
 
 sealed class Query {
+    /** All the variables in this query */
+    abstract val variables: Set<Variable>
+
     abstract fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query
 
     abstract fun substituteVariables(variableValues: VariableBucket): Query
@@ -29,6 +33,8 @@ open class AndQuery(val goals: Array<out Query>) : Query() {
     override fun toString(): String {
         return goals.mapToArray { it.toString() }.joinToString(", ")
     }
+
+    override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
 }
 
 open class OrQuery(val goals: Array<out Query>) : Query() {
@@ -47,6 +53,8 @@ open class OrQuery(val goals: Array<out Query>) : Query() {
             goals.mapToArray { it.substituteVariables(variableValues) }
         )
     }
+
+    override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
 }
 
 open class PredicateQuery(
@@ -83,4 +91,7 @@ open class PredicateQuery(
     override fun toString(): String {
         return predicate.toString()
     }
+
+    override val variables: Set<Variable>
+        get() = predicate.variables
 }
