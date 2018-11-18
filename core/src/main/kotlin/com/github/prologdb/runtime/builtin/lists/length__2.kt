@@ -1,15 +1,30 @@
 package com.github.prologdb.runtime.builtin.lists
 
-import com.github.prologdb.runtime.builtin.*
-import com.github.prologdb.runtime.knowledge.library.Clause
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.Variable
 
 /**
- *     length([], 0).
- *     length([_|T], L) :- length(T, TL), L is TL + 1.
+ * length(++List, :Length)
  */
-internal val LengthBuiltin = listOf<Clause>(
-    "length"(L(), N(0)),
-    ("length"(L(V("_")).tail(V("T")), V("L"))) {
-        "length"(V("T"), V("TL")) AND "is"(V("L"), "+"(V("TL"), N(1)))
+internal val LengthBuiltin = nativeRule("length", 2) { args, ctxt ->
+    val arg0 = args[0]
+    val arg1 = args[1]
+
+    if (arg0 is PrologList) {
+        val length = PrologInteger.createUsingStringOptimizerCache(arg0.elements.size.toLong())
+        length.unify(arg1)?.let { yield(it) }
     }
-)
+    else if (arg0 is Variable) {
+        if (arg1 !is PrologInteger) {
+            throw PrologRuntimeException("If argument 1 to length/2 is a variable, argument 2 must be an integer (got ${arg1.prologTypeName})")
+        }
+
+        for (size in 0..arg1.toInteger()) {
+            val elements = List(size.toInt()) { ctxt.randomVariableScope.createNewRandomVariable() }
+            PrologList(elements, null).unify(arg0)?.let { yield(it) }
+        }
+    }
+}
