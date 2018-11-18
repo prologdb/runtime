@@ -11,6 +11,8 @@ val ListsLibrary = nativeLibrary("lists") {
     add(SortBuiltin)
     add(Set2Builtin)
     add(Set3Builtin)
+
+    add(BuiltinIota3)
 }
 
 private fun NativeLibraryBuilder.add(elements: Collection<Clause>) {
