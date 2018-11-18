@@ -1,7 +1,9 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.PrologException
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
@@ -99,6 +101,10 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
 
 fun nativeRule(name: String, arity: Int, code: PrologBuiltinImplementation): NativeCodeRule {
     val definedAt = getInvocationStackFrame()
+    return NativeCodeRule(name, arity, definedAt, code)
+}
+
+fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation): NativeCodeRule {
     return NativeCodeRule(name, arity, definedAt, code)
 }
 

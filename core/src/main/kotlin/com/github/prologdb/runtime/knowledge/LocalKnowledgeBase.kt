@@ -5,12 +5,12 @@ import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.ComparisonLibrary
 import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
 import com.github.prologdb.runtime.builtin.dict.DictLibrary
 import com.github.prologdb.runtime.builtin.dynamic.DynamicsLibrary
 import com.github.prologdb.runtime.builtin.lists.ListsLibrary
 import com.github.prologdb.runtime.builtin.math.MathLibrary
 import com.github.prologdb.runtime.builtin.string.StringsLibrary
-import com.github.prologdb.runtime.builtin.typesafety.TypeSafetyLibrary
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
