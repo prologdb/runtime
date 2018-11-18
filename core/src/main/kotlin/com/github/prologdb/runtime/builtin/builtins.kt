@@ -75,7 +75,8 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
 
     private val builtinStackFrame = PrologStackTraceElement(
         head,
-        invocationStackFrame.prologSourceInformation
+        invocationStackFrame.prologSourceInformation,
+        "$name/$arity native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
     )
 
     val callDirectly: PrologBuiltinImplementation = code
