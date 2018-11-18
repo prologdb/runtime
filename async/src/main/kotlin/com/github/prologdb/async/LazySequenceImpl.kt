@@ -102,7 +102,7 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
             suspendCoroutine<Any> { continuation = it }
         }
 
-        override suspend fun yieldAll(results: Collection<T>) {
+        override suspend fun yieldAll(results: Iterable<T>) {
             queuedResults.addAll(results)
             innerState = InnerState.RUNNING
 

@@ -397,7 +397,7 @@ interface LazySequenceBuilder<T> {
     /**
      * Yields all results of the given collection from this lazy sequence.
      */
-    suspend fun yieldAll(results: Collection<T>) {
+    suspend fun yieldAll(results: Iterable<T>) {
         for (result in results) {
             yield(result)
         }
