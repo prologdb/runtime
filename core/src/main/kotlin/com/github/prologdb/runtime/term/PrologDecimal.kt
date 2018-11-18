@@ -13,7 +13,7 @@ open class PrologDecimal(
     override val sourceInformation: PrologSourceInformation = NullSourceInformation
 ) : PrologNumber {
 
-    override val isInteger = true
+    override val isInteger = false
 
     override fun plus(other: PrologNumber) =
         when(other) {
