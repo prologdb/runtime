@@ -13,6 +13,7 @@ val ListsLibrary = nativeLibrary("lists") {
     add(Set3Builtin)
 
     add(BuiltinIota3)
+    add(BuiltinIota4)
 }
 
 private fun NativeLibraryBuilder.add(elements: Collection<Clause>) {
