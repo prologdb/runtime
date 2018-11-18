@@ -3,6 +3,8 @@ package com.github.prologdb.runtime.builtin.lists
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
 private const val IOTA_BATCHSIZE = 100
@@ -32,6 +34,19 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
         return@nativeRule
     }
 
+    if (target !is Variable) {
+        // target is bound, this really is a range check
+        if (target is PrologNumber) {
+            if (target >= start && target < endExcl) {
+                yield(Unification.TRUE)
+            }
+        }
+        // else: will not unify, ever
+        return@nativeRule
+    }
+
+    // implicit: target as Variable
+
     val progression = if (start > endExcl) {
         LongProgression.fromClosedRange(start.toInteger(), endExcl.toInteger() + 1, -1)
     } else {
@@ -45,8 +60,7 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
         batchStorage.clear()
         while (source.hasNext() && batchStorage.size < IOTA_BATCHSIZE) {
             val nextN = source.next()
-            val nextU = PrologInteger.createUsingStringOptimizerCache(nextN).unify(target, ctxt.randomVariableScope)
-            nextU?.let { batchStorage.add(it) }
+            batchStorage.add(target.unify(PrologInteger.createUsingStringOptimizerCache(nextN), ctxt.randomVariableScope))
         }
         yieldAll(batchStorage)
     }
