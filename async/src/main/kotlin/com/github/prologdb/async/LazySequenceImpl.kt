@@ -82,16 +82,21 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
                 throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
             }
 
-            currentWaitingFuture = future
-            innerState = InnerState.WAITING_ON_FUTURE
+            if (!future.isDone) {
+                currentWaitingFuture = future
+                innerState = InnerState.WAITING_ON_FUTURE
 
-            suspendCoroutine<Any> { continuation = it }
+                suspendCoroutine<Any> { continuation = it }
+            }
 
             return try {
                 future.get()
             }
             catch (ex: ExecutionException) {
                 throw ex.cause ?: ex
+            }
+            catch (ex: Throwable) {
+                throw ex
             }
         }
 
@@ -138,18 +143,10 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
                     }
 
                     if (future.isDone) {
-                        val result = try {
-                            future.get()
-                        } catch (ex: Throwable) {
-                            error = ex
-                            innerState = InnerState.FAILED
-                            return state
-                        }
-
                         innerState = InnerState.RUNNING
                         currentWaitingFuture = null
 
-                        continuation.resume(result)
+                        continuation.resume(Unit)
                     }
                     // else -> future not yet done, continue to wait
                 }
