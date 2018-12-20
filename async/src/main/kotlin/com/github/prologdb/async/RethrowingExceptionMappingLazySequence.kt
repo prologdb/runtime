@@ -8,7 +8,8 @@ class RethrowingExceptionMappingLazySequence<T>(
 
     override fun step() = nested.step()
 
-    override val state = nested.state
+    override val state: LazySequence.State
+        get() = nested.state
 
     override fun tryAdvance(): T? {
         try {
