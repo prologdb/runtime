@@ -224,9 +224,9 @@ interface LazySequence<T> {
     }
 
     companion object {
-        fun <T> of(vararg elements: T): LazySequence<T> = of(IrrelevantPrincipal, *elements)
+        fun <T> of(vararg elements: T): LazySequence<T> = of(elements, IrrelevantPrincipal)
             
-        fun <T> of(principal: Principal, vararg elements: T): LazySequence<T> {
+        fun <T> of(elements: Array<out T>, principal: Principal): LazySequence<T> {
             if (elements.isEmpty()) return empty(principal)
             if (elements.size == 1) return singleton(elements[0], principal)
 
@@ -286,10 +286,20 @@ interface LazySequence<T> {
          * Creates an infinite [LazySequence] that obtains its values from the given [generator]. Ends
          * once [close] is called.
          *
+         * @param generator Must not modify shared state or read from mutable shared state (in other words: be pure).
+         */
+        fun <T> fromGenerator(generator: () -> T?): LazySequence<T> {
+            return fromGenerator(IrrelevantPrincipal, generator)
+        }
+
+        /**
+         * Creates an infinite [LazySequence] that obtains its values from the given [generator]. Ends
+         * once [close] is called.
+         *
          * @param principal The principal the result sequence should belong to.
          * @param generator Must not modify shared state or read from mutable shared state (in other words: be pure).
          */
-        fun <T> fromGenerator(generator: () -> T?, principal: Principal = IrrelevantPrincipal): LazySequence<T> {
+        fun <T> fromGenerator(principal: Principal, generator: () -> T?): LazySequence<T> {
             return object : LazySequence<T> {
                 override val principal = principal
                 var closed = false
