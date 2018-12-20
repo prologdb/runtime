@@ -59,18 +59,20 @@ data class OperatorDefinition (
     override fun toString() = "op($precedence, ${type.name.toLowerCase()}, $name)"
 }
 
-enum class OperatorType(val arity: Int) {
-    FX(1),
-    FY(1),
-    XFX(2),
-    XFY(2),
-    YFX(2),
-    XF(1),
-    YF(1);
+enum class OperatorType {
+    FX,
+    FY,
+    XFX,
+    XFY,
+    YFX,
+    XF,
+    YF;
 
     val isPrefix by lazy { this == FX || this == FY }
     val isInfix by lazy { this == XFX || this == XFY || this == YFX }
     val isPostfix by lazy { this == XF || this == YF }
+    
+    val arity: Int = if (isPrefix || isPostfix) 1 else 2
 
     /**
      * Whether the argument positioning around the operator type
