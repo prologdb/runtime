@@ -224,12 +224,14 @@ interface LazySequence<T> {
     }
 
     companion object {
-        fun <T> of(vararg elements: T): LazySequence<T> {
-            if (elements.isEmpty()) return empty()
-            if (elements.size == 1) return singleton(elements[0])
+        fun <T> of(vararg elements: T): LazySequence<T> = of(IrrelevantPrincipal, *elements)
+            
+        fun <T> of(principal: Principal, vararg elements: T): LazySequence<T> {
+            if (elements.isEmpty()) return empty(principal)
+            if (elements.size == 1) return singleton(elements[0], principal)
 
             return object : LazySequence<T> {
-                override val principal = IrrelevantPrincipal
+                override val principal = principal
                 private var index = 0
                 private var closed = false
 
@@ -253,11 +255,11 @@ interface LazySequence<T> {
          * @param element must not be null
          * @return a sequence of only the given element
          */
-        fun <T> singleton(element: T): LazySequence<T> {
+        fun <T> singleton(element: T, principal: Principal = IrrelevantPrincipal): LazySequence<T> {
             if (element == null) throw IllegalArgumentException("The given element must not be null.")
 
             return object : LazySequence<T> {
-                override val principal = IrrelevantPrincipal
+                override val principal = principal
                 private var consumed = false
 
                 override val state: State
@@ -278,17 +280,18 @@ interface LazySequence<T> {
          * the result of this function equals `LazySequence.singleton(thing)`. If it is null,
          * the result of this function equals `LazySequence.empty()`.
          */
-        fun <T> ofNullable(thing: T?): LazySequence<T> = if (thing == null) empty() else singleton(thing)
+        fun <T> ofNullable(thing: T?, principal: Principal = IrrelevantPrincipal): LazySequence<T> = if (thing == null) empty(principal) else singleton(thing, principal)
 
         /**
          * Creates an infinite [LazySequence] that obtains its values from the given [generator]. Ends
          * once [close] is called.
          *
+         * @param principal The principal the result sequence should belong to.
          * @param generator Must not modify shared state or read from mutable shared state (in other words: be pure).
          */
-        fun <T> fromGenerator(generator: () -> T?): LazySequence<T> {
+        fun <T> fromGenerator(generator: () -> T?, principal: Principal = IrrelevantPrincipal): LazySequence<T> {
             return object : LazySequence<T> {
-                override val principal = IrrelevantPrincipal
+                override val principal = principal
                 var closed = false
                 var cached: T? = null
 
@@ -336,6 +339,17 @@ interface LazySequence<T> {
             override fun close() = Unit
         }
 
+        fun <T> empty(principal: Principal): LazySequence<T> {
+            if (principal == IrrelevantPrincipal) return empty()
+            return object : LazySequence<T> {
+                override val principal = principal
+                override val state = State.DEPLETED
+                override fun step() = State.DEPLETED
+                override fun tryAdvance(): T? = null
+                override fun close() = Unit
+            }
+        }
+        
         fun <T> empty(): LazySequence<T> {
             @Suppress("unchecked_cast") // no elements returned from the sequence; the type does not matter
             return emptySequence as LazySequence<T>
