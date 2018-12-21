@@ -447,4 +447,38 @@ class OperatorNotationToStringTest : FreeSpec({
             term.toStringUsingOperatorNotations(registry) shouldBe "(lhsPrefix a) infix (b rhsPostfix)"
         }
     }
+    
+    "predicate invocation syntax" - {
+        "plain" {
+            val registry = DefaultOperatorRegistry()
+
+            val term = Predicate("foo", arrayOf(
+                Atom("a"), Atom("b"), Atom("c") // there are no ternary operators in prolog
+            ))
+
+            term.toStringUsingOperatorNotations(registry) shouldBe "foo(a, b, c)"
+        }
+
+        "nested terms have operators" {
+            val registry = DefaultOperatorRegistry()
+            registry.defineOperator(OperatorDefinition(400,OperatorType.FX,"bar"))
+
+            val term = Predicate("foo", arrayOf(
+                Atom("a"), Predicate("bar", arrayOf(Atom("b"))), Atom("c")
+            ))
+
+            term.toStringUsingOperatorNotations(registry) shouldBe "foo(a, bar b, c)"
+        }
+        
+        "nested uses comma operator" {
+            val registry = DefaultOperatorRegistry()
+            registry.defineOperator(OperatorDefinition(400,OperatorType.XFX,","))
+            
+            val term = Predicate("foo", arrayOf(
+                Atom("a"), Atom("b"), Predicate(",", arrayOf(Atom("c"), Atom("d")))
+            ))
+            
+            term.toStringUsingOperatorNotations(registry) shouldBe "foo(a, b, (c , d))"
+        }
+    }
 })
