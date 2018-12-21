@@ -1,10 +1,16 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import com.github.prologdb.runtime.unification.Unification;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
 
-import javax.swing.*;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
+
+import com.github.prologdb.runtime.knowledge.library.OperatorRegistry;
+import com.github.prologdb.runtime.unification.Unification;
 
 public class SolutionPanel {
 
@@ -14,9 +20,11 @@ public class SolutionPanel {
 
     private JPanel panel = new JPanel();
     private final Unification solution;
+    private final OperatorRegistry displayOperators;
 
-    public SolutionPanel(Unification solution) {
+    public SolutionPanel(Unification solution, OperatorRegistry displayOperators) {
         this.solution = solution;
+        this.displayOperators = displayOperators;
 
         initComponents();
     }
@@ -45,7 +53,7 @@ public class SolutionPanel {
         panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         solution.getVariableValues().getValues().forEach(varAndValue -> {
-            JLabel label = new JLabel(varAndValue.getFirst().getName() + " = " + varAndValue.getSecond().toString());
+            JLabel label = new JLabel(varAndValue.getFirst().getName() + " = " + varAndValue.getSecond().toStringUsingOperatorNotations(displayOperators));
             label.setFont(FONT);
             panel.add(label);
         });

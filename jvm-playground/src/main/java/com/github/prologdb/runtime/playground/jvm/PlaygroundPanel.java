@@ -162,7 +162,7 @@ public class PlaygroundPanel {
 
         LazySequence<Unification> solutions = knowledgeBase.fulfill(queryParseResult.getItem(), ReadWriteAuthorization.INSTANCE, new RandomVariableScope());
 
-        solutionExplorerPanel.setSolutions(solutions);
+        solutionExplorerPanel.setSolutions(solutions, knowledgeBase.getOperators());
         solutionExplorerPanel.showNextSolution();
         this.panel.revalidate();
         this.panel.repaint();

@@ -1,14 +1,28 @@
 package com.github.prologdb.runtime.playground.jvm;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.util.NoSuchElementException;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.border.EmptyBorder;
+
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.runtime.PrologException;
 import com.github.prologdb.runtime.PrologRuntimeException;
+import com.github.prologdb.runtime.knowledge.library.OperatorRegistry;
 import com.github.prologdb.runtime.unification.Unification;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.util.NoSuchElementException;
 
 public class SolutionExplorerPanel {
 
@@ -19,6 +33,7 @@ public class SolutionExplorerPanel {
     private JButton showAllRemainingBT;
 
     private LazySequence<Unification> currentSolutions = null;
+    private OperatorRegistry currentSolutionDisplayOperators = null;
     private boolean currentSolutionsDepleated = true;
     private int currentSolutionIndex = -1;
 
@@ -119,7 +134,7 @@ public class SolutionExplorerPanel {
         if (solution.getVariableValues().isEmpty()) {
             addSolutionComponent(createTrueComponent());
         } else {
-            SolutionPanel solutionPanel = new SolutionPanel(solution);
+            SolutionPanel solutionPanel = new SolutionPanel(solution, currentSolutionDisplayOperators);
             solutionPanel.setIndex(currentSolutionIndex);
             addSolutionComponent(solutionPanel.asJPanel());
         }
@@ -189,10 +204,11 @@ public class SolutionExplorerPanel {
         panel.repaint();
     }
 
-    public void setSolutions(LazySequence<Unification> solutions) {
+    public void setSolutions(LazySequence<Unification> solutions, OperatorRegistry displayOperators) {
         currentSolutions = solutions;
         currentSolutionsDepleated = false;
         currentSolutionIndex = 0;
+        currentSolutionDisplayOperators = displayOperators;
 
         solutionsPanel.removeAll();
         showNextBT.setEnabled(true);
