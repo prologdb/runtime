@@ -32,12 +32,14 @@ class FilteredLazySequence<T>(
 
         when (base.step()) {
             LazySequence.State.RESULTS_AVAILABLE -> {
-                val baseValue = base.tryAdvance()
-                baseValue!!
-                if (predicate(baseValue)) {
-                    cached = baseValue
+                checkBaseResults@while (base.state == LazySequence.State.RESULTS_AVAILABLE) {
+                    val baseValue = base.tryAdvance()
+                    baseValue!!
+                    if (predicate(baseValue)) {
+                        cached = baseValue
+                        break@checkBaseResults
+                    }
                 }
-                // else: was not distinct; cached remains null, still PENDING
             }
             LazySequence.State.DEPLETED -> {
                 close()
