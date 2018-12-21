@@ -130,7 +130,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
         if (tail != null) {
             out += "|${tail.toStringUsingOperatorNotations(operators)}"
         }
-        return out
+        return out + "]"
     }
 
     override fun compareTo(other: Term): Int {
