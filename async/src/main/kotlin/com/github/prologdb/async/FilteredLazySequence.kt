@@ -32,7 +32,8 @@ class FilteredLazySequence<T>(
 
         when (base.step()) {
             LazySequence.State.RESULTS_AVAILABLE -> {
-                val baseValue = base.tryAdvance()!!
+                val baseValue = base.tryAdvance()
+                baseValue!!
                 if (predicate(baseValue)) {
                     cached = baseValue
                 }

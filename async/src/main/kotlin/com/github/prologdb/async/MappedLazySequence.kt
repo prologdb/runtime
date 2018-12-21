@@ -8,7 +8,8 @@ class MappedLazySequence<T, M>(
 
     override fun step() = base.step()
 
-    override val state = base.state
+    override val state
+        get() = base.state
 
     override fun tryAdvance() = base.tryAdvance()?.let(mapper)
 

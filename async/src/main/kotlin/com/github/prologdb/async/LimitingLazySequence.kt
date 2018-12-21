@@ -18,7 +18,8 @@ class LimitingLazySequence<T>(
 
     override fun step() = if (closed) closedState else nested.step()
 
-    override val state: LazySequence.State = if (closed) closedState else nested.state
+    override val state
+        get() = if (closed) closedState else nested.state
 
     override fun tryAdvance(): T? {
         val el = try {

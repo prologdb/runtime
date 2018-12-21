@@ -15,7 +15,8 @@ class DistinctLazySequence<T, K>(
 
     override fun step() = wrapped.step()
 
-    override val state = wrapped.state
+    override val state
+        get() = wrapped.state
 
     override fun tryAdvance() = wrapped.tryAdvance()
 
