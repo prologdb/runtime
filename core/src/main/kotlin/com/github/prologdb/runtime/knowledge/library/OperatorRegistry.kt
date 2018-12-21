@@ -72,7 +72,7 @@ enum class OperatorType {
     val isInfix by lazy { this == XFX || this == XFY || this == YFX }
     val isPostfix by lazy { this == XF || this == YF }
     
-    val arity: Int = if (isPrefix || isPostfix) 1 else 2
+    val arity: Int by lazy { if (isPrefix || isPostfix) 1 else 2 }
 
     /**
      * Whether the argument positioning around the operator type
