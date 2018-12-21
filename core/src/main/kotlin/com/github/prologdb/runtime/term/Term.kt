@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
 import com.github.prologdb.runtime.unification.Unification
 
 interface Term : Comparable<Term> {
@@ -21,4 +22,15 @@ interface Term : Comparable<Term> {
      * Two terms equal when they are the same Prolog structure. This method builds the identity predicate.
      */
     override fun equals(other: Any?): Boolean
+
+    /**
+     * Like [toString] but instead of going for strict notation (predicates ALWAYS in the syntax
+     * `name ( <arguments ... > )`), uses the operators from the given registry. Adds parenthesis
+     * in such a way that parsing the resulting string back using the same operators results in 
+     * the exact same term.
+     * 
+     * **Important:** unless for trivial/atomic terms (for which this method likely just delegates
+     * to [toString]), **this method is expensive** and should only be called for nice display to humans.
+     */
+    fun toStringUsingOperatorNotations(operators: OperatorRegistry): String = toString()
 }

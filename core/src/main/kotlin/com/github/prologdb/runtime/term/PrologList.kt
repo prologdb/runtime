@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
@@ -119,6 +120,17 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
             out += "|$tail"
         }
         return out + "]"
+    }
+
+    override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
+        var out = "[" + elements.joinToString(
+            separator = ", ",
+            transform = { it.toStringUsingOperatorNotations(operators) }
+        )
+        if (tail != null) {
+            out += "|${tail.toStringUsingOperatorNotations(operators)}"
+        }
+        return out
     }
 
     override fun compareTo(other: Term): Int {

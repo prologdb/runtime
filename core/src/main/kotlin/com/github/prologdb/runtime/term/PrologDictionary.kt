@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
@@ -154,6 +155,20 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
             str += "|$tail"
         }
 
+        return "{$str}"
+    }
+
+    override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
+        var str = pairs.entries
+            .joinToString(
+                separator = ", ",
+                transform = { it.key.toStringUsingOperatorNotations(operators) + ": " + it.value.toStringUsingOperatorNotations(operators) }
+            )
+        
+        if (tail != null) {
+            str += "|${tail.toStringUsingOperatorNotations(operators)}"
+        }
+        
         return "{$str}"
     }
 
