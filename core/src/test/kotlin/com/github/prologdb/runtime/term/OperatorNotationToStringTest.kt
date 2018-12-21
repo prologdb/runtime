@@ -394,4 +394,57 @@ class OperatorNotationToStringTest : FreeSpec({
             }
         }
     }
+    
+    "infix nesting" - {
+        val a = Atom("a")
+        val b = Atom("b")
+        val c = Atom("c")
+        val lhsPrefix = PredicateBuilder("lhsPrefix")
+        val rhsPostfix = PredicateBuilder("rhsPostfix")
+        val infix = PredicateBuilder("infix")
+        
+        "lhs lower priority, rhs lower priority" {
+            val registry = DefaultOperatorRegistry()
+            registry.defineOperator(OperatorDefinition(300, OperatorType.XFX, "infix"))
+            registry.defineOperator(OperatorDefinition(200, OperatorType.FY, "lhsPrefix"))
+            registry.defineOperator(OperatorDefinition(200, OperatorType.YF, "rhsPostfix"))
+            
+            val term = infix(lhsPrefix(a), rhsPostfix(b))
+            
+            term.toStringUsingOperatorNotations(registry) shouldBe "lhsPrefix a infix b rhsPostfix"
+        }
+
+        "lhs lower priority, rhs higher priority" {
+            val registry = DefaultOperatorRegistry()
+            registry.defineOperator(OperatorDefinition(300, OperatorType.XFX, "infix"))
+            registry.defineOperator(OperatorDefinition(200, OperatorType.FY, "lhsPrefix"))
+            registry.defineOperator(OperatorDefinition(400, OperatorType.YF, "rhsPostfix"))
+
+            val term = infix(lhsPrefix(a), rhsPostfix(b))
+
+            term.toStringUsingOperatorNotations(registry) shouldBe "lhsPrefix a infix (b rhsPostfix)"
+        }
+
+        "lhs higher priority, rhs lower priority" {
+            val registry = DefaultOperatorRegistry()
+            registry.defineOperator(OperatorDefinition(300, OperatorType.XFX, "infix"))
+            registry.defineOperator(OperatorDefinition(400, OperatorType.FY, "lhsPrefix"))
+            registry.defineOperator(OperatorDefinition(200, OperatorType.YF, "rhsPostfix"))
+
+            val term = infix(lhsPrefix(a), rhsPostfix(b))
+
+            term.toStringUsingOperatorNotations(registry) shouldBe "(lhsPrefix a) infix b rhsPostfix"
+        }
+
+        "lhs higher priority, rhs higher priority" {
+            val registry = DefaultOperatorRegistry()
+            registry.defineOperator(OperatorDefinition(300, OperatorType.XFX, "infix"))
+            registry.defineOperator(OperatorDefinition(400, OperatorType.FY, "lhsPrefix"))
+            registry.defineOperator(OperatorDefinition(400, OperatorType.YF, "rhsPostfix"))
+
+            val term = infix(lhsPrefix(a), rhsPostfix(b))
+
+            term.toStringUsingOperatorNotations(registry) shouldBe "(lhsPrefix a) infix (b rhsPostfix)"
+        }
+    }
 })

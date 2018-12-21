@@ -169,17 +169,14 @@ private fun Term.toStringUsingOperatorNotationsInternal(operators: OperatorRegis
                 // thus, parenthesis are required.
                 ParenthesisRequirement.REQUIRED
             }
-            else {
-                // priorities are ambiguous, need to look at associativity
-                
-                if (operator.type == FY && argumentTriple.third?.type in setOf(XF, XFX, XFY)) {
-                    // associativity removes the ambiguity in this case
-                    ParenthesisRequirement.NOT_REQUIRED
-                } else {
-                    // priorities are directly inverted to what would be if we simply prepended the operator
-                    // thus, parenthesis are required.
-                    ParenthesisRequirement.REQUIRED
-                }
+            // priorities are ambiguous, need to look at associativity
+            else if (operator.type == FY && argumentTriple.third?.type in setOf(XF, XFX, XFY)) {
+                // associativity removes the ambiguity in this case
+                ParenthesisRequirement.NOT_REQUIRED
+            } else {
+                // priorities are directly inverted to what would be if we simply prepended the operator
+                // thus, parenthesis are required.
+                ParenthesisRequirement.REQUIRED
             }
             
             return when (parenthesisRequirement) {
@@ -209,17 +206,14 @@ private fun Term.toStringUsingOperatorNotationsInternal(operators: OperatorRegis
                 // thus, parenthesis are required.
                 ParenthesisRequirement.REQUIRED
             }
-            else {
-                // priorities are ambiguous, need to look at associativity
-
-                if (argumentTriple.third?.type in setOf(FX, XFX, YFX) && operator.type == YF) {
-                    // associativity removes the ambiguity in this case
-                    ParenthesisRequirement.NOT_REQUIRED
-                } else {
-                    // priorities are directly inverted to what would be if we simply prepended the operator
-                    // thus, parenthesis are required.
-                    ParenthesisRequirement.REQUIRED
-                }
+            // priorities are ambiguous, need to look at associativity
+            else if (argumentTriple.third?.type in setOf(FX, XFX, YFX) && operator.type == YF) {
+                // associativity removes the ambiguity in this case
+                ParenthesisRequirement.NOT_REQUIRED
+            } else {
+                // priorities are directly inverted to what would be if we simply prepended the operator
+                // thus, parenthesis are required.
+                ParenthesisRequirement.REQUIRED
             }
 
             return when (parenthesisRequirement) {
@@ -235,9 +229,37 @@ private fun Term.toStringUsingOperatorNotationsInternal(operators: OperatorRegis
         }
         
         operator.type.isInfix -> {
-            // TODO, this is make-the-test-green-TDD-style-code
+            val leftTriple  = arguments[0].toStringUsingOperatorNotationsInternal(operators)
+            val rightTriple = arguments[1].toStringUsingOperatorNotationsInternal(operators)
+            
+            val leftParenthesisRequirements = if (operator.precedence > leftTriple.second) {
+                ParenthesisRequirement.NOT_REQUIRED
+            }
+            else {
+                ParenthesisRequirement.REQUIRED
+            }
+            
+            val rightParenthesisRequirement = if (operator.precedence > rightTriple.second) {
+                ParenthesisRequirement.NOT_REQUIRED
+            }
+            else {
+                ParenthesisRequirement.REQUIRED
+            }
+            
+            val leftString = if (leftParenthesisRequirements == ParenthesisRequirement.REQUIRED) {
+                "(${leftTriple.first})"
+            } else {
+                leftTriple.first
+            }
+            
+            val rightString = if (rightParenthesisRequirement == ParenthesisRequirement.REQUIRED) {
+                "(${rightTriple.first})"
+            } else {
+                rightTriple.first
+            }
+            
             return Triple(
-                arguments[0].toStringUsingOperatorNotationsInternal(operators).first + " " + operator.name + " " + arguments[1].toStringUsingOperatorNotationsInternal(operators).first,
+                "$leftString ${operator.name} $rightString",
                 operator.precedence,
                 operator
             )
