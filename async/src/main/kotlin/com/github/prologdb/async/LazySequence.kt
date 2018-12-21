@@ -464,12 +464,6 @@ fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
 }
 
 /**
- * @return a [LazySequence] of all the elements remaining in this [LazySequence] that are not null.
- */
-fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
-    = @Suppress("unchecked") FilteredLazySequence(this, { it != null}) as LazySequence<T>
-
-/**
  * Returns a [LazySequence] of only those elements remaining in this [LazySequence] that match the given predicate.
  *
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
