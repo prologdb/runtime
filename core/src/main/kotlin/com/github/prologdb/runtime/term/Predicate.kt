@@ -82,7 +82,9 @@ open class Predicate(
         if (unification != null) yield(unification)
     }
 
-    override val variables = arguments.flatMap(Term::variables).toSet()
+    override val variables by lazy {
+        arguments.flatMap(Term::variables).toSet()
+    }
 
     override fun substituteVariables(mapper: (Variable) -> Term): Predicate {
         return Predicate(name, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
