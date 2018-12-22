@@ -100,15 +100,15 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
         }
     }
 
-    override val variables: Set<Variable>
-        get() {
-            val elements = elements.flatMap(Term::variables).toMutableSet()
-            if (tail != null) {
-                elements.add(tail)
-            }
-
-            return elements
+    override val variables: Set<Variable> by lazy {
+        val variables = elements.flatMap(Term::variables).toMutableSet()
+        
+        if (tail != null) {
+            variables.add(tail)
         }
+
+        variables
+    }
 
     override fun substituteVariables(mapper: (Variable) -> Term): PrologList {
         return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
