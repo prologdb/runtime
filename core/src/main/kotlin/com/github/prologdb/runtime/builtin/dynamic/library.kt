@@ -21,14 +21,14 @@ fun compoundToQuery(compoundTerm: CompoundTerm): Query {
         return PredicateInvocationQuery(compoundTerm)
     }
 
-    if (compoundTerm.name == "," || compoundTerm.name == ";") {
+    if (compoundTerm.functor == "," || compoundTerm.functor == ";") {
         val allArgumentsPredicates = compoundTerm.arguments.all { it is CompoundTerm }
         if (!allArgumentsPredicates) {
             return PredicateInvocationQuery(compoundTerm)
         }
 
         val argumentsConverted = compoundTerm.arguments.map { compoundToQuery(it as CompoundTerm) }.toTypedArray()
-        return when (compoundTerm.name) {
+        return when (compoundTerm.functor) {
             "," -> AndQuery(argumentsConverted)
             ";" -> OrQuery(argumentsConverted)
             else -> throw IllegalStateException()

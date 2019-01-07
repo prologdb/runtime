@@ -157,7 +157,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
      * Assures the indicator of the given type is present in [dynamicPredicates].
      * @throws PredicateNotDynamicException If the predicate of the given type is not dynamic.
      */
-    private fun assureDynamic(type: HasNameAndArity) = assureDynamic(ClauseIndicator.of(type))
+    private fun assureDynamic(type: HasFunctorAndArity) = assureDynamic(ClauseIndicator.of(type))
 
     /**
      * Assures the given indicator is present in [dynamicPredicates].
@@ -237,7 +237,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         coreBuiltins["abolish"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("abolish/${args.size} is not defined")
             val arg0 = args[0]
-            if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
+            if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.functor != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
             if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolish/1 must be a predicate indicator")
 
             val name = (arg0.arguments[0] as Atom).name
@@ -254,7 +254,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         coreBuiltins["abolishFacts"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("abolishFacts/${args.size} is not defined")
             val arg0 = args[0]
-            if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be an instance of `/`/2")
+            if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.functor != "/") throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be an instance of `/`/2")
             if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be a predicate indicator")
 
             val name = (arg0.arguments[0] as Atom).name
@@ -280,7 +280,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
     }
 
     private fun findFor(compoundTerm: CompoundTerm): Iterable<Clause> {
-        val staticLibrary = staticIndex[compoundTerm.arity]?.get(compoundTerm.name)
+        val staticLibrary = staticIndex[compoundTerm.arity]?.get(compoundTerm.functor)
         return staticLibrary?.findFor(compoundTerm) ?: store.findFor(compoundTerm)
     }
 
@@ -354,8 +354,8 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
             val indicator = ClauseIndicator.of(predicate)
             if (!authorization.mayRead(indicator)) throw PrologPermissionError("Not allowed to read $indicator")
 
-            if (predicate.name in coreBuiltins) {
-                val builtin = coreBuiltins[predicate.name]!!
+            if (predicate.functor in coreBuiltins) {
+                val builtin = coreBuiltins[predicate.functor]!!
 
                 try {
                     builtin(authorization, predicate.arguments)

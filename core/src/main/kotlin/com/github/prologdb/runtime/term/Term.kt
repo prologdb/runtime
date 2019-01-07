@@ -26,7 +26,7 @@ interface Term : Comparable<Term> {
 
     /**
      * Like [toString] but instead of going for strict notation (predicates ALWAYS in the syntax
-     * `name ( <arguments ... > )`), uses the operators from the given registry. Adds parenthesis
+     * `functor ( <arguments ... > )`), uses the operators from the given registry. Adds parenthesis
      * in such a way that parsing the resulting string back using the same operators results in 
      * the exact same term.
      * 

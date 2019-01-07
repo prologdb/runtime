@@ -100,7 +100,7 @@ class PrologTest : FreeSpec() { init {
             if (arg0 !is CompoundTerm) continue
             if (arg1 !is PrologList) continue
 
-            if (arg0.name != "test") continue
+            if (arg0.functor != "test") continue
             if (arg0.arity != 1) continue
             if (arg0.arguments[0] !is PrologString) continue
 
@@ -264,12 +264,12 @@ private class TestQueryContext(
 }
 
 private fun ParsedCompoundTerm.toQuery(): Query {
-    if (this.name == ",") {
+    if (this.functor == ",") {
         val goals = mutableListOf<Query>()
         goals.add(this.arguments[0].asPredicate().toQuery())
 
         var pivot = this.arguments[1].asPredicate()
-        while (pivot.name == ",") {
+        while (pivot.functor == ",") {
             goals.add(pivot.arguments[0].asPredicate().toQuery())
             pivot = pivot.arguments[1].asPredicate()
         }
@@ -277,12 +277,12 @@ private fun ParsedCompoundTerm.toQuery(): Query {
         goals.add(pivot.toQuery())
         return ParsedAndQuery(goals.toTypedArray(), this.sourceInformation)
     }
-    else if (this.name == ";") {
+    else if (this.functor == ";") {
         val goals = mutableListOf<Query>()
         goals.add(this.arguments[0].asPredicate().toQuery())
 
         var pivot = this.arguments[1].asPredicate()
-        while (pivot.name == ";") {
+        while (pivot.functor == ";") {
             goals.add(pivot.arguments[0].asPredicate().toQuery())
             pivot = pivot.arguments[1].asPredicate()
         }

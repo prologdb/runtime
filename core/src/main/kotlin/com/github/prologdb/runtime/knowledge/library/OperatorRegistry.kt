@@ -45,7 +45,7 @@ data class OperatorDefinition (
     val type: OperatorType,
 
     /**
-     * The name of the operator
+     * The functor of the operator
      */
     val name: String
 ) {

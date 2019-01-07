@@ -51,9 +51,9 @@ class Library(
                 map
             }()
 
-            val list = nameMap[clause.name] ?: {
+            val list = nameMap[clause.functor] ?: {
                 val list = ArrayList<Clause>(2)
-                nameMap[clause.name] = list
+                nameMap[clause.functor] = list
                 list
             }()
 
@@ -64,11 +64,11 @@ class Library(
     /**
      * Finds clauses in this library that are likely to unify with the given [CompoundTerm] (facts or rule heads).
      *
-     * "likely" means at least same name and arity; further optimizations are
+     * "likely" means at least same functor and arity; further optimizations are
      * implementation detail.
      */
     fun findFor(compoundTerm: CompoundTerm): Iterable<Clause> {
-        return index[compoundTerm.arity]?.get(compoundTerm.name) ?: emptyList()
+        return index[compoundTerm.arity]?.get(compoundTerm.functor) ?: emptyList()
     }
 
     /**

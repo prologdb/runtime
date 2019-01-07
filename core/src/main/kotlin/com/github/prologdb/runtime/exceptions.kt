@@ -36,7 +36,7 @@ open class PredicateNotDynamicException(private val indicator: ClauseIndicator, 
  */
 class IllegalDirectiveException(message: String, cause: Throwable? = null) : PrologException(message, cause) {
     constructor(rejectedDirective: CompoundTerm) : this(
-            if (rejectedDirective.name != ":-" || rejectedDirective.arity != 1) {
+            if (rejectedDirective.functor != ":-" || rejectedDirective.arity != 1) {
                 "Directives must be instances of :-/1"
             } else {
                 "Unsupported or illegal directive: $rejectedDirective"

@@ -74,10 +74,10 @@ init {
 
                 // ASSERT
                 resultFunctorA.size shouldEqual 1
-                resultFunctorA.first().name shouldEqual entryFunctorA.name
+                resultFunctorA.first().functor shouldEqual entryFunctorA.functor
 
                 resultFunctorB.size shouldEqual 1
-                resultFunctorB.first().name shouldEqual entryFunctorB.name
+                resultFunctorB.first().functor shouldEqual entryFunctorB.functor
             }
 
             "retraction" - {

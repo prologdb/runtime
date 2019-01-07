@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 
 /**
- * Creates a new [CompoundTerm] with [this] as the name and the
+ * Creates a new [CompoundTerm] with [this] as the functor and the
  * given arguments
  */
 operator fun String.invoke(vararg args: Term) = CompoundTerm(this, args)

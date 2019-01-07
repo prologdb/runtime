@@ -386,7 +386,7 @@ class PrologParser {
         val elements = commaPredicateToList(elementsResult.item ?: throw InternalParserError()).item ?: throw InternalParserError()
 
         // complain about every element that is not an instance of :/2 with the first argument being an atom
-        val (elementsInstanceOfPairArity2, elementsNotInstanceOfPair) = elements.partition { it is CompoundTerm && it.name == ":" && it.arity == 2 }
+        val (elementsInstanceOfPairArity2, elementsNotInstanceOfPair) = elements.partition { it is CompoundTerm && it.functor == ":" && it.arity == 2 }
         val (validPairs, elementsWithKeyNotAnAtom) = elementsInstanceOfPairArity2.partition { (it as CompoundTerm).arguments[0] is Atom }
 
         elementsNotInstanceOfPair.forEach {
@@ -667,7 +667,7 @@ class PrologParser {
          * @param the only parameter to dynamic/1
          */
         fun handleDynamicDirective(indicator: Term) {
-            if (indicator !is ParsedCompoundTerm || indicator.arity != 2 || indicator.name != "/") {
+            if (indicator !is ParsedCompoundTerm || indicator.arity != 2 || indicator.functor != "/") {
                 reportings.add(SemanticError(
                     "The argument to dynamic/1 must be an instance of `/`/2",
                     indicator.location
@@ -708,16 +708,16 @@ class PrologParser {
 
         fun handleDirective(command: ParsedCompoundTerm) {
             when(command.arity) {
-                3 -> when(command.name) {
+                3 -> when(command.functor) {
                     "op" -> return handleOperator(command)
                 }
-                1 -> when(command.name) {
+                1 -> when(command.functor) {
                     "dynamic" -> return handleDynamicDirective(command.arguments[0])
                 }
             }
 
             reportings.add(SemanticError(
-                "Directive ${command.name}/${command.arity} is not defined.",
+                "Directive ${command.functor}/${command.arity} is not defined.",
                 command.location
             ))
         }
@@ -788,7 +788,7 @@ class PrologParser {
     private fun commaPredicateToList(commaPredicate: Term): ParseResult<List<Term>> {
         var pivot = commaPredicate
         val list = ArrayList<Term>(5)
-        while (pivot is CompoundTerm && !(pivot as ParsedCompoundTerm).parenthesisProtection && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
+        while (pivot is CompoundTerm && !(pivot as ParsedCompoundTerm).parenthesisProtection && pivot.arity == 2 && pivot.functor == Operator.COMMA.text) {
             pivot as? ParsedCompoundTerm ?: throw InternalParserError()
             list.add(pivot.arguments[0])
             pivot = pivot.arguments[1]
@@ -804,8 +804,8 @@ class PrologParser {
      */
     private fun transformQuery(query: Term): ParseResult<Query> {
         if (query is ParsedCompoundTerm) {
-            if (query.arity == 2 && (query.name == Operator.COMMA.text || query.name == Operator.SEMICOLON.text)) {
-                val operator = query.name
+            if (query.arity == 2 && (query.functor == Operator.COMMA.text || query.functor == Operator.SEMICOLON.text)) {
+                val operator = query.functor
                 val elements = ArrayList<Query>(5)
                 var pivot: Term = query
                 val reportings = mutableSetOf<Reporting>()
@@ -816,7 +816,7 @@ class PrologParser {
                     if (transformResult.item != null) elements += transformResult.item
                 }
 
-                while (pivot is ParsedCompoundTerm && pivot.arity == 2 && pivot.name == operator) {
+                while (pivot is ParsedCompoundTerm && pivot.arity == 2 && pivot.functor == operator) {
                     addElement(pivot.arguments[0])
                     pivot = pivot.arguments[1]
                 }
@@ -873,10 +873,10 @@ class PrologParser {
 }
 
 private val ParsedCompoundTerm.isDirectiveInvocation: Boolean
-    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is CompoundTerm
+    get() = functor == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is CompoundTerm
 
 private val ParsedCompoundTerm.isRuleDefinition: Boolean
-    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is CompoundTerm
+    get() = functor == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is CompoundTerm
 
 /**
  * Skips (`next()`s) tokens in the receiver lazysequence until the parenthesis + bracket levels are 0 and the given
@@ -1089,7 +1089,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                 if ((operatorDef.type == XFX || operatorDef.type == YFX) && rhsOp.precedence >= operatorDef.precedence) {
                     if (rhsOp.type == YFX) {
                         thisPredicate = ParsedCompoundTerm(
-                            rhsPredicate.name,
+                            rhsPredicate.functor,
                             arrayOf(
                                 ParsedCompoundTerm(
                                     operatorDef.name,
@@ -1103,7 +1103,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                     }
                     else if (rhsOp.type == YF) {
                         thisPredicate = ParsedCompoundTerm(
-                            rhsPredicate.name,
+                            rhsPredicate.functor,
                             arrayOf(
                                 ParsedCompoundTerm(
                                     operatorDef.name,

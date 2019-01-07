@@ -11,7 +11,7 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause {
-    override val name = head.name
+    override val functor = head.functor
     override val arity = head.arity
 
     /**

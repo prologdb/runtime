@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import java.util.*
 
-interface Clause : HasNameAndArity {
+interface Clause : HasFunctorAndArity {
     /**
      * Unifies the given predicate (`other`) with this entry; if this is a fact (a [CompoundTerm]), unifies with
      * the given predicate and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
@@ -37,7 +37,7 @@ data class ClauseIndicator private constructor(
                 throw IllegalArgumentException("\"$indicatorStr\" is not a valid clause indicator")
             }
 
-            if (parts[0].isBlank()) throw IllegalArgumentException("\"$indicatorStr\" is not a valid clause indicator: name is blank")
+            if (parts[0].isBlank()) throw IllegalArgumentException("\"$indicatorStr\" is not a valid clause indicator: functor is blank")
             val arity = parts[1].toIntOrNull() ?: throw IllegalArgumentException("\"$indicatorStr\" is not a valid caluse indicator: arity is not numeric.")
             return of(parts[0], arity)
         }
@@ -47,7 +47,7 @@ data class ClauseIndicator private constructor(
          * equal the given arguments. Utilizes a weak-reference cache.
          */
         fun of(name: String, arity: Int): ClauseIndicator {
-            // assure name-map is present
+            // assure functor-map is present
             if (arity !in cache) {
                 synchronized(cache) {
                     if (arity !in cache) {
@@ -64,6 +64,6 @@ data class ClauseIndicator private constructor(
             }()
         }
 
-        fun of(clause: HasNameAndArity): ClauseIndicator = of(clause.name, clause.arity)
+        fun of(clause: HasFunctorAndArity): ClauseIndicator = of(clause.functor, clause.arity)
     }
 }

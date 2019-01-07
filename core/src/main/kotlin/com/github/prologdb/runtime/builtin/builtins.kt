@@ -33,7 +33,7 @@ abstract class BuiltinPredicate(name: String, vararg arguments: Term) : Compound
  * combination with [nativeRule] to help ensure all preconditions for [invoke].
  *
  * Is invoked when the builtin is invoked from prolog. When invoked, it must be assured that:
- * * the predicate invoked from the prolog code actually matches the builtin (name & arity)
+ * * the predicate invoked from the prolog code actually matches the builtin (functor & arity)
  *
  * Arguments to the function:
  * 1. The arguments given to the builtin from the prolog code that invokes it
@@ -82,7 +82,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
     val callDirectly: PrologBuiltinImplementation = code
 
     override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { other, context ->
-        if (head.arity == other.arity && head.name == other.name) {
+        if (head.arity == other.arity && head.functor == other.functor) {
             try {
                 code(this, other.arguments, context)
             } catch (ex: PrologException) {

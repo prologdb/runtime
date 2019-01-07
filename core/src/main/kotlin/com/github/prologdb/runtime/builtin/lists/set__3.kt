@@ -16,7 +16,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *
  * Of the first two arguments, exactly one must be instantiated; the other one must be unbound.
  *
- * To check for equality, the predicate with the name given in the third argument
+ * To check for equality, the predicate with the functor given in the third argument
  * is consulted; e.g. `set([1, 1, 2], X, ==)` would try to proof `=(1, 1)` to check
  * whether the two `1`s are equal.
  */

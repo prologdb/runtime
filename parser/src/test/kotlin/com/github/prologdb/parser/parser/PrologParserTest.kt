@@ -106,13 +106,13 @@ class PrologParserTest : FreeSpec() {
         result.reportings should beEmpty()
 
         var predicate = result.item!! as ParsedCompoundTerm
-        predicate.name shouldEqual ","
+        predicate.functor shouldEqual ","
         predicate.arity shouldEqual 2
 
         (predicate.arguments[0] as ParsedAtom).name shouldEqual "a"
 
         predicate = predicate.arguments[1] as ParsedCompoundTerm
-        predicate.name shouldEqual ","
+        predicate.functor shouldEqual ","
         predicate.arity shouldEqual  2
 
         (predicate.arguments[0] as ParsedAtom).name shouldEqual "b"
@@ -126,7 +126,7 @@ class PrologParserTest : FreeSpec() {
             result.reportings should beEmpty()
 
             val predicate = result.item!! as CompoundTerm
-            predicate.name shouldEqual "predicate"
+            predicate.functor shouldEqual "predicate"
             predicate.arity shouldEqual 0
         }
 
@@ -135,7 +135,7 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
             val predicate = result.item!! as CompoundTerm
-            predicate.name shouldEqual "predicate"
+            predicate.functor shouldEqual "predicate"
             predicate.arguments.size shouldEqual 3
 
             assert(predicate.arguments[0] is Atom)
@@ -165,7 +165,7 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             val predicate = result.item!! as ParsedCompoundTerm
-            predicate.name shouldEqual "infixOpXFX500"
+            predicate.functor shouldEqual "infixOpXFX500"
             predicate.arguments.size shouldEqual 2
         }
 
@@ -175,11 +175,11 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             val predicate = result.item!! as ParsedCompoundTerm
-            predicate.name shouldEqual "a"
+            predicate.functor shouldEqual "a"
             predicate.arity shouldEqual 1
 
             val soleArg = predicate.arguments[0] as ParsedCompoundTerm
-            soleArg.name shouldEqual "infixOpXFX500"
+            soleArg.functor shouldEqual "infixOpXFX500"
             soleArg.arity shouldEqual 2
             soleArg.arguments[0].toString() shouldEqual "b"
             soleArg.arguments[1].toString() shouldEqual "c"
@@ -192,11 +192,11 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             val item = result.item!! as CompoundTerm
-            item.name shouldEqual "infixOpXFX500"
+            item.functor shouldEqual "infixOpXFX500"
             item.arity shouldEqual 2
 
             val lhs = item.arguments[0] as CompoundTerm
-            lhs.name shouldEqual "prefixOpFY200"
+            lhs.functor shouldEqual "prefixOpFY200"
             lhs.arity shouldEqual 1
         }
 
@@ -207,7 +207,7 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             val item = result.item!! as CompoundTerm
-            item.name shouldEqual "prefixOpFY200"
+            item.functor shouldEqual "prefixOpFY200"
             item.arity shouldEqual 1
         }
 
@@ -218,11 +218,11 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             val item = result.item!! as CompoundTerm
-            item.name shouldEqual "infixOpXFX500"
+            item.functor shouldEqual "infixOpXFX500"
             item.arity shouldEqual 2
 
             val lhs = item.arguments[0] as CompoundTerm
-            lhs.name shouldEqual "postfixOpXF200"
+            lhs.functor shouldEqual "postfixOpXF200"
             lhs.arity shouldEqual 1
 
             val rhs = item.arguments[1] as Atom
@@ -236,11 +236,11 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             val item = result.item!! as CompoundTerm
-            item.name shouldEqual "infixOpXFX500"
+            item.functor shouldEqual "infixOpXFX500"
             item.arity shouldBe 2
 
             val lhs = item.arguments[0] as CompoundTerm
-            lhs.name shouldEqual "prefixOpFX200"
+            lhs.functor shouldEqual "prefixOpFX200"
             lhs.arity shouldEqual 1
             (lhs.arguments[0] as Atom).name shouldEqual "a"
 
@@ -434,11 +434,11 @@ class PrologParserTest : FreeSpec() {
             result.reportings.size shouldEqual 0
 
             var item = result.item!! as CompoundTerm
-            item.name shouldEqual "prefixOpFY200"
+            item.functor shouldEqual "prefixOpFY200"
             item.arity shouldEqual 1
 
             item = item.arguments[0] as CompoundTerm
-            item.name shouldEqual "prefixOpFY200"
+            item.functor shouldEqual "prefixOpFY200"
             item.arity shouldEqual 1
         }
 
@@ -491,12 +491,12 @@ class PrologParserTest : FreeSpec() {
 
                 result.item shouldBe instanceOf(ParsedCompoundTerm::class)
                 val outer = result.item as ParsedCompoundTerm
-                outer.name shouldEqual "postfixOpYF200"
+                outer.functor shouldEqual "postfixOpYF200"
                 outer.arity shouldEqual 1
                 outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
 
                 val inner = outer.arguments[0] as ParsedCompoundTerm
-                inner.name shouldEqual "infixOpXFX200"
+                inner.functor shouldEqual "infixOpXFX200"
                 inner.arity shouldEqual 2
                 inner.arguments[0] shouldEqual Atom("a")
                 inner.arguments[1] shouldEqual Atom("b")
@@ -510,12 +510,12 @@ class PrologParserTest : FreeSpec() {
 
                 result.item shouldBe instanceOf(ParsedCompoundTerm::class)
                 val outer = result.item as ParsedCompoundTerm
-                outer.name shouldEqual "prefixOpFY200"
+                outer.functor shouldEqual "prefixOpFY200"
                 outer.arity shouldEqual 1
                 outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
 
                 val inner = outer.arguments[0] as ParsedCompoundTerm
-                inner.name shouldEqual "infixOpXFX200"
+                inner.functor shouldEqual "infixOpXFX200"
                 inner.arity shouldEqual 2
                 inner.arguments[0] shouldEqual Atom("a")
                 inner.arguments[1] shouldEqual Atom("b")
@@ -529,13 +529,13 @@ class PrologParserTest : FreeSpec() {
 
                 result.item shouldBe instanceOf(ParsedCompoundTerm::class)
                 val outer = result.item as ParsedCompoundTerm
-                outer.name shouldEqual "infixOpYFX200"
+                outer.functor shouldEqual "infixOpYFX200"
                 outer.arity shouldEqual 2
                 outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
                 outer.arguments[1] shouldEqual Atom("b")
 
                 val inner = outer.arguments[0] as ParsedCompoundTerm
-                inner.name shouldEqual "prefixOpFX200"
+                inner.functor shouldEqual "prefixOpFX200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
             }
@@ -548,12 +548,12 @@ class PrologParserTest : FreeSpec() {
 
                 result.item shouldBe instanceOf(ParsedCompoundTerm::class)
                 val outer = result.item as ParsedCompoundTerm
-                outer.name shouldEqual "prefixOpFY200"
+                outer.functor shouldEqual "prefixOpFY200"
                 outer.arity shouldEqual 1
                 outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
 
                 val inner = outer.arguments[0] as ParsedCompoundTerm
-                inner.name shouldEqual "postfixOpXF200"
+                inner.functor shouldEqual "postfixOpXF200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
             }
@@ -566,12 +566,12 @@ class PrologParserTest : FreeSpec() {
 
                 result.item shouldBe instanceOf(ParsedCompoundTerm::class)
                 val outer = result.item as ParsedCompoundTerm
-                outer.name shouldEqual "postfixOpYF200"
+                outer.functor shouldEqual "postfixOpYF200"
                 outer.arity shouldEqual 1
                 outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
 
                 val inner = outer.arguments[0] as ParsedCompoundTerm
-                inner.name shouldEqual "prefixOpFX200"
+                inner.functor shouldEqual "prefixOpFX200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
             }
@@ -626,7 +626,7 @@ class PrologParserTest : FreeSpec() {
                 val item = result.item!!
                 item shouldBe instanceOf(CompoundTerm::class)
                 item as CompoundTerm
-                item.name shouldEqual "infixAndPostfixOp"
+                item.functor shouldEqual "infixAndPostfixOp"
                 item.arity shouldEqual 1
             }
 
@@ -642,7 +642,7 @@ class PrologParserTest : FreeSpec() {
                 val item = result.item!!
                 item shouldBe instanceOf(CompoundTerm::class)
                 item as CompoundTerm
-                item.name shouldEqual "infixAndPrefixOp"
+                item.functor shouldEqual "infixAndPrefixOp"
                 item.arity shouldEqual 1
             }
         }
@@ -656,7 +656,7 @@ class PrologParserTest : FreeSpec() {
         val predicate = result.item as CompoundTerm
         predicate.arguments.size shouldBe 1
         val arg0 = predicate.arguments[0] as CompoundTerm
-        arg0.name shouldBe ","
+        arg0.functor shouldBe ","
         arg0.arity shouldBe 2
 
         shouldThrow<IllegalStateException> {

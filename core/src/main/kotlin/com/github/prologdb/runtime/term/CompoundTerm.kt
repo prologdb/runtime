@@ -13,8 +13,8 @@ import com.github.prologdb.runtime.unification.VariableBucket
 import sensibleHashCode
 
 open class CompoundTerm(
-    override val name: String,
-    arguments: Array<out Term>
+        override val functor: String,
+        arguments: Array<out Term>
 ) : Term, Clause
 {
     open val arguments: Array<out Term> = arguments
@@ -25,7 +25,7 @@ open class CompoundTerm(
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is CompoundTerm) {
-            if (this.name != rhs.name) {
+            if (this.functor != rhs.functor) {
                 return Unification.FALSE
             }
 
@@ -87,7 +87,7 @@ open class CompoundTerm(
     }
 
     override fun substituteVariables(mapper: (Variable) -> Term): CompoundTerm {
-        return CompoundTerm(name, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
+        return CompoundTerm(functor, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
     }
 
     override fun compareTo(other: Term): Int {
@@ -101,7 +101,7 @@ open class CompoundTerm(
         val arityCmp = this.arity - other.arity
         if (arityCmp != 0) return arityCmp
 
-        val functorNameCmp = this.name.compareTo(other.name)
+        val functorNameCmp = this.functor.compareTo(other.name)
         if (functorNameCmp != 0) return functorNameCmp
 
         for (argumentIndex in 0 until arity) {
@@ -116,7 +116,7 @@ open class CompoundTerm(
     }
 
     override fun toString(): String {
-        return name + "(" + arguments.joinToString(", ") + ")"
+        return functor + "(" + arguments.joinToString(", ") + ")"
     }
 
     override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
@@ -127,14 +127,14 @@ open class CompoundTerm(
         if (this === other) return true
         if (other !is CompoundTerm) return false
 
-        if (name != other.name) return false
+        if (functor != other.functor) return false
         if (arguments contentDeepEquals other.arguments) return true
 
         return false
     }
 
     override fun hashCode(): Int {
-        var result = name.hashCode()
+        var result = functor.hashCode()
         result = 31 * result + arguments.sensibleHashCode()
         return result
     }
@@ -153,7 +153,7 @@ private fun Term.toStringUsingOperatorNotationsInternal(operators: OperatorRegis
         return Triple(this.toStringUsingOperatorNotations(operators), 0, null)
     }
     
-    val operator = operators.getOperatorDefinitionsFor(name)
+    val operator = operators.getOperatorDefinitionsFor(functor)
         .firstOrNull { it.type.arity == this.arity }
         ?: return toStringThisUsingStrictNotationArgumentsUsingOperatorNotations(operators)
     
@@ -288,7 +288,7 @@ private fun CompoundTerm.toStringThisUsingStrictNotationArgumentsUsingOperatorNo
     return Triple(
         argumentStrings.joinToString(
             separator = ", ",
-            prefix = "$name(", // TODO name that needs escaping
+            prefix = "$functor(", // TODO functor that needs escaping
             postfix = ")"
         ),
         0,

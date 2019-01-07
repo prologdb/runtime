@@ -21,7 +21,7 @@ interface ClauseStore {
      *
      * The default implementation of this method uses the kotlin stdlib [filter] method.
      */
-    fun findFor(predicate: CompoundTerm): Iterable<Clause> = clauses.filter { it.arity == predicate.arity && it.name == predicate.name }
+    fun findFor(predicate: CompoundTerm): Iterable<Clause> = clauses.filter { it.arity == predicate.arity && it.functor == predicate.functor }
 }
 
 interface MutableClauseStore : ClauseStore {
@@ -138,37 +138,37 @@ class SimpleClauseStore(givenEntries: Iterable<Clause> = emptyList()) : MutableC
     }
 
     override fun abolishFacts(functor: String, arity: Int) {
-        entries.removeAll(entries.filter { it.arity == arity && it is CompoundTerm && it.name == functor  })
+        entries.removeAll(entries.filter { it.arity == arity && it is CompoundTerm && it.functor == functor  })
     }
 
     override fun abolish(functor: String, arity: Int) {
-        entries.removeAll(entries.filter { it.arity == arity && it.name == functor })
+        entries.removeAll(entries.filter { it.arity == arity && it.functor == functor })
     }
 }
 
 /**
- * Indexes entries by arity and name in maps.
+ * Indexes entries by arity and functor in maps.
  */
 class DoublyIndexedClauseStore : MutableClauseStore {
     /**
-     * The index. The key in the outer map corresponds to [Clause.name] and the
+     * The index. The key in the outer map corresponds to [Clause.functor] and the
      * key of the inner map corresponds to [Clause.arity].
      */
     private val index = mutableMapOf<String, ArityMapToLibraryEntries>()
 
     override fun findFor(predicate: CompoundTerm): Iterable<Clause> {
-        val arityMap = index[predicate.name] ?: return emptyList()
+        val arityMap = index[predicate.functor] ?: return emptyList()
         return arityMap[predicate.arity] ?: emptyList()
     }
 
     override fun assertz(entry: Clause) {
         val arityIndex: ArityMapToLibraryEntries
 
-        if (entry.name !in index) {
+        if (entry.functor !in index) {
             arityIndex = ArityMap()
-            index[entry.name] = arityIndex
+            index[entry.functor] = arityIndex
         } else {
-            arityIndex = index[entry.name]!!
+            arityIndex = index[entry.functor]!!
         }
 
         val entryList: MutableList<Clause>
@@ -197,7 +197,7 @@ class DoublyIndexedClauseStore : MutableClauseStore {
         }
 
     override fun retractFact(fact: CompoundTerm): LazySequence<Unification> {
-        val arityIndex = index[fact.name] ?: return Unification.NONE
+        val arityIndex = index[fact.functor] ?: return Unification.NONE
         val entryList = arityIndex[fact.arity] ?: return Unification.NONE
 
         return LazySequence.fromGenerator {
@@ -217,7 +217,7 @@ class DoublyIndexedClauseStore : MutableClauseStore {
     }
 
     override fun retract(unifiesWith: CompoundTerm): LazySequence<Unification> {
-        val arityIndex = index[unifiesWith.name] ?: return Unification.NONE
+        val arityIndex = index[unifiesWith.functor] ?: return Unification.NONE
         val entryList = arityIndex[unifiesWith.arity] ?: return Unification.NONE
 
         return LazySequence.fromGenerator {
