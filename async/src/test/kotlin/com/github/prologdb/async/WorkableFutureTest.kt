@@ -1,6 +1,5 @@
 package com.github.prologdb.async
 
-import com.sun.xml.internal.ws.util.CompletedFuture
 import io.kotlintest.matchers.beGreaterThanOrEqualTo
 import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
@@ -159,7 +158,8 @@ class WorkableFutureTest : FreeSpec({
     }
 
     "await completed does not suspend" {
-        val waitingOn = CompletedFuture(Unit, null)
+        val waitingOn = CompletableFuture<Unit>()
+        waitingOn.complete(Unit)
 
         val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             await(waitingOn)
@@ -239,14 +239,20 @@ class WorkableFutureTest : FreeSpec({
             val finallyExecutions = mutableListOf<Int>()
 
             val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
-                await(CompletedFuture(Unit, null))
+                val completedFuture1 = CompletableFuture<Unit>()
+                completedFuture1.complete(Unit)
+
+                val erroredFuture1 = CompletableFuture<Unit>()
+                erroredFuture1.completeExceptionally(Exception("ERROR!"))
+
+                await(completedFuture1)
                 finally {
                     finallyExecutions.add(1)
                 }
                 finally {
                     finallyExecutions.add(2)
                 }
-                awaitAndFinally(CompletedFuture(null, Exception("ERROR!"))) {
+                awaitAndFinally(erroredFuture1) {
                     finallyExecutions.add(3)
                 }
                 finally {
@@ -265,11 +271,14 @@ class WorkableFutureTest : FreeSpec({
             val finallyExecutions = mutableListOf<Int>()
 
             val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
+                val completedFuture1 = CompletableFuture<Unit>()
+                completedFuture1.complete(Unit)
+
                 finally {
                     finallyExecutions.add(1)
                 }
 
-                awaitAndFinally(CompletedFuture(Unit, null)) {
+                awaitAndFinally(completedFuture1) {
                     finallyExecutions.add(2)
                 }
 
