@@ -5,7 +5,7 @@ import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
 import com.github.prologdb.runtime.knowledge.library.MutableClauseStore
 import com.github.prologdb.runtime.knowledge.library.SimpleClauseStore
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -44,7 +44,7 @@ init {
                 // SETUP
                 entryStore = implementationFactory()
                 val entryArity1 = CompoundTerm("foo", arrayOf(Atom("x")))
-                val entryArity2 = Rule(CompoundTerm("foo", arrayOf(Atom("x"), Atom("y"))), PredicateQuery(CompoundTerm("hans", arrayOf())))
+                val entryArity2 = Rule(CompoundTerm("foo", arrayOf(Atom("x"), Atom("y"))), PredicateInvocationQuery(CompoundTerm("hans", arrayOf())))
 
                 // ACT
                 entryStore.assertz(entryArity1)
@@ -64,7 +64,7 @@ init {
                 // SETUP
                 entryStore = implementationFactory()
                 val entryFunctorA = CompoundTerm("foobar", arrayOf(Atom("x")))
-                val entryFunctorB = Rule(CompoundTerm("barfoo", arrayOf(Atom("x"))), PredicateQuery(CompoundTerm("hans", arrayOf())))
+                val entryFunctorB = Rule(CompoundTerm("barfoo", arrayOf(Atom("x"))), PredicateInvocationQuery(CompoundTerm("hans", arrayOf())))
 
                 // ACT
                 entryStore.assertz(entryFunctorA)
@@ -126,7 +126,7 @@ init {
                 }
 
                 "rules removed through retract" - {
-                    val rule = Rule(CompoundTerm("head", arrayOf(Variable("X"))), PredicateQuery(factA))
+                    val rule = Rule(CompoundTerm("head", arrayOf(Variable("X"))), PredicateInvocationQuery(factA))
                     entryStore.assertz(rule)
                     entryStore.findFor(rule.head).toList().size shouldEqual 1
 

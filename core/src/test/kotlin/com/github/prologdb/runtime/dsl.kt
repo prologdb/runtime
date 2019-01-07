@@ -4,7 +4,7 @@ import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.find
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -88,7 +88,7 @@ infix fun Term.shouldNotUnifyWith(rhs: Term) {
 }
 
 infix fun KnowledgeBase.shouldProve(compoundTerm: CompoundTerm): UnificationSequenceGenerator {
-    return shouldProve(PredicateQuery(compoundTerm))
+    return shouldProve(PredicateInvocationQuery(compoundTerm))
 }
 
 infix fun KnowledgeBase.shouldProve(query: Query): UnificationSequenceGenerator {
@@ -112,7 +112,7 @@ infix fun KnowledgeBase.shouldNotProve(query: Query) {
 }
 
 infix fun KnowledgeBase.shouldNotProve(compoundTerm: CompoundTerm) {
-    shouldNotProve(PredicateQuery(compoundTerm))
+    shouldNotProve(PredicateInvocationQuery(compoundTerm))
 }
 
 private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean

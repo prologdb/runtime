@@ -14,7 +14,7 @@ import com.github.prologdb.runtime.builtin.string.StringsLibrary
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
@@ -294,7 +294,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
             when (q) {
                 is AndQuery -> fulfillAndQuery(q, variables)
                 is OrQuery -> for (goal in q.goals) fulfillOrQuery(q, variables)
-                is PredicateQuery -> fulfillPredicate(q, variables)
+                is PredicateInvocationQuery -> fulfillPredicate(q, variables)
             }
         }
 
@@ -348,7 +348,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
             }
         }
 
-        private suspend fun LazySequenceBuilder<Unification>.fulfillPredicate(query: PredicateQuery, initialVariables: VariableBucket) {
+        private suspend fun LazySequenceBuilder<Unification>.fulfillPredicate(query: PredicateInvocationQuery, initialVariables: VariableBucket) {
             val predicate = query.predicate
 
             val indicator = ClauseIndicator.of(predicate)

@@ -23,7 +23,7 @@ internal val BuiltinFindAll = nativeRule("findall", 3) { args, context ->
     }
 
     val resultList = buildLazySequence<Unification>(principal) {
-        context.fulfillAttach(this, predicateToQuery(goalInput), VariableBucket())
+        context.fulfillAttach(this, compoundToQuery(goalInput), VariableBucket())
     }
         .mapRemaining { solution ->
             templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())

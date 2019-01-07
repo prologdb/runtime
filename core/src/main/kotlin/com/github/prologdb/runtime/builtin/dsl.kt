@@ -7,7 +7,7 @@ package com.github.prologdb.runtime.builtin
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 
@@ -64,8 +64,8 @@ infix fun CompoundTerm.AND(rhs: CompoundTerm): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return AndQuery(arrayOf(
-        PredicateQuery(this, callerSourceInfo),
-        PredicateQuery(rhs, callerSourceInfo)
+        PredicateInvocationQuery(this, callerSourceInfo),
+        PredicateInvocationQuery(rhs, callerSourceInfo)
     ))
 }
 
@@ -73,7 +73,7 @@ infix fun CompoundTerm.AND(rhs: Query): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return AndQuery(arrayOf(
-        PredicateQuery(this, callerSourceInfo),
+        PredicateInvocationQuery(this, callerSourceInfo),
         rhs
     ))
 }
@@ -83,12 +83,12 @@ infix fun Query.AND(rhs: CompoundTerm): Query {
     if (this is AndQuery) {
         return AndQuery(
             Array(this.goals.size + 1, { index ->
-                if (index < this.goals.size) this.goals[index] else PredicateQuery(rhs, callerSourceInfo)
+                if (index < this.goals.size) this.goals[index] else PredicateInvocationQuery(rhs, callerSourceInfo)
             })
         )
     } else {
 
-        return AndQuery(arrayOf(this, PredicateQuery(rhs, callerSourceInfo)))
+        return AndQuery(arrayOf(this, PredicateInvocationQuery(rhs, callerSourceInfo)))
     }
 }
 
@@ -96,8 +96,8 @@ infix fun CompoundTerm.OR(rhs: CompoundTerm): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return OrQuery(arrayOf(
-        PredicateQuery(this, callerSourceInfo),
-        PredicateQuery(rhs, callerSourceInfo)
+        PredicateInvocationQuery(this, callerSourceInfo),
+        PredicateInvocationQuery(rhs, callerSourceInfo)
     ))
 }
 
@@ -105,7 +105,7 @@ infix fun CompoundTerm.OR(rhs: Query): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return OrQuery(arrayOf(
-        PredicateQuery(this, callerSourceInfo),
+        PredicateInvocationQuery(this, callerSourceInfo),
         rhs
     ))
 }
@@ -115,9 +115,9 @@ infix fun Query.OR(rhs: CompoundTerm): Query {
 
     if (this is OrQuery) {
         return OrQuery(Array(this.goals.size + 1, { index ->
-            if (index < this.goals.size) this.goals[index] else PredicateQuery(rhs, callerSourceInfo)
+            if (index < this.goals.size) this.goals[index] else PredicateInvocationQuery(rhs, callerSourceInfo)
         }))
     } else {
-        return OrQuery(arrayOf(this, PredicateQuery(rhs, callerSourceInfo)))
+        return OrQuery(arrayOf(this, PredicateInvocationQuery(rhs, callerSourceInfo)))
     }
 }

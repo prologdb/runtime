@@ -57,7 +57,7 @@ open class OrQuery(val goals: Array<out Query>) : Query() {
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
 }
 
-open class PredicateQuery(
+open class PredicateInvocationQuery(
         val predicate: CompoundTerm,
         override val sourceInformation: PrologSourceInformation
 ) : Query(), HasPrologSource
@@ -75,14 +75,14 @@ open class PredicateQuery(
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
-        return PredicateQuery(
+        return PredicateInvocationQuery(
             randomVarsScope.withRandomVariables(predicate, mapping) as CompoundTerm,
             sourceInformation
         )
     }
 
     override fun substituteVariables(variableValues: VariableBucket): Query {
-        return PredicateQuery(
+        return PredicateInvocationQuery(
             predicate.substituteVariables(variableValues.asSubstitutionMapper()),
             sourceInformation
         )

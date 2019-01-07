@@ -63,7 +63,7 @@ internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, contex
 
             val resultList = await(launchWorkableFuture(principal) {
                 val resultSequence = buildLazySequence<Unification>(principal) {
-                    context.fulfillAttach(this, predicateToQuery(goalInput), VariableBucket())
+                    context.fulfillAttach(this, compoundToQuery(goalInput), VariableBucket())
                 }
                     .limitRemaining(nResultsToCalculate.toLong())
                     .mapRemaining { solution ->

@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -64,7 +64,7 @@ private val builtinArgumentVariables = arrayOf(
  * This query is used as a placeholder for builtins where an instance of [Query] is required
  * but the actual query never gets invoked because kotlin code implements the builtin.
  */
-private val nativeCodeQuery = PredicateQuery(CompoundTerm("__nativeCode", emptyArray()))
+private val nativeCodeQuery = PredicateInvocationQuery(CompoundTerm("__nativeCode", emptyArray()))
 
 class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation) : Rule(
     CompoundTerm(name, builtinArgumentVariables.sliceArray(0 until arity)),

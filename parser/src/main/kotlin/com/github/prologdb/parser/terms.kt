@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
@@ -24,7 +24,7 @@ class ParsedList(givenElements: List<Term>, tail: Term?, override val sourceInfo
         elements
     }()
 }
-open class ParsedPredicate(
+open class ParsedCompoundTerm(
     name: String,
     arguments: Array<out Term>,
     override val sourceInformation: SourceLocationRange
@@ -67,11 +67,11 @@ class ParsedPrologString(
     override val sourceInformation: SourceLocationRange
 ) : HasPrologSource, PrologString(stringContent)
 
-class ParsedPredicateQuery(predicate: ParsedPredicate) : PredicateQuery(predicate), HasPrologSource {
+class ParsedPredicateInvocationQuery(predicate: ParsedCompoundTerm) : PredicateInvocationQuery(predicate), HasPrologSource {
     override val sourceInformation = predicate.sourceInformation
 }
 
 class ParsedAndQuery(goals: Array<out Query>, override val sourceInformation: SourceLocationRange) : AndQuery(goals), HasPrologSource
 class ParsedOrQuery(goals: Array<out Query>, override val sourceInformation: SourceLocationRange) : OrQuery(goals), HasPrologSource
 
-class ParsedRule(head: ParsedPredicate, query: Query, override val sourceInformation: SourceLocationRange): Rule(head, query), HasPrologSource
+class ParsedRule(head: ParsedCompoundTerm, query: Query, override val sourceInformation: SourceLocationRange): Rule(head, query), HasPrologSource

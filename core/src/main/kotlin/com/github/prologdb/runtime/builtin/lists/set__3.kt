@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.builtin.lists
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -27,7 +27,7 @@ internal val Set3Builtin = nativeRule("set", 3, { args, context ->
 
     fun <T : Term> Collection<T>.toSetUsingComparator(comparatorName: Atom): List<T> {
         fun Term.isEqualToAccordingToComparator(rhs: Term): Boolean {
-            val result = buildLazySequence<Unification>(principal) { context.fulfillAttach(this, PredicateQuery(CompoundTerm(comparatorName.name, arrayOf(this@isEqualToAccordingToComparator, rhs))), VariableBucket()) }
+            val result = buildLazySequence<Unification>(principal) { context.fulfillAttach(this, PredicateInvocationQuery(CompoundTerm(comparatorName.name, arrayOf(this@isEqualToAccordingToComparator, rhs))), VariableBucket()) }
             val areEqual = result.tryAdvance() != null
             result.close()
             return areEqual

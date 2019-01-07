@@ -5,7 +5,7 @@ import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
 import com.github.prologdb.runtime.knowledge.library.OperatorType
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
@@ -48,7 +48,7 @@ val TypeSafetyLibrary = nativeLibrary("typesafety") {
     add(typeCheckBuiltin("ground") { it.variables.isEmpty() })
     add(Rule(
         CompoundTerm("nonground", arrayOf(X)),
-        PredicateQuery(
+        PredicateInvocationQuery(
             CompoundTerm("not", arrayOf(
                 CompoundTerm("ground", arrayOf(X))
             ))

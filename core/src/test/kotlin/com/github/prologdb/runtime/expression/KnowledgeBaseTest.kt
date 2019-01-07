@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.expression
 import com.github.prologdb.runtime.RandomVariable
 import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.shouldNotProve
 import com.github.prologdb.runtime.shouldProve
 import com.github.prologdb.runtime.suchThat
@@ -134,7 +134,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        kb.assertz(Rule(f(X, Y), PredicateQuery(g(X, Y))))
+        kb.assertz(Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))))
         kb.assertz(g(X, X))
 
         kb shouldProve f(a, V) suchThat {
@@ -166,7 +166,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         kb.assertz(app(PrologList(emptyList()),L,L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.assertz(Rule(app(PrologList(listOf(H),T),L2, PrologList(listOf(H),L3)), PredicateQuery(app(T,L2,L3))))
+        kb.assertz(Rule(app(PrologList(listOf(H),T),L2, PrologList(listOf(H),L3)), PredicateInvocationQuery(app(T,L2,L3))))
 
         "simple append" {
             kb shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c,d)),R) suchThat {

@@ -5,7 +5,7 @@ import com.github.prologdb.runtime.builtin.B
 import com.github.prologdb.runtime.builtin.X
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.OrQuery
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 
@@ -18,7 +18,7 @@ internal val MemberBuiltin = Rule(
         PrologList(listOf(A), B)
     )),
     OrQuery(arrayOf(
-        PredicateQuery(CompoundTerm("=", arrayOf(X, A))),
-        PredicateQuery(CompoundTerm("member", arrayOf(X, B)))
+        PredicateInvocationQuery(CompoundTerm("=", arrayOf(X, A))),
+        PredicateInvocationQuery(CompoundTerm("member", arrayOf(X, B)))
     ))
 )

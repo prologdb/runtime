@@ -106,7 +106,7 @@ class PrologTest : FreeSpec() { init {
 
             val testName = (arg0.arguments[0] as PrologString).toKotlinString()
 
-            if (by2instance !is ParsedPredicate) {
+            if (by2instance !is ParsedCompoundTerm) {
                 testCases.add(PrologTestCase.erroring(testName, IllegalArgumentException("Test cases must be constructed from parsed code so failure locations can be reported.")))
             }
 
@@ -263,7 +263,7 @@ private class TestQueryContext(
     }
 }
 
-private fun ParsedPredicate.toQuery(): Query {
+private fun ParsedCompoundTerm.toQuery(): Query {
     if (this.name == ",") {
         val goals = mutableListOf<Query>()
         goals.add(this.arguments[0].asPredicate().toQuery())
@@ -291,12 +291,12 @@ private fun ParsedPredicate.toQuery(): Query {
         return ParsedOrQuery(goals.toTypedArray(), this.sourceInformation)
     }
     else {
-        return ParsedPredicateQuery(this)
+        return ParsedPredicateInvocationQuery(this)
     }
 }
 
-private fun Term.asPredicate(): ParsedPredicate {
-    if (this is ParsedPredicate) return this
+private fun Term.asPredicate(): ParsedCompoundTerm {
+    if (this is ParsedCompoundTerm) return this
 
     val sourceInformation = if (this is HasPrologSource) this.sourceInformation else NullSourceInformation
     val location = SourceLocation(

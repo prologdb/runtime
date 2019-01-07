@@ -4,7 +4,7 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
 import com.github.prologdb.runtime.knowledge.library.OperatorType
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -13,7 +13,7 @@ val BuiltinNot = nativeRule("not", 1) { args, context ->
     val arg0 = args[0] as? CompoundTerm ?: return@nativeRule
 
     val proofSequence = buildLazySequence<Unification>(context.principal) {
-        context.fulfillAttach(this, PredicateQuery(arg0), VariableBucket())
+        context.fulfillAttach(this, PredicateInvocationQuery(arg0), VariableBucket())
     }
 
     val hasProof = proofSequence.tryAdvance() != null
@@ -38,7 +38,7 @@ val EqualityLibrary = nativeLibrary("equality") {
     // \+/1
     add(Rule(
         CompoundTerm("\\+", arrayOf(A)),
-        PredicateQuery(
+        PredicateInvocationQuery(
             CompoundTerm("not", arrayOf(A))
         )
     ))
@@ -46,7 +46,7 @@ val EqualityLibrary = nativeLibrary("equality") {
     // \=(A, B) :- not(=(A, B)).
     add(Rule(
         CompoundTerm("\\=", arrayOf(A, B)),
-        PredicateQuery(
+        PredicateInvocationQuery(
             CompoundTerm("not", arrayOf(
                 CompoundTerm("=", arrayOf(A, B))
             ))
@@ -57,7 +57,7 @@ val EqualityLibrary = nativeLibrary("equality") {
 
     add(Rule(
         CompoundTerm("\\==", arrayOf(A, B)),
-        PredicateQuery(
+        PredicateInvocationQuery(
             CompoundTerm("not", arrayOf(
                 CompoundTerm("==", arrayOf(A, B))
             ))

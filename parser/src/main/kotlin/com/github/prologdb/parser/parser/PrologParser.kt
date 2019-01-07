@@ -167,7 +167,7 @@ class PrologParser {
         return result
     }
 
-    fun parsePredicateWithInvocationSyntax(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedPredicate> {
+    fun parsePredicateWithInvocationSyntax(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedCompoundTerm> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("predicate invocation")))
 
         tokens.mark()
@@ -209,7 +209,7 @@ class PrologParser {
             tokens.rollback() // peek of PARENT_OPEN
             tokens.rollback() // mark() at start of method
             return ParseResult(
-                ParsedPredicate(
+                ParsedCompoundTerm(
                     predicateName,
                     emptyArray(),
                     nameToken.location..parentOpenToken.location
@@ -224,7 +224,7 @@ class PrologParser {
             tokens.commit() // peek of PARENT_OPEN
             tokens.commit() // mark() at start of method
             return ParseResult.of(
-                ParsedPredicate(
+                ParsedCompoundTerm(
                     predicateName,
                     emptyArray(),
                     nameToken.location..tokenAfterParentOpen.location
@@ -239,7 +239,7 @@ class PrologParser {
             tokens.commit()
             val argsResult = commaPredicateToList(argsTermResult.item!!)
             return ParseResult(
-                ParsedPredicate(predicateName, argsResult.item!!.toTypedArray(), nameToken.location..argsResult.item.last().location),
+                ParsedCompoundTerm(predicateName, argsResult.item!!.toTypedArray(), nameToken.location..argsResult.item.last().location),
                     MATCHED,
                     argsTermResult.reportings + argsResult.reportings
             )
@@ -247,7 +247,7 @@ class PrologParser {
         else {
             tokens.rollback()
             return ParseResult(
-                ParsedPredicate(
+                ParsedCompoundTerm(
                     predicateName,
                     emptyArray(),
                     nameToken.location..parentOpenToken.location
@@ -393,7 +393,7 @@ class PrologParser {
             reportings.add(SyntaxError("Elements in a dict literal must be instances of :/2", it.location))
         }
         elementsWithKeyNotAnAtom.forEach {
-            reportings.add(SyntaxError("Keys in dict pairs must be atoms", (it as ParsedPredicate).arguments[0].location))
+            reportings.add(SyntaxError("Keys in dict pairs must be atoms", (it as ParsedCompoundTerm).arguments[0].location))
         }
 
         val pairsAsKotlinPairs: List<Pair<Atom, Term>> = validPairs
@@ -512,7 +512,7 @@ class PrologParser {
             tokens.commit()
             val item = termResult.item
             if (!outmostWithoutProtection && item is CompoundTerm) {
-                if (item !is ParsedPredicate) throw InternalParserError()
+                if (item !is ParsedCompoundTerm) throw InternalParserError()
                 item.parenthesisProtection = true
             }
 
@@ -624,10 +624,10 @@ class PrologParser {
 
         /**
          * Adds the given operator definition to the library.
-         * @param opPredicate The definition, e.g.: `op(400,xf,isDead)`
+         * @param opDefinitionAST The definition, e.g.: `op(400,xf,isDead)`
          */
-        fun handleOperator(opPredicate: ParsedPredicate) {
-            val priorityArgument = opPredicate.arguments[0]
+        fun handleOperator(opDefinitionAST: ParsedCompoundTerm) {
+            val priorityArgument = opDefinitionAST.arguments[0]
             if (priorityArgument !is com.github.prologdb.runtime.term.PrologNumber || !priorityArgument.isInteger) {
                 reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
                 return
@@ -635,31 +635,31 @@ class PrologParser {
 
             val precedenceAsLong = (priorityArgument as com.github.prologdb.runtime.term.PrologNumber).toInteger()
             if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
-                reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opPredicate.arguments[0].location))
+                reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].location))
                 return
             }
             val precedence = precedenceAsLong.toShort()
 
-            if (opPredicate.arguments[1] !is Atom) {
-                reportings.add(SemanticError("atom expected but found ${opPredicate.arguments[1]}", opPredicate.arguments[1].location))
+            if (opDefinitionAST.arguments[1] !is Atom) {
+                reportings.add(SemanticError("atom expected but found ${opDefinitionAST.arguments[1]}", opDefinitionAST.arguments[1].location))
                 return
             }
 
-            val typeAsUCString = (opPredicate.arguments[1] as Atom).name.toUpperCase()
+            val typeAsUCString = (opDefinitionAST.arguments[1] as Atom).name.toUpperCase()
             val operatorType = try {
                 OperatorType.valueOf(typeAsUCString)
             }
             catch (ex: IllegalArgumentException) {
-                reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opPredicate.arguments[1].location))
+                reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opDefinitionAST.arguments[1].location))
                 return
             }
 
-            if (opPredicate.arguments[2] !is Atom) {
-                reportings.add(SemanticError("Atom expected but got ${opPredicate.arguments[2]}", opPredicate.arguments[2].location))
+            if (opDefinitionAST.arguments[2] !is Atom) {
+                reportings.add(SemanticError("Atom expected but got ${opDefinitionAST.arguments[2]}", opDefinitionAST.arguments[2].location))
                 return
             }
 
-            carryOpRegistry.defineOperator(OperatorDefinition(precedence, operatorType, (opPredicate.arguments[2] as Atom).name))
+            carryOpRegistry.defineOperator(OperatorDefinition(precedence, operatorType, (opDefinitionAST.arguments[2] as Atom).name))
         }
 
         /**
@@ -667,7 +667,7 @@ class PrologParser {
          * @param the only parameter to dynamic/1
          */
         fun handleDynamicDirective(indicator: Term) {
-            if (indicator !is ParsedPredicate || indicator.arity != 2 || indicator.name != "/") {
+            if (indicator !is ParsedCompoundTerm || indicator.arity != 2 || indicator.name != "/") {
                 reportings.add(SemanticError(
                     "The argument to dynamic/1 must be an instance of `/`/2",
                     indicator.location
@@ -706,7 +706,7 @@ class PrologParser {
             dynamics.add(ClauseIndicator.of(name.name, arityValue.toInt()))
         }
 
-        fun handleDirective(command: ParsedPredicate) {
+        fun handleDirective(command: ParsedCompoundTerm) {
             when(command.arity) {
                 3 -> when(command.name) {
                     "op" -> return handleOperator(command)
@@ -722,9 +722,9 @@ class PrologParser {
             ))
         }
 
-        fun handleRule(definition: ParsedPredicate) {
-            val head = definition.arguments[0] as? ParsedPredicate ?: throw InternalParserError("Rule heads must be predicates")
-            val queryTerm = definition.arguments[1] as? ParsedPredicate ?: throw InternalParserError("Queries must be predicates")
+        fun handleRule(definition: ParsedCompoundTerm) {
+            val head = definition.arguments[0] as? ParsedCompoundTerm ?: throw InternalParserError("Rule heads must be predicates")
+            val queryTerm = definition.arguments[1] as? ParsedCompoundTerm ?: throw InternalParserError("Queries must be predicates")
             val transformResult = transformQuery(queryTerm)
 
             if (transformResult.item != null) {
@@ -741,10 +741,10 @@ class PrologParser {
             if (parseResult.isSuccess) {
                 val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
                 if (item is CompoundTerm) {
-                    item as? ParsedPredicate ?: throw InternalParserError("Expected ParsedPredicate, got Predicate")
+                    item as? ParsedCompoundTerm ?: throw InternalParserError("Expected ParsedCompoundTerm, got CompoundTerm")
                     // detect directive
                     if (item.isDirectiveInvocation) {
-                        handleDirective(item.arguments[0] as ParsedPredicate)
+                        handleDirective(item.arguments[0] as ParsedCompoundTerm)
                     }
                     else if (item.isRuleDefinition) {
                         handleRule(item)
@@ -788,8 +788,8 @@ class PrologParser {
     private fun commaPredicateToList(commaPredicate: Term): ParseResult<List<Term>> {
         var pivot = commaPredicate
         val list = ArrayList<Term>(5)
-        while (pivot is CompoundTerm && !(pivot as ParsedPredicate).parenthesisProtection && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
-            pivot as? ParsedPredicate ?: throw InternalParserError()
+        while (pivot is CompoundTerm && !(pivot as ParsedCompoundTerm).parenthesisProtection && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
+            pivot as? ParsedCompoundTerm ?: throw InternalParserError()
             list.add(pivot.arguments[0])
             pivot = pivot.arguments[1]
         }
@@ -803,7 +803,7 @@ class PrologParser {
      * Converts a term given as the second argument to `:-/2` into an instance of [Query].
      */
     private fun transformQuery(query: Term): ParseResult<Query> {
-        if (query is ParsedPredicate) {
+        if (query is ParsedCompoundTerm) {
             if (query.arity == 2 && (query.name == Operator.COMMA.text || query.name == Operator.SEMICOLON.text)) {
                 val operator = query.name
                 val elements = ArrayList<Query>(5)
@@ -816,7 +816,7 @@ class PrologParser {
                     if (transformResult.item != null) elements += transformResult.item
                 }
 
-                while (pivot is ParsedPredicate && pivot.arity == 2 && pivot.name == operator) {
+                while (pivot is ParsedCompoundTerm && pivot.arity == 2 && pivot.name == operator) {
                     addElement(pivot.arguments[0])
                     pivot = pivot.arguments[1]
                 }
@@ -838,7 +838,7 @@ class PrologParser {
                     reportings
                 )
             } else {
-                return ParseResult.of(ParsedPredicateQuery(query))
+                return ParseResult.of(ParsedPredicateInvocationQuery(query))
             }
         } else {
             return ParseResult(null, NOT_RECOGNIZED, setOf(SemanticError("$query is not a valid query component", query.location)))
@@ -872,10 +872,10 @@ class PrologParser {
     }
 }
 
-private val ParsedPredicate.isDirectiveInvocation: Boolean
+private val ParsedCompoundTerm.isDirectiveInvocation: Boolean
     get() = name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is CompoundTerm
 
-private val ParsedPredicate.isRuleDefinition: Boolean
+private val ParsedCompoundTerm.isRuleDefinition: Boolean
     get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is CompoundTerm
 
 /**
@@ -997,7 +997,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
         if (operatorDef.type.isPrefix) {
             val rhsResult = buildExpressionAST(elements.subList(index + 1, elements.size), opRegistry)
-            var thisTerm = ParsedPredicate(
+            var thisTerm = ParsedCompoundTerm(
                 operatorDef.name,
                 if (rhsResult.item != null) arrayOf(rhsResult.item.first) else emptyArray(),
                 elements[index].location..elements.last().location
@@ -1006,11 +1006,11 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             if (operatorDef.type == FX && rhsResult.item?.second != null) {
                 val rhsOp = rhsResult.item.second!!
                 if (rhsOp.type == YFX) {
-                    val rhsPredicate = rhsResult.item.first as ParsedPredicate
-                    thisTerm = ParsedPredicate(
+                    val rhsPredicate = rhsResult.item.first as ParsedCompoundTerm
+                    thisTerm = ParsedCompoundTerm(
                         rhsOp.name,
                         arrayOf(
-                            ParsedPredicate(
+                            ParsedCompoundTerm(
                                 operatorDef.name,
                                 arrayOf(rhsPredicate.arguments[0]),
                                 elements[index].location..rhsPredicate.arguments[1].location
@@ -1021,11 +1021,11 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                     )
                 }
                 else if (rhsOp.type == YF) {
-                    val rhsPredicate = rhsResult.item.first as ParsedPredicate
-                    thisTerm = ParsedPredicate(
+                    val rhsPredicate = rhsResult.item.first as ParsedCompoundTerm
+                    thisTerm = ParsedCompoundTerm(
                         rhsOp.name,
                         arrayOf(
-                            ParsedPredicate(
+                            ParsedCompoundTerm(
                                 operatorDef.name,
                                 arrayOf(rhsPredicate.arguments[0]),
                                 elements[index].location..rhsPredicate.arguments[0].location
@@ -1074,7 +1074,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                 ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Missing right hand side operand", elements[index].location)))
             }
 
-            var thisPredicate = ParsedPredicate(
+            var thisPredicate = ParsedCompoundTerm(
                 operatorDef.name,
                 listOf(lhsResult.item?.first, rhsResult.item?.first).filterNotNull().toTypedArray(),
                 elements.first().location..elements.last().location
@@ -1084,14 +1084,14 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             reportings.addAll(rhsResult.reportings)
 
             if (rhsResult.item?.second != null) {
-                val rhsPredicate = rhsResult.item.first as ParsedPredicate
+                val rhsPredicate = rhsResult.item.first as ParsedCompoundTerm
                 val rhsOp = rhsResult.item.second!!
                 if ((operatorDef.type == XFX || operatorDef.type == YFX) && rhsOp.precedence >= operatorDef.precedence) {
                     if (rhsOp.type == YFX) {
-                        thisPredicate = ParsedPredicate(
+                        thisPredicate = ParsedCompoundTerm(
                             rhsPredicate.name,
                             arrayOf(
-                                ParsedPredicate(
+                                ParsedCompoundTerm(
                                     operatorDef.name,
                                     arrayOf(lhsResult.item!!.first, rhsPredicate.arguments[0]),
                                     lhsResult.item.first.location..rhsPredicate.arguments[0].location
@@ -1102,10 +1102,10 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                         )
                     }
                     else if (rhsOp.type == YF) {
-                        thisPredicate = ParsedPredicate(
+                        thisPredicate = ParsedCompoundTerm(
                             rhsPredicate.name,
                             arrayOf(
-                                ParsedPredicate(
+                                ParsedCompoundTerm(
                                     operatorDef.name,
                                     arrayOf(lhsResult.item!!.first, rhsPredicate.arguments[0]),
                                     lhsResult.item.first.location..rhsPredicate.arguments[0].location
@@ -1137,7 +1137,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             } // else: try another operator definition
         } else if (operatorDef.type.isPostfix) {
             val lhsResult = buildExpressionAST(elements.subList(0, index), opRegistry)
-            val thisTerm = ParsedPredicate(
+            val thisTerm = ParsedCompoundTerm(
                 operatorDef.name,
                 if (lhsResult.item != null) arrayOf(lhsResult.item.first) else emptyArray(),
                 elements.first().location..elements[index].location

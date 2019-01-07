@@ -21,7 +21,7 @@ open class CompoundTerm(
 
     override val arity = arguments.size
 
-    override val prologTypeName = "predicate"
+    override val prologTypeName = "compound term"
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is CompoundTerm) {

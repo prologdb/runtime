@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.builtin.C
 import com.github.prologdb.runtime.builtin.X
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.Clause
-import com.github.prologdb.runtime.query.PredicateQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 
@@ -30,6 +30,6 @@ internal val AppendBuiltin = listOf<Clause>(
             B,
             PrologList(listOf(A), C)
         )),
-        PredicateQuery(CompoundTerm("append", arrayOf(X, B, C)))
+        PredicateInvocationQuery(CompoundTerm("append", arrayOf(X, B, C)))
     )
 )
