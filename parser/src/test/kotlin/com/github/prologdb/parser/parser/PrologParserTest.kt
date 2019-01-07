@@ -105,22 +105,22 @@ class PrologParserTest : FreeSpec() {
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
 
-        var predicate = result.item!! as ParsedCompoundTerm
-        predicate.functor shouldEqual ","
-        predicate.arity shouldEqual 2
+        var term = result.item!! as ParsedCompoundTerm
+        term.functor shouldEqual ","
+        term.arity shouldEqual 2
 
-        (predicate.arguments[0] as ParsedAtom).name shouldEqual "a"
+        (term.arguments[0] as ParsedAtom).name shouldEqual "a"
 
-        predicate = predicate.arguments[1] as ParsedCompoundTerm
-        predicate.functor shouldEqual ","
-        predicate.arity shouldEqual  2
+        term = term.arguments[1] as ParsedCompoundTerm
+        term.functor shouldEqual ","
+        term.arity shouldEqual  2
 
-        (predicate.arguments[0] as ParsedAtom).name shouldEqual "b"
-        (predicate.arguments[1] as ParsedAtom).name shouldEqual "c"
+        (term.arguments[0] as ParsedAtom).name shouldEqual "b"
+        (term.arguments[1] as ParsedAtom).name shouldEqual "c"
     }
     
-    "predicate" - {
-        "invocation without arguments" {
+    "compound term" - {
+        "without arguments" {
             val result = parseTerm("predicate()")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
@@ -130,7 +130,7 @@ class PrologParserTest : FreeSpec() {
             predicate.arity shouldEqual 0
         }
 
-        "invocation with three arguments" {
+        "with three arguments" {
             val result = parseTerm("predicate(foo, X, bar)")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
@@ -148,13 +148,13 @@ class PrologParserTest : FreeSpec() {
             (predicate.arguments[2] as Atom).name shouldEqual "bar"
         }
 
-        "invalid invocation: missing closing parenthesis: EOF instead" {
+        "missing closing parenthesis: EOF instead" {
             val result = parseTerm("predicate(foo, X")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
         }
 
-        "invalid invocation: missing closing parenthesis: . instead" {
+        "missing closing parenthesis: . instead" {
             val result = parseTerm("predicate(foo, X.")
             result.reportings shouldNot beEmpty()
         }
