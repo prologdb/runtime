@@ -6,12 +6,12 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber
 
 /**
- * Takes an arithmetic predicate (e.g. +(1,2) or mod(23,4)) and returns the calculated value
+ * Takes an arithmetic compound term (e.g. +(1,2) or mod(23,4)) and returns the calculated value
  */
 typealias Calculator = (CompoundTerm) -> PrologNumber
 
 /**
- * Keeps track of ways to evaluate mathematical predicates. This is global; registring a new calculator
+ * Keeps track of ways to evaluate mathematical compounds. This is global; registring a new calculator
  * will affect all prolog runtimes.
  *
  * **This is not an [OperatorRegistry]!**
@@ -51,9 +51,9 @@ object MathOperatorRegistry {
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {
-        registerOperator(operatorName, 1..1) { predicate ->
-            if (predicate.arity != 1 || predicate.functor != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${predicate.functor}/${predicate.arity}")
-            calculator(predicate.arguments[0].asPrologNumber)
+        registerOperator(operatorName, 1..1) { termAST ->
+            if (termAST.arity != 1 || termAST.functor != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${termAST.functor}/${termAST.arity}")
+            calculator(termAST.arguments[0].asPrologNumber)
         }
     }
 

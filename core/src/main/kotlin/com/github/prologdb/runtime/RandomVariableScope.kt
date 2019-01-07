@@ -21,7 +21,7 @@ class RandomVariableScope {
     private val variables: MutableList<RandomVariable> = ArrayList(30)
 
     /**
-     * Replaces all the variables in the given predicate with random instances; the mapping gets stored
+     * Replaces all the variables in the given term with random instances; the mapping gets stored
      * in the given map.
      */
     fun withRandomVariables(term: Term, mapping: VariableMapping): Term {

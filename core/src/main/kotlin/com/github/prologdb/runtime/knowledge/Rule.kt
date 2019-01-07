@@ -15,27 +15,27 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause {
     override val arity = head.arity
 
     /**
-     * Calls this predicate with the given invocation predicate.
+     * Calls this rule with the given invocation goal.
      *
      * Default behaviour:
-     * Randomizes all variables in the head, query and `predicate`. Then unifies `predicate` with
+     * Randomizes all variables in the head, query and `goal`. Then unifies `goal` with
      * the head. Carries the resulting variable mappings over to the query and continues the
      * proof-search coroutine with solutions for the resulting query.
      *
      * This can be re-defined for built-ins.
      */
-    open val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { predicate, context ->
-        val predicateRandomVarsMapping = VariableMapping()
-        val randomPredicate = context.randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
+    open val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, context ->
+        val goalRandomVarsMapping = VariableMapping()
+        val randomPredicate = context.randomVariableScope.withRandomVariables(goal, goalRandomVarsMapping)
 
         val ruleRandomVarsMapping = VariableMapping()
         val randomHead = context.randomVariableScope.withRandomVariables(head, ruleRandomVarsMapping)
 
-        val predicateAndHeadUnification = randomHead.unify(randomPredicate)
-        if (predicateAndHeadUnification != null) {
+        val goalAndHeadUnification = randomHead.unify(randomPredicate)
+        if (goalAndHeadUnification != null) {
             val randomQuery = query
                 .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
-                .substituteVariables(predicateAndHeadUnification.variableValues)
+                .substituteVariables(goalAndHeadUnification.variableValues)
 
             val randomResults = buildLazySequence<Unification>(context.principal) {
                 context.fulfillAttach(this, randomQuery, VariableBucket())
@@ -44,23 +44,23 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause {
             yieldAll(randomResults.mapRemaining { unification ->
                 val solutionVars = VariableBucket()
 
-                for (randomPredicateVariable in randomPredicate.variables)
+                for (randomGoalVariable in randomPredicate.variables)
                 {
-                    if (predicateAndHeadUnification.variableValues.isInstantiated(randomPredicateVariable)) {
-                        val value = predicateAndHeadUnification.variableValues[randomPredicateVariable]
+                    if (goalAndHeadUnification.variableValues.isInstantiated(randomGoalVariable)) {
+                        val value = goalAndHeadUnification.variableValues[randomGoalVariable]
                             .substituteVariables(unification.variableValues.asSubstitutionMapper())
-                            .substituteVariables(predicateAndHeadUnification.variableValues.asSubstitutionMapper())
+                            .substituteVariables(goalAndHeadUnification.variableValues.asSubstitutionMapper())
 
-                        solutionVars.instantiate(randomPredicateVariable, value)
+                        solutionVars.instantiate(randomGoalVariable, value)
                     }
-                    else if (unification.variableValues.isInstantiated(randomPredicateVariable)) {
-                        val originalVar = predicateRandomVarsMapping.getOriginal(randomPredicateVariable)!!
-                        solutionVars.instantiate(originalVar, unification.variableValues[randomPredicateVariable])
+                    else if (unification.variableValues.isInstantiated(randomGoalVariable)) {
+                        val originalVar = goalRandomVarsMapping.getOriginal(randomGoalVariable)!!
+                        solutionVars.instantiate(originalVar, unification.variableValues[randomGoalVariable])
                     }
                 }
 
                 Unification(solutionVars
-                    .withVariablesResolvedFrom(predicateRandomVarsMapping))
+                    .withVariablesResolvedFrom(goalRandomVarsMapping))
             })
         }
         // else: does not match the rule head

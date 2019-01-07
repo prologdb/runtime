@@ -5,7 +5,7 @@ import kotlin.coroutines.experimental.buildSequence
 /**
  * A simplified [Map]<Integer,T>.
  *
- * The arity of prolog predicates is expected to be in the lower positive range. Because of that,
+ * The arity of compound terms is expected to be in the 1-digit positive range (2-digit at most) Because of that,
  * reserving O(n) memory for the index where n is the number of different arities in the map will
  * be efficient. As a result, a [Array]<T> is used for its performance advantages.
  */

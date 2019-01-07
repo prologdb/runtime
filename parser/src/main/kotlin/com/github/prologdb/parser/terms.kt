@@ -30,8 +30,8 @@ open class ParsedCompoundTerm(
     override val sourceInformation: SourceLocationRange
 ) : HasPrologSource, CompoundTerm(name, arguments) {
     /**
-     * Is set to true if this was directly surrounded by parenthesis. Should prevent this predicate from being
-     * destructured in a predicate-to-query conversion
+     * Is set to true if this was directly surrounded by parenthesis. Should prevent this compound from being
+     * destructured in a compound-to-query conversion
      */
     var parenthesisProtection: Boolean = false
 }

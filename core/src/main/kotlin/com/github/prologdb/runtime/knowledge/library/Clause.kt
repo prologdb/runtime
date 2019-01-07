@@ -9,8 +9,8 @@ import java.util.*
 
 interface Clause : HasFunctorAndArity {
     /**
-     * Unifies the given predicate (`other`) with this entry; if this is a fact (a [CompoundTerm]), unifies with
-     * the given predicate and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
+     * Unifies the given compound (`other`) with this entry; if this is a fact (a [CompoundTerm]), unifies with
+     * the given compound and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
      * to run the query (in case the head and the given [CompoundTerm] unify).
      */
     val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: CompoundTerm, context: ProofSearchContext) -> Unit

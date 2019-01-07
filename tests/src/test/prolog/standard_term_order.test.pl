@@ -18,7 +18,7 @@ test "variable is less than list" by [
     Z @< [a]
 ].
 
-test "variable is less than predicate" by [
+test "variable is less than compound term" by [
     var(Z),
     Z @< foo(bar)
 ].
@@ -37,7 +37,7 @@ test "number is less than list" by [
     9999 @< [a]
 ].
 
-test "number is less than predicate" by [
+test "number is less than compound term" by [
     9999 @< a(a)
 ].
 
@@ -51,7 +51,7 @@ test "string is less than list" by [
     "ZZZZ" @< [a]
 ].
 
-test "string is less than predicate" by [
+test "string is less than compound term" by [
     "ZZZZ" @< a(a)
 ].
 
@@ -61,13 +61,13 @@ test "atom is less than list" by [
     zzzz @< [1]
 ].
 
-test "atom is less than predicate" by [
+test "atom is less than compound term" by [
     zzzz @< a(a)
 ].
 
 % ------------------------------
 
-test "list is less than predicate" by [
+test "list is less than compound term" by [
     [z] @< a(a)
 ].
 

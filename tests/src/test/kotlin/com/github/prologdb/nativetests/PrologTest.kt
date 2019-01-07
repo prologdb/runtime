@@ -306,5 +306,5 @@ private fun Term.asPredicate(): ParsedCompoundTerm {
         1
     )
 
-    throw ReportingException(SyntaxError("Expected predicate, got $prologTypeName", location))
+    throw ReportingException(SyntaxError("Expected compound term, got $prologTypeName", location))
 }

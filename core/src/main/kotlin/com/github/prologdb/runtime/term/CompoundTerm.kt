@@ -44,7 +44,7 @@ open class CompoundTerm(
                 val argUnification = lhsArg.unify(rhsArg, randomVarsScope)
 
                 if (argUnification == null) {
-                    // the arguments at place argIndex do not unify => the predicates don't unify
+                    // the arguments at place argIndex do not unify => the terms don't unify
                     return Unification.FALSE
                 }
 
@@ -101,7 +101,7 @@ open class CompoundTerm(
         val arityCmp = this.arity - other.arity
         if (arityCmp != 0) return arityCmp
 
-        val functorNameCmp = this.functor.compareTo(other.name)
+        val functorNameCmp = this.functor.compareTo(other.functor)
         if (functorNameCmp != 0) return functorNameCmp
 
         for (argumentIndex in 0 until arity) {

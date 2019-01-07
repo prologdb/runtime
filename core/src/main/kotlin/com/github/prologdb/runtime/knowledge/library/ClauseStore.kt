@@ -21,7 +21,7 @@ interface ClauseStore {
      *
      * The default implementation of this method uses the kotlin stdlib [filter] method.
      */
-    fun findFor(predicate: CompoundTerm): Iterable<Clause> = clauses.filter { it.arity == predicate.arity && it.functor == predicate.functor }
+    fun findFor(goal: CompoundTerm): Iterable<Clause> = clauses.filter { it.arity == goal.arity && it.functor == goal.functor }
 }
 
 interface MutableClauseStore : ClauseStore {
@@ -42,7 +42,7 @@ interface MutableClauseStore : ClauseStore {
 
     /**
      * Removes facts (which unify with the given [CompoundTerm]) **or rules (whichs heads unify with
-     * the given predicate)** from this store. Acts like `retract/1`.
+     * the given compound term)** from this store. Acts like `retract/1`.
      *
      * @return The unifications of the given [CompoundTerm] with the removed facts resp. rule heads. Every invocation
      *         of [LazySequence.tryAdvance] attempts to remove another entry from the store.
@@ -156,9 +156,9 @@ class DoublyIndexedClauseStore : MutableClauseStore {
      */
     private val index = mutableMapOf<String, ArityMapToLibraryEntries>()
 
-    override fun findFor(predicate: CompoundTerm): Iterable<Clause> {
-        val arityMap = index[predicate.functor] ?: return emptyList()
-        return arityMap[predicate.arity] ?: emptyList()
+    override fun findFor(goal: CompoundTerm): Iterable<Clause> {
+        val arityMap = index[goal.functor] ?: return emptyList()
+        return arityMap[goal.arity] ?: emptyList()
     }
 
     override fun assertz(entry: Clause) {
@@ -236,7 +236,7 @@ class DoublyIndexedClauseStore : MutableClauseStore {
                         return@fromGenerator headUnification
                     }
                 } else {
-                    throw PrologRuntimeException("Cannot determine whether entry should be retracted: is neither a predicate nor a rule.")
+                    throw PrologRuntimeException("Cannot determine whether entry should be retracted: is neither a fact nor a rule.")
                 }
             }
 

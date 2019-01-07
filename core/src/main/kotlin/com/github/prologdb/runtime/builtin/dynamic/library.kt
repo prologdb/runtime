@@ -13,7 +13,7 @@ val DynamicsLibrary = nativeLibrary("dynamics") {
 }
 
 /**
- * Converts compund predicates (instances of `,/2` and `;/2` to
+ * Converts compound terms (instances of `,/2` and `;/2` to
  * queries).
  */
 fun compoundToQuery(compoundTerm: CompoundTerm): Query {

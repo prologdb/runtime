@@ -61,7 +61,7 @@ val TypeSafetyLibrary = nativeLibrary("typesafety") {
 }
 
 /**
- * @return a predicate with the given functor and arity 1 that suceeds if the first argument passes
+ * @return a clause with the given functor and arity 1 that succeeds if the first argument passes
  * the given predicate.
  */
 private fun typeCheckBuiltin(name: String, test: (Term) -> Boolean): Clause {

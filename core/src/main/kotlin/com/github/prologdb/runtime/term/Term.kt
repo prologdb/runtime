@@ -25,7 +25,7 @@ interface Term : Comparable<Term> {
     override fun equals(other: Any?): Boolean
 
     /**
-     * Like [toString] but instead of going for strict notation (predicates ALWAYS in the syntax
+     * Like [toString] but instead of going for strict notation (compound terms ALWAYS in the syntax
      * `functor ( <arguments ... > )`), uses the operators from the given registry. Adds parenthesis
      * in such a way that parsing the resulting string back using the same operators results in 
      * the exact same term.

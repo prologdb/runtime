@@ -7,7 +7,7 @@ test "atom/1 with number" by [
     \+ atom(1.22)
 ].
 
-test "atom/1 with predicate" by [
+test "atom/1 with compound term" by [
     \+ atom(predicate(arg))
 ].
 

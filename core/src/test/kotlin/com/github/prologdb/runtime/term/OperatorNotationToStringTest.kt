@@ -448,7 +448,7 @@ class OperatorNotationToStringTest : FreeSpec({
         }
     }
     
-    "predicate invocation syntax" - {
+    "invocation syntax" - {
         "plain" {
             val registry = DefaultOperatorRegistry()
 
