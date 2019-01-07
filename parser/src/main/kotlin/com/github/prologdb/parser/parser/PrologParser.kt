@@ -131,7 +131,7 @@ class PrologParser {
     /**
      * Parses anything that is **not** a binary expression:
      * * [parseAtomicOrVariable]
-     * * [parsePredicateWithInvocationSyntax]
+     * * [parseCompoundTerm]
      * * [parseList]
      * * [parseParenthesised]
      */
@@ -142,7 +142,7 @@ class PrologParser {
             this::parseParenthesised,
             this::parseList,
             this::parseDictionary,
-            this::parsePredicateWithInvocationSyntax,
+            this::parseCompoundTerm,
             { ts, _ -> parseAtomicOrVariable(ts) }
         )
 
@@ -167,7 +167,7 @@ class PrologParser {
         return result
     }
 
-    fun parsePredicateWithInvocationSyntax(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedCompoundTerm> {
+    fun parseCompoundTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedCompoundTerm> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("predicate invocation")))
 
         tokens.mark()
