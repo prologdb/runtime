@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.shouldNotUnifyWith
 import com.github.prologdb.runtime.shouldUnifyWith
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PredicateBuilder
 import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.specs.FreeSpec
@@ -15,8 +15,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtom1 = Atom("a")
         val mockAtom2 = Atom("a")
 
-        val fact1 = Predicate("a", arrayOf(mockAtom1))
-        val fact2 = Predicate("a", arrayOf(mockAtom2))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtom1))
+        val fact2 = CompoundTerm("a", arrayOf(mockAtom2))
 
         // ASSERT
         fact1 shouldUnifyWith fact2 suchThat {
@@ -31,8 +31,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtomB1 = Atom("b")
         val mockAtomB2 = Atom("b")
 
-        val fact1 = Predicate("a", arrayOf(mockAtomA1, mockAtomB1))
-        val fact2 = Predicate("a", arrayOf(mockAtomA2, mockAtomB2))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtomA1, mockAtomB1))
+        val fact2 = CompoundTerm("a", arrayOf(mockAtomA2, mockAtomB2))
 
         // ASSERT
         fact1 shouldUnifyWith fact2 suchThat {
@@ -47,8 +47,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtomB1 = Atom("b")
         val mockAtomB2 = Atom("b")
 
-        val fact1 = Predicate("a", arrayOf(mockAtomA1, mockAtomB1))
-        val fact2 = Predicate("a", arrayOf(mockAtomB2, mockAtomA2))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtomA1, mockAtomB1))
+        val fact2 = CompoundTerm("a", arrayOf(mockAtomB2, mockAtomA2))
 
         // ASSERT
         fact1 shouldNotUnifyWith fact2
@@ -60,8 +60,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtomA2 = Atom("a")
         val mockAtomB1 = Atom("b")
 
-        val fact1 = Predicate("a", arrayOf(mockAtomA1, mockAtomB1))
-        val fact2 = Predicate("a", arrayOf(mockAtomA2))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtomA1, mockAtomB1))
+        val fact2 = CompoundTerm("a", arrayOf(mockAtomA2))
 
         // ASSERT
         fact1 shouldNotUnifyWith fact2
@@ -72,8 +72,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtomA1 = Atom("a")
         val mockAtomB1 = Atom("b")
 
-        val fact1 = Predicate("a", arrayOf(mockAtomA1))
-        val fact2 = Predicate("a", arrayOf(mockAtomB1))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtomA1))
+        val fact2 = CompoundTerm("a", arrayOf(mockAtomB1))
 
         // ASSERT
         fact1 shouldNotUnifyWith fact2
@@ -84,8 +84,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtom1 = Atom("a")
         val mockAtom2 = Atom("a")
 
-        val fact1 = Predicate("a", arrayOf(mockAtom1))
-        val fact2 = Predicate("b", arrayOf(mockAtom2))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtom1))
+        val fact2 = CompoundTerm("b", arrayOf(mockAtom2))
 
         // ASSERT
         fact1 shouldNotUnifyWith fact2
@@ -96,8 +96,8 @@ class PredicateUnificationTest : FreeSpec(){init {
         val mockAtom1 = Atom("a")
         val mockAtom2 = Atom("b")
 
-        val fact1 = Predicate("a", arrayOf(mockAtom1))
-        val fact2 = Predicate("b", arrayOf(mockAtom2))
+        val fact1 = CompoundTerm("a", arrayOf(mockAtom1))
+        val fact2 = CompoundTerm("b", arrayOf(mockAtom2))
 
         // ASSERT
         fact1 shouldNotUnifyWith fact2

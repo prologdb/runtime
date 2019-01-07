@@ -3,7 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.transformExceptionsOnRemaining
 import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
@@ -35,7 +35,7 @@ open class PredicateNotDynamicException(private val indicator: ClauseIndicator, 
  * `:-/1`; Usually, attempting to handle other predicates as directives leads to this error.
  */
 class IllegalDirectiveException(message: String, cause: Throwable? = null) : PrologException(message, cause) {
-    constructor(rejectedDirective: Predicate) : this(
+    constructor(rejectedDirective: CompoundTerm) : this(
             if (rejectedDirective.name != ":-" || rejectedDirective.arity != 1) {
                 "Directives must be instances of :-/1"
             } else {
@@ -47,13 +47,13 @@ class IllegalDirectiveException(message: String, cause: Throwable? = null) : Pro
 class PrologPermissionError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
 
 data class PrologStackTraceElement @JvmOverloads constructor(
-    val goalPredicate: Predicate,
-    val sourceInformation: PrologSourceInformation,
-    val toStringOverride: String? = null
+        val goalPredicate: CompoundTerm,
+        val sourceInformation: PrologSourceInformation,
+        val toStringOverride: String? = null
 ){
     override fun toString() = toStringOverride ?: "$goalPredicate   ${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
 }
-fun Predicate.toStackTraceElement() = PrologStackTraceElement(
+fun CompoundTerm.toStackTraceElement() = PrologStackTraceElement(
     this,
     if (this is HasPrologSource) sourceInformation else NullSourceInformation
 )

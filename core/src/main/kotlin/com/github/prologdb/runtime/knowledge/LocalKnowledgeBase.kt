@@ -193,7 +193,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         coreBuiltins["assert"] = coreBuiltins["assertz"]!!
         coreBuiltins["retract"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
-            val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+            val arg0 = args[0] as? CompoundTerm ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
 
             val indicator = ClauseIndicator.of(arg0)
             if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
@@ -203,7 +203,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         }
         coreBuiltins["retractFact"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
-            val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+            val arg0 = args[0] as? CompoundTerm ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
 
             val indicator = ClauseIndicator.of(arg0)
             if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
@@ -213,7 +213,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         }
         coreBuiltins["retractAll"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
-            val arg0 = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+            val arg0 = args[0] as? CompoundTerm ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
 
             val indicator = ClauseIndicator.of(arg0)
             if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
@@ -226,7 +226,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         coreBuiltins["retractAllFacts"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("retract/${args.size} is not defined")
 
-            val predicate = args[0] as? Predicate ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
+            val predicate = args[0] as? CompoundTerm ?: throw PrologRuntimeException("Argument 0 to retract/1 must be a predicate")
 
             val indicator = ClauseIndicator.of(predicate)
             if (!auth.mayWrite(indicator)) throw PrologPermissionError("Not allowed to retract $indicator")
@@ -237,7 +237,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         coreBuiltins["abolish"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("abolish/${args.size} is not defined")
             val arg0 = args[0]
-            if (arg0 !is Predicate || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
+            if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
             if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolish/1 must be a predicate indicator")
 
             val name = (arg0.arguments[0] as Atom).name
@@ -254,7 +254,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         coreBuiltins["abolishFacts"] = { auth, args: Array<out Term> ->
             if (args.size != 1) throw PrologRuntimeException("abolishFacts/${args.size} is not defined")
             val arg0 = args[0]
-            if (arg0 !is Predicate || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be an instance of `/`/2")
+            if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.name != "/") throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be an instance of `/`/2")
             if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolishFacts/1 must be a predicate indicator")
 
             val name = (arg0.arguments[0] as Atom).name
@@ -279,9 +279,9 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         store.assertz(clause)
     }
 
-    private fun findFor(predicate: Predicate): Iterable<Clause> {
-        val staticLibrary = staticIndex[predicate.arity]?.get(predicate.name)
-        return staticLibrary?.findFor(predicate) ?: store.findFor(predicate)
+    private fun findFor(compoundTerm: CompoundTerm): Iterable<Clause> {
+        val staticLibrary = staticIndex[compoundTerm.arity]?.get(compoundTerm.name)
+        return staticLibrary?.findFor(compoundTerm) ?: store.findFor(compoundTerm)
     }
 
     private inner class DefaultProofSearchContext(
@@ -374,7 +374,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
             val replaced = randomVariableScope.withRandomVariables(predicate, termMappings)
 
             for (clause in findFor(predicate)) {
-                if (clause is Predicate) {
+                if (clause is CompoundTerm) {
                     val knownPredicateReplaced = randomVariableScope.withRandomVariables(clause, VariableMapping())
                     val unification = knownPredicateReplaced.unify(replaced)
                     if (unification != null) {

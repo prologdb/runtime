@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -20,7 +20,7 @@ internal val C = Variable("C")
 internal val X = Variable("X")
 
 @Deprecated("use the DSL instead")
-abstract class BuiltinPredicate(name: String, vararg arguments: Term) : Predicate(name, arguments) {
+abstract class BuiltinPredicate(name: String, vararg arguments: Term) : CompoundTerm(name, arguments) {
     override val variables: Set<Variable>
         get() = emptySet()
 
@@ -64,10 +64,10 @@ private val builtinArgumentVariables = arrayOf(
  * This query is used as a placeholder for builtins where an instance of [Query] is required
  * but the actual query never gets invoked because kotlin code implements the builtin.
  */
-private val nativeCodeQuery = PredicateQuery(Predicate("__nativeCode", emptyArray()))
+private val nativeCodeQuery = PredicateQuery(CompoundTerm("__nativeCode", emptyArray()))
 
 class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation) : Rule(
-    Predicate(name, builtinArgumentVariables.sliceArray(0 until arity)),
+    CompoundTerm(name, builtinArgumentVariables.sliceArray(0 until arity)),
     nativeCodeQuery
 ) {
     private val invocationStackFrame = definedAt
@@ -81,7 +81,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
 
     val callDirectly: PrologBuiltinImplementation = code
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit = { other, context ->
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { other, context ->
         if (head.arity == other.arity && head.name == other.name) {
             try {
                 code(this, other.arguments, context)

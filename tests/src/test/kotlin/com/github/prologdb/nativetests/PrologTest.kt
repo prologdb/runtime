@@ -91,13 +91,13 @@ class PrologTest : FreeSpec() { init {
     }
 
     private fun getPrologTestCases(library: Library, parseErrorCallback: (Collection<Reporting>) -> Any?): Set<PrologTestCase> {
-        val by2Results = library.findFor(Predicate("by", arrayOf(AnonymousVariable, AnonymousVariable)))
+        val by2Results = library.findFor(CompoundTerm("by", arrayOf(AnonymousVariable, AnonymousVariable)))
         val testCases = mutableSetOf<PrologTestCase>()
         for (by2instance in by2Results) {
-            if (by2instance !is Predicate) continue
+            if (by2instance !is CompoundTerm) continue
             val arg0 = by2instance.arguments[0]
             val arg1 = by2instance.arguments[1]
-            if (arg0 !is Predicate) continue
+            if (arg0 !is CompoundTerm) continue
             if (arg1 !is PrologList) continue
 
             if (arg0.name != "test") continue

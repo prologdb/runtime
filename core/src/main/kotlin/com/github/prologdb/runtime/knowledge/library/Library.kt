@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.ArityMap
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 
 /**
  * A library of predicates. Intended to be used for static code (such as read from a .pl file),
@@ -62,13 +62,13 @@ class Library(
     }
 
     /**
-     * Finds clauses in this library that are likely to unify with the given [Predicate] (facts or rule heads).
+     * Finds clauses in this library that are likely to unify with the given [CompoundTerm] (facts or rule heads).
      *
      * "likely" means at least same name and arity; further optimizations are
      * implementation detail.
      */
-    fun findFor(predicate: Predicate): Iterable<Clause> {
-        return index[predicate.arity]?.get(predicate.name) ?: emptyList()
+    fun findFor(compoundTerm: CompoundTerm): Iterable<Clause> {
+        return index[compoundTerm.arity]?.get(compoundTerm.name) ?: emptyList()
     }
 
     /**

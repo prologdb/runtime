@@ -1,11 +1,14 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.remainingTo
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.Clause
+import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
+import com.github.prologdb.runtime.knowledge.library.MutableClauseStore
+import com.github.prologdb.runtime.knowledge.library.SimpleClauseStore
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.forOne
 import io.kotlintest.matchers.*
@@ -26,7 +29,7 @@ init {
             "facts added through add() should be returned through findFor()" {
                 // SETUP
                 entryStore = implementationFactory()
-                val predicate = Predicate("foo", arrayOf(Atom("x"), Atom("y")))
+                val predicate = CompoundTerm("foo", arrayOf(Atom("x"), Atom("y")))
                 entryStore.assertz(predicate)
 
                 // ACT
@@ -40,8 +43,8 @@ init {
             "findFor should respect arity" {
                 // SETUP
                 entryStore = implementationFactory()
-                val entryArity1 = Predicate("foo", arrayOf(Atom("x")))
-                val entryArity2 = Rule(Predicate("foo", arrayOf(Atom("x"), Atom("y"))), PredicateQuery(Predicate("hans", arrayOf())))
+                val entryArity1 = CompoundTerm("foo", arrayOf(Atom("x")))
+                val entryArity2 = Rule(CompoundTerm("foo", arrayOf(Atom("x"), Atom("y"))), PredicateQuery(CompoundTerm("hans", arrayOf())))
 
                 // ACT
                 entryStore.assertz(entryArity1)
@@ -60,8 +63,8 @@ init {
             "findFor should respect functor" {
                 // SETUP
                 entryStore = implementationFactory()
-                val entryFunctorA = Predicate("foobar", arrayOf(Atom("x")))
-                val entryFunctorB = Rule(Predicate("barfoo", arrayOf(Atom("x"))), PredicateQuery(Predicate("hans", arrayOf())))
+                val entryFunctorA = CompoundTerm("foobar", arrayOf(Atom("x")))
+                val entryFunctorB = Rule(CompoundTerm("barfoo", arrayOf(Atom("x"))), PredicateQuery(CompoundTerm("hans", arrayOf())))
 
                 // ACT
                 entryStore.assertz(entryFunctorA)
@@ -80,8 +83,8 @@ init {
             "retraction" - {
                 // SETUP
                 entryStore = implementationFactory()
-                val factA = Predicate("foobar", arrayOf(Atom("x")))
-                val factB = Predicate("barfoo", arrayOf(Atom("x")))
+                val factA = CompoundTerm("foobar", arrayOf(Atom("x")))
+                val factB = CompoundTerm("barfoo", arrayOf(Atom("x")))
 
                 // ACT
                 entryStore.assertz(factA)
@@ -123,7 +126,7 @@ init {
                 }
 
                 "rules removed through retract" - {
-                    val rule = Rule(Predicate("head", arrayOf(Variable("X"))), PredicateQuery(factA))
+                    val rule = Rule(CompoundTerm("head", arrayOf(Variable("X"))), PredicateQuery(factA))
                     entryStore.assertz(rule)
                     entryStore.findFor(rule.head).toList().size shouldEqual 1
 
@@ -140,8 +143,8 @@ init {
 
                 "retractFact should retract only first fact" {
                     // SETUP
-                    val fact1 = Predicate("foo", arrayOf(Atom("x")))
-                    val fact2 = Predicate("foo", arrayOf(Atom("x")))
+                    val fact1 = CompoundTerm("foo", arrayOf(Atom("x")))
+                    val fact2 = CompoundTerm("foo", arrayOf(Atom("x")))
 
                     entryStore.assertz(fact1)
                     entryStore.assertz(fact2)
@@ -158,8 +161,8 @@ init {
 
                 "retract should retract first fact" {
                     // SETUP
-                    val fact1 = Predicate("foo", arrayOf(Atom("x")))
-                    val fact2 = Predicate("foo", arrayOf(Atom("x")))
+                    val fact1 = CompoundTerm("foo", arrayOf(Atom("x")))
+                    val fact2 = CompoundTerm("foo", arrayOf(Atom("x")))
 
                     entryStore.assertz(fact1)
                     entryStore.assertz(fact2)
@@ -177,8 +180,8 @@ init {
                 "retractAllFacts should retract all facts" {
                     // SETUP
                     entryStore = implementationFactory()
-                    val fact1 = Predicate("foo", arrayOf(Atom("x")))
-                    val fact2 = Predicate("foo", arrayOf(Atom("x")))
+                    val fact1 = CompoundTerm("foo", arrayOf(Atom("x")))
+                    val fact2 = CompoundTerm("foo", arrayOf(Atom("x")))
 
                     entryStore.assertz(fact1)
                     entryStore.assertz(fact2)
@@ -197,8 +200,8 @@ init {
                 "retractAll should retract all facts and rules" {
                     // SETUP
                     entryStore = implementationFactory()
-                    val fact1 = Predicate("foo", arrayOf(Atom("x")))
-                    val fact2 = Predicate("foo", arrayOf(Atom("x")))
+                    val fact1 = CompoundTerm("foo", arrayOf(Atom("x")))
+                    val fact2 = CompoundTerm("foo", arrayOf(Atom("x")))
                     val rule2 = Rule(fact1, mock<Query>())
 
                     entryStore.assertz(fact1)
@@ -219,8 +222,8 @@ init {
                     "retractFact" {
                         // SETUP
                         entryStore = implementationFactory()
-                        val fact = Predicate("uutqwe", arrayOf(Atom("x")))
-                        val retractionFact = Predicate("uutqwe", arrayOf(Variable("X")))
+                        val fact = CompoundTerm("uutqwe", arrayOf(Atom("x")))
+                        val retractionFact = CompoundTerm("uutqwe", arrayOf(Variable("X")))
                         val expectedUnification = fact.unify(retractionFact)!!
 
                         // ACT
@@ -235,9 +238,9 @@ init {
                         // SETUP
                         entryStore = implementationFactory()
 
-                        val fact           = Predicate("foo", arrayOf(Atom("y")))
-                        val ruleHead       = Predicate("foo", arrayOf(Atom("aazwe")))
-                        val retractionFact = Predicate("foo", arrayOf(Variable("Z")))
+                        val fact           = CompoundTerm("foo", arrayOf(Atom("y")))
+                        val ruleHead       = CompoundTerm("foo", arrayOf(Atom("aazwe")))
+                        val retractionFact = CompoundTerm("foo", arrayOf(Variable("Z")))
                         val rule = Rule(ruleHead, mock<Query>())
 
                         val expectedFactUnification = fact.unify(retractionFact)

@@ -386,8 +386,8 @@ class PrologParser {
         val elements = commaPredicateToList(elementsResult.item ?: throw InternalParserError()).item ?: throw InternalParserError()
 
         // complain about every element that is not an instance of :/2 with the first argument being an atom
-        val (elementsInstanceOfPairArity2, elementsNotInstanceOfPair) = elements.partition { it is Predicate && it.name == ":" && it.arity == 2 }
-        val (validPairs, elementsWithKeyNotAnAtom) = elementsInstanceOfPairArity2.partition { (it as Predicate).arguments[0] is Atom }
+        val (elementsInstanceOfPairArity2, elementsNotInstanceOfPair) = elements.partition { it is CompoundTerm && it.name == ":" && it.arity == 2 }
+        val (validPairs, elementsWithKeyNotAnAtom) = elementsInstanceOfPairArity2.partition { (it as CompoundTerm).arguments[0] is Atom }
 
         elementsNotInstanceOfPair.forEach {
             reportings.add(SyntaxError("Elements in a dict literal must be instances of :/2", it.location))
@@ -398,7 +398,7 @@ class PrologParser {
 
         val pairsAsKotlinPairs: List<Pair<Atom, Term>> = validPairs
             .map {
-                it as Predicate
+                it as CompoundTerm
                 (it.arguments[0] as Atom) to it.arguments[1]
             }
         val pairsAsKotlinMap = pairsAsKotlinPairs.toMap()
@@ -465,7 +465,7 @@ class PrologParser {
 
     /**
      * Parses a parenthesised term: `(term)`.
-     * @param outmostWithoutProtection If the term within the parenthesis is a predicate, does not set the [Predicate.parenthesisProtection] flag.
+     * @param outmostWithoutProtection If the term within the parenthesis is a predicate, does not set the [CompoundTerm.parenthesisProtection] flag.
      */
     fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, outmostWithoutProtection: Boolean): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("parenthesised term")))
@@ -511,7 +511,7 @@ class PrologParser {
         } else {
             tokens.commit()
             val item = termResult.item
-            if (!outmostWithoutProtection && item is Predicate) {
+            if (!outmostWithoutProtection && item is CompoundTerm) {
                 if (item !is ParsedPredicate) throw InternalParserError()
                 item.parenthesisProtection = true
             }
@@ -740,7 +740,7 @@ class PrologParser {
 
             if (parseResult.isSuccess) {
                 val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
-                if (item is Predicate) {
+                if (item is CompoundTerm) {
                     item as? ParsedPredicate ?: throw InternalParserError("Expected ParsedPredicate, got Predicate")
                     // detect directive
                     if (item.isDirectiveInvocation) {
@@ -788,7 +788,7 @@ class PrologParser {
     private fun commaPredicateToList(commaPredicate: Term): ParseResult<List<Term>> {
         var pivot = commaPredicate
         val list = ArrayList<Term>(5)
-        while (pivot is Predicate && !(pivot as ParsedPredicate).parenthesisProtection && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
+        while (pivot is CompoundTerm && !(pivot as ParsedPredicate).parenthesisProtection && pivot.arity == 2 && pivot.name == Operator.COMMA.text) {
             pivot as? ParsedPredicate ?: throw InternalParserError()
             list.add(pivot.arguments[0])
             pivot = pivot.arguments[1]
@@ -873,10 +873,10 @@ class PrologParser {
 }
 
 private val ParsedPredicate.isDirectiveInvocation: Boolean
-    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is Predicate
+    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is CompoundTerm
 
 private val ParsedPredicate.isRuleDefinition: Boolean
-    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is Predicate
+    get() = name == HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is CompoundTerm
 
 /**
  * Skips (`next()`s) tokens in the receiver lazysequence until the parenthesis + bracket levels are 0 and the given

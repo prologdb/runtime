@@ -2,14 +2,15 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
+import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.query.PredicateQuery
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinNot = nativeRule("not", 1) { args, context ->
-    val arg0 = args[0] as? Predicate ?: return@nativeRule
+    val arg0 = args[0] as? CompoundTerm ?: return@nativeRule
 
     val proofSequence = buildLazySequence<Unification>(context.principal) {
         context.fulfillAttach(this, PredicateQuery(arg0), VariableBucket())
@@ -30,24 +31,24 @@ val BuiltinIdentity = nativeRule("==", 2) { args, _ ->
  */
 val EqualityLibrary = nativeLibrary("equality") {
     // =(X, X)
-    add(Predicate("=", arrayOf(X, X)))
+    add(CompoundTerm("=", arrayOf(X, X)))
 
     add(BuiltinNot)
 
     // \+/1
     add(Rule(
-        Predicate("\\+", arrayOf(A)),
+        CompoundTerm("\\+", arrayOf(A)),
         PredicateQuery(
-            Predicate("not", arrayOf(A))
+            CompoundTerm("not", arrayOf(A))
         )
     ))
 
     // \=(A, B) :- not(=(A, B)).
     add(Rule(
-        Predicate("\\=", arrayOf(A, B)),
+        CompoundTerm("\\=", arrayOf(A, B)),
         PredicateQuery(
-            Predicate("not", arrayOf(
-                Predicate("=", arrayOf(A, B))
+            CompoundTerm("not", arrayOf(
+                CompoundTerm("=", arrayOf(A, B))
             ))
         )
     ))
@@ -55,10 +56,10 @@ val EqualityLibrary = nativeLibrary("equality") {
     add(BuiltinIdentity)
 
     add(Rule(
-        Predicate("\\==", arrayOf(A, B)),
+        CompoundTerm("\\==", arrayOf(A, B)),
         PredicateQuery(
-            Predicate("not", arrayOf(
-                Predicate("==", arrayOf(A, B))
+            CompoundTerm("not", arrayOf(
+                CompoundTerm("==", arrayOf(A, B))
             ))
         )
     ))

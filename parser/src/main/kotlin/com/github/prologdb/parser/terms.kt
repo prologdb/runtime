@@ -28,7 +28,7 @@ open class ParsedPredicate(
     name: String,
     arguments: Array<out Term>,
     override val sourceInformation: SourceLocationRange
-) : HasPrologSource, Predicate(name, arguments) {
+) : HasPrologSource, CompoundTerm(name, arguments) {
     /**
      * Is set to true if this was directly surrounded by parenthesis. Should prevent this predicate from being
      * destructured in a predicate-to-query conversion

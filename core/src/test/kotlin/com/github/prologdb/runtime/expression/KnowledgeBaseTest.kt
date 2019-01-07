@@ -15,11 +15,11 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val kb = LocalKnowledgeBase()
         val a = Atom("a")
         val b = Atom("b")
-        kb.assertz(Predicate("f", arrayOf(a)))
-        kb.assertz(Predicate("f", arrayOf(b)))
+        kb.assertz(CompoundTerm("f", arrayOf(a)))
+        kb.assertz(CompoundTerm("f", arrayOf(b)))
 
         val X = Variable("X")
-        val queryFact = Predicate("f", arrayOf(X))
+        val queryFact = CompoundTerm("f", arrayOf(X))
 
         kb shouldProve queryFact suchThat {
             itHasExactlyNSolutions(2)
@@ -102,7 +102,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
             itHasASolutionSuchThat("P = point(_R,c)") {
                 val valP = it.variableValues[P]
 
-                valP is Predicate && valP.arguments.size == 2 && valP.arguments[0] is RandomVariable && valP.arguments[1] == c
+                valP is CompoundTerm && valP.arguments.size == 2 && valP.arguments[0] is RandomVariable && valP.arguments[1] == c
             }
         }
     }

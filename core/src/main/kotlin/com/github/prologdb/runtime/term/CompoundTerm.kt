@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import sensibleHashCode
 
-open class Predicate(
+open class CompoundTerm(
     override val name: String,
     arguments: Array<out Term>
 ) : Term, Clause
@@ -24,7 +24,7 @@ open class Predicate(
     override val prologTypeName = "predicate"
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
-        if (rhs is Predicate) {
+        if (rhs is CompoundTerm) {
             if (this.name != rhs.name) {
                 return Unification.FALSE
             }
@@ -77,7 +77,7 @@ open class Predicate(
         }
     }
 
-    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit =  { other, context ->
+    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit =  { other, context ->
         val unification = unify(other, context.randomVariableScope)
         if (unification != null) yield(unification)
     }
@@ -86,8 +86,8 @@ open class Predicate(
         arguments.flatMap(Term::variables).toSet()
     }
 
-    override fun substituteVariables(mapper: (Variable) -> Term): Predicate {
-        return Predicate(name, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
+    override fun substituteVariables(mapper: (Variable) -> Term): CompoundTerm {
+        return CompoundTerm(name, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
     }
 
     override fun compareTo(other: Term): Int {
@@ -96,7 +96,7 @@ open class Predicate(
             return 1
         }
 
-        other as? Predicate ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
+        other as? CompoundTerm ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
 
         val arityCmp = this.arity - other.arity
         if (arityCmp != 0) return arityCmp
@@ -125,7 +125,7 @@ open class Predicate(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is Predicate) return false
+        if (other !is CompoundTerm) return false
 
         if (name != other.name) return false
         if (arguments contentDeepEquals other.arguments) return true
@@ -141,7 +141,7 @@ open class Predicate(
 }
 
 class PredicateBuilder(private val predicateName: String) {
-    operator fun invoke(vararg arguments: Term) = Predicate(predicateName, arguments)
+    operator fun invoke(vararg arguments: Term) = CompoundTerm(predicateName, arguments)
 }
 
 /**
@@ -149,7 +149,7 @@ class PredicateBuilder(private val predicateName: String) {
  *         in the string (or null if none)
  */
 private fun Term.toStringUsingOperatorNotationsInternal(operators: OperatorRegistry): Triple<String, Short, OperatorDefinition?> {
-    if (this !is Predicate) {
+    if (this !is CompoundTerm) {
         return Triple(this.toStringUsingOperatorNotations(operators), 0, null)
     }
     
@@ -279,7 +279,7 @@ private enum class ParenthesisRequirement {
 /**
  * @return compatible with [toStringUsingOperatorNotationsInternal], but second always 0 and third always null.
  */
-private fun Predicate.toStringThisUsingStrictNotationArgumentsUsingOperatorNotations(operators: OperatorRegistry): Triple<String, Short, OperatorDefinition?> {
+private fun CompoundTerm.toStringThisUsingStrictNotationArgumentsUsingOperatorNotations(operators: OperatorRegistry): Triple<String, Short, OperatorDefinition?> {
     val argumentStrings = arguments.map {
         val triple = it.toStringUsingOperatorNotationsInternal(operators)
         if (triple.third?.name == ",") "(${triple.first})" else triple.first

@@ -2,13 +2,13 @@ package com.github.prologdb.runtime.builtin.math
 
 import com.github.prologdb.runtime.ArityMap
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber
 
 /**
  * Takes an arithmetic predicate (e.g. +(1,2) or mod(23,4)) and returns the calculated value
  */
-typealias Calculator = (Predicate) -> PrologNumber
+typealias Calculator = (CompoundTerm) -> PrologNumber
 
 /**
  * Keeps track of ways to evaluate mathematical predicates. This is global; registring a new calculator
@@ -45,9 +45,9 @@ object MathOperatorRegistry {
     /**
      * Evaluates the given predicate as an arithmetic expression.
      */
-    fun evaluate(predicate: Predicate): PrologNumber {
-        val calculator = getCalculator(predicate.name, predicate.arity) ?: throw PrologRuntimeException("Arithmetic operator ${predicate.name}/${predicate.arity} is not defined")
-        return calculator(predicate)
+    fun evaluate(compoundTerm: CompoundTerm): PrologNumber {
+        val calculator = getCalculator(compoundTerm.name, compoundTerm.arity) ?: throw PrologRuntimeException("Arithmetic operator ${compoundTerm.name}/${compoundTerm.arity} is not defined")
+        return calculator(compoundTerm)
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {

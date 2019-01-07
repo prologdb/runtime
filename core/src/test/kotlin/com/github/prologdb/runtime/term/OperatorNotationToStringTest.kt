@@ -452,7 +452,7 @@ class OperatorNotationToStringTest : FreeSpec({
         "plain" {
             val registry = DefaultOperatorRegistry()
 
-            val term = Predicate("foo", arrayOf(
+            val term = CompoundTerm("foo", arrayOf(
                 Atom("a"), Atom("b"), Atom("c") // there are no ternary operators in prolog
             ))
 
@@ -463,8 +463,8 @@ class OperatorNotationToStringTest : FreeSpec({
             val registry = DefaultOperatorRegistry()
             registry.defineOperator(OperatorDefinition(400,OperatorType.FX,"bar"))
 
-            val term = Predicate("foo", arrayOf(
-                Atom("a"), Predicate("bar", arrayOf(Atom("b"))), Atom("c")
+            val term = CompoundTerm("foo", arrayOf(
+                Atom("a"), CompoundTerm("bar", arrayOf(Atom("b"))), Atom("c")
             ))
 
             term.toStringUsingOperatorNotations(registry) shouldBe "foo(a, bar b, c)"
@@ -474,8 +474,8 @@ class OperatorNotationToStringTest : FreeSpec({
             val registry = DefaultOperatorRegistry()
             registry.defineOperator(OperatorDefinition(400,OperatorType.XFX,","))
             
-            val term = Predicate("foo", arrayOf(
-                Atom("a"), Atom("b"), Predicate(",", arrayOf(Atom("c"), Atom("d")))
+            val term = CompoundTerm("foo", arrayOf(
+                Atom("a"), Atom("b"), CompoundTerm(",", arrayOf(Atom("c"), Atom("d")))
             ))
             
             term.toStringUsingOperatorNotations(registry) shouldBe "foo(a, b, (c , d))"

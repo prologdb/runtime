@@ -47,10 +47,10 @@ val TypeSafetyLibrary = nativeLibrary("typesafety") {
 
     add(typeCheckBuiltin("ground") { it.variables.isEmpty() })
     add(Rule(
-        Predicate("nonground", arrayOf(X)),
+        CompoundTerm("nonground", arrayOf(X)),
         PredicateQuery(
-            Predicate("not", arrayOf(
-                Predicate("ground", arrayOf(X))
+            CompoundTerm("not", arrayOf(
+                CompoundTerm("ground", arrayOf(X))
             ))
         )
     ))

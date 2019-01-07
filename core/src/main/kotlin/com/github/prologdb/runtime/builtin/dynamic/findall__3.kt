@@ -5,7 +5,7 @@ import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.async.remainingToList
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -16,7 +16,7 @@ internal val BuiltinFindAll = nativeRule("findall", 3) { args, context ->
     val goalInput = args[1]
     val solutionInput = args[2]
 
-    if (goalInput !is Predicate) throw PrologRuntimeException("Type error: second argument to findall/3 must be a query.")
+    if (goalInput !is CompoundTerm) throw PrologRuntimeException("Type error: second argument to findall/3 must be a query.")
 
     if (solutionInput !is Variable && solutionInput !is PrologList) {
         throw PrologRuntimeException("Type error: third argument to findall/3 must be a list or not instantiated.")

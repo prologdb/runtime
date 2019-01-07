@@ -6,11 +6,11 @@ import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-open class Rule(val head: Predicate, val query: Query) : Clause {
+open class Rule(val head: CompoundTerm, val query: Query) : Clause {
     override val name = head.name
     override val arity = head.arity
 
@@ -24,7 +24,7 @@ open class Rule(val head: Predicate, val query: Query) : Clause {
      *
      * This can be re-defined for built-ins.
      */
-    open val fulfill: suspend LazySequenceBuilder<Unification>.(Predicate, ProofSearchContext) -> Unit = { predicate, context ->
+    open val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { predicate, context ->
         val predicateRandomVarsMapping = VariableMapping()
         val randomPredicate = context.randomVariableScope.withRandomVariables(predicate, predicateRandomVarsMapping)
 
@@ -66,7 +66,7 @@ open class Rule(val head: Predicate, val query: Query) : Clause {
         // else: does not match the rule head
     }
 
-    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: Predicate, context: ProofSearchContext) -> Unit
+    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: CompoundTerm, context: ProofSearchContext) -> Unit
         get() = fulfill
 
     override fun toString() = "$head :- $query"

@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.query
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapToArray
@@ -58,11 +58,11 @@ open class OrQuery(val goals: Array<out Query>) : Query() {
 }
 
 open class PredicateQuery(
-    val predicate: Predicate,
-    override val sourceInformation: PrologSourceInformation
+        val predicate: CompoundTerm,
+        override val sourceInformation: PrologSourceInformation
 ) : Query(), HasPrologSource
 {
-    constructor(predicate: Predicate) : this(predicate, getInvocationStackFrame().prologSourceInformation)
+    constructor(predicate: CompoundTerm) : this(predicate, getInvocationStackFrame().prologSourceInformation)
 
     /**
      * The stack frame to use in exceptions for this query.
@@ -76,7 +76,7 @@ open class PredicateQuery(
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateQuery(
-            randomVarsScope.withRandomVariables(predicate, mapping) as Predicate,
+            randomVarsScope.withRandomVariables(predicate, mapping) as CompoundTerm,
             sourceInformation
         )
     }

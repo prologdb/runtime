@@ -12,10 +12,10 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 
 /**
- * Creates a new [Predicate] with [this] as the name and the
+ * Creates a new [CompoundTerm] with [this] as the name and the
  * given arguments
  */
-operator fun String.invoke(vararg args: Term) = Predicate(this, args)
+operator fun String.invoke(vararg args: Term) = CompoundTerm(this, args)
 
 /**
  * Creates a new [Variable] with the given name
@@ -44,7 +44,7 @@ fun N(number: Number): PrologNumber {
  * Creates a new [Rule] with the receiver as the [Rule.head]; obtains
  * the body from the given lambda.
  */
-operator fun Predicate.invoke(definition: () -> Query) = Rule(this, definition())
+operator fun CompoundTerm.invoke(definition: () -> Query) = Rule(this, definition())
 
 /**
  * Creates a new prolog list as a copy of the receiver with the given term
@@ -60,7 +60,7 @@ fun PrologList.tail(tail: Term): PrologList {
 
 // these functions model the logic operators in all the different combinations
 
-infix fun Predicate.AND(rhs: Predicate): Query {
+infix fun CompoundTerm.AND(rhs: CompoundTerm): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return AndQuery(arrayOf(
@@ -69,7 +69,7 @@ infix fun Predicate.AND(rhs: Predicate): Query {
     ))
 }
 
-infix fun Predicate.AND(rhs: Query): Query {
+infix fun CompoundTerm.AND(rhs: Query): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return AndQuery(arrayOf(
@@ -78,7 +78,7 @@ infix fun Predicate.AND(rhs: Query): Query {
     ))
 }
 
-infix fun Query.AND(rhs: Predicate): Query {
+infix fun Query.AND(rhs: CompoundTerm): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
     if (this is AndQuery) {
         return AndQuery(
@@ -92,7 +92,7 @@ infix fun Query.AND(rhs: Predicate): Query {
     }
 }
 
-infix fun Predicate.OR(rhs: Predicate): Query {
+infix fun CompoundTerm.OR(rhs: CompoundTerm): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return OrQuery(arrayOf(
@@ -101,7 +101,7 @@ infix fun Predicate.OR(rhs: Predicate): Query {
     ))
 }
 
-infix fun Predicate.OR(rhs: Query): Query {
+infix fun CompoundTerm.OR(rhs: Query): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     return OrQuery(arrayOf(
@@ -110,7 +110,7 @@ infix fun Predicate.OR(rhs: Query): Query {
     ))
 }
 
-infix fun Query.OR(rhs: Predicate): Query {
+infix fun Query.OR(rhs: CompoundTerm): Query {
     val callerSourceInfo = getInvocationStackFrame().prologSourceInformation
 
     if (this is OrQuery) {

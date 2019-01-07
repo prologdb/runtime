@@ -5,7 +5,7 @@ import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -39,7 +39,7 @@ internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, contex
     val goalInput = args[1]
     val solutionInput = args[2]
 
-    if (goalInput !is Predicate) throw PrologRuntimeException("Type error: second argument to findall_o/3 must be a query.")
+    if (goalInput !is CompoundTerm) throw PrologRuntimeException("Type error: second argument to findall_o/3 must be a query.")
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3

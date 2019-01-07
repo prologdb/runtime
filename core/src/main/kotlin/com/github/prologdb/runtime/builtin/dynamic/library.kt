@@ -1,14 +1,11 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
 import com.github.prologdb.runtime.builtin.nativeLibrary
-import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
-import com.github.prologdb.runtime.knowledge.library.Library
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.Predicate
+import com.github.prologdb.runtime.term.CompoundTerm
 
 val DynamicsLibrary = nativeLibrary("dynamics") {
     add(BuiltinFindAll)
@@ -19,24 +16,24 @@ val DynamicsLibrary = nativeLibrary("dynamics") {
  * Converts compund predicates (instances of `,/2` and `;/2` to
  * queries).
  */
-fun predicateToQuery(predicate: Predicate): Query {
-    if (predicate.arity != 2) {
-        return PredicateQuery(predicate)
+fun predicateToQuery(compoundTerm: CompoundTerm): Query {
+    if (compoundTerm.arity != 2) {
+        return PredicateQuery(compoundTerm)
     }
 
-    if (predicate.name == "," || predicate.name == ";") {
-        val allArgumentsPredicates = predicate.arguments.all { it is Predicate }
+    if (compoundTerm.name == "," || compoundTerm.name == ";") {
+        val allArgumentsPredicates = compoundTerm.arguments.all { it is CompoundTerm }
         if (!allArgumentsPredicates) {
-            return PredicateQuery(predicate)
+            return PredicateQuery(compoundTerm)
         }
 
-        val argumentsConverted = predicate.arguments.map { predicateToQuery(it as Predicate) }.toTypedArray()
-        return when (predicate.name) {
+        val argumentsConverted = compoundTerm.arguments.map { predicateToQuery(it as CompoundTerm) }.toTypedArray()
+        return when (compoundTerm.name) {
             "," -> AndQuery(argumentsConverted)
             ";" -> OrQuery(argumentsConverted)
             else -> throw IllegalStateException()
         }
     }
     // else:
-    return PredicateQuery(predicate)
+    return PredicateQuery(compoundTerm)
 }
