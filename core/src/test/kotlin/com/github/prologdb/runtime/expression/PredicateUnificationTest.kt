@@ -91,7 +91,7 @@ class PredicateUnificationTest : FreeSpec(){init {
         fact1 shouldNotUnifyWith fact2
     }
 
-    "different predicate names and non-unifying arguments" {
+    "different functors and non-unifying arguments" {
         // SETUP
         val mockAtom1 = Atom("a")
         val mockAtom2 = Atom("b")

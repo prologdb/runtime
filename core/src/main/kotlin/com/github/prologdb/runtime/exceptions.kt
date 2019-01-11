@@ -47,12 +47,13 @@ class IllegalDirectiveException(message: String, cause: Throwable? = null) : Pro
 class PrologPermissionError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
 
 data class PrologStackTraceElement @JvmOverloads constructor(
-        val goalPredicate: CompoundTerm,
-        val sourceInformation: PrologSourceInformation,
-        val toStringOverride: String? = null
+    val goal: CompoundTerm,
+    val sourceInformation: PrologSourceInformation,
+    val toStringOverride: String? = null
 ){
-    override fun toString() = toStringOverride ?: "$goalPredicate   ${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
+    override fun toString() = toStringOverride ?: "$goal   ${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
 }
+
 fun CompoundTerm.toStackTraceElement() = PrologStackTraceElement(
     this,
     if (this is HasPrologSource) sourceInformation else NullSourceInformation

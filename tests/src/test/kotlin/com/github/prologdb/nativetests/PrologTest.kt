@@ -110,7 +110,7 @@ class PrologTest : FreeSpec() { init {
                 testCases.add(PrologTestCase.erroring(testName, IllegalArgumentException("Test cases must be constructed from parsed code so failure locations can be reported.")))
             }
 
-            val goalList = (arg1 as ParsedList).elements.map { it.asPredicate().toQuery() }.toList()
+            val goalList = (arg1 as ParsedList).elements.map { it.asCompound().toQuery() }.toList()
 
             testCases.add(object : PrologTestCase {
                 override val name = testName
@@ -266,12 +266,12 @@ private class TestQueryContext(
 private fun ParsedCompoundTerm.toQuery(): Query {
     if (this.functor == ",") {
         val goals = mutableListOf<Query>()
-        goals.add(this.arguments[0].asPredicate().toQuery())
+        goals.add(this.arguments[0].asCompound().toQuery())
 
-        var pivot = this.arguments[1].asPredicate()
+        var pivot = this.arguments[1].asCompound()
         while (pivot.functor == ",") {
-            goals.add(pivot.arguments[0].asPredicate().toQuery())
-            pivot = pivot.arguments[1].asPredicate()
+            goals.add(pivot.arguments[0].asCompound().toQuery())
+            pivot = pivot.arguments[1].asCompound()
         }
 
         goals.add(pivot.toQuery())
@@ -279,12 +279,12 @@ private fun ParsedCompoundTerm.toQuery(): Query {
     }
     else if (this.functor == ";") {
         val goals = mutableListOf<Query>()
-        goals.add(this.arguments[0].asPredicate().toQuery())
+        goals.add(this.arguments[0].asCompound().toQuery())
 
-        var pivot = this.arguments[1].asPredicate()
+        var pivot = this.arguments[1].asCompound()
         while (pivot.functor == ";") {
-            goals.add(pivot.arguments[0].asPredicate().toQuery())
-            pivot = pivot.arguments[1].asPredicate()
+            goals.add(pivot.arguments[0].asCompound().toQuery())
+            pivot = pivot.arguments[1].asCompound()
         }
 
         goals.add(pivot.toQuery())
@@ -295,7 +295,7 @@ private fun ParsedCompoundTerm.toQuery(): Query {
     }
 }
 
-private fun Term.asPredicate(): ParsedCompoundTerm {
+private fun Term.asCompound(): ParsedCompoundTerm {
     if (this is ParsedCompoundTerm) return this
 
     val sourceInformation = if (this is HasPrologSource) this.sourceInformation else NullSourceInformation

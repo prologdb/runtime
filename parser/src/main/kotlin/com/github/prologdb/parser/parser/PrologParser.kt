@@ -215,7 +215,7 @@ class PrologParser {
                     functorToken.location..parentOpenToken.location
                 ),
                 MATCHED,
-                setOf(UnexpectedEOFError("[predicate arguments]", "closing parenthesis"))
+                setOf(UnexpectedEOFError("[compound term arguments]", "closing parenthesis"))
             )
         }
 
@@ -465,7 +465,7 @@ class PrologParser {
 
     /**
      * Parses a parenthesised term: `(term)`.
-     * @param outmostWithoutProtection If the term within the parenthesis is a predicate, does not set the [CompoundTerm.parenthesisProtection] flag.
+     * @param outmostWithoutProtection If the term within the parenthesis is a compound, does not set the [CompoundTerm.parenthesisProtection] flag.
      */
     fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, outmostWithoutProtection: Boolean): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("parenthesised term")))
@@ -753,7 +753,7 @@ class PrologParser {
                         clauses.add(item)
                     }
                 } else {
-                    reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a predicate.", item.location)
+                    reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a compound term.", item.location)
                 }
             }
             else {

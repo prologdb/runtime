@@ -67,8 +67,8 @@ class ParsedPrologString(
     override val sourceInformation: SourceLocationRange
 ) : HasPrologSource, PrologString(stringContent)
 
-class ParsedPredicateInvocationQuery(predicate: ParsedCompoundTerm) : PredicateInvocationQuery(predicate), HasPrologSource {
-    override val sourceInformation = predicate.sourceInformation
+class ParsedPredicateInvocationQuery(goal: ParsedCompoundTerm) : PredicateInvocationQuery(goal), HasPrologSource {
+    override val sourceInformation = goal.sourceInformation
 }
 
 class ParsedAndQuery(goals: Array<out Query>, override val sourceInformation: SourceLocationRange) : AndQuery(goals), HasPrologSource

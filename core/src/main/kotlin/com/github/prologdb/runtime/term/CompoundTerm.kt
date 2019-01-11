@@ -96,7 +96,7 @@ open class CompoundTerm(
             return 1
         }
 
-        other as? CompoundTerm ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or predicate)")
+        other as? CompoundTerm ?: throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list or compound)")
 
         val arityCmp = this.arity - other.arity
         if (arityCmp != 0) return arityCmp
