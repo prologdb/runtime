@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.term.PredicateBuilder
 import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.specs.FreeSpec
 
-class PredicateUnificationTest : FreeSpec(){init {
+class CompoundTermUnificationTest : FreeSpec(){init {
     "both equal, one argument" {
         // SETUP
         val mockAtom1 = Atom("a")
