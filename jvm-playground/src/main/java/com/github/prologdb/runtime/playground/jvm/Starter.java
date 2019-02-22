@@ -51,7 +51,7 @@ public class Starter {
 
                 @Override
                 public void windowClosed(WindowEvent e) {
-                    System.exit(-1);
+                    System.exit(0);
                 }
 
                 @Override

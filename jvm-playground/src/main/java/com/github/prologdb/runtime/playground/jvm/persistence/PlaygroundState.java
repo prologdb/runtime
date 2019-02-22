@@ -1,8 +1,10 @@
 package com.github.prologdb.runtime.playground.jvm.persistence;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.prologdb.runtime.playground.jvm.LoadableLibrary;
 
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Models the state of the playground, supporting persistence
@@ -18,6 +20,8 @@ public class PlaygroundState {
      */
     private String query;
 
+    private Set<LoadableLibrary> selectedLibraries;
+
     /**
      * The graphics device last shown on (multi-monitor support)
      */
@@ -31,6 +35,18 @@ public class PlaygroundState {
     @JsonProperty
     public void setGraphicsDeviceID(String graphicsDeviceID) {
         this.graphicsDeviceID = graphicsDeviceID;
+    }
+
+    @JsonProperty
+    public Set<LoadableLibrary> getSelectedLibraries()
+    {
+        return selectedLibraries;
+    }
+
+    @JsonProperty
+    public void setSelectedLibraries(Set<LoadableLibrary> selectedLibraries)
+    {
+        this.selectedLibraries = selectedLibraries;
     }
 
     @JsonProperty
