@@ -22,19 +22,18 @@ public class PlaygroundState {
 
     private Set<LoadableLibrary> selectedLibraries;
 
-    /**
-     * The graphics device last shown on (multi-monitor support)
-     */
-    private String graphicsDeviceID = null;
+    private WindowState mainWindowState = new WindowState();
 
     @JsonProperty
+    @Deprecated
     public String getGraphicsDeviceID() {
-        return graphicsDeviceID;
+        return mainWindowState.getGraphicsDeviceID();
     }
 
     @JsonProperty
+    @Deprecated
     public void setGraphicsDeviceID(String graphicsDeviceID) {
-        this.graphicsDeviceID = graphicsDeviceID;
+        mainWindowState.setGraphicsDeviceID(graphicsDeviceID);
     }
 
     @JsonProperty
@@ -57,6 +56,18 @@ public class PlaygroundState {
     @JsonProperty
     public void setKnowledgeBaseText(String knowledgeBaseText) {
         this.knowledgeBaseText = knowledgeBaseText;
+    }
+
+    @JsonProperty
+    public WindowState getMainWindowState()
+    {
+        return mainWindowState;
+    }
+
+    @JsonProperty
+    public void setMainWindowState(WindowState mainWindowState)
+    {
+        this.mainWindowState = mainWindowState;
     }
 
     @JsonProperty
