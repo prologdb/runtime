@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundStatePersistenceService;
+import com.github.prologdb.runtime.playground.jvm.persistence.WindowState;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,15 +27,7 @@ public class MainFrame extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 statePersistenceService.read().ifPresent(playgroundPanel::setCurrentState);
-                statePersistenceService.read().map(PlaygroundState::getGraphicsDeviceID).ifPresent(deviceID -> {
-                    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-                    for (GraphicsDevice device : ge.getScreenDevices()) {
-                        if (device.getIDstring().equals(deviceID)) {
-                            moveTo(device);
-                            return;
-                        }
-                    }
-                });
+                statePersistenceService.read().map(PlaygroundState::getMainWindowState).ifPresent(this::setWindowState);
                 (new Timer()).schedule(periodicPersistenceTimerTask, 10000, 15000);
             }
             catch (IOException ex) {
@@ -47,6 +40,45 @@ public class MainFrame extends JFrame {
                 );
             }
         });
+    }
+
+    private WindowState getWindowState()
+    {
+        WindowState state = new WindowState();
+
+        state.setLocationX(getLocation().x);
+        state.setLocationY(getLocation().y);
+        state.setWidth(getWidth());
+        state.setHeight(getHeight());
+
+        for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+            if (device.getDefaultConfiguration().getBounds().contains(getLocation())) {
+                state.setGraphicsDeviceID(device.getIDstring());
+                break;
+            }
+        }
+
+        return state;
+    }
+
+    private void setWindowState(WindowState state)
+    {
+
+        if (state.getWidth() != null && state.getHeight() != null) {
+            setSize(state.getWidth(), state.getHeight());
+        }
+
+        if (state.getLocationX() != null && state.getLocationY() != null) {
+            setLocation(state.getLocationX(), state.getLocationY());
+        }
+
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        for (GraphicsDevice device : ge.getScreenDevices()) {
+            if (device.getIDstring().equals(state.getGraphicsDeviceID())) {
+                moveTo(device);
+                return;
+            }
+        }
     }
 
     private void moveTo(GraphicsDevice targetDevice) {
@@ -89,12 +121,7 @@ public class MainFrame extends JFrame {
 
     private void persistCurrentState() throws IOException {
         PlaygroundState state = playgroundPanel.getCurrentState();
-        for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
-            if (device.getDefaultConfiguration().getBounds().contains(getLocation())) {
-                state.setGraphicsDeviceID(device.getIDstring());
-                break;
-            }
-        }
+        state.setMainWindowState(getWindowState());
         statePersistenceService.write(state);
 
         lastPersistedState = state;
