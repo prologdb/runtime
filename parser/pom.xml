@@ -77,6 +77,10 @@
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 
