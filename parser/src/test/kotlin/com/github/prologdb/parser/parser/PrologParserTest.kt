@@ -125,27 +125,27 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
 
-            val predicate = result.item!! as CompoundTerm
-            predicate.functor shouldEqual "predicate"
-            predicate.arity shouldEqual 0
+            val compound = result.item!! as CompoundTerm
+            compound.functor shouldEqual "predicate"
+            compound.arity shouldEqual 0
         }
 
         "with three arguments" {
             val result = parseTerm("predicate(foo, X, bar)")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            val predicate = result.item!! as CompoundTerm
-            predicate.functor shouldEqual "predicate"
-            predicate.arguments.size shouldEqual 3
+            val compound = result.item!! as CompoundTerm
+            compound.functor shouldEqual "predicate"
+            compound.arguments.size shouldEqual 3
 
-            assert(predicate.arguments[0] is Atom)
-            (predicate.arguments[0] as Atom).name shouldEqual "foo"
+            assert(compound.arguments[0] is Atom)
+            (compound.arguments[0] as Atom).name shouldEqual "foo"
 
-            assert(predicate.arguments[1] is Variable)
-            (predicate.arguments[1] as Variable).name shouldEqual "X"
+            assert(compound.arguments[1] is Variable)
+            (compound.arguments[1] as Variable).name shouldEqual "X"
 
-            assert(predicate.arguments[2] is Atom)
-            (predicate.arguments[2] as Atom).name shouldEqual "bar"
+            assert(compound.arguments[2] is Atom)
+            (compound.arguments[2] as Atom).name shouldEqual "bar"
         }
 
         "missing closing parenthesis: EOF instead" {
@@ -164,9 +164,9 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
-            val predicate = result.item!! as ParsedCompoundTerm
-            predicate.functor shouldEqual "infixOpXFX500"
-            predicate.arguments.size shouldEqual 2
+            val compound = result.item!! as ParsedCompoundTerm
+            compound.functor shouldEqual "infixOpXFX500"
+            compound.arguments.size shouldEqual 2
         }
 
         "invocation with infix as sole parameter" {
@@ -174,11 +174,11 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
-            val predicate = result.item!! as ParsedCompoundTerm
-            predicate.functor shouldEqual "a"
-            predicate.arity shouldEqual 1
+            val compound = result.item!! as ParsedCompoundTerm
+            compound.functor shouldEqual "a"
+            compound.arity shouldEqual 1
 
-            val soleArg = predicate.arguments[0] as ParsedCompoundTerm
+            val soleArg = compound.arguments[0] as ParsedCompoundTerm
             soleArg.functor shouldEqual "infixOpXFX500"
             soleArg.arity shouldEqual 2
             soleArg.arguments[0].toString() shouldEqual "b"
@@ -653,9 +653,9 @@ class PrologParserTest : FreeSpec() {
         val result = parseTerm(tokens)
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
-        val predicate = result.item as CompoundTerm
-        predicate.arguments.size shouldBe 1
-        val arg0 = predicate.arguments[0] as CompoundTerm
+        val compound = result.item as CompoundTerm
+        compound.arguments.size shouldBe 1
+        val arg0 = compound.arguments[0] as CompoundTerm
         arg0.functor shouldBe ","
         arg0.arity shouldBe 2
 

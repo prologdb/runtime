@@ -43,7 +43,7 @@ object MathOperatorRegistry {
     fun getCalculator(operatorName: String, arity: Int): Calculator? = calculators[operatorName]?.get(arity)
 
     /**
-     * Evaluates the given predicate as an arithmetic expression.
+     * Evaluates the given compound term as an arithmetic expression.
      */
     fun evaluate(compoundTerm: CompoundTerm): PrologNumber {
         val calculator = getCalculator(compoundTerm.functor, compoundTerm.arity) ?: throw PrologRuntimeException("Arithmetic operator ${compoundTerm.functor}/${compoundTerm.arity} is not defined")
@@ -58,9 +58,9 @@ object MathOperatorRegistry {
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber, PrologNumber) -> PrologNumber) {
-        registerOperator(operatorName, 2..2) { predicate ->
-            if (predicate.arity != 2 || predicate.functor != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${predicate.functor}/${predicate.arity}")
-            calculator(predicate.arguments[0].asPrologNumber, predicate.arguments[1].asPrologNumber)
+        registerOperator(operatorName, 2..2) { compoundTerm ->
+            if (compoundTerm.arity != 2 || compoundTerm.functor != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${compoundTerm.functor}/${compoundTerm.arity}")
+            calculator(compoundTerm.arguments[0].asPrologNumber, compoundTerm.arguments[1].asPrologNumber)
         }
     }
 

@@ -22,8 +22,8 @@ fun compoundToQuery(compoundTerm: CompoundTerm): Query {
     }
 
     if (compoundTerm.functor == "," || compoundTerm.functor == ";") {
-        val allArgumentsPredicates = compoundTerm.arguments.all { it is CompoundTerm }
-        if (!allArgumentsPredicates) {
+        val allArgumentsCompound = compoundTerm.arguments.all { it is CompoundTerm }
+        if (!allArgumentsCompound) {
             return PredicateInvocationQuery(compoundTerm)
         }
 

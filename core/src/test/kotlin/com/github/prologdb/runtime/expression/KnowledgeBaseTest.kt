@@ -34,8 +34,8 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
     "separate variable scopes: f(a(X,Y),a(Y,X)). ?-f(a(m,n),X))" {
         val kb = LocalKnowledgeBase()
-        val f = PredicateBuilder("f")
-        val a = PredicateBuilder("a")
+        val f = CompoundBuilder("f")
+        val a = CompoundBuilder("a")
         val m = Atom("m")
         val n = Atom("n")
         val X = Variable("X")
@@ -63,10 +63,10 @@ class KnowledgeBaseTest : FreeSpec() {init {
          * ?- horizontal(line(point(b,c),P)).
          * P = point(_4711, 3)
          */
-        val vertical = PredicateBuilder("vertical")
-        val horizontal = PredicateBuilder("horizontal")
-        val line = PredicateBuilder("line")
-        val point = PredicateBuilder("point")
+        val vertical = CompoundBuilder("vertical")
+        val horizontal = CompoundBuilder("horizontal")
+        val line = CompoundBuilder("line")
+        val point = CompoundBuilder("point")
         val a = Atom("a")
         val b = Atom("b")
         val c = Atom("c")
@@ -110,7 +110,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     "g(X, X). ?- g(A, B)" {
         val kb = LocalKnowledgeBase()
 
-        val g = PredicateBuilder("g")
+        val g = CompoundBuilder("g")
         val X = Variable("X")
         val A = Variable("A")
         val B = Variable("B")
@@ -127,8 +127,8 @@ class KnowledgeBaseTest : FreeSpec() {init {
     "g(X, X). f(X, Y) :- g(X, Y). ?- f(a, V)" {
         val kb = LocalKnowledgeBase()
 
-        val f = PredicateBuilder("f")
-        val g = PredicateBuilder("g")
+        val f = CompoundBuilder("f")
+        val g = CompoundBuilder("g")
         val X = Variable("X")
         val Y = Variable("Y")
         val a = Atom("a")
@@ -148,7 +148,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     "list append" - {
         val kb = LocalKnowledgeBase()
 
-        val app = PredicateBuilder("app")
+        val app = CompoundBuilder("app")
         val L = Variable("L")
         val H = Variable("H")
         val T = Variable("T")
@@ -225,7 +225,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
     "retain values of random variables" {
         val X = Variable("X")
-        val a = PredicateBuilder("a")
+        val a = CompoundBuilder("a")
         val H = Variable("H")
         val T = Variable("T")
 
@@ -249,7 +249,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
     "anonymous variable" - {
         val kb = LocalKnowledgeBase()
-        val f = PredicateBuilder("f")
+        val f = CompoundBuilder("f")
         val _A = Variable.ANONYMOUS
         val X = Variable("X")
         val a = Atom("a")

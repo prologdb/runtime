@@ -29,15 +29,15 @@ init {
             "facts added through add() should be returned through findFor()" {
                 // SETUP
                 entryStore = implementationFactory()
-                val predicate = CompoundTerm("foo", arrayOf(Atom("x"), Atom("y")))
-                entryStore.assertz(predicate)
+                val compound = CompoundTerm("foo", arrayOf(Atom("x"), Atom("y")))
+                entryStore.assertz(compound)
 
                 // ACT
-                val result = entryStore.findFor(predicate).toList()
+                val result = entryStore.findFor(compound).toList()
 
                 // ASSERT
                 result.size shouldEqual 1
-                result.first() shouldEqual predicate
+                result.first() shouldEqual compound
             }
 
             "findFor should respect arity" {

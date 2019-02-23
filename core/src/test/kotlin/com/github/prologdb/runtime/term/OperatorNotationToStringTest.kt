@@ -10,9 +10,9 @@ class OperatorNotationToStringTest : FreeSpec({
     "prefix operator nesting" - {
         val a = Atom("a")
         val b = Atom("b")
-        val prefix = PredicateBuilder("prefix")
-        val postfix = PredicateBuilder("postfix")
-        val infix = PredicateBuilder("infix")
+        val prefix = CompoundBuilder("prefix")
+        val postfix = CompoundBuilder("postfix")
+        val infix = CompoundBuilder("infix")
         
         "prefix has higher priority" - {
             "nesting XF" {
@@ -204,9 +204,9 @@ class OperatorNotationToStringTest : FreeSpec({
     "postfix operator nesting" - {
         val a = Atom("a")
         val b = Atom("b")
-        val prefix = PredicateBuilder("prefix")
-        val postfix = PredicateBuilder("postfix")
-        val infix = PredicateBuilder("infix")
+        val prefix = CompoundBuilder("prefix")
+        val postfix = CompoundBuilder("postfix")
+        val infix = CompoundBuilder("infix")
 
         "postfix has higher priority" - {
             "nesting FX" {
@@ -399,9 +399,9 @@ class OperatorNotationToStringTest : FreeSpec({
         val a = Atom("a")
         val b = Atom("b")
         val c = Atom("c")
-        val lhsPrefix = PredicateBuilder("lhsPrefix")
-        val rhsPostfix = PredicateBuilder("rhsPostfix")
-        val infix = PredicateBuilder("infix")
+        val lhsPrefix = CompoundBuilder("lhsPrefix")
+        val rhsPostfix = CompoundBuilder("rhsPostfix")
+        val infix = CompoundBuilder("infix")
         
         "lhs lower priority, rhs lower priority" {
             val registry = DefaultOperatorRegistry()

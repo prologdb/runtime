@@ -8,7 +8,7 @@ test "atom/1 with number" by [
 ].
 
 test "atom/1 with compound term" by [
-    \+ atom(predicate(arg))
+    \+ atom(fn(arg))
 ].
 
 test "atom/1 with list" by [

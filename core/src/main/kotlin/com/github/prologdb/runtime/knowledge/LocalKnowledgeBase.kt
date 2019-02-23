@@ -111,7 +111,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         staticExports
             .asSequence()
             .map { indicator ->
-                val library = staticIndex[indicator.arity]?.get(indicator.name)
+                val library = staticIndex[indicator.arity]?.get(indicator.functor)
                 if (library == null) null else Pair(library, indicator)
             }
             .filterNotNull()
@@ -124,7 +124,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         library.dynamicExports.
             asSequence()
             .map { indicator ->
-                 val library = staticIndex[indicator.arity]?.get(indicator.name)
+                 val library = staticIndex[indicator.arity]?.get(indicator.functor)
                  if (library == null) null else Pair(library, indicator)
             }
             .filterNotNull()
@@ -145,13 +145,11 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
                 staticIndex[indicator.arity] = map
                 map
             }()
-            nameMap[indicator.name] = library
+            nameMap[indicator.functor] = library
         }
 
         _operators.include(library.operators)
     }
-
-
 
     /**
      * Assures the indicator of the given type is present in [dynamicPredicates].
@@ -164,7 +162,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
      * @throws PredicateNotDynamicException If the predicate of the given type is not dynamic.
      */
     private fun assureDynamic(indicator: ClauseIndicator) {
-        val library = staticIndex[indicator.arity]?.get(indicator.name)
+        val library = staticIndex[indicator.arity]?.get(indicator.functor)
         if (library != null) {
             // a library has registered this as static
             throw PredicateNotDynamicException(indicator, "Predicate $indicator is not dynamic: marked as static by library ${library.name}")
@@ -349,7 +347,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
         }
 
         private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, initialVariables: VariableBucket) {
-            val goal = query.predicate
+            val goal = query.goal
 
             val indicator = ClauseIndicator.of(goal)
             if (!authorization.mayRead(indicator)) throw PrologPermissionError("Not allowed to read $indicator")

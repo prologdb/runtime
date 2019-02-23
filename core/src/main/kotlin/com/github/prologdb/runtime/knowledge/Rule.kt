@@ -26,12 +26,12 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause {
      */
     open val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, context ->
         val goalRandomVarsMapping = VariableMapping()
-        val randomPredicate = context.randomVariableScope.withRandomVariables(goal, goalRandomVarsMapping)
+        val randomGoal = context.randomVariableScope.withRandomVariables(goal, goalRandomVarsMapping)
 
         val ruleRandomVarsMapping = VariableMapping()
         val randomHead = context.randomVariableScope.withRandomVariables(head, ruleRandomVarsMapping)
 
-        val goalAndHeadUnification = randomHead.unify(randomPredicate)
+        val goalAndHeadUnification = randomHead.unify(randomGoal)
         if (goalAndHeadUnification != null) {
             val randomQuery = query
                 .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
@@ -44,7 +44,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause {
             yieldAll(randomResults.mapRemaining { unification ->
                 val solutionVars = VariableBucket()
 
-                for (randomGoalVariable in randomPredicate.variables)
+                for (randomGoalVariable in randomGoal.variables)
                 {
                     if (goalAndHeadUnification.variableValues.isInstantiated(randomGoalVariable)) {
                         val value = goalAndHeadUnification.variableValues[randomGoalVariable]

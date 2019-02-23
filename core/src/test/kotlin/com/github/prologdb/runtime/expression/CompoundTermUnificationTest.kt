@@ -4,8 +4,8 @@ import com.github.prologdb.runtime.shouldNotUnifyWith
 import com.github.prologdb.runtime.shouldUnifyWith
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PredicateBuilder
 import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.specs.FreeSpec
 
@@ -105,7 +105,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
 
     "with variable" {
         // SETUP
-        val f = PredicateBuilder("f")
+        val f = CompoundBuilder("f")
         val a = Atom("a")
         val X = Variable("X")
 
@@ -115,7 +115,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
     }
 
     "?- g(X, X) = g(A, B)" {
-        val g = PredicateBuilder("g")
+        val g = CompoundBuilder("g")
         val X = Variable("X")
         val A = Variable("A")
         val B = Variable("B")
@@ -130,7 +130,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
         val a = Atom("a")
         val b = Atom("b")
         val X = Variable("X")
-        val f = PredicateBuilder("f")
+        val f = CompoundBuilder("f")
 
         // ASSERT
         f(a, X) shouldNotUnifyWith f(X, b)
@@ -142,9 +142,9 @@ class CompoundTermUnificationTest : FreeSpec(){init {
         val w = Atom("w")
         val Y = Variable("Y")
         val X = Variable("X")
-        val s = PredicateBuilder("s")
-        val k = PredicateBuilder("k")
-        val t = PredicateBuilder("t")
+        val s = CompoundBuilder("s")
+        val k = CompoundBuilder("k")
+        val t = CompoundBuilder("t")
 
         val lhs = k(s((g)), Y)
         val rhs = k(X, t(w))

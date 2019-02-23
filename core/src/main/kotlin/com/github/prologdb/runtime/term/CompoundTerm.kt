@@ -140,8 +140,8 @@ open class CompoundTerm(
     }
 }
 
-class PredicateBuilder(private val predicateName: String) {
-    operator fun invoke(vararg arguments: Term) = CompoundTerm(predicateName, arguments)
+class CompoundBuilder(private val functor: String) {
+    operator fun invoke(vararg arguments: Term) = CompoundTerm(functor, arguments)
 }
 
 /**

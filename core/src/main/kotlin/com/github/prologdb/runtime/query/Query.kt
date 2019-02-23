@@ -58,40 +58,40 @@ open class OrQuery(val goals: Array<out Query>) : Query() {
 }
 
 open class PredicateInvocationQuery(
-        val predicate: CompoundTerm,
-        override val sourceInformation: PrologSourceInformation
+    val goal: CompoundTerm,
+    override val sourceInformation: PrologSourceInformation
 ) : Query(), HasPrologSource
 {
-    constructor(predicate: CompoundTerm) : this(predicate, getInvocationStackFrame().prologSourceInformation)
+    constructor(goal: CompoundTerm) : this(goal, getInvocationStackFrame().prologSourceInformation)
 
     /**
      * The stack frame to use in exceptions for this query.
      */
     val stackFrame: PrologStackTraceElement by lazy {
         PrologStackTraceElement(
-            predicate,
+            goal,
             sourceInformation
         )
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateInvocationQuery(
-            randomVarsScope.withRandomVariables(predicate, mapping) as CompoundTerm,
+            randomVarsScope.withRandomVariables(goal, mapping) as CompoundTerm,
             sourceInformation
         )
     }
 
     override fun substituteVariables(variableValues: VariableBucket): Query {
         return PredicateInvocationQuery(
-            predicate.substituteVariables(variableValues.asSubstitutionMapper()),
+            goal.substituteVariables(variableValues.asSubstitutionMapper()),
             sourceInformation
         )
     }
 
     override fun toString(): String {
-        return predicate.toString()
+        return goal.toString()
     }
 
     override val variables: Set<Variable>
-        get() = predicate.variables
+        get() = goal.variables
 }
