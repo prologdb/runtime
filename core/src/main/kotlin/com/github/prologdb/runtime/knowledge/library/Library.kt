@@ -78,6 +78,6 @@ class Library(
      * are not listed in [exports].
      */
     fun findFor(indicator: ClauseIndicator): Iterable<Clause> {
-        return index[indicator.arity]?.get(indicator.name) ?: emptyList()
+        return index[indicator.arity]?.get(indicator.functor) ?: emptyList()
     }
 }

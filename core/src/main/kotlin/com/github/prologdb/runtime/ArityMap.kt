@@ -42,6 +42,22 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
         return items[arity]
     }
 
+    fun computeIfAbsent(arity: Int, computer: () -> T): T {
+        if (arity < 0) {
+            throw IllegalArgumentException("The arity must positive or 0.")
+        }
+
+        if (arity >= items.size) {
+            capacity = arity
+        }
+
+        return items[arity] ?: run {
+            val computed = computer()
+            items[arity] = computed
+            computed
+        }
+    }
+
     operator fun set(arity: Int, item: T) {
         if (arity < 0) {
             throw IllegalArgumentException("The arity must positive or 0.")

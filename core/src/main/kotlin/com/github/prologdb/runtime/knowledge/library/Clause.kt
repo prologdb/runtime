@@ -20,10 +20,10 @@ interface Clause : HasFunctorAndArity {
  * A indicator of a clause, e.g. `likes/2`.
  */
 data class ClauseIndicator private constructor(
-    val name: String,
+    val functor: String,
     val arity: Int
 ) {
-    override fun toString() = "$name/$arity"
+    override fun toString() = "$functor/$arity"
 
     companion object {
         /**

@@ -12,7 +12,7 @@ class AtomUnificationTest : FreeSpec() {init {
         a shouldUnifyWith a
     }
 
-    "different objects, equal name" {
+    "different objects, equal functor" {
         Atom("a") shouldUnifyWith Atom("a")
     }
 

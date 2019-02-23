@@ -16,7 +16,7 @@ class ClauseIndicatorTest : FreeSpec({
             }
         }
 
-        "no name" {
+        "no functor" {
             shouldThrow<IllegalArgumentException> {
                 ClauseIndicator.parse("2")
             }
@@ -28,7 +28,7 @@ class ClauseIndicatorTest : FreeSpec({
             }
         }
 
-        "slash but no name" {
+        "slash but no functor" {
             shouldThrow<IllegalArgumentException> {
                 ClauseIndicator.parse("/2")
             }
