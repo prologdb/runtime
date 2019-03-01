@@ -123,7 +123,7 @@ public class LibrarySelectorPanel
     {
         StringBuilder sb = new StringBuilder();
         List<ClauseIndicator> exports = new ArrayList<>(library.getExports());
-        exports.sort(Comparator.comparing(ClauseIndicator::getName).thenComparing(ClauseIndicator::getArity));
+        exports.sort(Comparator.comparing(ClauseIndicator::getFunctor).thenComparing(ClauseIndicator::getArity));
 
         for (int i = 0; i < exports.size(); i++) {
             if (sb.length() > 50) {
@@ -134,7 +134,7 @@ public class LibrarySelectorPanel
             }
 
             ClauseIndicator export = exports.get(i);
-            sb.append(export.getName());
+            sb.append(export.getFunctor());
             sb.append('/');
             sb.append(export.getArity());
 
