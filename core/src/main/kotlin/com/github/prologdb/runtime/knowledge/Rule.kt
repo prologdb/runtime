@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-open class Rule(val head: CompoundTerm, val query: Query) : Clause {
+open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor
     override val arity = head.arity
 
@@ -24,7 +24,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause {
      *
      * This can be re-defined for built-ins.
      */
-    open val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, context ->
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, context ->
         val goalRandomVarsMapping = VariableMapping()
         val randomGoal = context.randomVariableScope.withRandomVariables(goal, goalRandomVarsMapping)
 
