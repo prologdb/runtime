@@ -24,7 +24,7 @@ interface ProofSearchContext {
 
     /**
      * Starts a proof search on the given query. This method will take control of
-     * the coroutine until the proof search is complete.
+     * the coroutine until the proof search for the (sub)query is complete.
      */
     val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, initialVariables: VariableBucket) -> Unit
 }
