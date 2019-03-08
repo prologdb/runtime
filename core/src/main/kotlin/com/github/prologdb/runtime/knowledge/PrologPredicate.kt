@@ -6,6 +6,7 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
+import com.github.prologdb.runtime.knowledge.library.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import java.util.concurrent.CopyOnWriteArrayList
@@ -19,6 +20,8 @@ interface PrologPredicate : PrologCallable {
      * Provides AST for the `listing` and `listing/1` predicates.
      */
     val clauses: List<Clause>
+
+    val declaringModule: Module
 }
 
 interface DynamicPrologPredicate : PrologPredicate {
@@ -50,7 +53,10 @@ interface DynamicPrologPredicate : PrologPredicate {
 /**
  * A predicate based on existing AST that is being interpreted with every call to [fulfill].
  */
-class ASTPrologPredicate(val indicator: ClauseIndicator) : DynamicPrologPredicate {
+class ASTPrologPredicate(
+    val indicator: ClauseIndicator,
+    override val declaringModule: Module
+) : DynamicPrologPredicate {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
 
@@ -68,7 +74,9 @@ class ASTPrologPredicate(val indicator: ClauseIndicator) : DynamicPrologPredicat
         isSealed = true
     }
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, ctxt ->
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, invocationCtxt ->
+        val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+
         for (clause in clauses) {
             if (clause is CompoundTerm) {
                 val randomizedClause = ctxt.randomVariableScope.withRandomVariables(clause, VariableMapping())

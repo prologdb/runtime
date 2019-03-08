@@ -17,21 +17,21 @@ class ModuleScopeProofSearchContext(
      * The [ProofSearchContext] that invoked a predicate from another module which then causes the
      * necessity for this [ProofSearchContext] to exists.
      */
-    private val invokedFrom: ProofSearchContext,
+    internal val invokedFrom: ProofSearchContext,
 
-    private val module: Module,
+    internal val module: Module,
 
     /**
-     * Predicates private to the module
+     * Predicates declared in [module], including private ones.
      */
-    private val privatePredicates: Map<ClauseIndicator, PrologCallable>
+    private val modulePredicates: Map<ClauseIndicator, PrologCallable>
 ) : ProofSearchContext, AbstractProofSearchContext() {
     override val principal = invokedFrom.principal
     override val randomVariableScope = invokedFrom.randomVariableScope
     override val authorization = invokedFrom.authorization
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator) {
-        privatePredicates[indicator]?.let {
+        modulePredicates[indicator]?.let {
             it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
             return
         }

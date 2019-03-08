@@ -66,10 +66,8 @@ class PrologRuntimeEnvironment(
         }
     }
 
-    private fun getPredicate(indicator: ClauseIndicator): PrologPredicate {
-        return predicateIndex
-            .computeIfAbsent(indicator.arity,   ::ConcurrentHashMap)
-            .computeIfAbsent(indicator.functor, { ASTPrologPredicate(indicator) })
+    private fun getPredicate(indicator: ClauseIndicator): PrologPredicate? {
+        return predicateIndex.computeIfAbsent(indicator.arity, ::ConcurrentHashMap)[indicator.functor]
     }
 
     /**
@@ -95,6 +93,10 @@ class PrologRuntimeEnvironment(
         functorToPredicate.remove(predicate.functor)
     }
 
+    fun newProofSearchContext(): ProofSearchContext {
+        return PSContext()
+    }
+
     private inner class PSContext : ProofSearchContext, AbstractProofSearchContext() {
         override val principal: Principal = UUID.randomUUID()
 
@@ -113,9 +115,7 @@ class PrologRuntimeEnvironment(
                 return
             }
 
-            getPredicate(indicator)?.let { predicate ->
-                predicate.fulfill(this, goal, this@PSContext)
-            }
+            getPredicate(indicator)?.fulfill?.invoke(this, goal, this@PSContext)
         }
     }
 }
