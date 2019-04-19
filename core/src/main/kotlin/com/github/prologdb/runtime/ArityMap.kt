@@ -1,15 +1,21 @@
 package com.github.prologdb.runtime
 
+import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.coroutines.experimental.buildSequence
 
 /**
- * A simplified [Map]<Integer,T>.
+ * A simplified [Map]<Integer,T>, thread safe.
  *
  * The arity of compound terms is expected to be in the 1-digit positive range (2-digit at most) Because of that,
  * reserving O(n) memory for the index where n is the number of different arities in the map will
  * be efficient. As a result, a [Array]<T> is used for its performance advantages.
  */
-open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as Array<T?>) {
+open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
+
+    private var items: AtomicReferenceArray<T?> = run {
+        val initialCapacity = if (givenItems.size == 0) 6 else givenItems.size
+        AtomicReferenceArray(initialCapacity)
+    }
 
     private val itemsResizeMutex = Any()
 
@@ -17,15 +23,19 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
      * The maximum arity this map can store without allocating additional memory
      */
     var capacity: Int
-        get() = items.size - 1
+        get() = items.length() - 1
         set(value) {
+            if (value == items.length() - 1) return
+
             synchronized(itemsResizeMutex) {
-                items = Array<Any?>(value + 1, { index -> if (index < items.size) items[index] else null }) as Array<T?>
+                val oldSize = items.length()
+                val newItems = Array<Any?>(value + 1, { index -> if (index < oldSize) items[index] else null }) as Array<T?>
+                items = AtomicReferenceArray(newItems)
             }
         }
 
     val arities: Iterable<Int> = buildSequence {
-        (0 until items.size)
+        (0 until items.length())
             .filter { items[it] != null }
             .forEach { yield(it) }
     }.asIterable()
@@ -35,7 +45,7 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
             throw IllegalArgumentException("The arity must positive or 0.")
         }
 
-        if (arity >= items.size) {
+        if (arity >= items.length()) {
             return null
         }
 
@@ -47,9 +57,10 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
             throw IllegalArgumentException("The arity must positive or 0.")
         }
 
-        if (arity >= items.size) {
+        if (arity >= items.length()) {
             capacity = arity
         }
+
 
         return items[arity] ?: run {
             val computed = computer()
@@ -63,7 +74,7 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
             throw IllegalArgumentException("The arity must positive or 0.")
         }
 
-        if (arity >= items.size) {
+        if (arity >= items.length()) {
             capacity = arity
         }
 
@@ -75,7 +86,7 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
             throw IllegalArgumentException("The arity must positive or 0.")
         }
 
-        if (arity >= items.size) {
+        if (arity >= items.length()) {
             return false
         }
 
@@ -87,10 +98,12 @@ open class ArityMap<T>(private var items: Array<T?> = Array<Any?>(6, {null}) as 
             throw IllegalArgumentException("The arity must be positive or 0")
         }
 
-        if (arity < items.size) {
+        if (arity < items.length()) {
             items[arity] = null
         }
     }
 
-    fun values(): Iterable<T> = items.filter { it != null } as Iterable<T>
+    fun values(): Iterable<T> = (0 until items.length())
+        .map(items::get)
+        .filterNot { it == null } as Iterable<T>
 }
