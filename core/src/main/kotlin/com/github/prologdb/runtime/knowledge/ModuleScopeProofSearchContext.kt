@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
-import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 
@@ -29,6 +29,7 @@ class ModuleScopeProofSearchContext(
     override val principal = invokedFrom.principal
     override val randomVariableScope = invokedFrom.randomVariableScope
     override val authorization = invokedFrom.authorization
+    override val rootAvailableModules: Map<ModuleReference, Module> = invokedFrom.rootAvailableModules
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator) {
         modulePredicates[indicator]?.let {
@@ -36,9 +37,28 @@ class ModuleScopeProofSearchContext(
             return
         }
 
-        module.findImport(indicator)?.let {
+        findImport(indicator)?.let {
             it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
             return
         }
     }
+
+    private val importLookupCache: Map<ClauseIndicator, PrologCallable> = mutableMapOf<ClauseIndicator, PrologCallable>().also { importLookupCache ->
+        module.imports.asSequence()
+            .forEach { import ->
+                val referencedModule = rootAvailableModules[import.moduleReference]
+                    ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
+
+                val visiblePredicates = when (import) {
+                    is FullModuleImport -> referencedModule.exportedPredicates
+                    is PartialModuleImport -> referencedModule.exportedPredicates.filter { (exportedIndicator, _) ->
+                        exportedIndicator in import.imports
+                    }
+                }
+
+                importLookupCache.putAll(visiblePredicates)
+            }
+    }
+
+    private fun findImport(indicator: ClauseIndicator): PrologCallable? = importLookupCache[indicator]
 }

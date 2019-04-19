@@ -17,6 +17,8 @@ class PrologRuntimeEnvironment(
 ) {
     private val predicateIndex: ArityMap<MutableMap<String, PrologPredicate>> = ArityMap()
 
+    private val loadedModules: MutableMap<ModuleReference, Module> = ConcurrentHashMap()
+
     private val _operators = DefaultOperatorRegistry()
     val operators: OperatorRegistry = _operators
     init {
@@ -27,38 +29,7 @@ class PrologRuntimeEnvironment(
         return buildLazySequence(IrrelevantPrincipal) {
             when (name) {
                 "op" -> {
-                    if (arguments.size != 3) {
-                        throw PrologRuntimeException("Directive op/${arguments.size} is not defined")
-                    }
-
-                    val priorityArgument = arguments[0]
-                    if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
-                        throw PrologRuntimeException("operator priority must be an integer")
-                    }
-
-                    val precedenceAsLong = priorityArgument.toInteger()
-                    if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
-                        throw PrologRuntimeException("operator precedence must be in range [0; 1200]")
-                    }
-                    val precedence = precedenceAsLong.toShort()
-
-                    if (arguments[1] !is Atom) {
-                        throw PrologRuntimeException("Atom expected as operator associativity but found ${arguments[1].prologTypeName}")
-                    }
-
-                    val typeAsUCString = (arguments[1] as Atom).name.toUpperCase()
-                    val operatorType = try {
-                        OperatorType.valueOf(typeAsUCString)
-                    }
-                    catch (ex: IllegalArgumentException) {
-                        throw PrologRuntimeException("${typeAsUCString.toLowerCase()} is not a known operator associativity. Known: ${OperatorType.values().joinToString(transform = { it.name.toLowerCase() })}")
-                    }
-
-                    if (arguments[2] !is Atom) {
-                        throw PrologRuntimeException("Atom expected as operator functor but got ${arguments[2].prologTypeName}")
-                    }
-
-                    _operators.defineOperator(OperatorDefinition(precedence, operatorType, (arguments[2] as Atom).name))
+                    directiveOp3(*arguments)
                     yield(Unification.TRUE)
                 }
                 else -> throw PrologRuntimeException("Directive $name/${arguments.size} is not defined.")
@@ -91,6 +62,41 @@ class PrologRuntimeEnvironment(
         val functorToPredicate = predicateIndex[predicate.arity] ?: return
 
         functorToPredicate.remove(predicate.functor)
+    }
+
+    private fun directiveOp3(vararg arguments: Term) {
+        if (arguments.size != 3) {
+            throw PrologRuntimeException("Directive op/${arguments.size} is not defined")
+        }
+
+        val priorityArgument = arguments[0]
+        if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
+            throw PrologRuntimeException("operator priority must be an integer")
+        }
+
+        val precedenceAsLong = priorityArgument.toInteger()
+        if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
+            throw PrologRuntimeException("operator precedence must be in range [0; 1200]")
+        }
+        val precedence = precedenceAsLong.toShort()
+
+        val associativityArgument = arguments[1]
+        if (associativityArgument !is Atom) {
+            throw PrologRuntimeException("Atom expected as operator associativity but found ${associativityArgument.prologTypeName}")
+        }
+
+        val typeAsUCString = (arguments[1] as Atom).name.toUpperCase()
+        val operatorType = try {
+            OperatorType.valueOf(typeAsUCString)
+        } catch (ex: IllegalArgumentException) {
+            throw PrologRuntimeException("${typeAsUCString.toLowerCase()} is not a known operator associativity. Known: ${OperatorType.values().joinToString(transform = { it.name.toLowerCase() })}")
+        }
+
+        if (arguments[2] !is Atom) {
+            throw PrologRuntimeException("Atom expected as operator functor but got ${arguments[2].prologTypeName}")
+        }
+
+        _operators.defineOperator(OperatorDefinition(precedence, operatorType, (arguments[2] as Atom).name))
     }
 
     fun newProofSearchContext(): ProofSearchContext {

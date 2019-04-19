@@ -1,9 +1,12 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.knowledge.ASTPrologPredicate
 import com.github.prologdb.runtime.knowledge.ModuleScopeProofSearchContext
 import com.github.prologdb.runtime.knowledge.PrologCallable
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
 
 /**
  * A module, as results from reading/consulting a prolog file.
@@ -18,31 +21,51 @@ interface Module {
      */
     val exportedOperators: OperatorRegistry
 
-    /**
-     * Among all imports into this moudle, resolves the [PrologCallable] that,
-     * within the scope of the module (aliasing), is referenced by the given
-     * [ClauseIndicator].
-     *
-     * @return the resolved import or null if no matching import is declared.
-     */
-    fun findImport(indicator: ClauseIndicator): PrologCallable?
+    val imports: List<ModuleImport>
 
     fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext
 }
 
+data class ModuleReference(
+    /**
+     * The alias for the path pointing to the module files parent directory,
+     * e.g. `library` or `system`.
+     */
+    val pathAlias: String,
+
+    val moduleName: String
+) {
+    companion object {
+        /**
+         * Takes a term of arity 1 where the first argument is an atom
+         * @throws PrologRuntimeException If the given term is not a valid module reference.
+         */
+        @JvmStatic
+        fun fromCompoundTerm(term: CompoundTerm): ModuleReference {
+            if (term.arity != 1 || term.arguments[0] !is Atom) {
+                throw PrologRuntimeException("Illegal module reference: must be of arity 1 and the sole argument must be an atom")
+            }
+
+            return ModuleReference(term.functor, (term.arguments[0] as Atom).name)
+        }
+    }
+}
+
 sealed class ModuleImport(
-    val module: Module
+    val moduleReference: ModuleReference
 )
-class FullModuleImport(module: Module) : ModuleImport(module)
+
+class FullModuleImport(moduleReference: ModuleReference) : ModuleImport(moduleReference)
 class PartialModuleImport(
-    module: Module,
+    moduleReference: ModuleReference,
+
     /**
      * The imported predicates. The key may contain an alias, e.g.:
      * `use_module(foo, [bar/1 as baz])` will result in a key `baz/1` referring
      * to the `bar/1` predicate of module `foo`.
      */
-    val imports: Map<ClauseIndicator, PrologCallable>
-) : ModuleImport(module)
+    val imports: Set<ClauseIndicator>
+) : ModuleImport(moduleReference)
 
 /**
  * A [Module], constructed from AST. Predicates will be interpreted when
@@ -51,7 +74,7 @@ class PartialModuleImport(
  */
 class ASTModule(
     override val name: String,
-    val imports: List<ModuleImport>,
+    override val imports: List<ModuleImport>,
     val givenClauses: Iterable<Clause>,
     val dynamicPredicates: Set<ClauseIndicator>,
     val exportedPredicateIndicators: Set<ClauseIndicator>,
@@ -78,18 +101,6 @@ class ASTModule(
 
     override val exportedPredicates: Map<ClauseIndicator, PrologCallable> = allDeclaredPredicates
         .filter { it.key in exportedPredicateIndicators }
-
-    private val importLookupCache: Map<ClauseIndicator, PrologCallable> = mutableMapOf<ClauseIndicator, PrologCallable>().also { importLookupCache ->
-        imports.asSequence()
-            .forEach {
-                when (it) {
-                    is FullModuleImport -> importLookupCache.putAll(it.module.exportedPredicates)
-                    is PartialModuleImport -> importLookupCache.putAll(it.imports)
-                }
-            }
-    }
-
-    override fun findImport(indicator: ClauseIndicator): PrologCallable? = importLookupCache[indicator]
 
     override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
         if (deriveFrom is ModuleScopeProofSearchContext) {
