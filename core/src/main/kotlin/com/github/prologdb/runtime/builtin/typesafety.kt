@@ -30,7 +30,7 @@ val TypeofBuiltin = nativeRule("typeof", 2) { args, _ ->
         if (correct) yield(Unification.TRUE)
     }
 }
-val TypeSafetyLibrary = nativeLibrary("typesafety") {
+val TypeSafetyLibrary = nativeModule("typesafety") {
     // all of these are /1 tests
     add(typeCheckBuiltin("atom") { it is Atom })
 

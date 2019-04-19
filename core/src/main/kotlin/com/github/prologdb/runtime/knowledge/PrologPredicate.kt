@@ -20,8 +20,6 @@ interface PrologPredicate : PrologCallable {
      * Provides AST for the `listing` and `listing/1` predicates.
      */
     val clauses: List<Clause>
-
-    val declaringModule: Module
 }
 
 interface DynamicPrologPredicate : PrologPredicate {
@@ -55,7 +53,7 @@ interface DynamicPrologPredicate : PrologPredicate {
  */
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
-    override val declaringModule: Module
+    val declaringModule: Module?
 ) : DynamicPrologPredicate {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
@@ -75,7 +73,7 @@ class ASTPrologPredicate(
     }
 
     override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, invocationCtxt ->
-        val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+        val ctxt = declaringModule?.deriveScopedProofSearchContext(invocationCtxt) ?: invocationCtxt
 
         for (clause in clauses) {
             if (clause is CompoundTerm) {

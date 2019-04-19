@@ -29,7 +29,7 @@ val BuiltinIdentity = nativeRule("==", 2) { args, _ ->
 /**
  * Defines the ISO equality and inequality predicates and operators.
  */
-val EqualityLibrary = nativeLibrary("equality") {
+val EqualityLibrary = nativeModule("equality") {
     // =(X, X)
     add(CompoundTerm("=", arrayOf(X, X)))
 

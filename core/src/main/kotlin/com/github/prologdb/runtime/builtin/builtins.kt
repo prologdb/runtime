@@ -4,6 +4,8 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.knowledge.PrologCallable
+import com.github.prologdb.runtime.knowledge.PrologPredicate
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.knowledge.library.*
@@ -109,37 +111,57 @@ fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: Pro
     return NativeCodeRule(name, arity, definedAt, code)
 }
 
-fun nativeLibrary(name: String, initCode: NativeLibraryBuilder.() -> Any?): Library = NativeLibraryBuilder.build(name, initCode)
+fun nativePredicate(name: String, arity: Int, code: PrologBuiltinImplementation): PrologPredicate {
+    val definedAt = getInvocationStackFrame()
+    val singleRule = nativeRule(name, arity, definedAt, code)
 
-class NativeLibraryBuilder {
-    private val clauses = mutableListOf<Clause>()
-    private val dynamics = mutableSetOf<ClauseIndicator>()
+    return object : PrologPredicate {
+        override val clauses = listOf(singleRule)
+        override val fulfill = singleRule.fulfill
+        override val functor = name
+        override val arity = arity
+    }
+}
+
+fun nativeModule(name: String, initCode: NativeModuleBuilder.() -> Any?): NativeModule = NativeModuleBuilder.build(name, initCode)
+
+class NativeModuleBuilder {
+    private val predicates = mutableListOf<PrologPredicate>()
     private val opRegistry = DefaultOperatorRegistry()
 
-    fun add(clause: Clause) {
-        clauses.add(clause)
+    fun add(predicate: PrologPredicate) {
+        predicates.add(predicate)
     }
 
     fun defineOperator(def: OperatorDefinition) {
         opRegistry.defineOperator(def)
     }
 
-    operator fun String.div(arity: Int) = ClauseIndicator.of(this, arity)
-
-    private fun build(name: String): Library {
-        return Library(
-            name,
-            clauses,
-            dynamics,
-            opRegistry
-        )
-    }
+    private fun build(name: String) = NativeModule(name, predicates, opRegistry)
 
     companion object {
-        internal fun build(name: String, initCode: NativeLibraryBuilder.() -> Any?): Library {
-            val builder = NativeLibraryBuilder()
+        internal fun build(name: String, initCode: NativeModuleBuilder.() -> Any?): NativeModule {
+            val builder = NativeModuleBuilder()
             builder.initCode()
             return builder.build(name)
         }
+    }
+}
+
+class NativeModule(
+    override val name: String,
+    predicates: List<PrologPredicate>,
+    override val exportedOperators: OperatorRegistry
+) : Module {
+    override val exportedPredicates: Map<ClauseIndicator, PrologCallable>
+
+    init {
+        exportedPredicates = predicates.associateBy { ClauseIndicator.of(it) }
+    }
+
+    override val imports: List<ModuleImport> = emptyList()
+
+    override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
+        throw PrologRuntimeException("Native module predicates are not executed in a module context")
     }
 }

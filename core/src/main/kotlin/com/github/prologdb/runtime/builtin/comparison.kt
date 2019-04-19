@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
+import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.unification.Unification
 
@@ -45,7 +46,7 @@ val BuiltinCompare = nativeRule("compare", 3) { args, _ ->
 /**
  * Defines predicates for the standard order of terms.
  */
-val ComparisonLibrary = nativeLibrary("comparison") {
+val ComparisonLibrary = nativeModule("comparison") {
     add(BuiltinTermLessThan)
     add(BuiltinTermLessThanOrEqual)
     add(BuiltinTermGreaterThan)

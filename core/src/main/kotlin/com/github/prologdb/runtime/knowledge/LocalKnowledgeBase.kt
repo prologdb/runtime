@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.builtin.TypeSafetyLibrary
 import com.github.prologdb.runtime.builtin.dict.DictLibrary
 import com.github.prologdb.runtime.builtin.dynamic.DynamicsLibrary
-import com.github.prologdb.runtime.builtin.lists.ListsLibrary
+import com.github.prologdb.runtime.builtin.lists.ListsModule
 import com.github.prologdb.runtime.builtin.math.MathLibrary
 import com.github.prologdb.runtime.builtin.string.StringsLibrary
 import com.github.prologdb.runtime.knowledge.library.*
@@ -416,7 +416,7 @@ class LocalKnowledgeBase(internal val store: MutableClauseStore = DoublyIndexedC
             kb.load(EqualityLibrary)
             kb.load(ComparisonLibrary)
             kb.load(MathLibrary)
-            kb.load(ListsLibrary)
+            kb.load(ListsModule)
             kb.load(StringsLibrary)
             kb.load(TypeSafetyLibrary)
             kb.load(DynamicsLibrary)

@@ -13,7 +13,8 @@ import java.util.concurrent.ConcurrentHashMap
  * The environment for one **instance** of a prolog program.
  */
 class PrologRuntimeEnvironment(
-    initialOperators: OperatorRegistry = ISOOpsOperatorRegistry
+    initialOperators: OperatorRegistry = ISOOpsOperatorRegistry,
+    private val moduleLoader: ModuleLoader
 ) {
     private val predicateIndex: ArityMap<MutableMap<String, PrologPredicate>> = ArityMap()
 
@@ -30,6 +31,10 @@ class PrologRuntimeEnvironment(
             when (name) {
                 "op" -> {
                     directiveOp3(*arguments)
+                    yield(Unification.TRUE)
+                }
+                "use_module" -> {
+                    directiveUseModule1(*arguments)
                     yield(Unification.TRUE)
                 }
                 else -> throw PrologRuntimeException("Directive $name/${arguments.size} is not defined.")
@@ -99,6 +104,20 @@ class PrologRuntimeEnvironment(
         _operators.defineOperator(OperatorDefinition(precedence, operatorType, (arguments[2] as Atom).name))
     }
 
+    fun directiveUseModule1(vararg arguments: Term) {
+        if (arguments.size != 1) {
+            throw PrologRuntimeException("Directive use/${arguments.size} is not defined.")
+        }
+
+        val moduleRefTerm = arguments[0]
+        if (moduleRefTerm !is CompoundTerm) {
+            throw PrologRuntimeException("Argument 0 to use/1 must be a compound, got ${moduleRefTerm.prologTypeName}")
+        }
+
+        val moduleReference = ModuleReference.fromCompoundTerm(moduleRefTerm)
+        loadedModules.computeIfAbsent(moduleReference, moduleLoader::load)
+    }
+
     fun newProofSearchContext(): ProofSearchContext {
         return PSContext()
     }
@@ -109,6 +128,8 @@ class PrologRuntimeEnvironment(
         override val randomVariableScope = RandomVariableScope()
 
         override val authorization: Authorization = ReadWriteAuthorization
+
+        override val rootAvailableModules: Map<ModuleReference, Module> = loadedModules
 
         override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator) {
             if (goal.functor in coreBuiltins) {

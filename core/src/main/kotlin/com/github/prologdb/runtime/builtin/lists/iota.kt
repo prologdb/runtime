@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.builtin.nativePredicate
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
@@ -24,14 +24,14 @@ private const val IOTA_BATCHSIZE = 100
  *     ?- findall(X, iota(X, 8, 2), R).
  *     R = [8, 7, 6, 5, 4, 3] .
  */
-val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
+val BuiltinIota3 = nativePredicate("iota", 3) { args, ctxt ->
     val target  = args[0]
     val start   = args[1] as? PrologInteger ?: throw PrologRuntimeException("Argument 2 to iota/3 must be an integer, got ${args[1].prologTypeName}")
     val endExcl = args[2] as? PrologInteger ?: throw PrologRuntimeException("Argument 3 to iota/3 must be an integer, got ${args[2].prologTypeName}")
 
     if (start == endExcl) {
         // empty range
-        return@nativeRule
+        return@nativePredicate
     }
 
     if (target !is Variable) {
@@ -42,7 +42,7 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
             }
         }
         // else: will not unify, ever
-        return@nativeRule
+        return@nativePredicate
     }
 
     // implicit: target as Variable
@@ -88,7 +88,7 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
  *     X = 1.4 ;
  *     false .
  */
-val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
+val BuiltinIota4 = nativePredicate("iota", 4) { args, ctxt ->
     val target  = args[0]
     val start   = args[1] as? PrologNumber ?: throw PrologRuntimeException("Argument 2 to iota/4 must be an number, got ${args[1].prologTypeName}")
     val endExcl = args[2] as? PrologNumber ?: throw PrologRuntimeException("Argument 3 to iota/4 must be an number, got ${args[2].prologTypeName}")
@@ -100,7 +100,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
 
     if (start == endExcl) {
         // empty range
-        return@nativeRule
+        return@nativePredicate
     }
 
     if (target !is Variable) {
@@ -111,7 +111,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
             }
         }
         // else: will not unify, ever
-        return@nativeRule
+        return@nativePredicate
     }
 
     // implicit: target as Variable

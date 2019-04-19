@@ -1,9 +1,10 @@
 package com.github.prologdb.runtime.builtin.math
 
-import com.github.prologdb.runtime.builtin.nativeLibrary
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.builtin.nativeModule
+import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
+import com.github.prologdb.runtime.knowledge.library.OperatorType
 
-val MathLibrary = nativeLibrary("math") {
+val MathLibrary = nativeModule("math") {
     add(BuiltinIs)
     add(BuiltinGreaterThan)
     add(BuiltinGreaterThanOrEqual)

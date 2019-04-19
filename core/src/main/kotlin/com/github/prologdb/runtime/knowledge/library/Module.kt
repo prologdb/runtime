@@ -49,6 +49,10 @@ data class ModuleReference(
             return ModuleReference(term.functor, (term.arguments[0] as Atom).name)
         }
     }
+
+    override fun toString(): String {
+        return "$pathAlias($moduleName)"
+    }
 }
 
 sealed class ModuleImport(

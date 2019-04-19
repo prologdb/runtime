@@ -14,7 +14,7 @@ public enum LoadableLibrary
     COMPARE(ComparisonKt.getComparisonLibrary()),
     STRINGS(LibraryKt.getStringsLibrary()),
     MATH(Math_libraryKt.getMathLibrary()),
-    LISTS(com.github.prologdb.runtime.builtin.lists.LibraryKt.getListsLibrary()),
+    LISTS(com.github.prologdb.runtime.builtin.lists.ModuleKt.getListsModule()),
     DYNAMICS(com.github.prologdb.runtime.builtin.dynamic.LibraryKt.getDynamicsLibrary()),
     DICTS(com.github.prologdb.runtime.builtin.dict.LibraryKt.getDictLibrary());
 

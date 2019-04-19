@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.builtin.dict
 
-import com.github.prologdb.runtime.builtin.nativeLibrary
+import com.github.prologdb.runtime.builtin.nativeModule
 
-val DictLibrary = nativeLibrary("dict") {
+val DictLibrary = nativeModule("dict") {
     add(IsDictBuiltin)
     add(GetDictBuiltin)
 }

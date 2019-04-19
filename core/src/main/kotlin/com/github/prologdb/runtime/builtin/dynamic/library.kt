@@ -1,13 +1,13 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
-import com.github.prologdb.runtime.builtin.nativeLibrary
+import com.github.prologdb.runtime.builtin.nativeModule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 
-val DynamicsLibrary = nativeLibrary("dynamics") {
+val DynamicsLibrary = nativeModule("dynamics") {
     add(BuiltinFindAll)
     add(BuiltinFindAllOptimized)
 }
