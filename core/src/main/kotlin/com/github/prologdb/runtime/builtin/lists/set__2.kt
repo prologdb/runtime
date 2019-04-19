@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.builtin.nativePredicate
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -17,7 +17,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
-internal val Set2Builtin = nativeRule("set", 2, { args, _ ->
+internal val Set2Builtin = nativePredicate("set", 2) { args, _ ->
     val arg0 = args[0]
     val arg1 = args[1]
 
@@ -44,4 +44,4 @@ internal val Set2Builtin = nativeRule("set", 2, { args, _ ->
             yield(Unification(result))
         }
     }
-})
+}
