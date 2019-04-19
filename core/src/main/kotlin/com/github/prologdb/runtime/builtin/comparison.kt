@@ -6,29 +6,29 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.unification.Unification
 
 /** Implements the builtin @</2 */
-val BuiltinTermLessThan = nativeRule("@<", 2) { args, _ ->
+val BuiltinTermLessThan = nativePredicate("@<", 2) { args, _ ->
     if (args[0] < args[1]) yield(Unification.TRUE)
 }
 
 /** Implements the builtin @=</2 */
-val BuiltinTermLessThanOrEqual = nativeRule("@=<", 2) { args, _ ->
+val BuiltinTermLessThanOrEqual = nativePredicate("@=<", 2) { args, _ ->
     if (args[0] <= args[1]) yield(Unification.TRUE)
 }
 
 /** Implements the builtin @>/2 */
-val BuiltinTermGreaterThan = nativeRule("@>", 2) { args, _ ->
+val BuiltinTermGreaterThan = nativePredicate("@>", 2) { args, _ ->
     if (args[0] > args[1]) yield(Unification.TRUE)
 }
 
 /** Implements the builtin @>=/2 */
-val BuiltinTermGreaterThanOrEqual = nativeRule("@>=", 2) { args, _ ->
+val BuiltinTermGreaterThanOrEqual = nativePredicate("@>=", 2) { args, _ ->
     if (args[0] >= args[1]) yield(Unification.TRUE)
 }
 
 private val AtomLessThan = Atom("<")
 private val AtomGreaterThan = Atom("<")
 private val AtomEqual = Atom("=")
-val BuiltinCompare = nativeRule("compare", 3) { args, _ ->
+val BuiltinCompare = nativePredicate("compare", 3) { args, _ ->
     val inputForOrder = args[0]
 
     val actualOrder = if (args[0] > args[1]) {

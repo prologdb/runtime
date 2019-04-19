@@ -81,8 +81,6 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
         "$name/$arity native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
     )
 
-    val callDirectly: PrologBuiltinImplementation = code
-
     override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { other, context ->
         if (head.arity == other.arity && head.functor == other.functor) {
             try {
@@ -113,6 +111,10 @@ fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: Pro
 
 fun nativePredicate(name: String, arity: Int, code: PrologBuiltinImplementation): PrologPredicate {
     val definedAt = getInvocationStackFrame()
+    return nativePredicate(name, arity, definedAt, code)
+}
+
+fun nativePredicate(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation): PrologPredicate {
     val singleRule = nativeRule(name, arity, definedAt, code)
 
     return object : PrologPredicate {

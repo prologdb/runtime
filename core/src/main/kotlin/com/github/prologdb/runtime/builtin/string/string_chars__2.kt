@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin.string
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.builtin.nativePredicate
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.term.Variable
 /**
  * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
  */
-internal val BuiltinStringChars = nativeRule("string_chars", 2) { args, _ ->
+internal val BuiltinStringChars = nativePredicate("string_chars", 2) { args, _ ->
     val inputA = args[0]
     val inputB = args[1]
 

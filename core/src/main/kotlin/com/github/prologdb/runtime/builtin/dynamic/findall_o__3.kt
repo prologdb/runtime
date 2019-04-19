@@ -4,7 +4,7 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.builtin.nativePredicate
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
@@ -34,7 +34,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *   If the number of solutions found exactly matches the number of elements, unification can proceed
  *   as usual; exposing the same behaviour as `findall/3`.
  */
-internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, context ->
+internal val BuiltinFindAllOptimized = nativePredicate("findall_o", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args[1]
     val solutionInput = args[2]
@@ -43,14 +43,14 @@ internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, contex
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3
-        BuiltinFindAll.callDirectly(this, args, context)
+        BuiltinFindAll.fulfill(this, CompoundTerm("findall", args), context)
     }
     else {
         solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
 
         if (solutionInput.tail != null && solutionInput.tail != Variable.ANONYMOUS) {
             // this cannot be optimized, it requires all solutions for correct behaviour
-            BuiltinFindAll.callDirectly(this, args, context)
+            BuiltinFindAll.fulfill(this, CompoundTerm("findall", args), context)
         }
         else {
             var nResultsToCalculate = solutionInput.elements.size
