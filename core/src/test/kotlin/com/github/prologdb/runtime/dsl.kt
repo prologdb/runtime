@@ -3,9 +3,11 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
-import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.knowledge.library.ASTModule
+import com.github.prologdb.runtime.knowledge.library.Clause
+import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.knowledge.library.Module
-import com.github.prologdb.runtime.knowledge.library.ModuleReference
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -118,11 +120,6 @@ infix fun PrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundTerm) {
     shouldNotProve(PredicateInvocationQuery(compoundTerm))
 }
 
-fun PrologRuntimeEnvironment.load(module: Module) {
-    val reference = ModuleReference("module", module.name)
-    invokeDirective("use_module", ReadWriteAuthorization, arrayOf(reference.asTerm()))
-}
-
 private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
     = find(predicate) != null
 
@@ -131,4 +128,19 @@ private fun PrologRuntimeEnvironment.fulfill(query: Query): LazySequence<Unifica
     return buildLazySequence(ctxt.principal) {
         ctxt.fulfillAttach(this, query, VariableBucket())
     }
+}
+
+fun moduleOfClauses(vararg clauses: Clause): Module {
+    val indicators = clauses
+        .map(ClauseIndicator.Companion::of)
+        .toSet()
+
+    return ASTModule(
+        "__root",
+        emptyList(),
+        clauses.asIterable(),
+        indicators,
+        indicators,
+        ISOOpsOperatorRegistry
+    )
 }

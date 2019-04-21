@@ -34,7 +34,7 @@ interface Module {
     }
 
     fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
-                                 authorization: Authorization, rootAvailableModules: Map<ModuleReference, Module>): ProofSearchContext
+                                 authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext
 }
 
 data class ModuleReference(
@@ -227,7 +227,8 @@ class ASTModule(
         return super.deriveScopedProofSearchContext(deriveFrom)
     }
 
-    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, rootAvailableModules: Map<ModuleReference, Module>): ProofSearchContext {
+    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
+                                          authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
         return ModuleScopeProofSearchContext(
             this,
             this.allDeclaredPredicates,

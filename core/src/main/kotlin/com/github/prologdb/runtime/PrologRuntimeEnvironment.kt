@@ -19,14 +19,22 @@ class PrologRuntimeEnvironment(
     private val rootModule: Module,
     private val moduleLoader: ModuleLoader = NativeLibraryLoader()
 ) {
-    private val loadedModules: MutableMap<ModuleReference, Module> = ConcurrentHashMap()
+    /**
+     * Maps module names to the loaded [Modules].
+     */
+    private val loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
+
+    init {
+        loadedModules[rootModule.name] = rootModule
+        rootModule.imports.forEach { import -> assureModuleLoaded(import.moduleReference) }
+    }
 
     // TODO: execute all (nested) imports
     // TODO: handle circular module dependencies
     // TODO: check for indicator collisions in module exports
 
     private fun assureModuleLoaded(reference: ModuleReference) {
-        val module = loadedModules.computeIfAbsent(reference, moduleLoader::load)
+        val module = loadedModules.computeIfAbsent(reference.moduleName) { moduleLoader.load(reference) }
         module.imports.forEach { import ->
             assureModuleLoaded(import.moduleReference)
         }

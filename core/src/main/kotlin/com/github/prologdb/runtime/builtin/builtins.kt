@@ -77,6 +77,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
     private val builtinStackFrame = PrologStackTraceElement(
         head,
         invocationStackFrame.prologSourceInformation,
+        null,
         "$name/$arity native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
     )
 
@@ -162,11 +163,8 @@ class NativeModule(
 
     override val imports: List<ModuleImport> = emptyList()
 
-    override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
+    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
+                                          authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
         throw PrologRuntimeException("Native module predicates are not executed in a module context")
-    }
-
-    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, rootAvailableModules: Map<ModuleReference, Module>): ProofSearchContext {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

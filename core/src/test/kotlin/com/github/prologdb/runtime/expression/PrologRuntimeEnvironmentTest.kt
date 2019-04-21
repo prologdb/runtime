@@ -8,16 +8,17 @@ import io.kotlintest.specs.FreeSpec
 
 class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     "f(a). f(b). ?- f(X)" {
-        val runtimeEnv = PrologRuntimeEnvironment()
+        val f = CompoundBuilder("f")
         val a = Atom("a")
         val b = Atom("b")
-        runtimeEnv.assertz(CompoundTerm("f", arrayOf(a)))
-        runtimeEnv.assertz(CompoundTerm("f", arrayOf(b)))
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            f(a),
+            f(b)
+        ))
 
         val X = Variable("X")
-        val queryFact = CompoundTerm("f", arrayOf(X))
 
-        runtimeEnv shouldProve queryFact suchThat {
+        runtimeEnv shouldProve f(X) suchThat {
             itHasExactlyNSolutions(2)
             itHasASolutionSuchThat("X is instantiated to a") {
                 it.variableValues[X] == a
@@ -29,7 +30,6 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     }
 
     "separate variable scopes: f(a(X,Y),a(Y,X)). ?-f(a(m,n),X))" {
-        val runtimeEnv = PrologRuntimeEnvironment()
         val f = CompoundBuilder("f")
         val a = CompoundBuilder("a")
         val m = Atom("m")
@@ -37,7 +37,10 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val X = Variable("X")
         val Y = Variable("Y")
 
-        runtimeEnv.assertz(f(a(X, Y), a(Y, X)))
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            f(a(X, Y), a(Y, X))
+        ))
+
         runtimeEnv shouldProve f(a(m, n), X) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = a(n, m)") {
@@ -71,13 +74,10 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val Z = Variable("Z")
         val P = Variable("P")
 
-        val runtimeEnv = PrologRuntimeEnvironment()
-        runtimeEnv.assertz(
-            vertical(line(point(X,Y),point(X,Z)))
-        )
-        runtimeEnv.assertz(
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            vertical(line(point(X, Y), point(X, Z))),
             horizontal(line(point(X,Y),point(Z,Y)))
-        )
+        ))
 
         // ASSERT
         runtimeEnv shouldProve vertical(line(point(a, a), point(a, c))) suchThat {
@@ -104,13 +104,14 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     }
 
     "g(X, X). ?- g(A, B)" {
-        val runtimeEnv = PrologRuntimeEnvironment()
-
         val g = CompoundBuilder("g")
         val X = Variable("X")
         val A = Variable("A")
         val B = Variable("B")
-        runtimeEnv.assertz(g(X, X))
+
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            g(X, X)
+        ))
 
         runtimeEnv shouldProve g(A, B) suchThat {
             itHasExactlyOneSolution()
@@ -121,8 +122,6 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     }
 
     "g(X, X). f(X, Y) :- g(X, Y). ?- f(a, V)" {
-        val runtimeEnv = PrologRuntimeEnvironment()
-
         val f = CompoundBuilder("f")
         val g = CompoundBuilder("g")
         val X = Variable("X")
@@ -130,8 +129,10 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        runtimeEnv.assertz(Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))))
-        runtimeEnv.assertz(g(X, X))
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))),
+            g(X, X)
+        ))
 
         runtimeEnv shouldProve f(a, V) suchThat {
             itHasExactlyOneSolution()
@@ -142,8 +143,6 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     }
 
     "list append" - {
-        val runtimeEnv = PrologRuntimeEnvironment()
-
         val app = CompoundBuilder("app")
         val L = Variable("L")
         val H = Variable("H")
@@ -157,12 +156,13 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val c = Atom("c")
         val d = Atom("d")
 
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            // append([],L,L).
+            app(PrologList(emptyList()), L, L),
 
-        // append([],L,L).
-        runtimeEnv.assertz(app(PrologList(emptyList()), L, L))
-
-        // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        runtimeEnv.assertz(Rule(app(PrologList(listOf(H), T), L2, PrologList(listOf(H), L3)), PredicateInvocationQuery(app(T, L2, L3))))
+            // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
+            Rule(app(PrologList(listOf(H), T), L2, PrologList(listOf(H), L3)), PredicateInvocationQuery(app(T, L2, L3)))
+        ))
 
         "simple append" {
             runtimeEnv shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c, d)), R) suchThat {
@@ -228,8 +228,9 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val u = Atom("u")
         val v = Atom("v")
 
-        val runtimeEnv = PrologRuntimeEnvironment()
-        runtimeEnv.assertz(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
+        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            a(PrologList(listOf(H), T), PrologList(listOf(H), T))
+        ))
 
         runtimeEnv shouldProve a(X, PrologList(listOf(u, v))) suchThat {
             itHasExactlyOneSolution()
@@ -244,7 +245,6 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     }
 
     "anonymous variable" - {
-        val kb = PrologRuntimeEnvironment()
         val f = CompoundBuilder("f")
         val _A = Variable.ANONYMOUS
         val X = Variable("X")
@@ -252,9 +252,11 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val b = Atom("b")
 
         "case 1" {
-            kb.assertz(f(_A))
+            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+                f(_A)
+            ))
 
-            kb shouldProve f(a) suchThat {
+            runtimeEnv shouldProve f(a) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("it is empty") {
                     it.variableValues.isEmpty
@@ -263,9 +265,11 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 2" {
-            kb.assertz(f(_A, _A))
+            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+                f(_A, _A)
+            ))
 
-            kb shouldProve f(a, b) suchThat {
+            runtimeEnv shouldProve f(a, b) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("it is empty") {
                     it.variableValues.isEmpty
@@ -274,9 +278,11 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 3" {
-            kb.assertz(f(_A, b))
+            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+                f(_A, b)
+            ))
 
-            kb shouldProve f(a, X) suchThat {
+            runtimeEnv shouldProve f(a, X) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("X = b") {
                     it.variableValues[X] == b
@@ -285,9 +291,11 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 4" {
-            kb.assertz(f(_A))
+            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+                f(_A)
+            ))
 
-            kb shouldProve f(X) suchThat {
+            runtimeEnv shouldProve f(X) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("X = _") {
                     it.variableValues[X] is Variable

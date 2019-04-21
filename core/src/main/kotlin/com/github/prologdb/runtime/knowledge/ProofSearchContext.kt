@@ -4,7 +4,6 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.library.Module
-import com.github.prologdb.runtime.knowledge.library.ModuleReference
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -27,7 +26,7 @@ interface ProofSearchContext {
     /**
      * The modules available in the root runtime environment.
      */
-    val rootAvailableModules: Map<ModuleReference, Module>
+    val rootAvailableModules: Map<String, Module>
 
     /**
      * Starts a proof search on the given query. This method will take control of

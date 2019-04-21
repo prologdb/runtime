@@ -1,22 +1,22 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
-import com.github.prologdb.runtime.UnificationSequenceGenerator
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.shouldProve
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 import io.kotlintest.specs.FreeSpec
 
 class ModuleIsolationTest : FreeSpec({
     val a = Atom("a")
     val X = Variable("X")
     val R = Variable("R")
+    val foo = CompoundBuilder("foo")
 
     val clauseA01 = CompoundTerm("a", arrayOf(a))
     val clauseFoo01 = Rule(
@@ -46,7 +46,7 @@ class ModuleIsolationTest : FreeSpec({
             exportedOperators = EmptyOperatorRegistry
         )
 
-        module shouldSeeProofFor CompoundTerm("foo", arrayOf(R)) suchThat {
+        PrologRuntimeEnvironment(module) shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
                 it.variableValues[R] == a
@@ -63,11 +63,15 @@ class ModuleIsolationTest : FreeSpec({
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
+        val moduleARef = ModuleReference("module", "A")
+
+        val moduleLoader = NativeLibraryLoader()
+        moduleLoader.registerModule(moduleARef, moduleA)
 
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(ModuleReference("module", "A"))
+                FullModuleImport(moduleARef)
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
@@ -75,7 +79,9 @@ class ModuleIsolationTest : FreeSpec({
             exportedOperators = EmptyOperatorRegistry
         )
 
-        moduleB shouldSeeProofFor CompoundTerm("foo", arrayOf(R)) suchThat {
+        val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
+
+        runtimeEnv shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
                 it.variableValues[R] == a
@@ -92,11 +98,15 @@ class ModuleIsolationTest : FreeSpec({
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
+        val moduleARef = ModuleReference("module", "A")
+
+        val moduleLoader = NativeLibraryLoader()
+        moduleLoader.registerModule(moduleARef, moduleA)
 
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(ModuleReference("module", "A"))
+                FullModuleImport(moduleARef)
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
@@ -104,7 +114,9 @@ class ModuleIsolationTest : FreeSpec({
             exportedOperators = EmptyOperatorRegistry
         )
 
-        moduleB shouldSeeProofFor CompoundTerm("foo", arrayOf(R)) suchThat {
+        val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
+
+        runtimeEnv shouldProve foo(R) suchThat {
             itHasNoSolutions()
         }
     }
@@ -120,12 +132,16 @@ class ModuleIsolationTest : FreeSpec({
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
+        val moduleARef = ModuleReference("module", "A")
+
+        val moduleLoader = NativeLibraryLoader()
+        moduleLoader.registerModule(moduleARef, moduleA)
 
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                SelectiveModuleImport(ModuleReference("module", "A"), setOf(
-                    ClauseIndicator.of(clauseA01)
+                SelectiveModuleImport(moduleARef, mapOf(
+                    ClauseIndicator.of(clauseA01) to clauseA01.functor
                     // c/1 is not imported
                 ))
             ),
@@ -135,33 +151,19 @@ class ModuleIsolationTest : FreeSpec({
             exportedOperators = EmptyOperatorRegistry
         )
 
-        moduleB shouldSeeProofFor CompoundTerm("foo", arrayOf(R)) suchThat {
+        val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
+
+        runtimeEnv shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
                 it.variableValues[R] == a
             }
         }
 
-        moduleB shouldSeeProofFor CompoundTerm("bar", arrayOf(R)) suchThat {
+        runtimeEnv shouldProve CompoundTerm("bar", arrayOf(R)) suchThat {
             itHasNoSolutions()
         }
     }
 }) {
     override val oneInstancePerTest = true
-}
-
-private infix fun Module.shouldSeeProofFor(query: CompoundTerm): UnificationSequenceGenerator {
-    val generator = {
-        val psc = PrologRuntimeEnvironment().newProofSearchContext()
-        buildLazySequence<Unification>(psc.principal) {
-            this@shouldSeeProofFor.exportedPredicates[ClauseIndicator.of(query)]
-                ?.fulfill?.invoke(this@buildLazySequence, query, psc)
-        }
-    }
-
-    if (generator().tryAdvance() == null) {
-        throw AssertionError("Code inside module $this cannot prove $query")
-    }
-
-    return generator
 }
