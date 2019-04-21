@@ -3,6 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.transformExceptionsOnRemaining
 import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
+import com.github.prologdb.runtime.knowledge.library.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 
 /**
@@ -49,26 +50,25 @@ class PrologPermissionError(message: String, cause: Throwable? = null) : PrologR
 data class PrologStackTraceElement @JvmOverloads constructor(
     val goal: CompoundTerm,
     val sourceInformation: PrologSourceInformation,
+    val module: Module? = null,
     val toStringOverride: String? = null
 ){
-    override fun toString() = toStringOverride ?: "$goal   ${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
+    override fun toString() = toStringOverride ?: run {
+        val modulePrefix = if (module == null) "" else "module ${module.name}, "
+        "$goal   $modulePrefix${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
+    }
 }
-
-fun CompoundTerm.toStackTraceElement() = PrologStackTraceElement(
-    this,
-    if (this is HasPrologSource) sourceInformation else NullSourceInformation
-)
 
 /**
  * Runs the code; if it throws a [PrologException], amends the [PrologException.stackTrace] with
  * the given [PrologStackTraceElement].
  */
-inline fun <T> prologTry(onErrorStackTraceElement: PrologStackTraceElement, code: () -> T): T {
+inline fun <T> prologTry(crossinline onErrorStackTraceElement: () -> PrologStackTraceElement, code: () -> T): T {
     try {
         return code()
     }
     catch (ex: PrologException) {
-        ex.addPrologStackFrame(onErrorStackTraceElement)
+        ex.addPrologStackFrame(onErrorStackTraceElement())
         throw ex
     }
 }

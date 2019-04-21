@@ -1,7 +1,10 @@
 package com.github.prologdb.runtime.knowledge.library
 
+import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.ASTPrologPredicate
+import com.github.prologdb.runtime.knowledge.Authorization
 import com.github.prologdb.runtime.knowledge.PrologCallable
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.term.*
@@ -21,7 +24,17 @@ interface Module {
 
     val imports: List<ModuleImport>
 
-    fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext
+    fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
+        return createProofSearchContext(
+            deriveFrom.principal,
+            deriveFrom.randomVariableScope,
+            deriveFrom.authorization,
+            deriveFrom.rootAvailableModules
+        )
+    }
+
+    fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
+                                 authorization: Authorization, rootAvailableModules: Map<ModuleReference, Module>): ProofSearchContext
 }
 
 data class ModuleReference(
@@ -207,12 +220,21 @@ class ASTModule(
         .filter { it.key in exportedPredicateIndicators }
 
     override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
-        if (deriveFrom is ModuleScopeProofSearchContext) {
-            return if (deriveFrom.module == this) deriveFrom else {
-                ModuleScopeProofSearchContext(deriveFrom.invokedFrom, this, this.allDeclaredPredicates)
-            }
+        if (deriveFrom is ModuleScopeProofSearchContext && deriveFrom.module == this) {
+            return deriveFrom
         }
 
-        return ModuleScopeProofSearchContext(deriveFrom, this, this.allDeclaredPredicates)
+        return super.deriveScopedProofSearchContext(deriveFrom)
+    }
+
+    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, rootAvailableModules: Map<ModuleReference, Module>): ProofSearchContext {
+        return ModuleScopeProofSearchContext(
+            this,
+            this.allDeclaredPredicates,
+            principal,
+            randomVariableScope,
+            authorization,
+            rootAvailableModules
+        )
     }
 }

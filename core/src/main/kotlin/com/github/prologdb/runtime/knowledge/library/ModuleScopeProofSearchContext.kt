@@ -1,11 +1,16 @@
 package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.async.Principal
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.AbstractProofSearchContext
+import com.github.prologdb.runtime.knowledge.Authorization
 import com.github.prologdb.runtime.knowledge.PrologCallable
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
+import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
 /**
@@ -15,35 +20,52 @@ import com.github.prologdb.runtime.unification.Unification
  * module within the proper [ModuleScopeProofSearchContext] achieves that behaviour.
  */
 class ModuleScopeProofSearchContext(
-    /**
-     * The [ProofSearchContext] that invoked a predicate from another module which then causes the
-     * necessity for this [ProofSearchContext] to exists.
-     */
-    internal val invokedFrom: ProofSearchContext,
-
     internal val module: Module,
-
     /**
      * Predicates declared in [module], including private ones.
      */
-    private val modulePredicates: Map<ClauseIndicator, PrologCallable>
+    private val modulePredicates: Map<ClauseIndicator, PrologCallable>,
+
+    override val principal: Principal,
+    override val randomVariableScope: RandomVariableScope,
+    override val authorization: Authorization,
+    override val rootAvailableModules: Map<ModuleReference, Module>
 ) : ProofSearchContext, AbstractProofSearchContext() {
-    override val principal = invokedFrom.principal
-    override val randomVariableScope = invokedFrom.randomVariableScope
-    override val authorization = invokedFrom.authorization
-    override val rootAvailableModules: Map<ModuleReference, Module> = invokedFrom.rootAvailableModules
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator) {
+        // attempt core builtin
+        when (goal.functor) {
+            "assert", "assertz" -> {
+                assertz(goal.arguments)
+                return
+            }
+            "abolish" -> {
+                abolish(goal.arguments)
+                return
+            }
+            "retract", "retractAll" -> {
+                throw PrologRuntimeException("${ClauseIndicator.of(goal)} is not fully implemented yet.")
+            }
+        }
+
+        // attempt modules own scope
         modulePredicates[indicator]?.let {
             it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
             return
         }
 
+        // attempt imported predicate
         findImport(indicator)?.let {
             it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
             return
         }
     }
+
+    override fun getStackTraceElementOf(goal: CompoundTerm) = PrologStackTraceElement(
+        goal,
+        if (goal is HasPrologSource) goal.sourceInformation else NullSourceInformation,
+        module
+    )
 
     private val importLookupCache: Map<ClauseIndicator, PrologCallable> = mutableMapOf<ClauseIndicator, PrologCallable>().also { importLookupCache ->
         module.imports.asSequence()
@@ -73,4 +95,30 @@ class ModuleScopeProofSearchContext(
     }
 
     private fun findImport(indicator: ClauseIndicator): PrologCallable? = importLookupCache[indicator]
+
+    private fun assertz(args: Array<out Term>) {
+        if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
+
+        val clause = args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause")
+
+        val indicator = ClauseIndicator.of(clause)
+        if (!authorization.mayWrite(indicator)) throw PrologPermissionError("Not allowed to assert $indicator")
+
+        throw PrologRuntimeException("assertz/1 is not fully implemented yet.")
+    }
+
+    private fun abolish(args: Array<out Term>) {
+        if (args.size != 1) throw PrologRuntimeException("abolish/${args.size} is not defined")
+        val arg0 = args[0]
+        if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.functor != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
+        if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolish/1 must be an indicator")
+
+        val name = (arg0.arguments[0] as Atom).name
+        val arity = (arg0.arguments[1] as PrologInteger).value.toInt()
+
+        val indicator = ClauseIndicator.of(name, arity)
+        if (!authorization.mayWrite(indicator)) throw PrologPermissionError("Not allowed to write $indicator")
+
+        throw PrologRuntimeException("abolish/1 is not fully implemented yet.")
+    }
 }

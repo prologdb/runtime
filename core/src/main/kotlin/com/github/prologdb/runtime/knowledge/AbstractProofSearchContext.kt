@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.knowledge
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
-import com.github.prologdb.runtime.PrologPermissionError
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -81,8 +81,15 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
         val indicator = ClauseIndicator.of(goal)
         if (!authorization.mayRead(indicator)) throw PrologPermissionError("Not allowed to read $indicator")
 
-        doInvokePredicate(goal.substituteVariables(variables.asSubstitutionMapper()), indicator)
+        prologTry({ getStackTraceElementOf(goal) }) {
+            doInvokePredicate(goal.substituteVariables(variables.asSubstitutionMapper()), indicator)
+        }
     }
 
     protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator)
+
+    protected open fun getStackTraceElementOf(goal: CompoundTerm): PrologStackTraceElement = PrologStackTraceElement(
+        goal,
+        if (this is HasPrologSource) sourceInformation else NullSourceInformation
+    )
 }

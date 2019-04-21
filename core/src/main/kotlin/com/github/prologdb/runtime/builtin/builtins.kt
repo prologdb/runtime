@@ -1,13 +1,12 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
-import com.github.prologdb.runtime.knowledge.PrologCallable
-import com.github.prologdb.runtime.knowledge.PrologPredicate
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
-import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.knowledge.*
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
@@ -165,5 +164,9 @@ class NativeModule(
 
     override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
         throw PrologRuntimeException("Native module predicates are not executed in a module context")
+    }
+
+    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, rootAvailableModules: Map<ModuleReference, Module>): ProofSearchContext {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
