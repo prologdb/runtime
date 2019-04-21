@@ -1,27 +1,23 @@
 package com.github.prologdb.runtime.expression
 
-import com.github.prologdb.runtime.RandomVariable
-import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.shouldNotProve
-import com.github.prologdb.runtime.shouldProve
-import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.*
 import io.kotlintest.specs.FreeSpec
 
-class KnowledgeBaseTest : FreeSpec() {init {
+class PrologRuntimeEnvironmentTest : FreeSpec() {init {
     "f(a). f(b). ?- f(X)" {
-        val kb = LocalKnowledgeBase()
+        val runtimeEnv = PrologRuntimeEnvironment()
         val a = Atom("a")
         val b = Atom("b")
-        kb.assertz(CompoundTerm("f", arrayOf(a)))
-        kb.assertz(CompoundTerm("f", arrayOf(b)))
+        runtimeEnv.assertz(CompoundTerm("f", arrayOf(a)))
+        runtimeEnv.assertz(CompoundTerm("f", arrayOf(b)))
 
         val X = Variable("X")
         val queryFact = CompoundTerm("f", arrayOf(X))
 
-        kb shouldProve queryFact suchThat {
+        runtimeEnv shouldProve queryFact suchThat {
             itHasExactlyNSolutions(2)
             itHasASolutionSuchThat("X is instantiated to a") {
                 it.variableValues[X] == a
@@ -33,7 +29,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "separate variable scopes: f(a(X,Y),a(Y,X)). ?-f(a(m,n),X))" {
-        val kb = LocalKnowledgeBase()
+        val runtimeEnv = PrologRuntimeEnvironment()
         val f = CompoundBuilder("f")
         val a = CompoundBuilder("a")
         val m = Atom("m")
@@ -41,8 +37,8 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val X = Variable("X")
         val Y = Variable("Y")
 
-        kb.assertz(f(a(X, Y), a(Y, X)))
-        kb shouldProve f(a(m, n), X) suchThat {
+        runtimeEnv.assertz(f(a(X, Y), a(Y, X)))
+        runtimeEnv shouldProve f(a(m, n), X) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = a(n, m)") {
                 it.variableValues[X] == a(n, m)
@@ -75,29 +71,29 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val Z = Variable("Z")
         val P = Variable("P")
 
-        val kb = LocalKnowledgeBase()
-        kb.assertz(
+        val runtimeEnv = PrologRuntimeEnvironment()
+        runtimeEnv.assertz(
             vertical(line(point(X,Y),point(X,Z)))
         )
-        kb.assertz(
+        runtimeEnv.assertz(
             horizontal(line(point(X,Y),point(Z,Y)))
         )
 
         // ASSERT
-        kb shouldProve vertical(line(point(a,a),point(a,c))) suchThat {
+        runtimeEnv shouldProve vertical(line(point(a, a), point(a, c))) suchThat {
             itHasExactlyOneSolution()
         }
 
-        kb shouldNotProve vertical(line(point(a,a),point(c,b)))
+        runtimeEnv shouldNotProve vertical(line(point(a, a), point(c, b)))
 
-        kb shouldProve horizontal(line(point(a,a),point(b,Y))) suchThat {
+        runtimeEnv shouldProve horizontal(line(point(a, a), point(b, Y))) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("Y = a") {
                 it.variableValues[Y] == a
             }
         }
 
-        kb shouldProve horizontal(line(point(b,c),P)) suchThat {
+        runtimeEnv shouldProve horizontal(line(point(b, c), P)) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("P = point(_R,c)") {
                 val valP = it.variableValues[P]
@@ -108,24 +104,24 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "g(X, X). ?- g(A, B)" {
-        val kb = LocalKnowledgeBase()
+        val runtimeEnv = PrologRuntimeEnvironment()
 
         val g = CompoundBuilder("g")
         val X = Variable("X")
         val A = Variable("A")
         val B = Variable("B")
-        kb.assertz(g(X, X))
+        runtimeEnv.assertz(g(X, X))
 
-        kb shouldProve g(A, B) suchThat {
+        runtimeEnv shouldProve g(A, B) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("A = B") {
-                it.variableValues[A] == B
+                it.variableValues[A] == B || it.variableValues[A] == it.variableValues[B]
             }
         }
     }
 
     "g(X, X). f(X, Y) :- g(X, Y). ?- f(a, V)" {
-        val kb = LocalKnowledgeBase()
+        val runtimeEnv = PrologRuntimeEnvironment()
 
         val f = CompoundBuilder("f")
         val g = CompoundBuilder("g")
@@ -134,10 +130,10 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        kb.assertz(Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))))
-        kb.assertz(g(X, X))
+        runtimeEnv.assertz(Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))))
+        runtimeEnv.assertz(g(X, X))
 
-        kb shouldProve f(a, V) suchThat {
+        runtimeEnv shouldProve f(a, V) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("V = a") {
                 it.variableValues[V] == a
@@ -146,7 +142,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "list append" - {
-        val kb = LocalKnowledgeBase()
+        val runtimeEnv = PrologRuntimeEnvironment()
 
         val app = CompoundBuilder("app")
         val L = Variable("L")
@@ -163,13 +159,13 @@ class KnowledgeBaseTest : FreeSpec() {init {
 
 
         // append([],L,L).
-        kb.assertz(app(PrologList(emptyList()),L,L))
+        runtimeEnv.assertz(app(PrologList(emptyList()), L, L))
 
         // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
-        kb.assertz(Rule(app(PrologList(listOf(H),T),L2, PrologList(listOf(H),L3)), PredicateInvocationQuery(app(T,L2,L3))))
+        runtimeEnv.assertz(Rule(app(PrologList(listOf(H), T), L2, PrologList(listOf(H), L3)), PredicateInvocationQuery(app(T, L2, L3))))
 
         "simple append" {
-            kb shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c,d)),R) suchThat {
+            runtimeEnv shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c, d)), R) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("R = [a,b,c,d]") {
                     it.variableValues[R] == PrologList(listOf(a,b,c,d))
@@ -178,7 +174,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
 
         "what needs to be appended?" {
-            kb shouldProve app(PrologList(listOf(a, b)), L, PrologList(listOf(a, b, c, d))) suchThat {
+            runtimeEnv shouldProve app(PrologList(listOf(a, b)), L, PrologList(listOf(a, b, c, d))) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("L = [c, d]") {
                     it.variableValues[L] == PrologList(listOf(c, d))
@@ -187,7 +183,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
         }
 
         "what needs to be prepended?" {
-            kb shouldProve app(L, PrologList(listOf(c, d)), PrologList(listOf(a, b, c, d))) suchThat {
+            runtimeEnv shouldProve app(L, PrologList(listOf(c, d)), PrologList(listOf(a, b, c, d))) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("L = [a, b]") {
                     it.variableValues[L] == PrologList(listOf(a, b))
@@ -199,7 +195,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
             val A = Variable("A")
             val B = Variable("B")
 
-            kb shouldProve app(A, B, PrologList(listOf(a, b))) suchThat {
+            runtimeEnv shouldProve app(A, B, PrologList(listOf(a, b))) suchThat {
                 itHasExactlyNSolutions(3)
 
                 itHasASolutionSuchThat("A = [], B = [a, b]") {
@@ -232,10 +228,10 @@ class KnowledgeBaseTest : FreeSpec() {init {
         val u = Atom("u")
         val v = Atom("v")
 
-        val kb = LocalKnowledgeBase()
-        kb.assertz(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
+        val runtimeEnv = PrologRuntimeEnvironment()
+        runtimeEnv.assertz(a(PrologList(listOf(H), T), PrologList(listOf(H), T)))
 
-        kb shouldProve a(X, PrologList(listOf(u, v))) suchThat {
+        runtimeEnv shouldProve a(X, PrologList(listOf(u, v))) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = [u,v]") {
                 val valX = it.variableValues[X] as PrologList
@@ -248,7 +244,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
     }
 
     "anonymous variable" - {
-        val kb = LocalKnowledgeBase()
+        val kb = PrologRuntimeEnvironment()
         val f = CompoundBuilder("f")
         val _A = Variable.ANONYMOUS
         val X = Variable("X")
@@ -294,7 +290,7 @@ class KnowledgeBaseTest : FreeSpec() {init {
             kb shouldProve f(X) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("X = _") {
-                    it.variableValues.isEmpty
+                    it.variableValues[X] is Variable
                 }
             }
         }

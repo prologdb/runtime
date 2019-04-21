@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class PrologRuntimeEnvironment(
     initialOperators: OperatorRegistry = ISOOpsOperatorRegistry,
-    private val moduleLoader: ModuleLoader
+    private val moduleLoader: ModuleLoader = NativeLibraryLoader()
 ) {
     private val predicateIndex: ArityMap<MutableMap<String, PrologPredicate>> = ArityMap()
 
@@ -46,12 +46,20 @@ class PrologRuntimeEnvironment(
         return predicateIndex.computeIfAbsent(indicator.arity, ::ConcurrentHashMap)[indicator.functor]
     }
 
+    private fun getOrCreateEmptyPredicate(indicator: ClauseIndicator): PrologPredicate? {
+        return predicateIndex
+            .computeIfAbsent(indicator.arity, ::ConcurrentHashMap)
+            .compute(indicator.functor) { _, predicate ->
+                predicate ?: ASTPrologPredicate(indicator, null)
+            }
+    }
+
     /**
      * Implementation for the `assertz` builtin.
      */
     fun assertz(clause: Clause) {
         val indicator = ClauseIndicator.of(clause)
-        val predicate = getPredicate(indicator)
+        val predicate = getOrCreateEmptyPredicate(indicator)
 
         if (predicate is DynamicPrologPredicate) {
             predicate.assertz(clause)
@@ -104,7 +112,7 @@ class PrologRuntimeEnvironment(
         _operators.defineOperator(OperatorDefinition(precedence, operatorType, (arguments[2] as Atom).name))
     }
 
-    fun directiveUseModule1(vararg arguments: Term) {
+    private fun directiveUseModule1(vararg arguments: Term) {
         if (arguments.size != 1) {
             throw PrologRuntimeException("Directive use/${arguments.size} is not defined.")
         }
@@ -115,7 +123,13 @@ class PrologRuntimeEnvironment(
         }
 
         val moduleReference = ModuleReference.fromCompoundTerm(moduleRefTerm)
-        loadedModules.computeIfAbsent(moduleReference, moduleLoader::load)
+        val module = moduleLoader.load(moduleReference)
+
+        // TODO: execute all nested imports
+        // TODO: handle circular module dependencies
+        // TODO: check for indicator collisions in module exports
+
+        loadedModules.putIfAbsent(moduleReference, module)
     }
 
     fun newProofSearchContext(): ProofSearchContext {

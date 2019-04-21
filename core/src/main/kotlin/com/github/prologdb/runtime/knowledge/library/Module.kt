@@ -7,6 +7,7 @@ import com.github.prologdb.runtime.knowledge.PrologCallable
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
 
 /**
  * A module, as results from reading/consulting a prolog file.
@@ -53,6 +54,13 @@ data class ModuleReference(
     override fun toString(): String {
         return "$pathAlias($moduleName)"
     }
+
+    private val term: CompoundTerm by lazy {
+        CompoundTerm(pathAlias, arrayOf(Atom(moduleName)))
+    }
+
+    fun asTerm(): Term {
+        return term; }
 }
 
 sealed class ModuleImport(

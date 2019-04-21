@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.KnowledgeBase
-import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
 import com.github.prologdb.runtime.knowledge.library.Library

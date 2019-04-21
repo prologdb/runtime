@@ -33,15 +33,15 @@ class ModuleIsolationTest : FreeSpec({
         ))
     )
 
-    val clauseAIndicator = ClauseIndicator.of(clauseA01)
-    val clauseBIndicator = ClauseIndicator.of(clauseFoo01)
+    val clauseA01Indicator = ClauseIndicator.of(clauseA01)
+    val clauseFoo01Indicator = ClauseIndicator.of(clauseFoo01)
 
     "clauses in module see other declarations of same module" {
         val module = ASTModule(
             name = "test",
             imports = emptyList(),
             givenClauses = listOf(clauseA01, clauseFoo01, clauseBar01),
-            exportedPredicateIndicators = setOf(clauseBIndicator),
+            exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
@@ -59,7 +59,7 @@ class ModuleIsolationTest : FreeSpec({
             name = "A",
             imports = emptyList(),
             givenClauses = listOf(clauseA01),
-            exportedPredicateIndicators = setOf(clauseAIndicator),
+            exportedPredicateIndicators = setOf(clauseA01Indicator),
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
@@ -67,10 +67,10 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(moduleA)
+                FullModuleImport(ModuleReference("module", "a"))
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
-            exportedPredicateIndicators = setOf(clauseBIndicator),
+            exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
@@ -96,10 +96,10 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(moduleA)
+                FullModuleImport(ModuleReference("module", "A"))
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
-            exportedPredicateIndicators = setOf(clauseBIndicator),
+            exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )
@@ -124,13 +124,13 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                PartialModuleImport(moduleA, mapOf(
-                    ClauseIndicator.of(clauseA01) to moduleA.exportedPredicates.getValue(ClauseIndicator.of(clauseA01))
+                PartialModuleImport(ModuleReference("module", "A"), setOf(
+                    ClauseIndicator.of(clauseA01)
                     // c/1 is not imported
                 ))
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
-            exportedPredicateIndicators = setOf(clauseBIndicator),
+            exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
             exportedOperators = EmptyOperatorRegistry
         )

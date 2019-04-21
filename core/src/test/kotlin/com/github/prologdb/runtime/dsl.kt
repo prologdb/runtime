@@ -1,14 +1,17 @@
 package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
+import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.knowledge.library.ModuleReference
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 
 typealias UnificationGenerator = () -> Unification
 typealias UnificationSequenceGenerator = () -> LazySequence<Unification>
@@ -87,22 +90,22 @@ infix fun Term.shouldNotUnifyWith(rhs: Term) {
     }
 }
 
-infix fun KnowledgeBase.shouldProve(compoundTerm: CompoundTerm): UnificationSequenceGenerator {
+infix fun PrologRuntimeEnvironment.shouldProve(compoundTerm: CompoundTerm): UnificationSequenceGenerator {
     return shouldProve(PredicateInvocationQuery(compoundTerm))
 }
 
-infix fun KnowledgeBase.shouldProve(query: Query): UnificationSequenceGenerator {
-    val sequence = this.fulfill(query, ReadWriteAuthorization)
+infix fun PrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenceGenerator {
+    val sequence = this.fulfill(query)
     val firstSolution = sequence.tryAdvance()
     sequence.close()
 
     if (firstSolution == null) throw AssertionError("Failed to fulfill $query using knowledge base $this")
 
-    return { this.fulfill(query, ReadWriteAuthorization) }
+    return { this.fulfill(query) }
 }
 
-infix fun KnowledgeBase.shouldNotProve(query: Query) {
-    val solutions = this.fulfill(query, ReadWriteAuthorization)
+infix fun PrologRuntimeEnvironment.shouldNotProve(query: Query) {
+    val solutions = this.fulfill(query)
     val firstSolution = solutions.tryAdvance()
     solutions.close()
 
@@ -111,9 +114,21 @@ infix fun KnowledgeBase.shouldNotProve(query: Query) {
     }
 }
 
-infix fun KnowledgeBase.shouldNotProve(compoundTerm: CompoundTerm) {
+infix fun PrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundTerm) {
     shouldNotProve(PredicateInvocationQuery(compoundTerm))
+}
+
+fun PrologRuntimeEnvironment.load(module: Module) {
+    val reference = ModuleReference("module", module.name)
+    invokeDirective("use_module", ReadWriteAuthorization, arrayOf(reference.asTerm()))
 }
 
 private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
     = find(predicate) != null
+
+private fun PrologRuntimeEnvironment.fulfill(query: Query): LazySequence<Unification> {
+    val ctxt = this.newProofSearchContext()
+    return buildLazySequence(ctxt.principal) {
+        ctxt.fulfillAttach(this, query, VariableBucket())
+    }
+}
