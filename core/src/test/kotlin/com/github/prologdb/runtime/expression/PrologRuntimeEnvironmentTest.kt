@@ -2,8 +2,12 @@ package com.github.prologdb.runtime.expression
 
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
+import io.kotlintest.matchers.haveKey
+import io.kotlintest.matchers.should
+import io.kotlintest.matchers.shouldBe
 import io.kotlintest.specs.FreeSpec
 
 class PrologRuntimeEnvironmentTest : FreeSpec() {init {
@@ -302,5 +306,50 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
                 }
             }
         }
+    }
+
+    "circular module dependency" {
+        val moduleARef = ModuleReference("module", "A")
+        val moduleBRef = ModuleReference("module", "B")
+
+        val moduleA = ASTModule(
+            "A",
+            listOf(FullModuleImport(moduleBRef)),
+            emptyList(),
+            emptySet(),
+            emptySet(),
+            EmptyOperatorRegistry
+        )
+
+        val moduleB = ASTModule(
+            "B",
+            listOf(FullModuleImport(moduleARef)),
+            emptyList(),
+            emptySet(),
+            emptySet(),
+            EmptyOperatorRegistry
+        )
+
+        val rootModule = ASTModule(
+            "__root",
+            listOf(FullModuleImport(moduleARef)),
+            emptyList(),
+            emptySet(),
+            emptySet(),
+            EmptyOperatorRegistry
+        )
+
+        val moduleLoader = NativeLibraryLoader()
+        moduleLoader.registerModule(moduleARef, moduleA)
+        moduleLoader.registerModule(moduleBRef, moduleB)
+
+        val runtimeEnv = PrologRuntimeEnvironment(rootModule, moduleLoader)
+
+        val loadedModules = runtimeEnv.newProofSearchContext().rootAvailableModules
+
+        loadedModules should haveKey("A")
+        loadedModules should haveKey("B")
+        loadedModules["A"] shouldBe moduleA
+        loadedModules["B"] shouldBe moduleB
     }
 }}

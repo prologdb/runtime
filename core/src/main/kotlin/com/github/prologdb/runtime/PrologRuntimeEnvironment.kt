@@ -1,14 +1,11 @@
 package com.github.prologdb.runtime
 
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.knowledge.AbstractProofSearchContext
-import com.github.prologdb.runtime.knowledge.Authorization
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
-import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.knowledge.library.ModuleLoader
+import com.github.prologdb.runtime.knowledge.library.ModuleReference
+import com.github.prologdb.runtime.knowledge.library.NativeLibraryLoader
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,18 +20,26 @@ class PrologRuntimeEnvironment(
      * Maps module names to the loaded [Modules].
      */
     private val loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
+    private val moduleLoadingMutex = Any()
 
     init {
         loadedModules[rootModule.name] = rootModule
-        rootModule.imports.forEach { import -> assureModuleLoaded(import.moduleReference) }
+        loadImports(rootModule)
     }
 
-    // TODO: execute all (nested) imports
-    // TODO: handle circular module dependencies
     // TODO: check for indicator collisions in module exports
 
     private fun assureModuleLoaded(reference: ModuleReference) {
-        val module = loadedModules.computeIfAbsent(reference.moduleName) { moduleLoader.load(reference) }
+        synchronized(moduleLoadingMutex) {
+            val modulePresent = reference.moduleName in loadedModules
+            if (modulePresent) return
+
+            val module = loadedModules.computeIfAbsent(reference.moduleName) { moduleLoader.load(reference) }
+            loadImports(module)
+        }
+    }
+
+    private fun loadImports(module: Module) {
         module.imports.forEach { import ->
             assureModuleLoaded(import.moduleReference)
         }
@@ -47,24 +52,5 @@ class PrologRuntimeEnvironment(
             ReadWriteAuthorization,
             loadedModules
         )
-    }
-
-    private inner class QueryProofSearchContext(
-        override val principal: Principal,
-        override val randomVariableScope: RandomVariableScope,
-        override val authorization: Authorization
-    ) : AbstractProofSearchContext() {
-        private val rootModuleContext = rootModule.createProofSearchContext(
-            principal,
-            randomVariableScope,
-            authorization,
-            loadedModules
-        )
-
-        override val rootAvailableModules = loadedModules
-
-        override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator) {
-            TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
     }
 }

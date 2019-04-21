@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.shouldNotProve
 import com.github.prologdb.runtime.shouldProve
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
@@ -116,9 +117,7 @@ class ModuleIsolationTest : FreeSpec({
 
         val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
 
-        runtimeEnv shouldProve foo(R) suchThat {
-            itHasNoSolutions()
-        }
+        runtimeEnv shouldNotProve foo(R)
     }
 
     "partial import - predicates in module don't see predicates not imported (but exported)" {
@@ -160,9 +159,7 @@ class ModuleIsolationTest : FreeSpec({
             }
         }
 
-        runtimeEnv shouldProve CompoundTerm("bar", arrayOf(R)) suchThat {
-            itHasNoSolutions()
-        }
+        runtimeEnv shouldNotProve CompoundTerm("bar", arrayOf(R))
     }
 }) {
     override val oneInstancePerTest = true

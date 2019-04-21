@@ -76,12 +76,6 @@ class UnificationSequenceAssertionReceiver(private val generator: UnificationSeq
             throw AssertionError("There is no solution such that $description")
         }
     }
-
-    fun itHasNoSolutions() {
-        if (generator().tryAdvance() != null) {
-            throw AssertionError("A solution was found when there should have been none.")
-        }
-    }
 }
 
 infix fun Term.shouldNotUnifyWith(rhs: Term) {
