@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.UnificationSequenceGenerator
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -67,7 +67,7 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(ModuleReference("module", "a"))
+                FullModuleImport(ModuleReference("module", "A"))
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
@@ -124,7 +124,7 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                PartialModuleImport(ModuleReference("module", "A"), setOf(
+                SelectiveModuleImport(ModuleReference("module", "A"), setOf(
                     ClauseIndicator.of(clauseA01)
                     // c/1 is not imported
                 ))
@@ -150,12 +150,18 @@ class ModuleIsolationTest : FreeSpec({
     override val oneInstancePerTest = true
 }
 
-private infix fun Module.shouldSeeProofFor(query: CompoundTerm): () -> LazySequence<Unification> {
-    return {
+private infix fun Module.shouldSeeProofFor(query: CompoundTerm): UnificationSequenceGenerator {
+    val generator = {
         val psc = PrologRuntimeEnvironment().newProofSearchContext()
         buildLazySequence<Unification>(psc.principal) {
             this@shouldSeeProofFor.exportedPredicates[ClauseIndicator.of(query)]
                 ?.fulfill?.invoke(this@buildLazySequence, query, psc)
         }
     }
+
+    if (generator().tryAdvance() == null) {
+        throw AssertionError("Code inside module $this cannot prove $query")
+    }
+
+    return generator
 }

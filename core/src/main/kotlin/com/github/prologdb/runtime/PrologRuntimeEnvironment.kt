@@ -20,6 +20,8 @@ class PrologRuntimeEnvironment(
 
     private val loadedModules: MutableMap<ModuleReference, Module> = ConcurrentHashMap()
 
+    private val rootImports: MutableMap<ModuleReference, ModuleImport> = ConcurrentHashMap()
+
     private val _operators = DefaultOperatorRegistry()
     val operators: OperatorRegistry = _operators
     init {
@@ -34,7 +36,7 @@ class PrologRuntimeEnvironment(
                     yield(Unification.TRUE)
                 }
                 "use_module" -> {
-                    directiveUseModule1(*arguments)
+                    directiveUseModule(*arguments)
                     yield(Unification.TRUE)
                 }
                 else -> throw PrologRuntimeException("Directive $name/${arguments.size} is not defined.")
@@ -112,24 +114,27 @@ class PrologRuntimeEnvironment(
         _operators.defineOperator(OperatorDefinition(precedence, operatorType, (arguments[2] as Atom).name))
     }
 
-    private fun directiveUseModule1(vararg arguments: Term) {
-        if (arguments.size != 1) {
+    private val moduleLoadingMutex = Any()
+
+    private fun directiveUseModule(vararg arguments: Term) {
+        if (arguments.size !in 1..2) {
             throw PrologRuntimeException("Directive use/${arguments.size} is not defined.")
         }
 
-        val moduleRefTerm = arguments[0]
-        if (moduleRefTerm !is CompoundTerm) {
-            throw PrologRuntimeException("Argument 0 to use/1 must be a compound, got ${moduleRefTerm.prologTypeName}")
-        }
+        val import: ModuleImport = ModuleImport.fromUseModuleSyntax(arguments)
 
-        val moduleReference = ModuleReference.fromCompoundTerm(moduleRefTerm)
-        val module = moduleLoader.load(moduleReference)
+        assureModuleLoaded(import.moduleReference)
 
         // TODO: execute all nested imports
         // TODO: handle circular module dependencies
         // TODO: check for indicator collisions in module exports
+    }
 
-        loadedModules.putIfAbsent(moduleReference, module)
+    private fun assureModuleLoaded(reference: ModuleReference) {
+        val module = loadedModules.computeIfAbsent(reference, moduleLoader::load)
+        module.imports.forEach { import ->
+            assureModuleLoaded(import.moduleReference)
+        }
     }
 
     fun newProofSearchContext(): ProofSearchContext {

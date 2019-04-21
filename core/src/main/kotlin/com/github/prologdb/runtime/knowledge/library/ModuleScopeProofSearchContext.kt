@@ -1,8 +1,10 @@
-package com.github.prologdb.runtime.knowledge
+package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.AbstractProofSearchContext
+import com.github.prologdb.runtime.knowledge.PrologCallable
+import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 
@@ -49,11 +51,21 @@ class ModuleScopeProofSearchContext(
                 val referencedModule = rootAvailableModules[import.moduleReference]
                     ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
 
-                val visiblePredicates = when (import) {
+                val visiblePredicates: Map<ClauseIndicator, PrologCallable> = when (import) {
                     is FullModuleImport -> referencedModule.exportedPredicates
-                    is PartialModuleImport -> referencedModule.exportedPredicates.filter { (exportedIndicator, _) ->
-                        exportedIndicator in import.imports
-                    }
+                    is SelectiveModuleImport -> import.imports
+                        .map { (exportedIndicator, alias) ->
+                            val callable = referencedModule.exportedPredicates[exportedIndicator]
+                                ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
+                            if (exportedIndicator.functor == alias) {
+                                exportedIndicator to callable
+                            } else {
+                                ClauseIndicator.of(alias, exportedIndicator.arity) to callable
+                            }
+                        }
+                        .toMap()
+                    is ExceptModuleImport -> referencedModule.exportedPredicates
+                        .filterKeys { it !in import.excluded }
                 }
 
                 importLookupCache.putAll(visiblePredicates)

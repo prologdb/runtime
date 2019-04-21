@@ -2,12 +2,9 @@ package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.knowledge.ASTPrologPredicate
-import com.github.prologdb.runtime.knowledge.ModuleScopeProofSearchContext
 import com.github.prologdb.runtime.knowledge.PrologCallable
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.*
 
 /**
  * A module, as results from reading/consulting a prolog file.
@@ -65,18 +62,113 @@ data class ModuleReference(
 
 sealed class ModuleImport(
     val moduleReference: ModuleReference
-)
+) {
+    companion object {
+        @JvmStatic
+        fun fromUseModuleSyntax(useModuleArguments: Array<out Term>): ModuleImport {
+            val moduleRefTerm = useModuleArguments[0]
+            if (moduleRefTerm !is CompoundTerm) {
+                throw PrologRuntimeException("Argument 0 to use_module/${useModuleArguments.size} must be a compound, got ${moduleRefTerm.prologTypeName}")
+            }
+
+            val moduleReference = ModuleReference.fromCompoundTerm(moduleRefTerm)
+
+            if (useModuleArguments.size == 1) {
+                return FullModuleImport(moduleReference)
+            }
+
+            val selectionTerm = useModuleArguments[1]
+
+            if (selectionTerm is PrologList) {
+                val imports = mutableMapOf<ClauseIndicator, String>()
+                selectionTerm.elements.forEach { importTerm ->
+                    if (importTerm !is CompoundTerm) {
+                        throw PrologRuntimeException("References to single predicates in argument 1 to use_module/2 must be compounds, got ${importTerm.prologTypeName}")
+                    }
+
+                    if (importTerm.functor == "/") {
+                        val indicator = toClauseIndicator(importTerm, "argument 1 to use_module/2")
+                        imports[indicator] = indicator.functor
+                    } else if (importTerm.functor == "as") {
+                        val indicator = toClauseIndicator(importTerm.arguments[0], "argument 1 to use_module/2")
+                        val aliasTerm = importTerm.arguments[1]
+                        if (aliasTerm !is Atom) {
+                            throw PrologRuntimeException("Predicate aliases in argument 1 to use_module/2 must be atoms, got ${aliasTerm.prologTypeName}")
+                        }
+
+                        imports[indicator] = aliasTerm.name
+                    } else {
+                        throw PrologRuntimeException("References to single predicates in argument 1 to use_module/2 must unify with either _/_ or _/_ as _")
+                    }
+                }
+
+                return SelectiveModuleImport(moduleReference, imports)
+            } else if (selectionTerm is CompoundTerm && selectionTerm.functor == "except" && selectionTerm.arity == 1) {
+                val listTerm = selectionTerm.arguments[0]
+                if (listTerm !is PrologList) {
+                    throw PrologRuntimeException("Argument 0 to except/1 in argument 1 to use_module/2 must be a list, got ${listTerm.prologTypeName}")
+                }
+
+                val except = listTerm.elements
+                    .map {
+                        toClauseIndicator(it, "Indicators in argument 0 to except/1 in argument 1 to use_module/2")
+                    }
+                    .toSet()
+
+                return ExceptModuleImport(moduleReference, except)
+            } else {
+                throw PrologRuntimeException("argument 1 to use_module/2 must be either a list or an instance of except/1, got ${selectionTerm.prologTypeName}")
+            }
+        }
+
+        @JvmStatic
+        private fun toClauseIndicator(term: Term, errorReference: String): ClauseIndicator {
+            if (term !is CompoundTerm || term.arity != 2 || term.functor != "/") {
+                throw PrologRuntimeException("Predicate indicators in $errorReference must be instnaces of `/`/2")
+            }
+
+            val functorTerm = term.arguments[0]
+            val arityTerm = term.arguments[1]
+
+            val functor = when (functorTerm) {
+                is Atom -> functorTerm.name
+                else -> throw PrologRuntimeException("Predicate functors in $errorReference must be atoms, got ${functorTerm.prologTypeName}")
+            }
+
+            val arityLong = when (arityTerm) {
+                is PrologInteger -> arityTerm.value
+                else -> throw PrologRuntimeException("Predicate arities in $errorReference must be integers, got ${functorTerm.prologTypeName}")
+            }
+
+            if (arityLong < 0) {
+                throw PrologRuntimeException("Predicate arities in $errorReference cannot be negative")
+            }
+
+            if (arityLong > Int.MAX_VALUE) {
+                throw PrologRuntimeException("Predicate arities in $errorReference must be less than or equal to ${Int.MAX_VALUE}")
+            }
+
+            return ClauseIndicator.of(functor, arityLong.toInt())
+        }
+    }
+}
 
 class FullModuleImport(moduleReference: ModuleReference) : ModuleImport(moduleReference)
-class PartialModuleImport(
+class SelectiveModuleImport(
     moduleReference: ModuleReference,
 
     /**
-     * The imported predicates. The key may contain an alias, e.g.:
-     * `use_module(foo, [bar/1 as baz])` will result in a key `baz/1` referring
-     * to the `bar/1` predicate of module `foo`.
+     * The imported predicates. The key refers to the indicator of the predicate as exported
+     * by the imported module. The value is the functor to be used in the code that imports
+     * the module. E.g. `:- use_module(foo, [bar/1 as baz])` will result in the key being
+     * `bar/1` and the value being `baz`.
      */
-    val imports: Set<ClauseIndicator>
+    val imports: Map<ClauseIndicator, String>
+) : ModuleImport(moduleReference)
+
+class ExceptModuleImport(
+    moduleReference: ModuleReference,
+    val excluded: Set<ClauseIndicator>
 ) : ModuleImport(moduleReference)
 
 /**
