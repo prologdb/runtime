@@ -8,8 +8,11 @@ import com.github.prologdb.parser.lexer.TokenType.NUMERIC_LITERAL
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
+import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.knowledge.library.OperatorType.*
 import com.github.prologdb.runtime.query.Query
@@ -611,38 +614,55 @@ class PrologParser {
     }
 
     /**
-     * Parse the given tokens as a library file.
-     * @param libraryName The name of the library, will carried over to [Library.name]
-     * @param contextOperators Operators already defined in the context (e.g. a knowledge base)
+     * Parse the given tokens as a module file.
      */
-    fun parseLibrary(libraryName: String, tokens: TransactionalSequence<Token>, contextOperators: OperatorRegistry): ParseResult<Library> {
-        val carryOpRegistry = DiffOperatorRegistry(contextOperators)
+    fun parseModule(
+        tokens: TransactionalSequence<Token>,
+        contextOperators: OperatorRegistry = ISOOpsOperatorRegistry
+    ): ParseResult<Module> {
+        val moduleLocalOperators = DefaultOperatorRegistry()
+        moduleLocalOperators.include(contextOperators)
 
         val clauses = mutableListOf<Clause>()
         val dynamics = mutableSetOf<ClauseIndicator>()
+        var moduleDeclaration: ModuleDeclaration? = null
+        var moduleDeclarationSeen = false
+        var imports = mutableListOf<ModuleImport>()
         val reportings = mutableSetOf<Reporting>()
+
+        var moduleDeclarationNotFirstStatementErrorEmitted = false
+        fun emitModuleDeclarationNotFirstStatementError(onLocation: SourceLocationRange) {
+            if (moduleDeclarationNotFirstStatementErrorEmitted) return
+
+            reportings.add(SemanticError(
+                "The module/1 directive must be the first statement in the file.",
+                onLocation
+            ))
+
+            moduleDeclarationNotFirstStatementErrorEmitted = true
+        }
 
         /**
          * Adds the given operator definition to the library.
          * @param opDefinitionAST The definition, e.g.: `op(400,xf,isDead)`
          */
-        fun handleOperator(opDefinitionAST: ParsedCompoundTerm) {
+        fun handleOperator(opDefinitionAST: ParsedCompoundTerm): OperatorDefinition? {
             val priorityArgument = opDefinitionAST.arguments[0]
             if (priorityArgument !is com.github.prologdb.runtime.term.PrologNumber || !priorityArgument.isInteger) {
                 reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
-                return
+                return null
             }
 
             val precedenceAsLong = (priorityArgument as com.github.prologdb.runtime.term.PrologNumber).toInteger()
             if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
                 reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].location))
-                return
+                return null
             }
             val precedence = precedenceAsLong.toShort()
 
             if (opDefinitionAST.arguments[1] !is Atom) {
                 reportings.add(SemanticError("atom expected but found ${opDefinitionAST.arguments[1]}", opDefinitionAST.arguments[1].location))
-                return
+                return null
             }
 
             val typeAsUCString = (opDefinitionAST.arguments[1] as Atom).name.toUpperCase()
@@ -651,75 +671,122 @@ class PrologParser {
             }
             catch (ex: IllegalArgumentException) {
                 reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opDefinitionAST.arguments[1].location))
-                return
+                return null
             }
 
             if (opDefinitionAST.arguments[2] !is Atom) {
                 reportings.add(SemanticError("Atom expected but got ${opDefinitionAST.arguments[2]}", opDefinitionAST.arguments[2].location))
-                return
+                return null
             }
 
-            carryOpRegistry.defineOperator(OperatorDefinition(precedence, operatorType, (opDefinitionAST.arguments[2] as Atom).name))
+            val definition = OperatorDefinition(precedence, operatorType, (opDefinitionAST.arguments[2] as Atom).name)
+            moduleLocalOperators.defineOperator(definition)
+
+            return definition
         }
 
         /**
          * The dynamic/1 builtin
          * @param the only parameter to dynamic/1
          */
-        fun handleDynamicDirective(indicator: Term) {
-            if (indicator !is ParsedCompoundTerm || indicator.arity != 2 || indicator.functor != "/") {
+        fun handleDynamicDirective(indicatorTerm: Term) {
+            if (indicatorTerm !is ParsedCompoundTerm || indicatorTerm.arity != 2 || indicatorTerm.functor != "/") {
                 reportings.add(SemanticError(
                     "The argument to dynamic/1 must be an instance of `/`/2",
-                    indicator.location
+                    indicatorTerm.location
                 ))
                 return
             }
 
-            val name = indicator.arguments[0]
-            val arity = indicator.arguments[1]
+            val indicator = ClauseIndicator.fromIdiomatic(indicatorTerm, reportings)
 
-            if (name !is Atom) {
+            indicator?.let { dynamics.add(it) }
+        }
+
+        fun handleModuleDeclaration(invocation: CompoundTerm) {
+            val args = invocation.arguments
+            if (args.size !in 1..2) {
                 reportings.add(SemanticError(
-                    "Argument 0 to `/`/2 must be an atom",
-                    name.location
+                    "Directive module/${args.size} is not defined.",
+                    invocation.location
                 ))
                 return
             }
 
-            if (arity !is PrologNumber || !arity.isInteger) {
+            if (moduleDeclarationSeen) {
                 reportings.add(SemanticError(
-                    "Argument 1 to `/`/2 must be an integer",
-                    arity.location
+                    "Cannot declare module more than once.",
+                    invocation.location
                 ))
                 return
             }
 
-            val arityValue = (arity as PrologNumber).toInteger()
-            if (arityValue < 0L || arityValue > Integer.MAX_VALUE.toLong()) {
+            moduleDeclarationSeen = true
+
+            if (args[0] !is Atom) {
                 reportings.add(SemanticError(
-                    "Argument 1 to `/`/2 must be an integer in the range [0; ${Int.MAX_VALUE}]",
-                    arity.location
+                    "Argument 0 to module/${args.size} must be an atom, got ${args[0].prologTypeName}",
+                    args[0].location
                 ))
                 return
             }
 
-            dynamics.add(ClauseIndicator.of(name.name, arityValue.toInt()))
+            val name = (args[0] as Atom).name
+            var exportSelection: Set<ClauseIndicator>? = null
+
+            if (args.size == 2) {
+                if (args[1] is PrologList) {
+                    exportSelection = (args[1] as PrologList).elements
+                        .mapNotNull {
+                            ClauseIndicator.fromIdiomatic(it, reportings)
+                        }
+                        .toSet()
+                } else {
+                    reportings.add(SemanticError(
+                        "Argument 1 to module/2 must be a list, got ${args[1].prologTypeName}",
+                        args[1].location
+                    ))
+                }
+            }
+
+            moduleDeclaration = ModuleDeclaration(name, exportSelection)
+        }
+
+        fun handleUseModuleDirective(invocation: CompoundTerm) {
+            try {
+                imports.add(ModuleImport.fromUseModuleSyntax(invocation.arguments))
+            } catch (ex: PrologRuntimeException) {
+                reportings.add(SemanticError(
+                    ex.message ?: "Invalid import directive",
+                    invocation.location
+                ))
+            }
         }
 
         fun handleDirective(command: ParsedCompoundTerm) {
+            if (!moduleDeclarationSeen && command.functor != "module") {
+                emitModuleDeclarationNotFirstStatementError(command.location)
+            }
+
             when(command.arity) {
                 3 -> when(command.functor) {
-                    "op" -> return handleOperator(command)
+                    "op" -> handleOperator(command)
+                }
+                2 -> when (command.functor) {
+                    "module" -> return handleModuleDeclaration(command)
+                    "use_module" -> return handleUseModuleDirective(command)
                 }
                 1 -> when(command.functor) {
                     "dynamic" -> return handleDynamicDirective(command.arguments[0])
+                    "module" -> return handleModuleDeclaration(command)
+                    "use_module" -> return handleUseModuleDirective(command)
                 }
             }
 
-            reportings.add(SemanticError(
+            reportings += SemanticError(
                 "Directive ${command.functor}/${command.arity} is not defined.",
                 command.location
-            ))
+            )
         }
 
         fun handleRule(definition: ParsedCompoundTerm) {
@@ -735,7 +802,7 @@ class PrologParser {
         }
 
         while (tokens.hasNext()) {
-            val parseResult = parseTerm(tokens, carryOpRegistry, stopAtOperator(FULL_STOP))
+            val parseResult = parseTerm(tokens, moduleLocalOperators, stopAtOperator(FULL_STOP))
             reportings += parseResult.reportings
 
             if (parseResult.isSuccess) {
@@ -747,12 +814,15 @@ class PrologParser {
                         handleDirective(item.arguments[0] as ParsedCompoundTerm)
                     }
                     else if (item.isRuleDefinition) {
+                        if (!moduleDeclarationSeen) emitModuleDeclarationNotFirstStatementError(item.location)
                         handleRule(item)
                     }
                     else {
+                        if (!moduleDeclarationSeen) emitModuleDeclarationNotFirstStatementError(item.location)
                         clauses.add(item)
                     }
                 } else {
+                    if (!moduleDeclarationSeen) emitModuleDeclarationNotFirstStatementError(item.location)
                     reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a compound term.", item.location)
                 }
             }
@@ -767,12 +837,27 @@ class PrologParser {
             }
         }
 
+        if (moduleDeclaration == null) {
+            reportings += SemanticError(
+                "Missing module declaration",
+                SourceLocationRange(SourceLocation.EOF, SourceLocation.EOF)
+            )
+
+            return ParseResult(
+                null,
+                MATCHED,
+                reportings
+            )
+        }
+
         return ParseResult(
-            Library(
-                libraryName,
+            ASTModule(
+                moduleDeclaration!!.moduleName,
+                imports,
                 clauses,
                 dynamics,
-                carryOpRegistry.deltaRegistry
+                moduleDeclaration!!.exportedPredicates
+                    ?: clauses.map { ClauseIndicator.of(it) }.toSet()
             ),
             MATCHED,
             reportings
@@ -1035,10 +1120,10 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                     )
                 }
                 else if (rhsOp.precedence >= operatorDef.precedence) {
-                    reportings.add(SemanticError(
+                    reportings += SemanticError(
                         "Operator priority clash: right of ${operatorDef.name} must be strictly less precedence than ${operatorDef.precedence}, but found ${rhsOp.name} with precedence ${rhsOp.precedence}",
                         elements[index].location
-                    ))
+                    )
                 }
             }
 
@@ -1115,10 +1200,10 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                         )
                     }
                     else {
-                        reportings.add(SemanticError(
+                        reportings += SemanticError(
                             "Operator priority clash: right of ${operatorDef.name} must be strictly less precedence than ${operatorDef.precedence}, but found ${rhsOp.name} with precedence ${rhsOp.precedence}",
                             elements[index].location
-                        ))
+                        )
                     }
                 }
             }
@@ -1162,4 +1247,44 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
     // there is no way to use the operator
     throw ExpressionASTBuildingException(SemanticError("Cannot meaningfully use operator ${elements[index]}", elements[index].location))
+}
+
+fun ClauseIndicator.Companion.fromIdiomatic(indicator: Term, reportings: MutableCollection<in Reporting>): ClauseIndicator? {
+    if (indicator !is CompoundTerm) {
+        reportings += SemanticError(
+            "Clause indicators must be instances of `/`/2, got ${indicator.prologTypeName}",
+            indicator.location
+        )
+        return null
+    }
+
+    val name = indicator.arguments[0]
+    val arity = indicator.arguments[1]
+
+    if (name !is Atom) {
+        reportings += SemanticError(
+            "Argument 0 to `/`/2 must be an atom",
+            name.location
+        )
+        return null
+    }
+
+    if (arity !is PrologNumber || !arity.isInteger) {
+        reportings += SemanticError(
+            "Argument 1 to `/`/2 must be an integer",
+            arity.location
+        )
+        return null
+    }
+
+    val arityValue = arity.toInteger()
+    if (arityValue < 0L || arityValue > Integer.MAX_VALUE.toLong()) {
+        reportings += SemanticError(
+            "Argument 1 to `/`/2 must be an integer in the range [0; ${Int.MAX_VALUE}]",
+            arity.location
+        )
+        return null
+    }
+
+    return ClauseIndicator.of(name.name, arityValue.toInt())
 }

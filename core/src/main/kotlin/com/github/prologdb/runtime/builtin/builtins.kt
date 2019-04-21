@@ -7,7 +7,9 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.*
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
+import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.knowledge.library.ModuleImport
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -129,17 +131,12 @@ fun nativeModule(name: String, initCode: NativeModuleBuilder.() -> Any?): Native
 
 class NativeModuleBuilder {
     private val predicates = mutableListOf<PrologPredicate>()
-    private val opRegistry = DefaultOperatorRegistry()
 
     fun add(predicate: PrologPredicate) {
         predicates.add(predicate)
     }
 
-    fun defineOperator(def: OperatorDefinition) {
-        opRegistry.defineOperator(def)
-    }
-
-    private fun build(name: String) = NativeModule(name, predicates, opRegistry)
+    private fun build(name: String) = NativeModule(name, predicates)
 
     companion object {
         internal fun build(name: String, initCode: NativeModuleBuilder.() -> Any?): NativeModule {
@@ -152,8 +149,7 @@ class NativeModuleBuilder {
 
 class NativeModule(
     override val name: String,
-    predicates: List<PrologPredicate>,
-    override val exportedOperators: OperatorRegistry
+    predicates: List<PrologPredicate>
 ) : Module {
     override val exportedPredicates: Map<ClauseIndicator, PrologCallable>
 

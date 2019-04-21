@@ -6,9 +6,9 @@ import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
-import com.github.prologdb.runtime.builtin.EqualityLibrary
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
 import com.github.prologdb.runtime.knowledge.library.OperatorType
@@ -663,15 +663,13 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
-    "library" {
-        val kb = LocalKnowledgeBase()
-        (kb.operators as DefaultOperatorRegistry).include(ISOOpsOperatorRegistry)
-        kb.load(EqualityLibrary)
+        "module" {
+            fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseModule(tokens, ISOOpsOperatorRegistry)
+            fun parseModule(code: String) = parseModule(tokensOf(code))
 
-        fun parseLibrary(tokens: TransactionalSequence<Token>) = PrologParser().parseLibrary("test", tokens, kb.operators)
-        fun parseLibrary(code: String) = parseLibrary(tokensOf(code))
+            val result = parseModule("""
+            :- module(test).
 
-        val result = parseLibrary("""
             :- op(200,xf,isDead).
             :- op(200,fx,kill).
 
@@ -683,15 +681,18 @@ class PrologParserTest : FreeSpec() {
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
 
-        val library = result.item!!
-        library.name shouldBe "test"
+            val module = result.item!!
+            module.name shouldBe "test"
 
-        val rules = library.findFor(CompoundTerm("isDead", arrayOf(Variable("X")))).toList()
-        rules.size shouldBe 1
+            module.exportedPredicates.size shouldBe 2
+            module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
+            module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
 
-        val rule = rules.first()
+            val rule = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
         rule shouldBe instanceOf(Rule::class)
         rule as Rule
+            rule.head.functor shouldBe "isDead"
+            rule.head.arity shouldBe 1
 
         rule.toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
     }

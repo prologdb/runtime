@@ -4,6 +4,7 @@ import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -75,3 +76,11 @@ class ParsedAndQuery(goals: Array<out Query>, override val sourceInformation: So
 class ParsedOrQuery(goals: Array<out Query>, override val sourceInformation: SourceLocationRange) : OrQuery(goals), HasPrologSource
 
 class ParsedRule(head: ParsedCompoundTerm, query: Query, override val sourceInformation: SourceLocationRange): Rule(head, query), HasPrologSource
+
+class ModuleDeclaration(
+    val moduleName: String,
+    /**
+     * The predicates to export. If null, all predicates are exported.
+     */
+    val exportedPredicates: Set<ClauseIndicator>? = null
+)

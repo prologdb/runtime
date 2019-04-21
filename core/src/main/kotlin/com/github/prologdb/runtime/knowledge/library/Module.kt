@@ -17,11 +17,6 @@ interface Module {
 
     val exportedPredicates: Map<ClauseIndicator, PrologCallable>
 
-    /**
-     * The operators defined and exported by this module (using `:- op/3`).
-     */
-    val exportedOperators: OperatorRegistry
-
     val imports: List<ModuleImport>
 
     fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
@@ -194,8 +189,7 @@ class ASTModule(
     override val imports: List<ModuleImport>,
     val givenClauses: Iterable<Clause>,
     val dynamicPredicates: Set<ClauseIndicator>,
-    val exportedPredicateIndicators: Set<ClauseIndicator>,
-    override val exportedOperators: OperatorRegistry
+    val exportedPredicateIndicators: Set<ClauseIndicator>
 ) : Module {
     private val allDeclaredPredicates: Map<ClauseIndicator, PrologCallable>
     init {

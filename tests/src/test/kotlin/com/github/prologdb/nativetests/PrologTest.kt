@@ -10,7 +10,6 @@ import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.KnowledgeBase
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
 import com.github.prologdb.runtime.knowledge.library.Library
@@ -86,7 +85,7 @@ class PrologTest : FreeSpec() { init {
         val sourceUnit = SourceUnit(path.toString())
         val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
 
-        return PrologParser().parseLibrary(path.fileName.toString(), lexer, createFreshTestingKnowledgeBase().operators)
+        return PrologParser().parseModule(path.fileName.toString(), lexer, createFreshTestingKnowledgeBase().operators)
     }
 
     private fun getPrologTestCases(library: Library, parseErrorCallback: (Collection<Reporting>) -> Any?): Set<PrologTestCase> {

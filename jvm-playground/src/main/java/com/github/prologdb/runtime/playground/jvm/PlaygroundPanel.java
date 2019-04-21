@@ -153,7 +153,7 @@ public class PlaygroundPanel {
                     ).iterator()
                 )
             );
-            ParseResult<Library> result = parser.parseLibrary("user", lexer, newKnowledgeBase.getOperators());
+            ParseResult<Library> result = parser.parseModule("user", lexer, newKnowledgeBase.getOperators());
 
             if (result.getReportings().isEmpty()) {
                 newKnowledgeBase.load(requireNonNull(result.getItem()));

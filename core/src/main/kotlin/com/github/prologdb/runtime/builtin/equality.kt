@@ -2,7 +2,8 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.ASTModule
+import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
@@ -69,12 +70,5 @@ val EqualityLibrary = ASTModule(
     emptyList(),
     equalityClauses,
     emptySet(),
-    equalityClauses.map { ClauseIndicator.of(it) }.toSet(),
-    DefaultOperatorRegistry().apply {
-        defineOperator(OperatorDefinition(900, OperatorType.FY, "\\+"))
-        defineOperator(OperatorDefinition(700, OperatorType.XFX, "="))
-        defineOperator(OperatorDefinition(700, OperatorType.XFX, "=="))
-        defineOperator(OperatorDefinition(700, OperatorType.XFX, "\\="))
-        defineOperator(OperatorDefinition(700, OperatorType.XFX, "\\=="))
-    }
+    equalityClauses.map { ClauseIndicator.of(it) }.toSet()
 )
