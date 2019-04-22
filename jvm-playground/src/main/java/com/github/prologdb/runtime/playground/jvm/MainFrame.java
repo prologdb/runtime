@@ -9,8 +9,11 @@ import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class MainFrame extends JFrame {
 
@@ -26,8 +29,9 @@ public class MainFrame extends JFrame {
 
         SwingUtilities.invokeLater(() -> {
             try {
-                statePersistenceService.read().ifPresent(playgroundPanel::setCurrentState);
-                statePersistenceService.read().map(PlaygroundState::getMainWindowState).ifPresent(this::setWindowState);
+                PlaygroundState state = statePersistenceService.read().orElseGet(this::getInitialState);
+                playgroundPanel.setCurrentState(state);
+                Optional.ofNullable(state.getMainWindowState()).ifPresent(this::setWindowState);
                 (new Timer()).schedule(periodicPersistenceTimerTask, 10000, 15000);
             }
             catch (IOException ex) {
@@ -187,5 +191,17 @@ public class MainFrame extends JFrame {
             @Override
             public void windowDeactivated(WindowEvent e) { }
         });
+    }
+
+    private PlaygroundState getInitialState() {
+        PlaygroundState state = new PlaygroundState();
+        state.setKnowledgeBaseText(
+            Stream.of("equality", "comparison", "typesafety", "dict", "dynamics", "lists", "math", "strings")
+                .map(name -> ":- use_module(library(" + name + ")).")
+                .collect(Collectors.joining("\n"))
+        );
+        state.setQuery("append([1, 2], A, [1, 2, 3, 4, 5]).");
+
+        return state;
     }
 }

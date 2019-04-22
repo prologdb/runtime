@@ -65,7 +65,7 @@ private val equalityClauses = listOf(
 /**
  * Defines the ISO equality and inequality predicates and operators.
  */
-val EqualityLibrary = ASTModule(
+val EqualityModule = ASTModule(
     "equality",
     emptyList(),
     equalityClauses,

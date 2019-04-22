@@ -2,8 +2,6 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.knowledge.PrologPredicate
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
@@ -28,7 +26,7 @@ val TypeofBuiltin = nativePredicate("typeof", 2) { args, _ ->
         if (correct) yield(Unification.TRUE)
     }
 }
-val TypeSafetyLibrary = nativeModule("typesafety") {
+val TypeSafetyModule = nativeModule("typesafety") {
     // all of these are /1 tests
     add(typeCheckBuiltin("atom") { it is Atom })
 
@@ -47,8 +45,6 @@ val TypeSafetyLibrary = nativeModule("typesafety") {
     add(typeCheckBuiltin("nonground") { it.variables.isNotEmpty() })
 
     add(TypeofBuiltin)
-
-    defineOperator(OperatorDefinition(900, OperatorType.XFY, "typeof"))
 }
 
 /**

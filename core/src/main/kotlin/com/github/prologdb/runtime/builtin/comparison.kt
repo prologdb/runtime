@@ -1,7 +1,5 @@
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorType
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.unification.Unification
 
@@ -46,15 +44,10 @@ val BuiltinCompare = nativePredicate("compare", 3) { args, _ ->
 /**
  * Defines predicates for the standard order of terms.
  */
-val ComparisonLibrary = nativeModule("comparison") {
+val ComparisonModule = nativeModule("comparison") {
     add(BuiltinTermLessThan)
     add(BuiltinTermLessThanOrEqual)
     add(BuiltinTermGreaterThan)
     add(BuiltinTermGreaterThanOrEqual)
     add(BuiltinCompare)
-
-    defineOperator(OperatorDefinition(700, OperatorType.XFX, "@<"))
-    defineOperator(OperatorDefinition(700, OperatorType.XFX, "@=<"))
-    defineOperator(OperatorDefinition(700, OperatorType.XFX, "@>"))
-    defineOperator(OperatorDefinition(700, OperatorType.XFX, "@>="))
 }

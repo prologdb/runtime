@@ -3,6 +3,7 @@ package com.github.prologdb.runtime.knowledge.library
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.knowledge.ASTPrologPredicate
 import com.github.prologdb.runtime.knowledge.Authorization
 import com.github.prologdb.runtime.knowledge.PrologCallable
@@ -18,6 +19,11 @@ interface Module {
     val exportedPredicates: Map<ClauseIndicator, PrologCallable>
 
     val imports: List<ModuleImport>
+
+    /**
+     * Operators available in this module (including those given as context operators when parsing)
+     */
+    val localOperators: OperatorRegistry
 
     fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
         return createProofSearchContext(
@@ -189,7 +195,8 @@ class ASTModule(
     override val imports: List<ModuleImport>,
     val givenClauses: Iterable<Clause>,
     val dynamicPredicates: Set<ClauseIndicator>,
-    val exportedPredicateIndicators: Set<ClauseIndicator>
+    val exportedPredicateIndicators: Set<ClauseIndicator>,
+    override val localOperators: OperatorRegistry = ISOOpsOperatorRegistry
 ) : Module {
     private val allDeclaredPredicates: Map<ClauseIndicator, PrologCallable>
     init {

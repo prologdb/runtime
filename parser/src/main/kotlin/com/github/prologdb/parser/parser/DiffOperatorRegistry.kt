@@ -13,7 +13,7 @@ class DiffOperatorRegistry(val nested: OperatorRegistry) : MutableOperatorRegist
     /** Additional operator definitions. */
     private val additional = mutableMapOf<String, MutableSet<OperatorDefinition>>()
 
-    /** Defintions from [nested] that have been overridden by additions in [additional]. */
+    /** Definitions from [nested] that have been overridden by additions in [additional]. */
     private val overridden = mutableMapOf<String, MutableSet<OperatorDefinition>>()
 
     /**

@@ -1,11 +1,17 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.runtime.knowledge.Authorization
 import com.github.prologdb.runtime.knowledge.ProofSearchContext
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
 import com.github.prologdb.runtime.knowledge.library.Module
 import com.github.prologdb.runtime.knowledge.library.ModuleLoader
 import com.github.prologdb.runtime.knowledge.library.ModuleReference
 import com.github.prologdb.runtime.knowledge.library.NativeLibraryLoader
+import com.github.prologdb.runtime.query.Query
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -13,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
  * The environment for one **instance** of a prolog program.
  */
 class PrologRuntimeEnvironment(
-    private val rootModule: Module,
+    val rootModule: Module,
     private val moduleLoader: ModuleLoader = NativeLibraryLoader()
 ) {
     /**
@@ -52,5 +58,13 @@ class PrologRuntimeEnvironment(
             ReadWriteAuthorization,
             loadedModules
         )
+    }
+
+    @JvmOverloads
+    fun fulfill(goal: Query, authorization: Authorization = ReadWriteAuthorization): LazySequence<Unification> {
+        val psc = newProofSearchContext()
+        return buildLazySequence(psc.principal) {
+            psc.fulfillAttach(this, goal, VariableBucket())
+        }
     }
 }

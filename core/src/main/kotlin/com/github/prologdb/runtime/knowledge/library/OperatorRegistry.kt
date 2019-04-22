@@ -116,7 +116,7 @@ class DefaultOperatorRegistry : MutableOperatorRegistry {
     }
 }
 
-private typealias OperatorMap = MutableMap<String,MutableSet<OperatorDefinition>>
+private typealias OperatorMap = MutableMap<String, MutableSet<OperatorDefinition>>
 
 object EmptyOperatorRegistry : OperatorRegistry {
     override val allOperators: Set<OperatorDefinition> = emptySet()

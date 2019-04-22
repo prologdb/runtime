@@ -2,7 +2,10 @@ package com.github.prologdb.runtime.expression
 
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.knowledge.library.ASTModule
+import com.github.prologdb.runtime.knowledge.library.FullModuleImport
+import com.github.prologdb.runtime.knowledge.library.ModuleReference
+import com.github.prologdb.runtime.knowledge.library.NativeLibraryLoader
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
 import io.kotlintest.matchers.haveKey
@@ -317,8 +320,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(FullModuleImport(moduleBRef)),
             emptyList(),
             emptySet(),
-            emptySet(),
-            EmptyOperatorRegistry
+            emptySet()
         )
 
         val moduleB = ASTModule(
@@ -326,8 +328,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(FullModuleImport(moduleARef)),
             emptyList(),
             emptySet(),
-            emptySet(),
-            EmptyOperatorRegistry
+            emptySet()
         )
 
         val rootModule = ASTModule(
@@ -335,13 +336,12 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(FullModuleImport(moduleARef)),
             emptyList(),
             emptySet(),
-            emptySet(),
-            EmptyOperatorRegistry
+            emptySet()
         )
 
         val moduleLoader = NativeLibraryLoader()
-        moduleLoader.registerModule(moduleARef, moduleA)
-        moduleLoader.registerModule(moduleBRef, moduleB)
+        moduleLoader.registerModule("module", moduleA)
+        moduleLoader.registerModule("module", moduleB)
 
         val runtimeEnv = PrologRuntimeEnvironment(rootModule, moduleLoader)
 

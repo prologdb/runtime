@@ -1,19 +1,19 @@
 package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.async.LazySequence;
+import com.github.prologdb.parser.ModuleDeclaration;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
 import com.github.prologdb.parser.lexer.LineEndingNormalizer;
 import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
+import com.github.prologdb.runtime.PrologRuntimeEnvironment;
 import com.github.prologdb.runtime.PrologRuntimeException;
-import com.github.prologdb.runtime.RandomVariableScope;
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry;
-import com.github.prologdb.runtime.knowledge.LocalKnowledgeBase;
 import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization;
-import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry;
-import com.github.prologdb.runtime.knowledge.library.Library;
+import com.github.prologdb.runtime.knowledge.library.Module;
+import com.github.prologdb.runtime.knowledge.library.NativeLibraryLoader;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
 import com.github.prologdb.runtime.query.Query;
@@ -24,7 +24,6 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.text.ParseException;
-import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
@@ -35,8 +34,6 @@ public class PlaygroundPanel {
     private PrologEditorPanel knowledgeBaseEditorPanel;
     private QueryPanel queryPanel;
     private SolutionExplorerPanel solutionExplorerPanel;
-
-    private LibrarySelectorPanel librarySelectorPanel;
 
     private PrologParser parser = new PrologParser();
 
@@ -50,9 +47,7 @@ public class PlaygroundPanel {
      */
     private boolean librarySelectionChanged = false;
 
-    private Set<LoadableLibrary> librarySelection;
-
-    private LocalKnowledgeBase knowledgeBase = null;
+    private PrologRuntimeEnvironment runtimeEnvironment = null;
 
     public PlaygroundPanel() {
         initComponents();
@@ -77,7 +72,6 @@ public class PlaygroundPanel {
         PlaygroundState state = new PlaygroundState();
         state.setKnowledgeBaseText(knowledgeBaseEditorPanel.getCodeAsString());
         state.setQuery(queryPanel.getCodeAsString());
-        state.setSelectedLibraries(librarySelection);
 
         return state;
     }
@@ -85,10 +79,6 @@ public class PlaygroundPanel {
     public void setCurrentState(PlaygroundState state) {
         knowledgeBaseEditorPanel.setCodeAsString(state.getKnowledgeBaseText());
         queryPanel.setCodeAsString(state.getQuery());
-        Set<LoadableLibrary> librarySelection = state.getSelectedLibraries();
-        if (librarySelection != null) {
-            librarySelectorPanel.setSelection(librarySelection);
-        }
     }
 
     private void initComponents() {
@@ -108,10 +98,6 @@ public class PlaygroundPanel {
 
         panel.add(baseAndQuerySplitter, BorderLayout.CENTER);
 
-        librarySelectorPanel = new LibrarySelectorPanel();
-        librarySelectorPanel.addSelectionChangedListener(this::onLibrarySelectionChanged);
-        panel.add(librarySelectorPanel.asJPanel(), BorderLayout.NORTH);
-
         // -- listeners
         knowledgeBaseEditorPanel.addKeyListener(new KeyListener() {
             @Override
@@ -129,35 +115,21 @@ public class PlaygroundPanel {
         queryPanel.addQueryFiredListener((panel, query) -> onQueryFired(query));
     }
 
-    private void onLibrarySelectionChanged(Set<LoadableLibrary> newSelection)
-    {
-        librarySelectionChanged = true;
-        librarySelection = newSelection;
-    }
-
     private void assureKnowledgeBaseIsUpToDate() throws ParseException, PrologRuntimeException
     {
-        if (knowledgeBase == null || knowledgeBaseChangeIndicator || librarySelectionChanged) {
-            LocalKnowledgeBase newKnowledgeBase = new LocalKnowledgeBase();
-            ((DefaultOperatorRegistry) newKnowledgeBase.getOperators()).include(ISOOpsOperatorRegistry.INSTANCE);
-
-            for (LoadableLibrary libraryToLoad : librarySelection) {
-                newKnowledgeBase.load(libraryToLoad.getLibrary());
-            }
-
+        if (runtimeEnvironment == null || knowledgeBaseChangeIndicator || librarySelectionChanged) {
             Lexer lexer = new Lexer(
-                new SourceUnit("knowledge base"),
+                new SourceUnit("root module"),
                 new LineEndingNormalizer(
                     new CharacterIterable(
                         knowledgeBaseEditorPanel.getCodeAsString()
                     ).iterator()
                 )
             );
-            ParseResult<Library> result = parser.parseModule("user", lexer, newKnowledgeBase.getOperators());
+            ParseResult<Module> result = parser.parseModule(lexer, ISOOpsOperatorRegistry.getInstance(), new ModuleDeclaration("_root", null));
 
             if (result.getReportings().isEmpty()) {
-                newKnowledgeBase.load(requireNonNull(result.getItem()));
-                knowledgeBase = newKnowledgeBase;
+                runtimeEnvironment = new PrologRuntimeEnvironment(requireNonNull(result.getItem()), NativeLibraryLoader.withCoreLibraries());
                 knowledgeBaseChangeIndicator = false;
                 librarySelectionChanged = false;
             } else {
@@ -186,7 +158,7 @@ public class PlaygroundPanel {
                 new CharacterIterable(queryCode).iterator()
             )
         );
-        ParseResult<Query> queryParseResult = parser.parseQuery(queryLexer, knowledgeBase.getOperators());
+        ParseResult<Query> queryParseResult = parser.parseQuery(queryLexer, runtimeEnvironment.getRootModule().getLocalOperators());
         if (!queryParseResult.getReportings().isEmpty() || queryParseResult.getItem() == null) {
             JOptionPane.showMessageDialog(
                 null,
@@ -197,9 +169,9 @@ public class PlaygroundPanel {
             return;
         }
 
-        LazySequence<Unification> solutions = knowledgeBase.fulfill(queryParseResult.getItem(), ReadWriteAuthorization.INSTANCE, new RandomVariableScope());
+        LazySequence<Unification> solutions = runtimeEnvironment.fulfill(queryParseResult.getItem(), ReadWriteAuthorization.INSTANCE);
 
-        solutionExplorerPanel.setSolutions(solutions, knowledgeBase.getOperators());
+        solutionExplorerPanel.setSolutions(solutions, runtimeEnvironment.getRootModule().getLocalOperators());
         solutionExplorerPanel.showNextSolution();
         this.panel.revalidate();
         this.panel.repaint();

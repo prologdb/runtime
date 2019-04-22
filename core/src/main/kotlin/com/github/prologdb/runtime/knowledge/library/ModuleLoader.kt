@@ -1,7 +1,14 @@
 package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.builtin.ComparisonModule
+import com.github.prologdb.runtime.builtin.EqualityModule
+import com.github.prologdb.runtime.builtin.TypeSafetyModule
+import com.github.prologdb.runtime.builtin.dict.DictModule
+import com.github.prologdb.runtime.builtin.dynamic.DynamicsModule
 import com.github.prologdb.runtime.builtin.lists.ListsModule
+import com.github.prologdb.runtime.builtin.math.MathModule
+import com.github.prologdb.runtime.builtin.string.StringsModule
 import java.util.concurrent.ConcurrentHashMap
 
 interface ModuleLoader {
@@ -17,10 +24,8 @@ class NoopModuleLoader : ModuleLoader {
 class NativeLibraryLoader(private val delegate: ModuleLoader = NoopModuleLoader()) : ModuleLoader {
     private val nativeLibraries: MutableMap<ModuleReference, Module> = ConcurrentHashMap()
 
-    fun registerModule(reference: ModuleReference, module: Module) {
-        if (module.name != reference.moduleName) {
-            throw IllegalArgumentException("Module reference does not match module: different names")
-        }
+    fun registerModule(pathAlias: String, module: Module) {
+        val reference = ModuleReference(pathAlias, module.name)
 
         if (nativeLibraries.putIfAbsent(reference, module) != null) {
             throw IllegalStateException("Module ${reference.moduleName} already registered")
@@ -33,10 +38,18 @@ class NativeLibraryLoader(private val delegate: ModuleLoader = NoopModuleLoader(
 
     companion object {
         @JvmStatic
+        @JvmOverloads
         fun withCoreLibraries(delegate: ModuleLoader = NoopModuleLoader()): ModuleLoader {
             val loader = NativeLibraryLoader(delegate)
 
-            loader.registerModule(ModuleReference("library", "lists"), ListsModule)
+            loader.registerModule("library", DictModule)
+            loader.registerModule("library", DynamicsModule)
+            loader.registerModule("library", ListsModule)
+            loader.registerModule("library", MathModule)
+            loader.registerModule("library", StringsModule)
+            loader.registerModule("library", ComparisonModule)
+            loader.registerModule("library", EqualityModule)
+            loader.registerModule("library", TypeSafetyModule)
 
             return loader
         }

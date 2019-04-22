@@ -615,19 +615,23 @@ class PrologParser {
 
     /**
      * Parse the given tokens as a module file.
+     *
+     * @param moduleDeclaration If given, it is used for the resulting module. As a result, the code in `tokens`
+     *                          **must not** and need to contain a `module/1` directive.
      */
     fun parseModule(
         tokens: TransactionalSequence<Token>,
-        contextOperators: OperatorRegistry = ISOOpsOperatorRegistry
+        contextOperators: OperatorRegistry = ISOOpsOperatorRegistry,
+        moduleDeclaration: ModuleDeclaration? = null
     ): ParseResult<Module> {
         val moduleLocalOperators = DefaultOperatorRegistry()
         moduleLocalOperators.include(contextOperators)
 
         val clauses = mutableListOf<Clause>()
         val dynamics = mutableSetOf<ClauseIndicator>()
-        var moduleDeclaration: ModuleDeclaration? = null
-        var moduleDeclarationSeen = false
-        var imports = mutableListOf<ModuleImport>()
+        var moduleDeclarationSeen = moduleDeclaration != null
+        var parsedModuleDeclaration: ModuleDeclaration? = null
+        val imports = mutableListOf<ModuleImport>()
         val reportings = mutableSetOf<Reporting>()
 
         var moduleDeclarationNotFirstStatementErrorEmitted = false
@@ -749,7 +753,7 @@ class PrologParser {
                 }
             }
 
-            moduleDeclaration = ModuleDeclaration(name, exportSelection)
+            parsedModuleDeclaration = ModuleDeclaration(name, exportSelection)
         }
 
         fun handleUseModuleDirective(invocation: CompoundTerm) {
@@ -837,7 +841,9 @@ class PrologParser {
             }
         }
 
-        if (moduleDeclaration == null) {
+        val finalModuleDeclaration = moduleDeclaration ?: parsedModuleDeclaration
+
+        if (finalModuleDeclaration == null) {
             reportings += SemanticError(
                 "Missing module declaration",
                 SourceLocationRange(SourceLocation.EOF, SourceLocation.EOF)
@@ -852,12 +858,13 @@ class PrologParser {
 
         return ParseResult(
             ASTModule(
-                moduleDeclaration!!.moduleName,
+                finalModuleDeclaration.moduleName,
                 imports,
                 clauses,
                 dynamics,
-                moduleDeclaration!!.exportedPredicates
-                    ?: clauses.map { ClauseIndicator.of(it) }.toSet()
+                finalModuleDeclaration.exportedPredicates
+                    ?: clauses.map { ClauseIndicator.of(it) }.toSet(),
+                moduleLocalOperators
             ),
             MATCHED,
             reportings

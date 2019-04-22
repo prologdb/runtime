@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 
-val DynamicsLibrary = nativeModule("dynamics") {
+val DynamicsModule = nativeModule("dynamics") {
     add(BuiltinFindAll)
     add(BuiltinFindAllOptimized)
 }

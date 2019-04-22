@@ -1,10 +1,11 @@
 package com.github.prologdb.runtime.playground.jvm.persistence;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.github.prologdb.runtime.playground.jvm.LoadableLibrary;
 
-import java.util.Objects;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Models the state of the playground, supporting persistence
@@ -20,9 +21,9 @@ public class PlaygroundState {
      */
     private String query;
 
-    private Set<LoadableLibrary> selectedLibraries;
-
     private WindowState mainWindowState = new WindowState();
+
+    private Map<String, Object> unknownProperties = null;
 
     @JsonProperty
     @Deprecated
@@ -34,18 +35,6 @@ public class PlaygroundState {
     @Deprecated
     public void setGraphicsDeviceID(String graphicsDeviceID) {
         mainWindowState.setGraphicsDeviceID(graphicsDeviceID);
-    }
-
-    @JsonProperty
-    public Set<LoadableLibrary> getSelectedLibraries()
-    {
-        return selectedLibraries;
-    }
-
-    @JsonProperty
-    public void setSelectedLibraries(Set<LoadableLibrary> selectedLibraries)
-    {
-        this.selectedLibraries = selectedLibraries;
     }
 
     @JsonProperty
@@ -81,18 +70,16 @@ public class PlaygroundState {
         this.query = query;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof PlaygroundState)) return false;
-        PlaygroundState that = (PlaygroundState) o;
-        return Objects.equals(getKnowledgeBaseText(), that.getKnowledgeBaseText()) &&
-                Objects.equals(getQuery(), that.getQuery());
+    @JsonAnyGetter
+    public Map<String, Object> getUnknownProperties() {
+        return unknownProperties;
     }
 
-    @Override
-    public int hashCode() {
+    @JsonAnySetter
+    public void setUnknownProperties(Map<String, Object> unknownProperties) {
+        this.unknownProperties = new HashMap<>(unknownProperties);
 
-        return Objects.hash(getKnowledgeBaseText(), getQuery());
+        // deprecated fields that are to be removed
+        this.unknownProperties.remove("selectedLibraries");
     }
 }

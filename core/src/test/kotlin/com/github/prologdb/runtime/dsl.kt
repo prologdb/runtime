@@ -3,7 +3,6 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.knowledge.library.ASTModule
 import com.github.prologdb.runtime.knowledge.library.Clause
 import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
@@ -134,7 +133,6 @@ fun moduleOfClauses(vararg clauses: Clause): Module {
         emptyList(),
         clauses.asIterable(),
         indicators,
-        indicators,
-        ISOOpsOperatorRegistry
+        indicators
     )
 }

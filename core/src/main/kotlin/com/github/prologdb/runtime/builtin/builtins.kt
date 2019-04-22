@@ -10,6 +10,7 @@ import com.github.prologdb.runtime.knowledge.*
 import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
 import com.github.prologdb.runtime.knowledge.library.Module
 import com.github.prologdb.runtime.knowledge.library.ModuleImport
+import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -152,6 +153,8 @@ class NativeModule(
     predicates: List<PrologPredicate>
 ) : Module {
     override val exportedPredicates: Map<ClauseIndicator, PrologCallable>
+
+    override val localOperators: OperatorRegistry = ISOOpsOperatorRegistry
 
     init {
         exportedPredicates = predicates.associateBy { ClauseIndicator.of(it) }

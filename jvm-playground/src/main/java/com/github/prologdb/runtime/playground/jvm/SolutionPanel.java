@@ -1,16 +1,13 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-
-import javax.swing.BoxLayout;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-
 import com.github.prologdb.runtime.knowledge.library.OperatorRegistry;
+import com.github.prologdb.runtime.term.CompoundTerm;
+import com.github.prologdb.runtime.term.Term;
 import com.github.prologdb.runtime.unification.Unification;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 
 public class SolutionPanel {
 
@@ -53,7 +50,8 @@ public class SolutionPanel {
         panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         solution.getVariableValues().getValues().forEach(varAndValue -> {
-            JLabel label = new JLabel(varAndValue.getFirst().getName() + " = " + varAndValue.getSecond().toStringUsingOperatorNotations(displayOperators));
+            String text = (new CompoundTerm("=", new Term[]{ varAndValue.getFirst(), varAndValue.getSecond() })).toStringUsingOperatorNotations(displayOperators);
+            JLabel label = new JLabel(text);
             label.setFont(FONT);
             panel.add(label);
         });
