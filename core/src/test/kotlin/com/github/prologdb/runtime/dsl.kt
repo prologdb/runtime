@@ -99,6 +99,23 @@ infix fun PrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenc
     return { this.fulfill(query) }
 }
 
+fun Module.shouldProveWithinRuntime(runtime: PrologRuntimeEnvironment, query: CompoundTerm): UnificationSequenceGenerator {
+    val generator: UnificationSequenceGenerator = {
+        val psc = this@shouldProveWithinRuntime.deriveScopedProofSearchContext(runtime.newProofSearchContext())
+        buildLazySequence(psc.principal) {
+            psc.fulfillAttach(this, PredicateInvocationQuery(query), VariableBucket())
+        }
+    }
+
+    val sequence = generator()
+    val firstSolution = sequence.tryAdvance()
+    sequence.close()
+
+    if (firstSolution == null) throw AssertionError("Module $this failed to prove $query within $runtime")
+
+    return generator
+}
+
 infix fun PrologRuntimeEnvironment.shouldNotProve(query: Query) {
     val solutions = this.fulfill(query)
     val firstSolution = solutions.tryAdvance()

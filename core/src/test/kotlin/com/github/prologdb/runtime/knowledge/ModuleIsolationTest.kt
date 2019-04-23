@@ -1,12 +1,9 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.knowledge.library.*
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.shouldNotProve
-import com.github.prologdb.runtime.shouldProve
-import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -15,6 +12,7 @@ import io.kotlintest.specs.FreeSpec
 
 class ModuleIsolationTest : FreeSpec({
     val a = Atom("a")
+    val b = Atom("b")
     val X = Variable("X")
     val R = Variable("R")
     val foo = CompoundBuilder("foo")
@@ -153,6 +151,120 @@ class ModuleIsolationTest : FreeSpec({
         }
 
         runtimeEnv shouldNotProve CompoundTerm("bar", arrayOf(R))
+    }
+
+    "module local predicates" - {
+        val delegateA = CompoundBuilder("delegateA")
+        val delegateB = CompoundBuilder("delegateB")
+        val clauseFooA = foo(a)
+        val clauseFooB = foo(b)
+
+        val clauseDelegateAToFoo = Rule(
+            delegateA(X),
+            PredicateInvocationQuery(foo(X))
+        )
+        val clauseDelegateBToFoo = Rule(
+            delegateB(X),
+            PredicateInvocationQuery(foo(X))
+        )
+
+        val moduleA = ASTModule(
+            name = "A",
+            imports = emptyList(),
+            givenClauses = listOf(clauseFooA, clauseDelegateAToFoo),
+            exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseDelegateAToFoo)),
+            dynamicPredicates = emptySet()
+        )
+        val moduleARef = ModuleReference("module", "A")
+
+        val moduleB = ASTModule(
+            name = "B",
+            imports = emptyList(),
+            givenClauses = listOf(clauseFooB, clauseDelegateBToFoo),
+            exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseDelegateBToFoo)),
+            dynamicPredicates = emptySet()
+        )
+        val moduleBRef = ModuleReference("module", "B")
+
+        /* in short:
+        :- module(`A`, [delegateA/1]).
+        foo(a).
+        delegateA(X) :- foo(X).
+
+        :- module(`B`, [delegateB/1]).
+        foo(b).
+        delegateB(X) :- foo(X).
+         */
+
+        // 1: from within module A foo(R) yields R = a.
+        // 2: from within module B foo(R) yields R = b.
+        // 3: from within root     delegateA(R) yields R = a.
+        // 3: from within root     delegateB(R) yields R = b.
+
+
+        "when loaded into same runtime" - {
+            val moduleLoader = NativeLibraryLoader().apply {
+                registerModule("module", moduleA)
+                registerModule("module", moduleB)
+            }
+
+            "from within module" {
+                val runtimeEnv = PrologRuntimeEnvironment(
+                    ASTModule(
+                        name = "__root",
+                        imports = listOf(FullModuleImport(moduleARef), FullModuleImport(moduleBRef)),
+                        givenClauses = emptyList(),
+                        dynamicPredicates = emptySet(),
+                        exportedPredicateIndicators = emptySet()
+                    ),
+                    moduleLoader
+                )
+
+                moduleA.shouldProveWithinRuntime(runtimeEnv, foo(R)) suchThat {
+                    itHasExactlyOneSolution()
+                    itHasASolutionSuchThat("R = a") {
+                        it.variableValues[R] == a
+                    }
+                }
+
+                moduleB.shouldProveWithinRuntime(runtimeEnv, foo(R)) suchThat {
+                    itHasExactlyOneSolution()
+                    itHasASolutionSuchThat("R = b") {
+                        it.variableValues[R] == b
+                    }
+                }
+            }
+
+            "from root module via exported delegate" {
+                val runtimeEnv = PrologRuntimeEnvironment(
+                    ASTModule(
+                        name = "__root",
+                        imports = listOf(
+                            FullModuleImport(moduleARef),
+                            FullModuleImport(moduleBRef)
+                        ),
+                        givenClauses = emptyList(),
+                        dynamicPredicates = emptySet(),
+                        exportedPredicateIndicators = emptySet()
+                    ),
+                    moduleLoader
+                )
+
+                runtimeEnv shouldProve delegateA(R) suchThat {
+                    itHasExactlyOneSolution()
+                    itHasASolutionSuchThat("R = a") {
+                        it.variableValues[R] == a
+                    }
+                }
+
+                runtimeEnv shouldProve delegateB(R) suchThat {
+                    itHasExactlyOneSolution()
+                    itHasASolutionSuchThat("R = b") {
+                        it.variableValues[R] == b
+                    }
+                }
+            }
+        }
     }
 }) {
     override val oneInstancePerTest = true
