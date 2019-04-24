@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.knowledge.PrologPredicate
+import com.github.prologdb.runtime.proofsearch.PrologPredicate
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 

@@ -2,7 +2,7 @@
 @file:JvmName("ISOOpsOperatorRegistry")
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.util.*
 
 /**
  * An [OperatorRegistry] that contains these ISO operators:

@@ -1,8 +1,8 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.runtime.knowledge.library.MutableOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
+import com.github.prologdb.runtime.util.MutableOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
  * A [MutableOperatorRegistry] that tracks the changes made to an

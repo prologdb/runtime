@@ -1,9 +1,9 @@
-package com.github.prologdb.runtime.knowledge
+package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket

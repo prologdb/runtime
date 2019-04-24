@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.runtime.util.ArityMap
 import io.kotlintest.matchers.beGreaterThanOrEqualTo
 import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe

@@ -1,10 +1,11 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.remainingTo
-import com.github.prologdb.runtime.knowledge.library.Clause
-import com.github.prologdb.runtime.knowledge.library.DoublyIndexedClauseStore
-import com.github.prologdb.runtime.knowledge.library.MutableClauseStore
-import com.github.prologdb.runtime.knowledge.library.SimpleClauseStore
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.DoublyIndexedClauseStore
+import com.github.prologdb.runtime.MutableClauseStore
+import com.github.prologdb.runtime.SimpleClauseStore
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Atom

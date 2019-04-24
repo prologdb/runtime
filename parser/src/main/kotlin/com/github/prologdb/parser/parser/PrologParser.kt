@@ -10,13 +10,18 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
-import com.github.prologdb.runtime.HasPrologSource
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.*
-import com.github.prologdb.runtime.knowledge.library.OperatorType.*
+import com.github.prologdb.runtime.util.OperatorType.*
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorRegistry
+import com.github.prologdb.runtime.util.OperatorType
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -1064,7 +1069,7 @@ private class ExpressionASTBuildingException(reporting: Reporting) : ReportingEx
  *         operator, the operator is null
  * @throws ExpressionASTBuildingException
  */
-private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<Term,OperatorDefinition?>> {
+private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<Term, OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
         return ParseResult.of(Pair(elements[0].asTerm(), null))
@@ -1082,7 +1087,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
     // will store results that can be constructed but are not necessarily the best fit to the input
     // instead of failing with an exception, this one might be returned as a surrogate
-    var preliminaryResult: ParseResult<Pair<Term,OperatorDefinition?>>? = null
+    var preliminaryResult: ParseResult<Pair<Term, OperatorDefinition?>>? = null
 
     tryOperatorDefinitionForIndex@ for (operatorDef in leftmostOperatorWithMostPrecedence.second) {
         val reportings = mutableSetOf<Reporting>()

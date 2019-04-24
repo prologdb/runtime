@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime
+package com.github.prologdb.runtime.util
 
 /**
  * Assumes an immutable base [List] and provides low-overhead sub-lists

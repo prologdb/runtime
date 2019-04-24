@@ -4,7 +4,7 @@
  */
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery

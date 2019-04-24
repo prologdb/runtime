@@ -2,8 +2,7 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.transformExceptionsOnRemaining
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
-import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 
 /**

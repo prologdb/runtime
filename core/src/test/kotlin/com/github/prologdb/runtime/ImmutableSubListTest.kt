@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.runtime.util.ImmutableSubList
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.matchers.shouldThrow

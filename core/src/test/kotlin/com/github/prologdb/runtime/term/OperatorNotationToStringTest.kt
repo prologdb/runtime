@@ -1,8 +1,8 @@
 package com.github.prologdb.runtime.term
 
-import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorType
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.specs.FreeSpec
 
@@ -461,7 +461,7 @@ class OperatorNotationToStringTest : FreeSpec({
 
         "nested terms have operators" {
             val registry = DefaultOperatorRegistry()
-            registry.defineOperator(OperatorDefinition(400,OperatorType.FX,"bar"))
+            registry.defineOperator(OperatorDefinition(400, OperatorType.FX, "bar"))
 
             val term = CompoundTerm("foo", arrayOf(
                 Atom("a"), CompoundTerm("bar", arrayOf(Atom("b"))), Atom("c")
@@ -472,7 +472,7 @@ class OperatorNotationToStringTest : FreeSpec({
         
         "nested uses comma operator" {
             val registry = DefaultOperatorRegistry()
-            registry.defineOperator(OperatorDefinition(400,OperatorType.XFX,","))
+            registry.defineOperator(OperatorDefinition(400, OperatorType.XFX, ","))
             
             val term = CompoundTerm("foo", arrayOf(
                 Atom("a"), Atom("b"), CompoundTerm(",", arrayOf(Atom("c"), Atom("d")))

@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.term
 
-import com.github.prologdb.runtime.ImmutableSubList
+import com.github.prologdb.runtime.util.ImmutableSubList
 import kotlin.math.min
 
 /**

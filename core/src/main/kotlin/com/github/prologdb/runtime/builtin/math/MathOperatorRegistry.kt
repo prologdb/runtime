@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.builtin.math
 
-import com.github.prologdb.runtime.ArityMap
+import com.github.prologdb.runtime.util.ArityMap
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber

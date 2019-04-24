@@ -1,13 +1,12 @@
-package com.github.prologdb.runtime.knowledge.library
+package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
-import com.github.prologdb.runtime.ArityMap
-import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.knowledge.Rule
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.util.ArityMap
 
 interface ClauseStore {
     /**

@@ -1,12 +1,14 @@
-package com.github.prologdb.runtime.knowledge.library
+package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.knowledge.AbstractProofSearchContext
-import com.github.prologdb.runtime.knowledge.Authorization
-import com.github.prologdb.runtime.knowledge.PrologCallable
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger

@@ -3,10 +3,8 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
-import com.github.prologdb.runtime.knowledge.library.ASTModule
-import com.github.prologdb.runtime.knowledge.library.Clause
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
-import com.github.prologdb.runtime.knowledge.library.Module
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm

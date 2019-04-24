@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import com.github.prologdb.runtime.knowledge.library.OperatorRegistry;
+import com.github.prologdb.runtime.util.OperatorRegistry;
 import com.github.prologdb.runtime.term.CompoundTerm;
 import com.github.prologdb.runtime.term.Term;
 import com.github.prologdb.runtime.unification.Unification;

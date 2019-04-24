@@ -1,10 +1,10 @@
-package com.github.prologdb.runtime.knowledge
+package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.knowledge.library.Clause
+import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification

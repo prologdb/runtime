@@ -2,12 +2,12 @@ package com.github.prologdb.runtime.term
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
-import com.github.prologdb.runtime.knowledge.library.Clause
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.OperatorType
-import com.github.prologdb.runtime.knowledge.library.OperatorType.*
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorRegistry
+import com.github.prologdb.runtime.util.OperatorType
+import com.github.prologdb.runtime.util.OperatorType.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import sensibleHashCode

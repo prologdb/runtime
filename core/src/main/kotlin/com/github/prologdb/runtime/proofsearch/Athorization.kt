@@ -1,6 +1,6 @@
-package com.github.prologdb.runtime.knowledge
+package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
+import com.github.prologdb.runtime.ClauseIndicator
 
 /**
  * An authorization determines which actions a query can do within

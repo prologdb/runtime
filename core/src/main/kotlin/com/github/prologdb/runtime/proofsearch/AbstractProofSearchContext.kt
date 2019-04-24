@@ -1,10 +1,10 @@
-package com.github.prologdb.runtime.knowledge
+package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -34,7 +34,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
     }
 
     protected suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                         vars: VariableBucket = VariableBucket()) {
+                                                                           vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
 
         buildLazySequence<Unification>(context.principal) {

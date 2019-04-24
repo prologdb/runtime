@@ -2,13 +2,13 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.knowledge.Authorization
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
-import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
-import com.github.prologdb.runtime.knowledge.library.Module
-import com.github.prologdb.runtime.knowledge.library.ModuleLoader
-import com.github.prologdb.runtime.knowledge.library.ModuleReference
-import com.github.prologdb.runtime.knowledge.library.NativeLibraryLoader
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleLoader
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.NativeLibraryLoader
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket

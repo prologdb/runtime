@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.ASTModule
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
+import com.github.prologdb.runtime.proofsearch.Rule
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification

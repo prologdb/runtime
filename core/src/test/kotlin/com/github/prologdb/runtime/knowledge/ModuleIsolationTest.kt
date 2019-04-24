@@ -1,7 +1,8 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.knowledge.library.*
+import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom

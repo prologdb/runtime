@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.knowledge.library
+package com.github.prologdb.runtime
 
 /**
  * Something with a functor and an arity (for the scope of this runtime: compound terms and predicate indicators)

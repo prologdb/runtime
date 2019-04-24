@@ -21,7 +21,7 @@ import javax.swing.border.EmptyBorder;
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.runtime.PrologException;
 import com.github.prologdb.runtime.PrologRuntimeException;
-import com.github.prologdb.runtime.knowledge.library.OperatorRegistry;
+import com.github.prologdb.runtime.util.OperatorRegistry;
 import com.github.prologdb.runtime.unification.Unification;
 
 public class SolutionExplorerPanel {

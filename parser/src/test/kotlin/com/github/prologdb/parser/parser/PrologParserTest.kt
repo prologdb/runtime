@@ -7,11 +7,11 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
-import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
-import com.github.prologdb.runtime.knowledge.library.DefaultOperatorRegistry
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorType
+import com.github.prologdb.runtime.proofsearch.Rule
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger
@@ -614,8 +614,8 @@ class PrologParserTest : FreeSpec() {
             }
 
             "infix op with missing rhs operand falls back to postfix definition" {
-                operators.defineOperator(OperatorDefinition(400,OperatorType.XFX,"infixAndPostfixOp"))
-                operators.defineOperator(OperatorDefinition(200,OperatorType.XF,"infixAndPostfixOp"))
+                operators.defineOperator(OperatorDefinition(400, OperatorType.XFX, "infixAndPostfixOp"))
+                operators.defineOperator(OperatorDefinition(200, OperatorType.XF, "infixAndPostfixOp"))
 
                 val result = parseTerm("a infixAndPostfixOp")
 
@@ -630,8 +630,8 @@ class PrologParserTest : FreeSpec() {
             }
 
             "infix op with missing lhs operand falls back to prefix definition" {
-                operators.defineOperator(OperatorDefinition(400,OperatorType.XFX,"infixAndPrefixOp"))
-                operators.defineOperator(OperatorDefinition(200,OperatorType.FX,"infixAndPrefixOp"))
+                operators.defineOperator(OperatorDefinition(400, OperatorType.XFX, "infixAndPrefixOp"))
+                operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "infixAndPrefixOp"))
 
                 val result = parseTerm("infixAndPrefixOp a")
 

@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.knowledge.library
+package com.github.prologdb.runtime.module
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.ComparisonModule

@@ -1,11 +1,11 @@
 package com.github.prologdb.runtime.expression
 
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.knowledge.Rule
-import com.github.prologdb.runtime.knowledge.library.ASTModule
-import com.github.prologdb.runtime.knowledge.library.FullModuleImport
-import com.github.prologdb.runtime.knowledge.library.ModuleReference
-import com.github.prologdb.runtime.knowledge.library.NativeLibraryLoader
+import com.github.prologdb.runtime.proofsearch.Rule
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.FullModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.NativeLibraryLoader
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
 import io.kotlintest.matchers.haveKey

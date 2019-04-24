@@ -1,6 +1,9 @@
 package com.github.prologdb.runtime.knowledge.library
 
-import com.github.prologdb.runtime.ArityMap
+import com.github.prologdb.runtime.util.ArityMap
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.term.CompoundTerm
 
 /**

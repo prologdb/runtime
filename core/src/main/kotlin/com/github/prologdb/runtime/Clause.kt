@@ -1,10 +1,10 @@
-package com.github.prologdb.runtime.knowledge.library
+package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.ArityMap
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.util.ArityMap
 import java.util.*
 
 interface Clause : HasFunctorAndArity {

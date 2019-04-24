@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.runtime.term.RandomVariable
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 

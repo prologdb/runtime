@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime
+package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.term.Variable
 

@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime
+package com.github.prologdb.runtime.util
 
 import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.coroutines.experimental.buildSequence

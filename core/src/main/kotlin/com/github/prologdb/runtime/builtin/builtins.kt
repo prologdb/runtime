@@ -6,11 +6,11 @@ import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.*
-import com.github.prologdb.runtime.knowledge.library.ClauseIndicator
-import com.github.prologdb.runtime.knowledge.library.Module
-import com.github.prologdb.runtime.knowledge.library.ModuleImport
-import com.github.prologdb.runtime.knowledge.library.OperatorRegistry
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.util.OperatorRegistry
+import com.github.prologdb.runtime.proofsearch.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm

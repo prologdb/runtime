@@ -10,11 +10,11 @@ import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.knowledge.ProofSearchContext
-import com.github.prologdb.runtime.knowledge.ReadWriteAuthorization
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
 import com.github.prologdb.runtime.knowledge.library.Library
-import com.github.prologdb.runtime.knowledge.library.OperatorDefinition
-import com.github.prologdb.runtime.knowledge.library.OperatorType
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
@@ -178,7 +178,7 @@ private class TestExecution(private val withinKB: LocalKnowledgeBase, private va
     private var failedGoal: Query? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                 vars: VariableBucket = VariableBucket()) {
+                                                                         vars: VariableBucket = VariableBucket()) {
         val goal = goals[0].substituteVariables(vars)
 
         var goalHadAnySolutions = false
