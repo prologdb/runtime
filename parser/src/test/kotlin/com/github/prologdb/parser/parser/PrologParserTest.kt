@@ -8,6 +8,7 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -660,11 +661,11 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
-        "module" {
-            fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseModule(tokens, ISOOpsOperatorRegistry)
-            fun parseModule(code: String) = parseModule(tokensOf(code))
+    "module" {
+        fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseModule(tokens, ISOOpsOperatorRegistry)
+        fun parseModule(code: String) = parseModule(tokensOf(code))
 
-            val result = parseModule("""
+        val result = parseModule("""
             :- module(test).
 
             :- op(200,xf,isDead).
@@ -678,19 +679,21 @@ class PrologParserTest : FreeSpec() {
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
 
-            val module = result.item!!
-            module.name shouldBe "test"
+        val module = result.item!!
+        module.name shouldBe "test"
 
-            module.exportedPredicates.size shouldBe 2
-            module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
-            module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
+        module.exportedPredicates.size shouldBe 2
+        module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
+        module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
 
-            val rule = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
-        rule shouldBe instanceOf(Rule::class)
-        rule as Rule
-            rule.head.functor shouldBe "isDead"
-            rule.head.arity shouldBe 1
+        val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
+        isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
+        isDead1 as ASTPrologPredicate
+        isDead1.functor shouldBe "isDead"
+        isDead1.arity shouldBe 1
+        isDead1.clauses should haveSize(1)
+        isDead1.clauses[0] shouldBe instanceOf(Rule::class)
 
-        rule.toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+        isDead1.clauses[0].toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
     }
 }}

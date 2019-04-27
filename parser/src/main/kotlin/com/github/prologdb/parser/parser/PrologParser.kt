@@ -659,23 +659,22 @@ class PrologParser {
          * Adds the given operator definition to the library.
          * @param opDefinitionAST The definition, e.g.: `op(400,xf,isDead)`
          */
-        fun handleOperator(opDefinitionAST: ParsedCompoundTerm): OperatorDefinition? {
+        fun handleOperator(opDefinitionAST: ParsedCompoundTerm) {
             val priorityArgument = opDefinitionAST.arguments[0]
             if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
                 reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
-                return null
+                return
             }
 
             val precedenceAsLong = priorityArgument.toInteger()
             if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
                 reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].location))
-                return null
+                return
             }
             val precedence = precedenceAsLong.toShort()
 
             if (opDefinitionAST.arguments[1] !is Atom) {
                 reportings.add(SemanticError("atom expected but found ${opDefinitionAST.arguments[1]}", opDefinitionAST.arguments[1].location))
-                return null
             }
 
             val typeAsUCString = (opDefinitionAST.arguments[1] as Atom).name.toUpperCase()
@@ -684,18 +683,15 @@ class PrologParser {
             }
             catch (ex: IllegalArgumentException) {
                 reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opDefinitionAST.arguments[1].location))
-                return null
+                return
             }
 
             if (opDefinitionAST.arguments[2] !is Atom) {
                 reportings.add(SemanticError("Atom expected but got ${opDefinitionAST.arguments[2]}", opDefinitionAST.arguments[2].location))
-                return null
+                return
             }
 
-            val definition = OperatorDefinition(precedence, operatorType, (opDefinitionAST.arguments[2] as Atom).name)
-            moduleLocalOperators.defineOperator(definition)
-
-            return definition
+            moduleLocalOperators.defineOperator(OperatorDefinition(precedence, operatorType, (opDefinitionAST.arguments[2] as Atom).name))
         }
 
         fun handleDynamicDirective(indicatorTerm: Term) {
@@ -779,7 +775,7 @@ class PrologParser {
 
             when(command.arity) {
                 3 -> when(command.functor) {
-                    "op" -> handleOperator(command)
+                    "op" -> return handleOperator(command)
                 }
                 2 -> when (command.functor) {
                     "module" -> return handleModuleDeclaration(command)
