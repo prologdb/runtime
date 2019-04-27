@@ -42,11 +42,6 @@ public class PlaygroundPanel {
      */
     private boolean knowledgeBaseChangeIndicator = false;
 
-    /**
-     * Is set back to false in {@link #assureKnowledgeBaseIsUpToDate()}.
-     */
-    private boolean librarySelectionChanged = false;
-
     private PrologRuntimeEnvironment runtimeEnvironment = null;
 
     public PlaygroundPanel() {
@@ -117,31 +112,34 @@ public class PlaygroundPanel {
 
     private void assureKnowledgeBaseIsUpToDate() throws ParseException, PrologRuntimeException
     {
-        if (runtimeEnvironment == null || knowledgeBaseChangeIndicator || librarySelectionChanged) {
-            Lexer lexer = new Lexer(
-                new SourceUnit("root module"),
-                new LineEndingNormalizer(
-                    new CharacterIterable(
-                        knowledgeBaseEditorPanel.getCodeAsString()
-                    ).iterator()
-                )
-            );
-            ParseResult<Module> result = parser.parseModule(lexer, ISOOpsOperatorRegistry.getInstance(), new ModuleDeclaration("_root", null));
+        if (runtimeEnvironment != null && !knowledgeBaseChangeIndicator) {
+            return;
+        }
+        Lexer lexer = new Lexer(
+            new SourceUnit("root module"),
+            new LineEndingNormalizer(
+                new CharacterIterable(
+                    knowledgeBaseEditorPanel.getCodeAsString()
+                ).iterator()
+            )
+        );
 
-            if (result.getReportings().isEmpty()) {
-                runtimeEnvironment = new PrologRuntimeEnvironment(requireNonNull(result.getItem()), NativeLibraryLoader.withCoreLibraries());
-                knowledgeBaseChangeIndicator = false;
-                librarySelectionChanged = false;
-            } else {
-                StringBuilder message = new StringBuilder("Failed to parse knowledge base:");
-                result.getReportings().forEach(r -> {
-                    message.append("\n");
-                    message.append(r.getMessage());
-                    message.append(" in ");
-                    message.append(r.getLocation());
-                });
-                throw new ParseException(message.toString(), 0);
-            }
+        long parseStart = System.currentTimeMillis();
+        ParseResult<Module> result = parser.parseModule(lexer, ISOOpsOperatorRegistry.getInstance(), new ModuleDeclaration("_root", null));
+        solutionExplorerPanel.setParseTime(System.currentTimeMillis() - parseStart);
+
+        if (result.getReportings().isEmpty()) {
+            runtimeEnvironment = new PrologRuntimeEnvironment(requireNonNull(result.getItem()), NativeLibraryLoader.withCoreLibraries());
+            knowledgeBaseChangeIndicator = false;
+        } else {
+            StringBuilder message = new StringBuilder("Failed to parse knowledge base:");
+            result.getReportings().forEach(r -> {
+                message.append("\n");
+                message.append(r.getMessage());
+                message.append(" in ");
+                message.append(r.getLocation());
+            });
+            throw new ParseException(message.toString(), 0);
         }
     }
 

@@ -1,28 +1,17 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.util.NoSuchElementException;
-
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.border.EmptyBorder;
-
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.runtime.PrologException;
 import com.github.prologdb.runtime.PrologRuntimeException;
-import com.github.prologdb.runtime.util.OperatorRegistry;
 import com.github.prologdb.runtime.unification.Unification;
+import com.github.prologdb.runtime.util.OperatorRegistry;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.NoSuchElementException;
 
 public class SolutionExplorerPanel {
 
@@ -31,6 +20,9 @@ public class SolutionExplorerPanel {
     private GridBagLayout solutionsPaneLayout;
     private JButton showNextBT;
     private JButton showAllRemainingBT;
+
+    private JLabel parseTimeOutput = new JLabel("-");
+    private JLabel solutionTimeOutput = new JLabel("-");
 
     private LazySequence<Unification> currentSolutions = null;
     private OperatorRegistry currentSolutionDisplayOperators = null;
@@ -50,12 +42,23 @@ public class SolutionExplorerPanel {
         showAllRemainingBT.addActionListener(evt -> showAllRemainingSolutions());
         showAllRemainingBT.setEnabled(false);
 
-        JPanel actionsToolbar = new JPanel();
-        actionsToolbar.setLayout(new BoxLayout(actionsToolbar, BoxLayout.X_AXIS));
-        actionsToolbar.add(Box.createHorizontalGlue());
-        actionsToolbar.add(showAllRemainingBT);
-        actionsToolbar.add(Box.createRigidArea(new Dimension(10, 0)));
-        actionsToolbar.add(showNextBT);
+        JPanel actionsToolbarLeft = new JPanel();
+        actionsToolbarLeft.setLayout(new BoxLayout(actionsToolbarLeft, BoxLayout.X_AXIS));
+        actionsToolbarLeft.add(new JLabel("  parse time: "));
+        actionsToolbarLeft.add(parseTimeOutput);
+        actionsToolbarLeft.add(new JLabel("   solution time: "));
+        actionsToolbarLeft.add(solutionTimeOutput);
+
+        JPanel actionsToolbarRight = new JPanel();
+        actionsToolbarRight.setLayout(new BoxLayout(actionsToolbarRight, BoxLayout.X_AXIS));
+        actionsToolbarRight.add(Box.createHorizontalGlue());
+        actionsToolbarRight.add(showAllRemainingBT);
+        actionsToolbarRight.add(Box.createRigidArea(new Dimension(10, 0)));
+        actionsToolbarRight.add(showNextBT);
+
+        JPanel actionsToolbar = new JPanel(new BorderLayout());
+        actionsToolbar.add(actionsToolbarLeft, BorderLayout.WEST);
+        actionsToolbar.add(actionsToolbarRight, BorderLayout.EAST);
 
         solutionsPaneLayout = new GridBagLayout();
         solutionsPanel = new JPanel(solutionsPaneLayout);
@@ -146,26 +149,30 @@ public class SolutionExplorerPanel {
         if (currentSolutionsDepleated) return;
 
         try {
+            long solutionStart = System.currentTimeMillis();
             Unification solution = currentSolutions.tryAdvance();
+            long solutionDuration = System.currentTimeMillis() - solutionStart;
+
             if (solution != null) {
+                solutionTimeOutput.setText(formatMillis(solutionDuration));
                 addSolution(solution);
             } else {
                 addSolutionComponent(createFalseComponent());
-                setDepleated();
+                setDepleted();
             }
         }
         catch (NoSuchElementException ex) {
             addSolutionComponent(createFalseComponent());
-            setDepleated();
+            setDepleted();
         }
         catch (PrologRuntimeException e) {
             addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
             e.printStackTrace(System.err);
-            setDepleated();
+            setDepleted();
         }
         catch (StackOverflowError e) {
             addSolutionComponent(createErrorComponent("Out of local stack."));
-            setDepleated();
+            setDepleted();
         }
 
         solutionsPanel.revalidate();
@@ -177,9 +184,13 @@ public class SolutionExplorerPanel {
     public void showAllRemainingSolutions() {
         if (currentSolutionsDepleated) return;
 
+        long duration = 0;
         try {
             while (true) {
+                long solutionStart = System.currentTimeMillis();
                 Unification solution = currentSolutions.tryAdvance();
+                duration += System.currentTimeMillis() - solutionStart;
+
                 if (solution != null) {
                     addSolution(solution);
                 } else break;
@@ -188,15 +199,16 @@ public class SolutionExplorerPanel {
         catch (PrologRuntimeException e) {
             addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
             e.printStackTrace(System.err);
-            setDepleated();
+            setDepleted();
         }
         catch (StackOverflowError e) {
             addSolutionComponent(createErrorComponent("Out of local stack."));
-            setDepleated();
+            setDepleted();
         }
 
         addSolutionComponent(createFalseComponent());
-        setDepleated();
+        setDepleted();
+        solutionTimeOutput.setText(formatMillis(duration) + " (all)");
 
         solutionsPanel.revalidate();
         solutionsPanel.repaint();
@@ -220,11 +232,41 @@ public class SolutionExplorerPanel {
         panel.repaint();
     }
 
-    public void setDepleated() {
+    public void setDepleted() {
         currentSolutionsDepleated = true;
         showNextBT.setEnabled(false);
         showAllRemainingBT.setEnabled(false);
         currentSolutionIndex = -1;
+    }
+
+    public void setParseTime(long millis) {
+        parseTimeOutput.setText(formatMillis(millis));
+    }
+
+    private static final BigDecimal THOUSAND = new BigDecimal("1000");
+    private static final BigDecimal SIXTY = new BigDecimal("60");
+    private String formatMillis(long millis) {
+        if (millis < 1000) {
+            return millis + "ms";
+        }
+
+        // seconds
+        BigDecimal time = new BigDecimal(Long.toString(millis)).divide(THOUSAND, RoundingMode.UNNECESSARY);
+        if (time.compareTo(SIXTY) < 0) {
+            return time.toString() + "s";
+        }
+
+        // minutes
+        BigDecimal minutes = time.divide(SIXTY, 0, RoundingMode.FLOOR);
+        BigDecimal seconds = time.min(minutes.multiply(SIXTY));
+        if (time.compareTo(SIXTY) < 0) {
+            return minutes + "m " + seconds + "s";
+        }
+
+        // hours
+        BigDecimal hours = minutes.divide(SIXTY, 0, RoundingMode.FLOOR);
+        minutes = minutes.min(hours.multiply(SIXTY));
+        return hours + "h " + minutes + "m";
     }
 
     private String formatPrologException(PrologException ex) {
