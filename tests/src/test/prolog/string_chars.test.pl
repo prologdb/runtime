@@ -1,3 +1,6 @@
+:- use_module(library(equality)).
+:- use_module(library(strings)).
+
 test "string_chars/2 conversion from string to list" by [
     string_chars("foobar", X),
     X = [f, o, o, b, a, r]

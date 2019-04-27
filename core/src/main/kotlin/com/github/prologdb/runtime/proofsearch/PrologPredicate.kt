@@ -1,11 +1,7 @@
 package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.PredicateNotDynamicException
-import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
@@ -78,7 +74,7 @@ class ASTPrologPredicate(
         for (clause in clauses) {
             if (clause is CompoundTerm) {
                 val randomizedClause = ctxt.randomVariableScope.withRandomVariables(clause, VariableMapping())
-                val unification = goal.unify(randomizedClause)
+                val unification = goal.unify(randomizedClause, ctxt.randomVariableScope)
                 if (unification != null) {
                     unification.variableValues.retainAll(goal.variables)
                     yield(unification)

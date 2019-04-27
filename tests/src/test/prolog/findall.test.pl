@@ -1,3 +1,6 @@
+:- use_module(library(dynamics)).
+:- use_module(library(lists)).
+
 foo(a).
 foo(b).
 

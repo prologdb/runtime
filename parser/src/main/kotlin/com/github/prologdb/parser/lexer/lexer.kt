@@ -69,12 +69,12 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         if (operatorToken != null) {
             // String
             if (operatorToken.operator == Operator.DOUBLE_QUOTE || operatorToken.operator == Operator.BACKTICK) {
-                val stringContent = collectStringLike(startToken = operatorToken)
+                val stringContent = collectQuoted(startToken = operatorToken)
                 return StringLiteralToken(stringContent.first, stringContent.second)
             }
             if (operatorToken.operator == Operator.SINGLE_QUOTE) {
-                val atomContent = collectStringLike(startToken = operatorToken)
-                return AtomLiteralToken(atomContent.first, atomContent.second)
+                val atomContent = collectQuoted(startToken = operatorToken)
+                return AtomLiteralToken(atomContent.first, true, atomContent.second)
             }
 
             return operatorToken
@@ -353,7 +353,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
      * @return The actual content (with escape sequences removed) and the [SourceLocationRange] of the
      *         entire sequence, including the start- and end operators.
      */
-    private fun collectStringLike(startToken: OperatorToken): Pair<String, SourceLocationRange> {
+    private fun collectQuoted(startToken: OperatorToken): Pair<String, SourceLocationRange> {
         var stringContent = ""
         source.mark() // A
         while (true) {

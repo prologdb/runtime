@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
 
-internal val GetDictBuiltin = nativePredicate("get_dict", 3) { args, _ ->
+internal val GetDictBuiltin = nativePredicate("get_dict", 3) { args, ctxt ->
     val keyArg = args[0]
     val dictArg = args[1]
     val valueArg = args[2]
@@ -25,7 +25,7 @@ internal val GetDictBuiltin = nativePredicate("get_dict", 3) { args, _ ->
 
     if (keyArg is Variable) {
         for ((dictKey, dictValue) in dictArg.pairs) {
-            val valueUnification = valueArg.unify(dictValue)
+            val valueUnification = valueArg.unify(dictValue, ctxt.randomVariableScope)
             if (valueUnification != null) {
                 if (valueUnification.variableValues.isInstantiated(keyArg)) {
                     if (valueUnification.variableValues[keyArg] == dictKey) {
@@ -45,7 +45,7 @@ internal val GetDictBuiltin = nativePredicate("get_dict", 3) { args, _ ->
         val valueForArg = dictArg.pairs[keyArg]
 
         if (valueForArg != null) {
-            val unification = valueArg.unify(valueForArg)
+            val unification = valueArg.unify(valueForArg, ctxt.randomVariableScope)
             if (unification != null) yield(unification)
         }
     }

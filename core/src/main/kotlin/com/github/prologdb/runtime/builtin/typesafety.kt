@@ -5,13 +5,13 @@ import com.github.prologdb.runtime.proofsearch.PrologPredicate
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
-val TypeofBuiltin = nativePredicate("typeof", 2) { args, _ ->
+val TypeofBuiltin = nativePredicate("typeof", 2) { args, ctxt ->
     val arg0 = args[0]
     val arg1 = args[1]
 
     if (arg1 is Variable) {
         val actualValueArg1 = Atom(arg0.prologTypeName)
-        yield(arg1.unify(actualValueArg1))
+        yield(arg1.unify(actualValueArg1, ctxt.randomVariableScope))
     } else {
         if (arg1 !is Atom) throw PrologRuntimeException("Type error: argument 2 to typeof/2 must be an atom or unbound")
 

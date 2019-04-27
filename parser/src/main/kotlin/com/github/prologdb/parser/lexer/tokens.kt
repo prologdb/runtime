@@ -128,7 +128,7 @@ class StringLiteralToken(val content: String, location: SourceLocationRange) : T
     override fun toString() = "string literal"
 }
 
-class AtomLiteralToken(val name: String, location: SourceLocationRange) : Token(TokenType.ATOM_LITERAL, location) {
+class AtomLiteralToken(val name: String, val quoted: Boolean, location: SourceLocationRange) : Token(TokenType.ATOM_LITERAL, location) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

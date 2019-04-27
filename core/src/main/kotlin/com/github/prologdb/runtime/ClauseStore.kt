@@ -99,7 +99,7 @@ class SimpleClauseStore(givenEntries: Iterable<Clause> = emptyList()) : MutableC
             for (index in 0 until entries.size) {
                 val entry = entries[index]
                 if (entry is CompoundTerm) {
-                    val unification = entry.unify(fact)
+                    val unification = entry.unify(fact, RandomVariableScope())
                     if (unification != null) {
                         entries.removeAt(index)
                         return@fromGenerator unification
@@ -116,13 +116,13 @@ class SimpleClauseStore(givenEntries: Iterable<Clause> = emptyList()) : MutableC
             for (index in 0 until entries.size) {
                 val entry = entries[index]
                 if (entry is CompoundTerm) {
-                    val unification = entry.unify(unifiesWith)
+                    val unification = entry.unify(unifiesWith, RandomVariableScope())
                     if (unification != null) {
                         entries.removeAt(index)
                         return@fromGenerator unification
                     }
                 } else if (entry is Rule) {
-                    val headUnification = entry.head.unify(unifiesWith)
+                    val headUnification = entry.head.unify(unifiesWith, RandomVariableScope())
                     if (headUnification != null) {
                         entries.removeAt(index)
                         return@fromGenerator headUnification
@@ -203,7 +203,7 @@ class DoublyIndexedClauseStore : MutableClauseStore {
             for (index in 0 until entryList.size) {
                 val entry = entryList[index]
                 if (entry is CompoundTerm) {
-                    val unification = entry.unify(fact)
+                    val unification = entry.unify(fact, RandomVariableScope())
                     if (unification != null) {
                         entryList.removeAt(index)
                         return@fromGenerator unification
@@ -223,13 +223,13 @@ class DoublyIndexedClauseStore : MutableClauseStore {
             for (index in 0 until entryList.size) {
                 val entry = entryList[index]
                 if (entry is CompoundTerm) {
-                    val unification = entry.unify(unifiesWith)
+                    val unification = entry.unify(unifiesWith, RandomVariableScope())
                     if (unification != null) {
                         entryList.removeAt(index)
                         return@fromGenerator unification
                     }
                 } else if (entry is Rule) {
-                    val headUnification = entry.head.unify(unifiesWith)
+                    val headUnification = entry.head.unify(unifiesWith, RandomVariableScope())
                     if (headUnification != null) {
                         entryList.removeAt(index)
                         return@fromGenerator headUnification

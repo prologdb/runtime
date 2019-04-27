@@ -26,7 +26,7 @@ val BuiltinTermGreaterThanOrEqual = nativePredicate("@>=", 2) { args, _ ->
 private val AtomLessThan = Atom("<")
 private val AtomGreaterThan = Atom("<")
 private val AtomEqual = Atom("=")
-val BuiltinCompare = nativePredicate("compare", 3) { args, _ ->
+val BuiltinCompare = nativePredicate("compare", 3) { args, ctxt ->
     val inputForOrder = args[0]
 
     val actualOrder = if (args[0] > args[1]) {
@@ -37,7 +37,7 @@ val BuiltinCompare = nativePredicate("compare", 3) { args, _ ->
         AtomEqual
     }
 
-    val unification = inputForOrder.unify(actualOrder)
+    val unification = inputForOrder.unify(actualOrder, ctxt.randomVariableScope)
     if (unification != null) yield(unification)
 }
 

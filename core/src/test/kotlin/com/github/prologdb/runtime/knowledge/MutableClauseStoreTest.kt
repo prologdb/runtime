@@ -1,10 +1,7 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.remainingTo
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.DoublyIndexedClauseStore
-import com.github.prologdb.runtime.MutableClauseStore
-import com.github.prologdb.runtime.SimpleClauseStore
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
@@ -225,7 +222,7 @@ init {
                         entryStore = implementationFactory()
                         val fact = CompoundTerm("uutqwe", arrayOf(Atom("x")))
                         val retractionFact = CompoundTerm("uutqwe", arrayOf(Variable("X")))
-                        val expectedUnification = fact.unify(retractionFact)!!
+                        val expectedUnification = fact.unify(retractionFact, RandomVariableScope())!!
 
                         // ACT
                         entryStore.assertz(fact)
@@ -244,8 +241,8 @@ init {
                         val retractionFact = CompoundTerm("foo", arrayOf(Variable("Z")))
                         val rule = Rule(ruleHead, mock<Query>())
 
-                        val expectedFactUnification = fact.unify(retractionFact)
-                        val expectedRuleUnification = ruleHead.unify(retractionFact)
+                        val expectedFactUnification = fact.unify(retractionFact, RandomVariableScope())
+                        val expectedRuleUnification = ruleHead.unify(retractionFact, RandomVariableScope())
 
                         entryStore.assertz(fact)
                         entryStore.assertz(rule)

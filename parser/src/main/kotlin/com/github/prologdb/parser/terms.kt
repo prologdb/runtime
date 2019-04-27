@@ -1,10 +1,10 @@
 package com.github.prologdb.parser
 
 import com.github.prologdb.parser.source.SourceLocationRange
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.proofsearch.Rule
-import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
-class ParsedAtom(name: String, override val sourceInformation: SourceLocationRange): Term, HasPrologSource, Atom(name)
+class ParsedAtom(name: String, val quoted: Boolean, override val sourceInformation: SourceLocationRange): Term, HasPrologSource, Atom(name)
 class ParsedList(givenElements: List<Term>, tail: Term?, override val sourceInformation: SourceLocationRange) : Term, HasPrologSource, PrologList(givenElements, tail) {
     override val elements: List<Term> = {
         val elements = mutableListOf<Term>()

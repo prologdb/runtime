@@ -1,3 +1,9 @@
+:- use_module(library(equality)).
+:- use_module(library(typesafety)).
+:- use_module(library(dict)).
+:- use_module(library(dynamics)).
+:- use_module(library(lists)).
+
 test "is_dict/1" by [
     is_dict({a:1}),
     not(is_dict([]))

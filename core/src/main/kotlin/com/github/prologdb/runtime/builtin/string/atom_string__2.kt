@@ -35,6 +35,6 @@ internal val BuiltinAtomString = nativePredicate("atom_string", 2) { args, conte
     }
 
     // implicit: b is not instantiated
-    val result = inputForB.unify(PrologString(convertInputForAToKotlinString()))
+    val result = inputForB.unify(PrologString(convertInputForAToKotlinString()), context.randomVariableScope)
     if (result != null) yield(result)
 }

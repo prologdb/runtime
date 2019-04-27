@@ -1,3 +1,6 @@
+:- use_module(library(equality)).
+:- use_module(library(lists)).
+
 test "sort strings lexicogaphically" by [
     sort(["foo", "bar", "allegato", "zeppelin", "sabbath"], [E0, E1, E2, E3, E4]),
     E0 = "allegato",

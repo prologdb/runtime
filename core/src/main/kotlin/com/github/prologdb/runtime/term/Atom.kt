@@ -10,7 +10,7 @@ open class Atom(val name: String) : Term {
             return Unification.TRUE
         }
         else if (rhs is Variable) {
-            return rhs.unify(this)
+            return rhs.unify(this, randomVarsScope)
         }
         else
         {

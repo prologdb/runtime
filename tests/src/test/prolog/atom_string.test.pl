@@ -1,3 +1,6 @@
+:- use_module(library(equality)).
+:- use_module(library(strings)).
+
 test "atom_string/2 conversion from atom to string" by [
     atom_string(foo, X),
     X = "foo"

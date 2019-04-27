@@ -1,3 +1,6 @@
+:- use_module(library(equality)).
+:- use_module(library(lists)).
+
 test "from collection to set" by [
     set([a, aa, cc], S),
     length(S, 3),

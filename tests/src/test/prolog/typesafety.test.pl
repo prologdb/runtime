@@ -1,3 +1,6 @@
+:- use_module(library(equality)).
+:- use_module(library(typesafety)).
+
 test "atom/1 with atom" by [
     atom(a)
 ].

@@ -1,3 +1,7 @@
+:- use_module(library(math)).
+:- use_module(library(equality)).
+:- use_module(library(comparison)).
+
 % is/2
 
 test "is/2: both instantiated, equal" by [

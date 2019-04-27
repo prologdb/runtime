@@ -1,3 +1,7 @@
+:- use_module(library(equality)).
+:- use_module(library(typesafety)).
+:- use_module(library(comparison)).
+
 test "variable is less than number" by [
     var(Z),
     Z @< 1

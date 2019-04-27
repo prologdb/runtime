@@ -2,14 +2,11 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.PrologException
-import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.PrologStackTraceElement
-import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.module.FullModuleImport
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.util.OperatorRegistry
+import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
@@ -17,6 +14,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 internal val A = Variable("A")
 internal val B = Variable("B")
@@ -160,7 +158,9 @@ class NativeModule(
         exportedPredicates = predicates.associateBy { ClauseIndicator.of(it) }
     }
 
-    override val imports: List<ModuleImport> = emptyList()
+    override val imports: List<ModuleImport> = listOf(
+        FullModuleImport(ModuleReference("library", "equality"))
+    )
 
     override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
                                           authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {

@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
 
@@ -25,7 +25,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Variable) {
-            return rhs.unify(this)
+            return rhs.unify(this, randomVarsScope)
         }
         else if (rhs is PrologList) {
             if (rhs.elements.size > this.elements.size) {
@@ -47,7 +47,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
                     try {
-                        return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail)))
+                        return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope))
                     }
                     catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
@@ -79,10 +79,10 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
                     tailUnification = this.tail.unify(rhs.tail, randomVarsScope)
                 }
                 else if (this.tail != null) {
-                    tailUnification = this.tail.unify(PrologList(emptyList()))
+                    tailUnification = this.tail.unify(PrologList(emptyList()), randomVarsScope)
                 }
                 else {
-                    tailUnification = rhs.tail!!.unify(PrologList(emptyList()))
+                    tailUnification = rhs.tail!!.unify(PrologList(emptyList()), randomVarsScope)
                 }
 
                 try {

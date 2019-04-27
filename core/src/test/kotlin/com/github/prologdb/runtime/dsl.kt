@@ -16,7 +16,7 @@ typealias UnificationGenerator = () -> Unification
 typealias UnificationSequenceGenerator = () -> LazySequence<Unification>
 
 infix fun Term.shouldUnifyWith(rhs: Term): UnificationGenerator {
-    val unification: Unification = this.unify(rhs) ?: throw AssertionError("$this should unify with $rhs but does not")
+    val unification: Unification = this.unify(rhs, RandomVariableScope()) ?: throw AssertionError("$this should unify with $rhs but does not")
     return { unification }
 }
 
@@ -76,7 +76,7 @@ class UnificationSequenceAssertionReceiver(private val generator: UnificationSeq
 }
 
 infix fun Term.shouldNotUnifyWith(rhs: Term) {
-    val unification = this.unify(rhs)
+    val unification = this.unify(rhs, RandomVariableScope())
 
     if (unification != null) {
         throw AssertionError("$this should not unify with $rhs but does")

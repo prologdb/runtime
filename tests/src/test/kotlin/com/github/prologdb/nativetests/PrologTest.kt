@@ -1,24 +1,32 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.*
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.forEachRemaining
 import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.NullSourceInformation
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
-import com.github.prologdb.runtime.knowledge.library.Library
-import com.github.prologdb.runtime.util.OperatorDefinition
-import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.matchers.fail
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
@@ -74,25 +82,36 @@ class PrologTest : FreeSpec() { init {
             return
         }
 
-        val library = parseResult.item ?: throw RuntimeException("Invalid return value from parser: is success but item is null")
-        val testCases = getPrologTestCases(library, callback::onTestParseError)
+        val testModule = parseResult.item ?: throw RuntimeException("Invalid return value from parser: is success but item is null")
+        val testCases = getPrologTestCases(testModule, callback::onTestParseError)
 
         testCases.forEach { it.runWith(callback) }
     }
 
-    private fun parseFile(path: Path): ParseResult<Library> {
+    private fun parseFile(path: Path): ParseResult<Module> {
         val fileContent = String(Files.readAllBytes(path), Charset.forName("UTF-8"))
         val sourceUnit = SourceUnit(path.toString())
         val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
 
-        return PrologParser().parseModule(path.fileName.toString(), lexer, createFreshTestingKnowledgeBase().operators)
+        return PrologParser().parseModule(
+            lexer,
+            TestingOperatorRegistry,
+            ModuleDeclaration(path.toString(), null)
+        )
     }
 
-    private fun getPrologTestCases(library: Library, parseErrorCallback: (Collection<Reporting>) -> Any?): Set<PrologTestCase> {
-        val by2Results = library.findFor(CompoundTerm("by", arrayOf(AnonymousVariable, AnonymousVariable)))
+    private fun getPrologTestCases(testModule: Module, parseErrorCallback: (Collection<Reporting>) -> Any?): Set<PrologTestCase> {
+        val by2 = testModule.exportedPredicates[ClauseIndicator.of("by", 2)]
+            ?: return emptySet()
+
+        if (by2 !is ASTPrologPredicate) {
+            throw IllegalStateException("Who the heck parsed this? predicate by/2 from test module is a ${by2.javaClass.name}, expected ${ASTPrologPredicate::class.simpleName}")
+        }
+
         val testCases = mutableSetOf<PrologTestCase>()
-        for (by2instance in by2Results) {
+        for (by2instance in by2.clauses) {
             if (by2instance !is CompoundTerm) continue
+
             val arg0 = by2instance.arguments[0]
             val arg1 = by2instance.arguments[1]
             if (arg0 !is CompoundTerm) continue
@@ -114,9 +133,8 @@ class PrologTest : FreeSpec() { init {
                 override val name = testName
 
                 override fun runWith(callback: TestResultCallback) {
-                    val runtimeEnv = LocalKnowledgeBase.createWithDefaults()
-                    runtimeEnv.load(library)
-                    TestExecution(runtimeEnv, IrrelevantPrincipal, testName, goalList).run(callback)
+                    val runtimeEnv = PrologRuntimeEnvironment(testModule)
+                    TestExecution(runtimeEnv, testName, goalList).run(callback)
                 }
             })
         }
@@ -158,23 +176,13 @@ private interface PrologTestCase {
     }
 }
 
-private fun createFreshTestingKnowledgeBase(): LocalKnowledgeBase {
-    val kb = LocalKnowledgeBase.createWithDefaults()
-    kb.defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
-    kb.defineOperator(OperatorDefinition(800, OperatorType.XFX, "by"))
-
-    return kb
+private val TestingOperatorRegistry = DefaultOperatorRegistry().apply {
+    include(ISOOpsOperatorRegistry)
+    defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
+    defineOperator(OperatorDefinition(800, OperatorType.XFX, "by"))
 }
 
-private fun KnowledgeBase.defineOperator(def: OperatorDefinition) {
-    invokeDirective("op", ReadWriteAuthorization, arrayOf(
-        PrologInteger(def.precedence.toLong()),
-        Atom(def.type.name.toLowerCase()),
-        Atom(def.name))
-    ).consumeAll()
-}
-
-private class TestExecution(private val withinKB: LocalKnowledgeBase, private val principal: Principal, private val testName: String, private val allGoals: List<Query>) {
+private class TestExecution(private val runtime: PrologRuntimeEnvironment, private val testName: String, private val allGoals: List<Query>) {
     private var failedGoal: Query? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
@@ -183,6 +191,7 @@ private class TestExecution(private val withinKB: LocalKnowledgeBase, private va
 
         var goalHadAnySolutions = false
         buildLazySequence<Unification>(context.principal) {
+            val x = testName
             context.fulfillAttach(this, goal, VariableBucket())
         }
             .forEachRemaining { goalUnification ->
@@ -223,8 +232,9 @@ private class TestExecution(private val withinKB: LocalKnowledgeBase, private va
         val substitutedGoals = allGoals
             .map { it.substituteVariables(VariableBucket()) }
 
+        val psc = runtime.newProofSearchContext()
         val results = buildLazySequence(UUID.randomUUID()) {
-            fulfillAllGoals(substitutedGoals, TestQueryContext(principal, withinKB), VariableBucket())
+            fulfillAllGoals(substitutedGoals, psc, VariableBucket())
         }
 
         try {
@@ -239,24 +249,6 @@ private class TestExecution(private val withinKB: LocalKnowledgeBase, private va
         }
         finally {
             results.close()
-        }
-    }
-}
-
-private class TestQueryContext(
-    override val principal: Principal,
-    private val knowledgeBase: LocalKnowledgeBase
-) : ProofSearchContext {
-
-    override val authorization = ReadWriteAuthorization
-
-    override val randomVariableScope = RandomVariableScope()
-
-    override val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, VariableBucket) -> Unit = { q, v ->
-        assert(v.isEmpty)
-
-        knowledgeBase.fulfill(q, ReadWriteAuthorization, randomVariableScope).forEachRemaining {
-            yield(it)
         }
     }
 }

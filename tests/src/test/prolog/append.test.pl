@@ -1,3 +1,8 @@
+:- use_module(library(lists), [append/3, length/2, member/2]).
+:- use_module(library(equality), ['='/2]).
+:- use_module(library(dynamics), [findall/3]).
+:- use_module(library(typesafety), [is_list/1]).
+
 test "append/3 - two empty lists" by [
     append([], [], X),
     X = []

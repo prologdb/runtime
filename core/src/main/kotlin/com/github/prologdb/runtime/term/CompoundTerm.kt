@@ -1,15 +1,15 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.util.OperatorType.*
-import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import sensibleHashCode
 
 open class CompoundTerm(
@@ -69,7 +69,7 @@ open class CompoundTerm(
             return Unification(vars)
         }
         else if (rhs is Variable) {
-            return rhs.unify(this)
+            return rhs.unify(this, randomVarsScope)
         }
         else
         {

@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.term.Variable
 /**
  * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
  */
-internal val BuiltinStringChars = nativePredicate("string_chars", 2) { args, _ ->
+internal val BuiltinStringChars = nativePredicate("string_chars", 2) { args, ctxt ->
     val inputA = args[0]
     val inputB = args[1]
 
@@ -41,13 +41,13 @@ internal val BuiltinStringChars = nativePredicate("string_chars", 2) { args, _ -
 
     if (inputA is PrologString) {
         val referenceValueForB = convertInputAToListOfCharacters()
-        val result = referenceValueForB.unify(inputB)
+        val result = referenceValueForB.unify(inputB, ctxt.randomVariableScope)
         if (result != null) yield(result)
     }
 
     if (inputB is PrologList) {
         val referenceValueForA = convertInputBToPrologString()
-        val result = referenceValueForA.unify(inputA)
+        val result = referenceValueForA.unify(inputA, ctxt.randomVariableScope)
         if (result != null) yield(result)
     }
 }

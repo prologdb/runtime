@@ -3,8 +3,8 @@ package com.github.prologdb.runtime.proofsearch
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
@@ -31,7 +31,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
         val ruleRandomVarsMapping = VariableMapping()
         val randomHead = context.randomVariableScope.withRandomVariables(head, ruleRandomVarsMapping)
 
-        val goalAndHeadUnification = randomHead.unify(randomGoal)
+        val goalAndHeadUnification = randomHead.unify(randomGoal, context.randomVariableScope)
         if (goalAndHeadUnification != null) {
             val randomQuery = query
                 .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)

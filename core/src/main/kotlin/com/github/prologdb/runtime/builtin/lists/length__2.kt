@@ -15,7 +15,7 @@ internal val LengthBuiltin = nativePredicate("length", 2) { args, ctxt ->
 
     if (arg0 is PrologList) {
         val length = PrologInteger.createUsingStringOptimizerCache(arg0.elements.size.toLong())
-        length.unify(arg1)?.let { yield(it) }
+        length.unify(arg1, ctxt.randomVariableScope)?.let { yield(it) }
     }
     else if (arg0 is Variable) {
         if (arg1 !is PrologInteger) {
@@ -24,7 +24,7 @@ internal val LengthBuiltin = nativePredicate("length", 2) { args, ctxt ->
 
         for (size in 0..arg1.toInteger()) {
             val elements = List(size.toInt()) { ctxt.randomVariableScope.createNewRandomVariable() }
-            PrologList(elements, null).unify(arg0)?.let { yield(it) }
+            PrologList(elements, null).unify(arg0, ctxt.randomVariableScope)?.let { yield(it) }
         }
     }
 }

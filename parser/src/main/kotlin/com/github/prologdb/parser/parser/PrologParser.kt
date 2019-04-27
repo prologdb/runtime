@@ -10,9 +10,11 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorType.*
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
@@ -22,6 +24,7 @@ import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
+import com.github.prologdb.runtime.util.OperatorType.*
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -559,7 +562,7 @@ class PrologParser {
             else
             {
                 return ParseResult(
-                    ParsedAtom(token.textContent, token.location),
+                    ParsedAtom(token.textContent, false, token.location),
                     MATCHED,
                     emptySet()
                 )
@@ -601,6 +604,7 @@ class PrologParser {
             return ParseResult(
                 ParsedAtom(
                     token.name,
+                    token.quoted,
                     token.location
                 ),
                 MATCHED,
@@ -1056,7 +1060,7 @@ private fun TokenOrTerm.asTerm(): Term {
 
     if (this is Token && this is OperatorToken) {
         val text = this.textContent ?: throw InternalParserError()
-        return ParsedAtom(text, this.location)
+        return ParsedAtom(text, false, this.location)
     }
 
     throw InternalParserError()
@@ -1077,7 +1081,13 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
     val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
         .mapIndexed { index, it -> Pair(index, it) }
-        .filter { it.second.hasTextContent }
+        .filter {
+            val element = it.second
+            if (!it.second.hasTextContent) return@filter false
+
+            if (element !is ParsedAtom) return@filter true
+            return@filter !element.quoted // quoted atoms cannot be operators
+        }
         .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getOperatorDefinitionsFor(tokenOrTerm.textContent)) }
         .filter { it.second.isNotEmpty() }
         .maxBy { it.second.maxBy(OperatorDefinition::precedence)!!.precedence }
