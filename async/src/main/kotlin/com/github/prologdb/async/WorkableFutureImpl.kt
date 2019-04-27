@@ -1,7 +1,6 @@
 package com.github.prologdb.async
 
 import java.util.*
-import java.util.concurrent.CancellationException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -248,7 +247,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 state = State.FOLDING_SEQUENCE
             }
 
-            return suspendCoroutine<C> { continuation = it as Continuation<Any> }
+            return suspendCoroutine { continuation = it as Continuation<Any> }
         }
 
         override fun finally(code: () -> Any?) {

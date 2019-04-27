@@ -8,8 +8,8 @@ import javax.swing.*;
 import javax.swing.event.EventListenerList;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.util.EventListener;
 
 public class QueryPanel {
@@ -90,12 +90,7 @@ public class QueryPanel {
         void onQueryFired(QueryPanel originPanel, String queryCode);
     }
 
-    private class QueryTextAreaKeyListener implements KeyListener {
-        @Override
-        public void keyTyped(KeyEvent e) {
-
-        }
-
+    private class QueryTextAreaKeyListener extends KeyAdapter {
         @Override
         public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_ENTER && (e.getModifiers() & ActionEvent.CTRL_MASK) != 0) {
@@ -107,11 +102,6 @@ public class QueryPanel {
                 });
                 e.consume();
             }
-        }
-
-        @Override
-        public void keyReleased(KeyEvent e) {
-
         }
     }
 }

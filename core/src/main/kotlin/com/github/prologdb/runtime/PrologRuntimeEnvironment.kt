@@ -23,7 +23,7 @@ class PrologRuntimeEnvironment(
     private val moduleLoader: ModuleLoader = NativeLibraryLoader.withCoreLibraries()
 ) {
     /**
-     * Maps module names to the loaded [Modules].
+     * Maps module names to the loaded [Module]s.
      */
     private val loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
     private val moduleLoadingMutex = Any()

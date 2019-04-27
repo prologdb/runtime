@@ -6,15 +6,10 @@ import com.github.prologdb.runtime.unification.Unification
 open class Atom(val name: String) : Term {
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
-        if (rhs == this) {
-            return Unification.TRUE
-        }
-        else if (rhs is Variable) {
-            return rhs.unify(this, randomVarsScope)
-        }
-        else
-        {
-            return Unification.FALSE
+        when (rhs) {
+            this        -> return Unification.TRUE
+            is Variable -> return rhs.unify(this, randomVarsScope)
+            else        -> return Unification.FALSE
         }
     }
 
@@ -39,11 +34,11 @@ open class Atom(val name: String) : Term {
 
     override fun toString(): String {
         val firstChar = name[0]
-        if (firstChar !in '0' .. '9' && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
-            return "'$name'"
+        return if (firstChar !in '0' .. '9' && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
+            "'$name'"
         }
         else {
-            return name
+            name
         }
     }
 

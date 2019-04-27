@@ -25,14 +25,11 @@ open class SourceLocation (
             return if (other is SourceLocationRange) {
                 rangeTo(other.end)
             } else {
-                if (this.line < other.line) {
-                    SourceLocationRange(this, other)
-                } else if (other.line < this.line) {
-                    SourceLocationRange(other, this)
-                } else if (this.column <= other.column) {
-                    SourceLocationRange(this, other)
-                } else {
-                    SourceLocationRange(other, this)
+                when {
+                    this.line < other.line      -> SourceLocationRange(this, other)
+                    other.line < this.line      -> SourceLocationRange(other, this)
+                    this.column <= other.column -> SourceLocationRange(this, other)
+                    else                        -> SourceLocationRange(other, this)
                 }
             }
         }

@@ -6,16 +6,16 @@ import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.Rule
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorDefinition
-import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.forAll
 import io.kotlintest.matchers.*
 import io.kotlintest.specs.FreeSpec
@@ -42,9 +42,6 @@ class PrologParserTest : FreeSpec() {
 
     fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
     fun parseDict(code: String) = parseDict(tokensOf(code))
-
-    fun parseParenthesised(tokens: TransactionalSequence<Token>) = PrologParser().parseParenthesised(tokens, operators)
-    fun parseParenthesised(code: String) = parseParenthesised(tokensOf(code))
 
     "atom" - {
         "a" {

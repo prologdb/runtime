@@ -5,9 +5,9 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 
-open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: Term? = null) : Term {
+open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term {
 
-    open val elements: kotlin.collections.List<Term>
+    open val elements: List<Term>
     val tail: Variable?
 
     init {
@@ -119,7 +119,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
         if (tail != null) {
             out += "|$tail"
         }
-        return out + "]"
+        return "$out]"
     }
 
     override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
@@ -130,7 +130,7 @@ open class PrologList(givenElements: kotlin.collections.List<Term>, givenTail: T
         if (tail != null) {
             out += "|${tail.toStringUsingOperatorNotations(operators)}"
         }
-        return out + "]"
+        return "$out]"
     }
 
     override fun compareTo(other: Term): Int {

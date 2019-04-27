@@ -1,7 +1,5 @@
 package com.github.prologdb.runtime
 
-import com.github.prologdb.async.LazySequence
-import com.github.prologdb.async.transformExceptionsOnRemaining
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 
@@ -30,20 +28,6 @@ open class PredicateNotDynamicException(private val indicator: ClauseIndicator, 
     )
 }
 
-/**
- * Thrown when a prolog system is asked to handle a directive that is not supported. Directives are instances of
- * `:-/1`; Usually, attempting to handle other predicates as directives leads to this error.
- */
-class IllegalDirectiveException(message: String, cause: Throwable? = null) : PrologException(message, cause) {
-    constructor(rejectedDirective: CompoundTerm) : this(
-            if (rejectedDirective.functor != ":-" || rejectedDirective.arity != 1) {
-                "Directives must be instances of :-/1"
-            } else {
-                "Unsupported or illegal directive: $rejectedDirective"
-            }
-    )
-}
-
 class PrologPermissionError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
 
 data class PrologStackTraceElement @JvmOverloads constructor(
@@ -69,21 +53,5 @@ inline fun <T> prologTry(crossinline onErrorStackTraceElement: () -> PrologStack
     catch (ex: PrologException) {
         ex.addPrologStackFrame(onErrorStackTraceElement())
         throw ex
-    }
-}
-
-/**
- * Maps the sequence; for every [PrologException] thrown from the original sequence as a result
- * of invocations to [LazySequence.tryAdvance] the [PrologException.prologStackTrace] is amended
- * with the given stack trace element (as if each call to `tryAdvance` were wrapped in [prologTry]).
- *
- * This has to be included in all calls made by the interpreter that should show up in the prolog
- * stacktraces; this is definitely for all calls the interpreter starts on behalf of user code.
- * Calls the interpreter does on its own behalf **may** use this.
- */
-fun <T> LazySequence<T>.amendExceptionsWithStackTraceOnRemaining(onErrorStackTraceElement: PrologStackTraceElement): LazySequence<T> {
-    return this.transformExceptionsOnRemaining { e: PrologException ->
-        e.addPrologStackFrame(onErrorStackTraceElement)
-        e
     }
 }

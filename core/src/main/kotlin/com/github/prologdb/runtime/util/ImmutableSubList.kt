@@ -29,7 +29,7 @@ class ImmutableSubList<T>(
 
         for (i in 0 until size) {
             val el = source[startOffset + i]
-            if (el === element || el == element) return true
+            if (el == element) return true
         }
 
         return false
@@ -48,7 +48,7 @@ class ImmutableSubList<T>(
 
         for (i in 0 until size) {
             val el = source[startOffset + i]
-            if (el === element || el == element) return i
+            if (el == element) return i
         }
 
         return -1
@@ -65,7 +65,7 @@ class ImmutableSubList<T>(
 
         for (i in lastIndex downTo 0) {
             val el = source[startOffset + i]
-            if (el === element || el == element) return i
+            if (el == element) return i
         }
 
         return -1
@@ -95,11 +95,9 @@ class ImmutableSubList<T>(
 
         // compare element by element; driven by the other lists
         // iterator because the other list might not be RandomAccess (e.g. LinkedList)
-        var selfIndex = 0
-        for (otherEl in other) {
+        for ((selfIndex, otherEl) in other.withIndex()) {
             val selfEl = source[startOffset + selfIndex]
             if (selfEl != otherEl) return false
-            selfIndex++
         }
 
         return true

@@ -80,7 +80,7 @@ assert(future.step() == true)
 // sees that the record exists and throws exception; is not forwarded by step()
 
 assert(future.isDone)
-assertThrows<IOException>() {
+assertThrows<IOException> {
     future.get()
 }
 ```

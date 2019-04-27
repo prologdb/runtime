@@ -99,8 +99,6 @@ open class PrologString private constructor(
         else return super.equals(other)
     }
 
-    override fun hashCode() = super.hashCode()
-
     override fun compareTo(other: Term): Int {
         when(other) {
             // variables and numbers are, by category, lesser than strings

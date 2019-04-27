@@ -35,9 +35,3 @@ interface Term : Comparable<Term> {
      */
     fun toStringUsingOperatorNotations(operators: OperatorRegistry): String = toString()
 }
-
-/**
- * @return Whether the given term is ground (does not have any variables).
- */
-val Term.isGround: Boolean
-    get() = variables.isEmpty() 

@@ -83,7 +83,7 @@ private typealias ArityMapToLibraryEntries = ArityMap<MutableList<Clause>>
 /**
  * The most simple implementation of [MutableClauseStore] possible: is
  * based on a plain [MutableList] and uses the default implementations
- * declared in [ReadableClauseStore] and [MutableClauseStore]
+ * declared in [ClauseStore] and [MutableClauseStore]
  */
 class SimpleClauseStore(givenEntries: Iterable<Clause> = emptyList()) : MutableClauseStore {
     private val entries = ArrayList(givenEntries.toList())

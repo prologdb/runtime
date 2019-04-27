@@ -407,7 +407,7 @@ interface LazySequenceBuilder<T> {
      * immediately without suspending the coroutine.
      *
      * @return the futures value
-     * @throws Exception Forwarded from the [Future], including [CancellationException]
+     * @throws Exception Forwarded from the [Future], including [java.util.concurrent.CancellationException]
      * @throws PrincipalConflictException If the given future is a [WorkableFuture] and has a different [principal]
      *                                    than this one.
      */

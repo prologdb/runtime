@@ -20,7 +20,7 @@ class ParsedList(givenElements: List<Term>, tail: Term?, override val sourceInfo
         var pivot: Term? = tail
         while (pivot is ParsedList) {
             elements.addAll(pivot.elements)
-            pivot = pivot.tail as Term? // will always succeed because pivot is a ParsedList
+            pivot = pivot.tail
         }
         elements
     }()
@@ -44,7 +44,7 @@ class ParsedDictionary(givenPairs: Map<Atom, Term>, tail: Term?, override val so
         var pivot: Term? = tail
         while (pivot is ParsedDictionary) {
             pairs.putAll(pivot.pairs)
-            pivot = pivot.tail as Term?
+            pivot = pivot.tail
         }
         pairs
     }()
@@ -60,7 +60,9 @@ class ParsedAnonymousVariable(override val sourceInformation: SourceLocationRang
 
     override val prologTypeName: String = AnonymousVariable.prologTypeName
 
-    override fun equals(other: Any?): Boolean = AnonymousVariable.equals(other)
+    override fun equals(other: Any?): Boolean = AnonymousVariable == other
+
+    override fun hashCode(): Int = AnonymousVariable.hashCode()
 }
 
 class ParsedPrologString(

@@ -61,7 +61,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
         } else if (rhs.tail != null) {
             try {
                 carryUnification.variableValues.incorporate(
-                    rhs.tail.unify(PrologDictionary.EMPTY, randomVarsScope).variableValues
+                    rhs.tail.unify(EMPTY, randomVarsScope).variableValues
                 )
             }
             catch (ex: VariableDiscrepancyException) {
@@ -89,7 +89,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
         } else if (this.tail != null) {
             try {
                 carryUnification.variableValues.incorporate(
-                    this.tail.unify(PrologDictionary.EMPTY, randomVarsScope).variableValues
+                    this.tail.unify(EMPTY, randomVarsScope).variableValues
                 )
             }
             catch (ex: VariableDiscrepancyException) {

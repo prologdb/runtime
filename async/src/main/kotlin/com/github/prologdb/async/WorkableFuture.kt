@@ -84,11 +84,10 @@ interface WorkableFutureBuilder {
      * Logically like [LazySequence.foldRemaining] with these differences in
      * technical behaviour:
      * * if this future is cancelled, the sequence is closed.
-     * * if the sequence is a [WorkableLazySequence]
-     *   * calls to [WorkableFuture.step] are deferred to the sequence
+     * * calls to [WorkableFuture.step] are deferred to the sequence
      * @throws PrincipalConflictException If the given sequence belongs to another principal.
      */
-    suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C
+    suspend fun <Element, Carry> foldRemaining(sequence: LazySequence<Element>, initial: Carry, accumulator: (Carry, Element) -> Carry): Carry
 }
 
 fun <T> launchWorkableFuture(principal: Any, code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(principal, code)

@@ -1,6 +1,6 @@
 /**
- * With coroutines, the unit of concurrency is no longer [Thread] but the root corotuine (if others are spawned
- * below). The help identify these coroutines have a [principal]; in prologdb, this would be the query.
+ * With coroutines, the unit of concurrency is no longer [java.lang.Thread] but the root corotuine (if others are spawned
+ * below). The help identify these coroutines have a [Principal]; in prologdb, this would be the query.
  */
 package com.github.prologdb.async
 

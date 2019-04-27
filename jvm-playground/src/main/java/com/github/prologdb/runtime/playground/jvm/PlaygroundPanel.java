@@ -11,11 +11,11 @@ import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.PrologRuntimeEnvironment;
 import com.github.prologdb.runtime.PrologRuntimeException;
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry;
-import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization;
 import com.github.prologdb.runtime.module.Module;
 import com.github.prologdb.runtime.module.NativeLibraryLoader;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
+import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization;
 import com.github.prologdb.runtime.query.Query;
 import com.github.prologdb.runtime.unification.Unification;
 
@@ -134,7 +134,12 @@ public class PlaygroundPanel {
                 librarySelectionChanged = false;
             } else {
                 StringBuilder message = new StringBuilder("Failed to parse knowledge base:");
-                result.getReportings().forEach(r -> { message.append("\n"); message.append(r.getMessage() + " in " + r.getLocation()); });
+                result.getReportings().forEach(r -> {
+                    message.append("\n");
+                    message.append(r.getMessage());
+                    message.append(" in ");
+                    message.append(r.getLocation());
+                });
                 throw new ParseException(message.toString(), 0);
             }
         }

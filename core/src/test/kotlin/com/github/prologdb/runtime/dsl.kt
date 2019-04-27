@@ -131,13 +131,6 @@ infix fun PrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundTerm) {
 private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
     = find(predicate) != null
 
-private fun PrologRuntimeEnvironment.fulfill(query: Query): LazySequence<Unification> {
-    val ctxt = this.newProofSearchContext()
-    return buildLazySequence(ctxt.principal) {
-        ctxt.fulfillAttach(this, query, VariableBucket())
-    }
-}
-
 fun moduleOfClauses(vararg clauses: Clause): Module {
     val indicators = clauses
         .map(ClauseIndicator.Companion::of)

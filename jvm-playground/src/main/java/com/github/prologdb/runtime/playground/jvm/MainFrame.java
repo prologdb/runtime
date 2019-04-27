@@ -88,7 +88,7 @@ public class MainFrame extends JFrame {
     private void moveTo(GraphicsDevice targetDevice) {
         GraphicsConfiguration gc = getGraphicsConfiguration();
         if (gc.getDevice() == targetDevice) return;
-        if (gc.getDevice().getIDstring().equals(targetDevice.getIDstring()));
+        if (gc.getDevice().getIDstring().equals(targetDevice.getIDstring())) return;
 
         // following lines shamelessly stolen from java.awt.Window.init(GraphicsConfiguration)
         Rectangle targetBounds = targetDevice.getDefaultConfiguration().getBounds();

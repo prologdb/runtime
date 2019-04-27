@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.builtin.math
 
-import com.github.prologdb.runtime.util.ArityMap
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.util.ArityMap
 
 /**
  * Takes an arithmetic compound term (e.g. +(1,2) or mod(23,4)) and returns the calculated value
@@ -14,7 +14,7 @@ typealias Calculator = (CompoundTerm) -> PrologNumber
  * Keeps track of ways to evaluate mathematical compounds. This is global; registring a new calculator
  * will affect all prolog runtimes.
  *
- * **This is not an [OperatorRegistry]!**
+ * **This is not an [com.github.prologdb.runtime.util.OperatorRegistry]!**
  */
 object MathOperatorRegistry {
     /**

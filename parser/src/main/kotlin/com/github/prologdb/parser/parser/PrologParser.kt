@@ -283,10 +283,10 @@ class PrologParser {
         // detect empty list
         if (!tokens.hasNext()) {
             tokens.rollback()
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("list content or ${BRACKET_CLOSE}")))
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("list content or $BRACKET_CLOSE")))
         }
         tokens.mark()
-        var token = tokens.next()
+        val token = tokens.next()
         if (token is OperatorToken && token.operator == BRACKET_CLOSE) {
             tokens.commit()
             tokens.commit()
@@ -318,7 +318,7 @@ class PrologParser {
 
         tokens.mark()
         val tokenAfterElements = tokens.next()
-        var tail: Term?
+        val tail: Term?
         val reportings: MutableSet<Reporting> = elementsResult.reportings.toMutableSet()
         val tokenAfterList: Token?
         val listEndLocation: SourceLocationRange
@@ -370,10 +370,10 @@ class PrologParser {
         // detect empty dict
         if (!tokens.hasNext()) {
             tokens.rollback()
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("dict content or ${CURLY_CLOSE}")))
+            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("dict content or $CURLY_CLOSE")))
         }
         tokens.mark()
-        var token = tokens.next()
+        val token = tokens.next()
         if (token is OperatorToken && token.operator == CURLY_CLOSE) {
             tokens.commit()
             tokens.commit()
@@ -435,7 +435,7 @@ class PrologParser {
 
         tokens.mark()
         val tokenAfterElements = tokens.next()
-        var tail: Term?
+        val tail: Term?
         val tokenAfterList: Token?
         val dictEndLocation: SourceLocationRange
 
@@ -476,7 +476,7 @@ class PrologParser {
 
     /**
      * Parses a parenthesised term: `(term)`.
-     * @param outmostWithoutProtection If the term within the parenthesis is a compound, does not set the [CompoundTerm.parenthesisProtection] flag.
+     * @param outmostWithoutProtection If the term within the parenthesis is a compound, does not set the [ParsedCompoundTerm.parenthesisProtection] flag.
      */
     fun parseParenthesised(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, outmostWithoutProtection: Boolean): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("parenthesised term")))
@@ -540,7 +540,7 @@ class PrologParser {
 
         tokens.mark()
 
-        var token = tokens.next()
+        val token = tokens.next()
 
         if (token is IdentifierToken) {
             tokens.commit()
@@ -661,12 +661,12 @@ class PrologParser {
          */
         fun handleOperator(opDefinitionAST: ParsedCompoundTerm): OperatorDefinition? {
             val priorityArgument = opDefinitionAST.arguments[0]
-            if (priorityArgument !is com.github.prologdb.runtime.term.PrologNumber || !priorityArgument.isInteger) {
+            if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
                 reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
                 return null
             }
 
-            val precedenceAsLong = (priorityArgument as com.github.prologdb.runtime.term.PrologNumber).toInteger()
+            val precedenceAsLong = priorityArgument.toInteger()
             if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
                 reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].location))
                 return null
@@ -698,10 +698,6 @@ class PrologParser {
             return definition
         }
 
-        /**
-         * The dynamic/1 builtin
-         * @param the only parameter to dynamic/1
-         */
         fun handleDynamicDirective(indicatorTerm: Term) {
             if (indicatorTerm !is ParsedCompoundTerm || indicatorTerm.arity != 2 || indicatorTerm.functor != "/") {
                 reportings.add(SemanticError(
@@ -1080,6 +1076,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
     }
 
     val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
+        .asSequence()
         .mapIndexed { index, it -> Pair(index, it) }
         .filter {
             val element = it.second
@@ -1183,7 +1180,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
             var thisCompound = ParsedCompoundTerm(
                 operatorDef.name,
-                listOf(lhsResult.item?.first, rhsResult.item?.first).filterNotNull().toTypedArray(),
+                listOfNotNull(lhsResult.item?.first, rhsResult.item?.first).toTypedArray(),
                 elements.first().location..elements.last().location
             )
 
@@ -1308,5 +1305,5 @@ fun ClauseIndicator.Companion.fromIdiomatic(indicator: Term, reportings: Mutable
         return null
     }
 
-    return ClauseIndicator.of(name.name, arityValue.toInt())
+    return of(name.name, arityValue.toInt())
 }

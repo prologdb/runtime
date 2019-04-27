@@ -29,12 +29,10 @@ private val AtomEqual = Atom("=")
 val BuiltinCompare = nativePredicate("compare", 3) { args, ctxt ->
     val inputForOrder = args[0]
 
-    val actualOrder = if (args[0] > args[1]) {
-        AtomGreaterThan
-    } else if (args[0] < args[1]) {
-        AtomLessThan
-    } else {
-        AtomEqual
+    val actualOrder = when {
+        args[0] > args[1] -> AtomGreaterThan
+        args[0] < args[1] -> AtomLessThan
+        else              -> AtomEqual
     }
 
     val unification = inputForOrder.unify(actualOrder, ctxt.randomVariableScope)

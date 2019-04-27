@@ -56,7 +56,7 @@ enum class Operator(val text: String) {
     TERM_LESS_THAN_OR_EQUAL("@=<"),
 }
 
-val DECIMAL_SEPARATOR: Char = '.'
+const val DECIMAL_SEPARATOR: Char = '.'
 
 sealed class Token(val type: TokenType, val location: SourceLocationRange)
 
@@ -148,7 +148,7 @@ class AtomLiteralToken(val name: String, val quoted: Boolean, location: SourceLo
 }
 
 /** The escape character in strings */
-val ESCAPE_CHARACTER: Char = '\\'
+const val ESCAPE_CHARACTER: Char = '\\'
 
 /** Escape sequences in strings, e.g. \n to linefeed */
 val ESCAPE_SEQUENCES: Map<Char, Char> = mapOf(

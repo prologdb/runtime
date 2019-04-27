@@ -6,7 +6,6 @@ import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldThrow
 import io.kotlintest.specs.FreeSpec
 import java.util.*
-import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import kotlin.concurrent.thread
 
@@ -97,7 +96,7 @@ class WorkableFutureTest : FreeSpec({
         val hasStarted = CompletableFuture<Unit>()
         val waitingOn = CompletableFuture<String>()
 
-        val future = WorkableFutureImpl<Any>(RANDOM_PRINCIPAL) {
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
             hasStarted.complete(Unit)
 
             try {

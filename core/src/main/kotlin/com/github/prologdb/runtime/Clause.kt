@@ -10,7 +10,7 @@ import java.util.*
 interface Clause : HasFunctorAndArity {
     /**
      * Unifies the given compound (`other`) with this entry; if this is a fact (a [CompoundTerm]), unifies with
-     * the given compound and ignores the given [KnowledgeBase]. If this is a rule, uses the [KnowledgeBase]
+     * the given compound and ignores the given [ProofSearchContext]. If this is a rule, uses the [ProofSearchContext]
      * to run the query (in case the head and the given [CompoundTerm] unify).
      */
     val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: CompoundTerm, context: ProofSearchContext) -> Unit
@@ -19,7 +19,7 @@ interface Clause : HasFunctorAndArity {
 /**
  * A indicator of a clause, e.g. `likes/2`.
  */
-data class ClauseIndicator private constructor(
+data class ClauseIndicator internal constructor(
     val functor: String,
     val arity: Int
 ) {

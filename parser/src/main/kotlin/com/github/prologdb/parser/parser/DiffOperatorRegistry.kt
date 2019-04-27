@@ -59,10 +59,10 @@ class DiffOperatorRegistry(val nested: OperatorRegistry) : MutableOperatorRegist
             .filter { it.type.isSameArgumentRelationAs(definition.type) }
 
         if (overridden.isNotEmpty()) {
-            this.overridden.computeIfAbsent(definition.name, { _ -> HashSet() }).addAll(overridden)
+            this.overridden.computeIfAbsent(definition.name, { HashSet() }).addAll(overridden)
         }
 
-        additional.computeIfAbsent(definition.name, { _ -> HashSet() }).add(definition)
+        additional.computeIfAbsent(definition.name, { HashSet() }).add(definition)
     }
 
     /**

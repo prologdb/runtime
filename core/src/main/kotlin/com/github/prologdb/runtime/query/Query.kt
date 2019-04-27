@@ -1,6 +1,9 @@
 package com.github.prologdb.runtime.query
 
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PrologSourceInformation
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -63,16 +66,6 @@ open class PredicateInvocationQuery(
 ) : Query(), HasPrologSource
 {
     constructor(goal: CompoundTerm) : this(goal, getInvocationStackFrame().prologSourceInformation)
-
-    /**
-     * The stack frame to use in exceptions for this query.
-     */
-    val stackFrame: PrologStackTraceElement by lazy {
-        PrologStackTraceElement(
-            goal,
-            sourceInformation
-        )
-    }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateInvocationQuery(

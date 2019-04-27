@@ -82,9 +82,9 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
 
         if (!source.hasNext()) return null
 
-        var text = collectUntilOperatorOrWhitespace()
+        val text = collectUntilOperatorOrWhitespace()
 
-        if (text.first.length == 0) {
+        if (text.first.isEmpty()) {
             // the next operator is straight ahead: jump back
             return findNext()
         }
@@ -311,7 +311,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
      */
     private fun collectWhile(pred: (Char) -> Boolean): Pair<String, SourceLocationRange>?
     {
-        var buf = StringBuilder()
+        val buf = StringBuilder()
         var start: SourceLocation? = null
         var end: SourceLocation? = null
 

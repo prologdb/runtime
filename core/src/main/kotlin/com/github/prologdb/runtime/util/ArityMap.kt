@@ -13,19 +13,20 @@ import kotlin.coroutines.experimental.buildSequence
 open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
 
     private var items: AtomicReferenceArray<T?> = run {
-        val initialCapacity = if (givenItems.size == 0) 6 else givenItems.size
+        val initialCapacity = if (givenItems.isEmpty()) 6 else givenItems.size
         AtomicReferenceArray(initialCapacity)
     }
 
     private val itemsResizeMutex = Any()
 
     /**
-     * The maximum arity this map can store without allocating additional memory
+     * The maximum arity this map can store without allocating additional memory.
+     * The capacity cannot be reduced; the setter will not throw but also have no effect.
      */
     var capacity: Int
         get() = items.length() - 1
         set(value) {
-            if (value == items.length() - 1) return
+            if (value <= items.length() - 1) return
 
             synchronized(itemsResizeMutex) {
                 val oldSize = items.length()
@@ -50,23 +51,6 @@ open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
         }
 
         return items[arity]
-    }
-
-    fun computeIfAbsent(arity: Int, computer: () -> T): T {
-        if (arity < 0) {
-            throw IllegalArgumentException("The arity must positive or 0.")
-        }
-
-        if (arity >= items.length()) {
-            capacity = arity
-        }
-
-
-        return items[arity] ?: run {
-            val computed = computer()
-            items[arity] = computed
-            computed
-        }
     }
 
     operator fun set(arity: Int, item: T) {

@@ -100,7 +100,7 @@ class DefaultOperatorRegistry : MutableOperatorRegistry {
     override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operators[name] ?: emptySet()
 
     override fun defineOperator(definition: OperatorDefinition) {
-        var targetSet = operators.computeIfAbsent(definition.name, { _ -> HashSet() })
+        val targetSet = operators.computeIfAbsent(definition.name, { HashSet() })
 
         // remove overridden definitions
         targetSet.removeIf { it.type.isSameArgumentRelationAs(definition.type) }

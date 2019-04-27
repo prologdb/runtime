@@ -62,7 +62,7 @@ class VariableBucket private constructor(
             if (variable in variableMap) {
                 val thisValue = variableMap[variable]
                 if (thisValue != null && thisValue != value) {
-                    throw VariableDiscrepancyException("Cannot combine: variable $variable is instantiated to unequal values: ${value} and ${thisValue}")
+                    throw VariableDiscrepancyException("Cannot combine: variable $variable is instantiated to unequal values: $value and $thisValue")
                 }
             }
             else if (value != null) {

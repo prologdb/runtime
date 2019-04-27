@@ -13,9 +13,9 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     }
 
     override fun toString(): String {
-        return variableValues.values
-                .map { (variable, value) -> "$variable = ${value ?: Variable.ANONYMOUS}" }
-                .joinToString(", ")
+        return variableValues.values.joinToString(", ") { (variable, value) ->
+            "$variable = ${value ?: Variable.ANONYMOUS}"
+        }
     }
 
     override fun equals(other: Any?): Boolean {

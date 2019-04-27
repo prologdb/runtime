@@ -1,6 +1,8 @@
 package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.Principal
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
@@ -8,10 +10,8 @@ import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
  * A module, as results from reading/consulting a prolog file.
@@ -68,13 +68,6 @@ data class ModuleReference(
     override fun toString(): String {
         return "$pathAlias($moduleName)"
     }
-
-    private val term: CompoundTerm by lazy {
-        CompoundTerm(pathAlias, arrayOf(Atom(moduleName)))
-    }
-
-    fun asTerm(): Term {
-        return term; }
 }
 
 sealed class ModuleImport(

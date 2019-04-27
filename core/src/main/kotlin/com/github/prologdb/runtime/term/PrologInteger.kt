@@ -16,50 +16,50 @@ open class PrologInteger(
 
     override fun plus(other: PrologNumber) =
         when(other) {
-            is PrologInteger -> PrologInteger.createUsingStringOptimizerCache(this.value + other.value)
+            is PrologInteger -> createUsingStringOptimizerCache(this.value + other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() + other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun minus(other: PrologNumber) =
         when(other) {
-            is PrologInteger -> PrologInteger.createUsingStringOptimizerCache(this.value - other.value)
+            is PrologInteger -> createUsingStringOptimizerCache(this.value - other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() - other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun times(other: PrologNumber) =
         when(other) {
-            is PrologInteger -> PrologInteger.createUsingStringOptimizerCache(this.value * other.value)
+            is PrologInteger -> createUsingStringOptimizerCache(this.value * other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() * other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun div(other: PrologNumber) =
         when(other) {
-            is PrologInteger -> PrologInteger.createUsingStringOptimizerCache(this.value / other.value)
+            is PrologInteger -> createUsingStringOptimizerCache(this.value / other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() / other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun rem(other: PrologNumber) =
         when(other) {
-            is PrologInteger -> PrologInteger.createUsingStringOptimizerCache(this.value % other.value)
+            is PrologInteger -> createUsingStringOptimizerCache(this.value % other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() % other.value)
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
-            is PrologInteger -> PrologInteger.createUsingStringOptimizerCache(this.value.toDouble().pow(other.value.toDouble()).toLong())
+            is PrologInteger -> createUsingStringOptimizerCache(this.value.toDouble().pow(other.value.toDouble()).toLong())
             is PrologDecimal -> PrologDecimal(this.value.toDouble().pow(other.value))
             else -> throw PrologRuntimeException("Unsupported type of number")
         }
     }
 
-    override fun unaryPlus(): PrologNumber = PrologInteger.createUsingStringOptimizerCache(+this.value)
+    override fun unaryPlus(): PrologNumber = createUsingStringOptimizerCache(+this.value)
 
-    override fun unaryMinus(): PrologNumber = PrologInteger.createUsingStringOptimizerCache(-this.value)
+    override fun unaryMinus(): PrologNumber = createUsingStringOptimizerCache(-this.value)
 
     override fun toInteger(): Long = value
 
