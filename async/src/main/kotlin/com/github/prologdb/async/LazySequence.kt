@@ -471,6 +471,9 @@ fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
 fun <T> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
     = FilteredLazySequence(this, predicate)
 
+fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
+    = @Suppress("UNCHECKED_CAST") (FilteredLazySequence(this) { it != null} as LazySequence<T>)
+
 /**
  * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
  * this [LazySequence]; order is preserved.
