@@ -74,7 +74,7 @@ interface LazySequence<T> {
      * @see Sequence.distinctBy
      */
     fun <K> distinctBy(selector: (T) -> K): LazySequence<T>
-        = DistinctLazySequence(this, selector)
+        = FilteredLazySequence(this, distinctFilter(selector))
 
     /**
      * Consumes all of the remaining elements in this sequence.

@@ -96,3 +96,11 @@ class FilteredLazySequence<T>(
         base.close()
     }
 }
+
+fun <T, K> distinctFilter(selector: (T) -> K): (T) -> Boolean {
+    val seenKeys: MutableSet<K> = HashSet()
+    return {
+        val key = selector(it)
+        seenKeys.add(key) // if add returns false it was already there so not unique
+    }
+}
