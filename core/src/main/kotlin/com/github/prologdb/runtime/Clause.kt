@@ -2,7 +2,9 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.ArityMap
 import java.util.*
@@ -24,6 +26,10 @@ data class ClauseIndicator internal constructor(
     val arity: Int
 ) {
     override fun toString() = "$functor/$arity"
+
+    fun toIdiomatic(): CompoundTerm = object : CompoundTerm("/", arrayOf(Atom(functor), PrologInteger(arity.toLong()))) {
+        override fun toString() = this@ClauseIndicator.toString()
+    }
 
     companion object {
         /**
