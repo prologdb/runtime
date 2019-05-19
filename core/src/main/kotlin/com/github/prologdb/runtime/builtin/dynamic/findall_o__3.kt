@@ -43,14 +43,14 @@ internal val BuiltinFindAllOptimized = nativePredicate("findall_o", 3) { args, c
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3
-        BuiltinFindAll.fulfill(this, CompoundTerm("findall", args), context)
+        BuiltinFindAll.fulfill(this, args, context)
     }
     else {
         solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
 
         if (solutionInput.tail != null && solutionInput.tail != Variable.ANONYMOUS) {
             // this cannot be optimized, it requires all solutions for correct behaviour
-            BuiltinFindAll.fulfill(this, CompoundTerm("findall", args), context)
+            BuiltinFindAll.fulfill(this,args, context)
         }
         else {
             var nResultsToCalculate = solutionInput.elements.size

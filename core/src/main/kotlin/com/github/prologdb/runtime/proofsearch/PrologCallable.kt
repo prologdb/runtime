@@ -2,7 +2,7 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.HasFunctorAndArity
-import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
 /**
@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.unification.Unification
  */
 interface PrologCallable : HasFunctorAndArity {
     /**
-     * Calls this callable with the given invocation goal. Yields the results on the given receiver.
+     * Calls this callable with the given arguments. Yields the results on the given receiver.
      */
-    val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit
+    val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit
 }

@@ -7,8 +7,12 @@ import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import unify
+import variables
+import withRandomVariables
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor
@@ -24,14 +28,14 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
      *
      * This can be re-defined for built-ins.
      */
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, context ->
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, context ->
         val goalRandomVarsMapping = VariableMapping()
-        val randomGoal = context.randomVariableScope.withRandomVariables(goal, goalRandomVarsMapping)
+        val randomArgs = context.randomVariableScope.withRandomVariables(arguments, goalRandomVarsMapping)
 
         val ruleRandomVarsMapping = VariableMapping()
-        val randomHead = context.randomVariableScope.withRandomVariables(head, ruleRandomVarsMapping)
+        val randomHeadArgs = context.randomVariableScope.withRandomVariables(head.arguments, ruleRandomVarsMapping)
 
-        val goalAndHeadUnification = randomHead.unify(randomGoal, context.randomVariableScope)
+        val goalAndHeadUnification = randomHeadArgs.unify(randomArgs, context.randomVariableScope)
         if (goalAndHeadUnification != null) {
             val randomQuery = query
                 .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
@@ -44,7 +48,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
             yieldAll(randomResults.mapRemaining { unification ->
                 val solutionVars = VariableBucket()
 
-                for (randomGoalVariable in randomGoal.variables)
+                for (randomGoalVariable in randomArgs.variables)
                 {
                     if (goalAndHeadUnification.variableValues.isInstantiated(randomGoalVariable)) {
                         val value = goalAndHeadUnification.variableValues[randomGoalVariable]
@@ -65,9 +69,6 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
         }
         // else: does not match the rule head
     }
-
-    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: CompoundTerm, context: ProofSearchContext) -> Unit
-        get() = fulfill
 
     override fun toString() = "$head :- $query"
 }

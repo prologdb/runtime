@@ -7,8 +7,6 @@ import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger
@@ -52,13 +50,13 @@ class ModuleScopeProofSearchContext(
 
         // attempt modules own scope
         modulePredicates[indicator]?.let {
-            it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
+            it.fulfill(this, goal.arguments, this@ModuleScopeProofSearchContext)
             return
         }
 
         // attempt imported predicate
         findImport(indicator)?.let {
-            it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
+            it.fulfill(this, goal.arguments, this@ModuleScopeProofSearchContext)
             return
         }
     }

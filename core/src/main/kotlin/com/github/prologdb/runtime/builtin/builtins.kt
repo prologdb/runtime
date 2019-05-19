@@ -82,10 +82,10 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
         "$name/$arity native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
     )
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { other, context ->
-        if (head.arity == other.arity && head.functor == other.functor) {
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, context ->
+        if (head.arity == arguments.size) {
             try {
-                code(this, other.arguments, context)
+                code(this, arguments, context)
             } catch (ex: PrologException) {
                 ex.addPrologStackFrame(builtinStackFrame)
                 throw ex

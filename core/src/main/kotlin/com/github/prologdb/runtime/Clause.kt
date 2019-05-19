@@ -1,22 +1,13 @@
 package com.github.prologdb.runtime
 
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.ArityMap
 import java.util.*
 
-interface Clause : HasFunctorAndArity {
-    /**
-     * Unifies the given compound (`other`) with this entry; if this is a fact (a [CompoundTerm]), unifies with
-     * the given compound and ignores the given [ProofSearchContext]. If this is a rule, uses the [ProofSearchContext]
-     * to run the query (in case the head and the given [CompoundTerm] unify).
-     */
-    val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: CompoundTerm, context: ProofSearchContext) -> Unit
-}
+interface Clause : PrologCallable
 
 /**
  * A indicator of a clause, e.g. `likes/2`.
@@ -27,7 +18,7 @@ data class ClauseIndicator internal constructor(
 ) {
     override fun toString() = "$functor/$arity"
 
-    fun toIdiomatic(): CompoundTerm = object : CompoundTerm("/", arrayOf(Atom(functor), PrologInteger(arity.toLong()))) {
+    fun toIdiomatic(): CompoundTerm = object : CompoundTerm("/", arrayOf(Atom(functor), PrologInteger.createUsingStringOptimizerCache(arity.toLong()))) {
         override fun toString() = this@ClauseIndicator.toString()
     }
 

@@ -5,12 +5,12 @@ import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.util.OperatorType.*
 import sensibleHashCode
+import unify
 
 open class CompoundTerm(
         override val functor: String,
@@ -29,44 +29,7 @@ open class CompoundTerm(
                 return Unification.FALSE
             }
 
-            if (this.arguments.size != rhs.arguments.size) {
-                return Unification.FALSE
-            }
-
-            if (arity == 0) {
-                return Unification.TRUE
-            }
-
-            val vars = VariableBucket()
-            for (argIndex in 0..arguments.lastIndex) {
-                val lhsArg = arguments[argIndex].substituteVariables(vars.asSubstitutionMapper())
-                val rhsArg = rhs.arguments[argIndex].substituteVariables(vars.asSubstitutionMapper())
-                val argUnification = lhsArg.unify(rhsArg, randomVarsScope)
-
-                if (argUnification == null) {
-                    // the arguments at place argIndex do not unify => the terms don't unify
-                    return Unification.FALSE
-                }
-
-                for ((variable, value) in argUnification.variableValues.values) {
-                    if (value != null) {
-                        // substitute all instantiated variables for simplicity and performance
-                        val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
-                        if (vars.isInstantiated(variable)) {
-                            if (vars[variable] != substitutedValue && vars[variable] != value) {
-                                // instantiated to different value => no unification
-                                return Unification.FALSE
-                            }
-                        }
-                        else {
-                            vars.instantiate(variable, substitutedValue)
-                        }
-                    }
-                }
-            }
-
-            // we made it through all arguments without issues => great
-            return Unification(vars)
+            return arguments.unify(rhs.arguments, randomVarsScope)
         }
         else if (rhs is Variable) {
             return rhs.unify(this, randomVarsScope)
@@ -77,8 +40,8 @@ open class CompoundTerm(
         }
     }
 
-    override val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit =  { other, context ->
-        val unification = unify(other, context.randomVariableScope)
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit =  { arguments, context ->
+        val unification = arguments.unify(arguments, context.randomVariableScope)
         if (unification != null) yield(unification)
     }
 
@@ -295,3 +258,4 @@ private fun CompoundTerm.toStringThisUsingStrictNotationArgumentsUsingOperatorNo
         null
     )
 }
+

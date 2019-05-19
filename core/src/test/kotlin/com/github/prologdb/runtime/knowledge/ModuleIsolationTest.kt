@@ -17,6 +17,7 @@ class ModuleIsolationTest : FreeSpec({
     val X = Variable("X")
     val R = Variable("R")
     val foo = CompoundBuilder("foo")
+    val bar = CompoundBuilder("bar")
 
     val clauseA01 = CompoundTerm("a", arrayOf(a))
     val clauseFoo01 = Rule(
@@ -264,6 +265,45 @@ class ModuleIsolationTest : FreeSpec({
                         it.variableValues[R] == b
                     }
                 }
+            }
+        }
+    }
+
+    "export with rename" {
+        val clauseFooA = foo(a)
+
+        val moduleA = ASTModule(
+            name = "a",
+            imports = emptyList(),
+            givenClauses = listOf(clauseFooA),
+            dynamicPredicates = emptySet(),
+            exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseFooA))
+        )
+
+        val moduleB = ASTModule(
+            name = "b",
+            imports = listOf(SelectiveModuleImport(
+                ModuleReference("module", "a"),
+                mapOf(
+                    ClauseIndicator.of("foo", 1) to "bar"
+                )
+            )),
+            givenClauses = emptyList(),
+            dynamicPredicates = emptySet(),
+            exportedPredicateIndicators = emptySet()
+        )
+
+        val loader = NativeLibraryLoader().apply {
+            registerModule("module", moduleA)
+            registerModule("module", moduleB)
+        }
+
+        val runtimeEnv = PrologRuntimeEnvironment(moduleB, loader)
+
+        runtimeEnv shouldProve bar(X) suchThat {
+            itHasExactlyOneSolution()
+            itHasASolutionSuchThat("X = a") {
+                it.variableValues[X] == a
             }
         }
     }

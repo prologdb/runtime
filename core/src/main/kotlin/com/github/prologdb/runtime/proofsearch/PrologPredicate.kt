@@ -4,7 +4,11 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
+import unify
+import variables
+import withRandomVariables
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -68,20 +72,20 @@ class ASTPrologPredicate(
         isSealed = true
     }
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { goal, invocationCtxt ->
+    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, invocationCtxt ->
         val ctxt = declaringModule?.deriveScopedProofSearchContext(invocationCtxt) ?: invocationCtxt
 
         for (clause in clauses) {
             if (clause is CompoundTerm) {
-                val randomizedClause = ctxt.randomVariableScope.withRandomVariables(clause, VariableMapping())
-                val unification = goal.unify(randomizedClause, ctxt.randomVariableScope)
+                val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(clause.arguments, VariableMapping())
+                val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
                 if (unification != null) {
-                    unification.variableValues.retainAll(goal.variables)
+                    unification.variableValues.retainAll(arguments.variables)
                     yield(unification)
                 }
             }
             else if (clause is Rule) {
-                clause.unifyWithKnowledge(this, goal, ctxt)
+                clause.fulfill(this, arguments, ctxt)
             }
             else {
                 throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")

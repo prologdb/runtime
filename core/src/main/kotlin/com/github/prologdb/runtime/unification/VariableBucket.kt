@@ -87,7 +87,7 @@ class VariableBucket private constructor(
     /**
      * Removes all variables from this bucket that are not in the given collection
      */
-    fun retainAll(variables: Collection<Variable>) {
+    fun retainAll(variables: Iterable<Variable>) {
         val keysToRemove = variableMap.keys.filter { it !in variables }
         val removedToSubstitute = mutableMapOf<Variable, Term>()
 
