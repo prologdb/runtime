@@ -16,6 +16,11 @@ data class ClauseIndicator internal constructor(
     val functor: String,
     val arity: Int
 ) {
+    init {
+        require(functor.isNotBlank())
+        require(arity >= 0)
+    }
+
     override fun toString() = "$functor/$arity"
 
     fun toIdiomatic(): CompoundTerm = object : CompoundTerm("/", arrayOf(Atom(functor), PrologInteger.createUsingStringOptimizerCache(arity.toLong()))) {
@@ -62,5 +67,24 @@ data class ClauseIndicator internal constructor(
         }
 
         fun of(clause: HasFunctorAndArity): ClauseIndicator = of(clause.functor, clause.arity)
+    }
+}
+
+/**
+ * Like [ClauseIndicator] but adds the parent module name. Fully qualified clause indicators always refer to the
+ * predicate name local to the declaring module (so that the name is unambiguous and canonical)
+ */
+data class FullyQualifiedClauseIndicator(
+    val moduleName: String,
+    val indicator: ClauseIndicator
+) {
+    init {
+        require(moduleName.isNotBlank())
+    }
+
+    override fun toString() = "$moduleName/$indicator"
+
+    fun toIdiomatic() = object : CompoundTerm("/", arrayOf(indicator.toIdiomatic())) {
+        override fun toString() = this@FullyQualifiedClauseIndicator.toString()
     }
 }

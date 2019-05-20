@@ -75,18 +75,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
         }
     }
 
-    private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
-        val goal = query.goal
-
-        val indicator = ClauseIndicator.of(goal)
-        if (!authorization.mayRead(indicator)) throw PrologPermissionError("Not allowed to read $indicator")
-
-        prologTry({ getStackTraceElementOf(goal) }) {
-            doInvokePredicate(goal.substituteVariables(variables.asSubstitutionMapper()), indicator)
-        }
-    }
-
-    protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator)
+    protected abstract suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket)
 
     protected open fun getStackTraceElementOf(goal: CompoundTerm): PrologStackTraceElement = PrologStackTraceElement(
         goal,
