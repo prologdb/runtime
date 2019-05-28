@@ -2,6 +2,8 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
@@ -33,4 +35,10 @@ interface ProofSearchContext {
      * the coroutine until the proof search for the (sub)query is complete.
      */
     val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, initialVariables: VariableBucket) -> Unit
+
+    /**
+     * Resolves the given, context-sensitive indicator against the contexts imports
+     * to the [PrologPredicate] it currently refers to.
+     */
+    fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>?
 }

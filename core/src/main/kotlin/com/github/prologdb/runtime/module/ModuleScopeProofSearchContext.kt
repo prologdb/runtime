@@ -53,7 +53,7 @@ class ModuleScopeProofSearchContext(
             }
         }
 
-        val (fqIndicator, callable) = findCallable(ClauseIndicator.of(goal)) ?: return
+        val (fqIndicator, callable) = resolveCallable(ClauseIndicator.of(goal)) ?: return
 
         if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read $fqIndicator")
 
@@ -122,7 +122,7 @@ class ModuleScopeProofSearchContext(
         val name = (arg0.arguments[0] as Atom).name
         val arity = (arg0.arguments[1] as PrologInteger).value.toInt()
 
-        val (fqIndicator, callable) = findCallable(ClauseIndicator.of(name, arity)) ?: return
+        val (fqIndicator, callable) = resolveCallable(ClauseIndicator.of(name, arity)) ?: return
 
         if (!authorization.mayWrite(fqIndicator)) {
             throw PrologPermissionError("Not allowed to write $fqIndicator")
@@ -131,7 +131,7 @@ class ModuleScopeProofSearchContext(
         throw PrologRuntimeException("abolish/1 is not fully implemented yet.")
     }
 
-    private fun findCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
+    override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
         // attempt modules own scope
         modulePredicates[simpleIndicator]?.let { callable ->
             val fqIndicator = FullyQualifiedClauseIndicator(module.name, simpleIndicator)
