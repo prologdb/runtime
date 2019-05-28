@@ -75,7 +75,7 @@ class ModuleScopeProofSearchContext(
 
                 val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {
                     is FullModuleImport -> referencedModule.exportedPredicates
-                        .mapValues { (simpleIndicator, callable) ->
+                        .mapValues { (_, callable) ->
                             Pair(import.moduleReference, callable)
                         }
                     is SelectiveModuleImport -> import.imports

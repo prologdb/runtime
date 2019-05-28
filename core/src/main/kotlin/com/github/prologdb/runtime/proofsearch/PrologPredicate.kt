@@ -9,6 +9,8 @@ import com.github.prologdb.runtime.unification.Unification
 import unify
 import variables
 import withRandomVariables
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -20,6 +22,8 @@ interface PrologPredicate : PrologCallable {
      * Provides AST for the `listing` and `listing/1` predicates.
      */
     val clauses: List<Clause>
+
+    val fqIndicator: FullyQualifiedClauseIndicator
 }
 
 interface DynamicPrologPredicate : PrologPredicate {
@@ -46,6 +50,10 @@ interface DynamicPrologPredicate : PrologPredicate {
      * If this predicate is sealed (see [seal])
      */
     val isSealed: Boolean
+
+    fun addModificationListener(listener: PredicateModificationListener)
+
+    fun removeModificationListener(listener: PredicateModificationListener)
 }
 
 /**
@@ -53,13 +61,17 @@ interface DynamicPrologPredicate : PrologPredicate {
  */
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
-    val declaringModule: Module?
+    private val declaringModule: Module
 ) : DynamicPrologPredicate {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
 
     override val functor = indicator.functor
     override val arity   = indicator.arity
+
+    override val fqIndicator = FullyQualifiedClauseIndicator(declaringModule.name, indicator)
+
+    private val modificationListeners: MutableSet<PredicateModificationListener> = Collections.newSetFromMap(ConcurrentHashMap())
 
     /**
      * Set to true by [seal] (e.g. by `compile_predicates/1`).
@@ -73,7 +85,7 @@ class ASTPrologPredicate(
     }
 
     override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, invocationCtxt ->
-        val ctxt = declaringModule?.deriveScopedProofSearchContext(invocationCtxt) ?: invocationCtxt
+        val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
 
         for (clause in clauses) {
             if (clause is CompoundTerm) {
@@ -103,6 +115,8 @@ class ASTPrologPredicate(
         }
 
         _clauses.add(clause)
+
+        fireClauseAddedEvent(clause)
     }
 
     override val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { matching, ctxt ->
@@ -119,9 +133,40 @@ class ASTPrologPredicate(
             val unification = matching.unify(randomClauseId, ctxt.randomVariableScope)
             if (unification != null) {
                 iterator.remove()
+
+                fireClauseRetraced(clause)
+
                 unification.variableValues.retainAll(matching.variables)
                 yield(unification)
             }
         }
     }
+
+    private fun fireClauseAddedEvent(clause: Clause) {
+        val event = ClauseAddedToPredicateEvent(this, clause)
+        for (listener in modificationListeners) {
+            listener(event)
+        }
+    }
+
+    private fun fireClauseRetraced(clause: Clause) {
+        val event = ClauseRetractedFromPredicateEvent(this, clause)
+        for (listener in modificationListeners) {
+            listener(event)
+        }
+    }
+
+    override fun addModificationListener(listener: PredicateModificationListener) {
+        modificationListeners.add(listener)
+    }
+
+    override fun removeModificationListener(listener: PredicateModificationListener) {
+        modificationListeners.remove(listener)
+    }
 }
+
+sealed class PredicateModifiedEvent
+class ClauseAddedToPredicateEvent(val predicate: PrologPredicate, val clause: Clause) : PredicateModifiedEvent()
+class ClauseRetractedFromPredicateEvent(val predicate: PrologPredicate, val clause: Clause) : PredicateModifiedEvent()
+
+typealias PredicateModificationListener = (PredicateModifiedEvent) -> Any?
