@@ -10,7 +10,10 @@ import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
@@ -97,10 +100,10 @@ sealed class ModuleImport(
                     }
 
                     if (importTerm.functor == "/") {
-                        val indicator = toClauseIndicator(importTerm, "argument 1 to use_module/2")
+                        val indicator = ClauseIndicator.ofIdiomatic(importTerm, "argument 1 to use_module/2")
                         imports[indicator] = indicator.functor
                     } else if (importTerm.functor == "as") {
-                        val indicator = toClauseIndicator(importTerm.arguments[0], "argument 1 to use_module/2")
+                        val indicator = ClauseIndicator.ofIdiomatic(importTerm.arguments[0], "argument 1 to use_module/2")
                         val aliasTerm = importTerm.arguments[1]
                         if (aliasTerm !is Atom) {
                             throw PrologRuntimeException("Predicate aliases in argument 1 to use_module/2 must be atoms, got ${aliasTerm.prologTypeName}")
@@ -121,7 +124,7 @@ sealed class ModuleImport(
 
                 val except = listTerm.elements
                     .map {
-                        toClauseIndicator(it, "Indicators in argument 0 to except/1 in argument 1 to use_module/2")
+                        ClauseIndicator.ofIdiomatic(it, "Indicators in argument 0 to except/1 in argument 1 to use_module/2")
                     }
                     .toSet()
 
@@ -131,35 +134,7 @@ sealed class ModuleImport(
             }
         }
 
-        @JvmStatic
-        private fun toClauseIndicator(term: Term, errorReference: String): ClauseIndicator {
-            if (term !is CompoundTerm || term.arity != 2 || term.functor != "/") {
-                throw PrologRuntimeException("Predicate indicators in $errorReference must be instnaces of `/`/2")
-            }
 
-            val functorTerm = term.arguments[0]
-            val arityTerm = term.arguments[1]
-
-            val functor = when (functorTerm) {
-                is Atom -> functorTerm.name
-                else -> throw PrologRuntimeException("Predicate functors in $errorReference must be atoms, got ${functorTerm.prologTypeName}")
-            }
-
-            val arityLong = when (arityTerm) {
-                is PrologInteger -> arityTerm.value
-                else -> throw PrologRuntimeException("Predicate arities in $errorReference must be integers, got ${functorTerm.prologTypeName}")
-            }
-
-            if (arityLong < 0) {
-                throw PrologRuntimeException("Predicate arities in $errorReference cannot be negative")
-            }
-
-            if (arityLong > Int.MAX_VALUE) {
-                throw PrologRuntimeException("Predicate arities in $errorReference must be less than or equal to ${Int.MAX_VALUE}")
-            }
-
-            return ClauseIndicator.of(functor, arityLong.toInt())
-        }
     }
 }
 
