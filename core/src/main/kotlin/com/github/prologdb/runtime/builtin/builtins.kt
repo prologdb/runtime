@@ -3,10 +3,7 @@ package com.github.prologdb.runtime.builtin
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.module.FullModuleImport
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
@@ -14,7 +11,6 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.util.OperatorRegistry
 
 internal val A = Variable("A")
 internal val B = Variable("B")
@@ -110,60 +106,89 @@ fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: Pro
     return NativeCodeRule(name, arity, definedAt, code)
 }
 
-fun nativePredicate(name: String, arity: Int, code: PrologBuiltinImplementation): PrologPredicate {
-    val definedAt = getInvocationStackFrame()
-    return nativePredicate(name, arity, definedAt, code)
-}
+fun nativeModule(name: String, initCode: NativeModuleBuilder.() -> Any?): Module = NativeModuleBuilder.build(name, initCode)
 
-fun nativePredicate(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation): PrologPredicate {
-    val singleRule = nativeRule(name, arity, definedAt, code)
+class NativeModuleBuilder(private val moduleName: String) {
+    private val clauses = mutableListOf<Clause>()
+    private val nativePredicates = mutableListOf<PrologCallable>()
 
-    return object : PrologPredicate {
-        override val clauses = listOf(singleRule)
-        override val fulfill = singleRule.fulfill
-        override val functor = name
-        override val arity = arity
-    }
-}
-
-fun nativeModule(name: String, initCode: NativeModuleBuilder.() -> Any?): NativeModule = NativeModuleBuilder.build(name, initCode)
-
-class NativeModuleBuilder {
-    private val predicates = mutableListOf<PrologPredicate>()
-
-    fun add(predicate: PrologPredicate) {
-        predicates.add(predicate)
+    fun add(predicate: PrologCallable) {
+        nativePredicates.add(predicate)
     }
 
-    private fun build(name: String) = NativeModule(name, predicates)
+    fun add(clauses: List<Clause>) {
+        this.clauses.addAll(clauses)
+    }
+
+    private fun build(): Module {
+        return NativeModule(
+            name = moduleName,
+            imports = listOf(
+                FullModuleImport(ModuleReference("library", "equality"))
+            ),
+            nativePredicates = nativePredicates,
+            otherClauses = clauses
+        )
+    }
 
     companion object {
-        internal fun build(name: String, initCode: NativeModuleBuilder.() -> Any?): NativeModule {
-            val builder = NativeModuleBuilder()
+        internal fun build(name: String, initCode: NativeModuleBuilder.() -> Any?): Module {
+            val builder = NativeModuleBuilder(name)
             builder.initCode()
-            return builder.build(name)
+            return builder.build()
         }
     }
 }
 
 class NativeModule(
     override val name: String,
-    predicates: List<PrologPredicate>
+    nativePredicates: Iterable<PrologCallable>,
+    otherClauses: List<Clause>,
+    override val imports: List<ModuleImport>
 ) : Module {
+    override val localOperators = ISOOpsOperatorRegistry
+
     override val exportedPredicates: Map<ClauseIndicator, PrologCallable>
 
-    override val localOperators: OperatorRegistry = ISOOpsOperatorRegistry
-
     init {
-        exportedPredicates = predicates.associateBy { ClauseIndicator.of(it) }
+        val _exportedPredicates = nativePredicates
+            .associateBy { ClauseIndicator.of(it) }
+            .toMutableMap()
+
+        otherClauses.asSequence()
+            .groupingBy { ClauseIndicator.of(it) }
+            .fold(
+                { indicator, _ -> ASTPrologPredicate(indicator, this) },
+                { _, astPredicate, clause ->
+                    astPredicate.assertz(clause)
+                    astPredicate
+                }
+            )
+            .forEach { (indicator, predicate) ->
+                require(indicator !in _exportedPredicates)
+
+                _exportedPredicates[indicator] = predicate
+            }
+
+        exportedPredicates = _exportedPredicates
     }
 
-    override val imports: List<ModuleImport> = listOf(
-        FullModuleImport(ModuleReference("library", "equality"))
-    )
+    override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
+        if (deriveFrom is ModuleScopeProofSearchContext && deriveFrom.module == this) {
+            return deriveFrom
+        }
 
-    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
-                                          authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
-        throw PrologRuntimeException("Native module predicates are not executed in a module context")
+        return super.deriveScopedProofSearchContext(deriveFrom)
+    }
+
+    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
+        return ModuleScopeProofSearchContext(
+            this,
+            exportedPredicates,
+            principal,
+            randomVariableScope,
+            authorization,
+            rootAvailableModules
+        )
     }
 }

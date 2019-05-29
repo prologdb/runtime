@@ -21,9 +21,12 @@ open class PrologException(message: String, override val cause: Throwable? = nul
  */
 open class PrologRuntimeException(message: String, cause: Throwable? = null) : PrologException(message, cause)
 
-open class PredicateNotDynamicException(private val indicator: ClauseIndicator, message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause) {
+open class PredicateNotDynamicException private constructor(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause) {
     constructor(indicator: ClauseIndicator) : this(
-        indicator,
+        "Predicate $indicator is not dynamic"
+    )
+
+    constructor(indicator: FullyQualifiedClauseIndicator) : this(
         "Predicate $indicator is not dynamic"
     )
 }

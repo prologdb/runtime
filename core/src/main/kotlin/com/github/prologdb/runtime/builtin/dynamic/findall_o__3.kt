@@ -4,7 +4,7 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativePredicate
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
@@ -34,7 +34,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *   If the number of solutions found exactly matches the number of elements, unification can proceed
  *   as usual; exposing the same behaviour as `findall/3`.
  */
-internal val BuiltinFindAllOptimized = nativePredicate("findall_o", 3) { args, context ->
+internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args[1]
     val solutionInput = args[2]

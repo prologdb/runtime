@@ -1,11 +1,11 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.proofsearch.PrologPredicate
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
-val TypeofBuiltin = nativePredicate("typeof", 2) { args, ctxt ->
+val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
     val arg0 = args[0]
     val arg1 = args[1]
 
@@ -51,8 +51,8 @@ val TypeSafetyModule = nativeModule("typesafety") {
  * @return a clause with the given functor and arity 1 that succeeds if the first argument passes
  * the given predicate.
  */
-private fun typeCheckBuiltin(name: String, test: (Term) -> Boolean): PrologPredicate {
-    return nativePredicate(name, 1, getInvocationStackFrame()) { args, _ ->
+private fun typeCheckBuiltin(name: String, test: (Term) -> Boolean): Rule {
+    return nativeRule(name, 1, getInvocationStackFrame()) { args, _ ->
         if (test(args[0])) yield(Unification.TRUE)
     }
 }

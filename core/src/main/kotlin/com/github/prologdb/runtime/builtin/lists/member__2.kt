@@ -1,14 +1,14 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativePredicate
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 
 /**
  * Implements the builtin member/2, see http://www.swi-prolog.org/pldoc/man?predicate=member/2
  */
-internal val MemberBuiltin = nativePredicate("member", 2) { args, ctxt ->
+internal val MemberBuiltin = nativeRule("member", 2) { args, ctxt ->
     val member = args[0]
     val list = args[1]
 

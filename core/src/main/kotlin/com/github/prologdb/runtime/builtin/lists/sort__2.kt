@@ -1,12 +1,12 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativePredicate
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
-internal val SortBuiltin = nativePredicate("sort", 2) { args, context ->
+internal val SortBuiltin = nativeRule("sort", 2) { args, context ->
     val inputUnsorted = args[0]
     val inputSorted = args[1]
 

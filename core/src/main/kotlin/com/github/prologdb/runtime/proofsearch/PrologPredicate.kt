@@ -111,7 +111,7 @@ class ASTPrologPredicate(
         }
 
         if (isSealed) {
-            throw PredicateNotDynamicException(indicator)
+            throw PredicateNotDynamicException(fqIndicator)
         }
 
         _clauses.add(clause)

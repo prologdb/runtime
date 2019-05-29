@@ -1,12 +1,12 @@
 package com.github.prologdb.runtime.builtin.dict
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativePredicate
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
 
-internal val GetDictBuiltin = nativePredicate("get_dict", 3) { args, ctxt ->
+internal val GetDictBuiltin = nativeRule("get_dict", 3) { args, ctxt ->
     val keyArg = args[0]
     val dictArg = args[1]
     val valueArg = args[2]

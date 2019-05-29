@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativePredicate
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.term.Variable
 /**
  * length(++List, :Length)
  */
-internal val LengthBuiltin = nativePredicate("length", 2) { args, ctxt ->
+internal val LengthBuiltin = nativeRule("length", 2) { args, ctxt ->
     val arg0 = args[0]
     val arg1 = args[1]
 

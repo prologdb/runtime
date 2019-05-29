@@ -1,11 +1,11 @@
 package com.github.prologdb.runtime.builtin.string
 
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.nativePredicate
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 
-internal val BuiltinAtomString = nativePredicate("atom_string", 2) { args, context ->
+internal val BuiltinAtomString = nativeRule("atom_string", 2) { args, context ->
     val inputForA = args[0]
     val inputForB = args[1]
 

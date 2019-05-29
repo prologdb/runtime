@@ -3,10 +3,7 @@ package com.github.prologdb.runtime.module
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
-import com.github.prologdb.runtime.proofsearch.Authorization
-import com.github.prologdb.runtime.proofsearch.PrologCallable
-import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -42,10 +39,12 @@ class ModuleScopeProofSearchContext(
         when (goal.functor) {
             "assert", "assertz" -> {
                 assertz(goal.arguments)
+                yield(Unification.TRUE)
                 return
             }
             "abolish" -> {
                 abolish(goal.arguments)
+                yield(Unification.TRUE)
                 return
             }
             "retract", "retractAll" -> {
@@ -107,10 +106,16 @@ class ModuleScopeProofSearchContext(
 
         val clause = args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause")
 
-        val fqIndicator = FullyQualifiedClauseIndicator(module.name, ClauseIndicator.of(clause))
-        if (!authorization.mayWrite(fqIndicator)) throw PrologPermissionError("Not allowed to assert $fqIndicator")
+        val simpleIndicator = ClauseIndicator.of(clause)
 
-        throw PrologRuntimeException("assertz/1 is not fully implemented yet.")
+        val (fqIndicator, callable) = resolveCallable(simpleIndicator)
+            ?: throw PrologRuntimeException("Predicate $simpleIndicator is not known")
+
+        if (callable is DynamicPrologPredicate) {
+            callable.assertz(clause)
+        } else {
+            throw PredicateNotDynamicException(fqIndicator)
+        }
     }
 
     private fun abolish(args: Array<out Term>) {
