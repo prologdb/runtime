@@ -62,7 +62,7 @@ interface DynamicPrologPredicate : PrologPredicate {
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
     private val declaringModule: Module
-) : DynamicPrologPredicate {
+) : DynamicPrologPredicate, DelegatableCallable {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
 
@@ -72,6 +72,11 @@ class ASTPrologPredicate(
     override val fqIndicator = FullyQualifiedClauseIndicator(declaringModule.name, indicator)
 
     private val modificationListeners: MutableSet<PredicateModificationListener> = Collections.newSetFromMap(ConcurrentHashMap())
+
+    @Volatile
+    private var currentDelegate: PrologCallable? = null
+    @Volatile
+    private var dropDelegateOnModification: Boolean = false
 
     /**
      * Set to true by [seal] (e.g. by `compile_predicates/1`).
@@ -87,20 +92,23 @@ class ASTPrologPredicate(
     override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, invocationCtxt ->
         val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
 
-        for (clause in clauses) {
-            if (clause is CompoundTerm) {
-                val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(clause.arguments, VariableMapping())
-                val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
-                if (unification != null) {
-                    unification.variableValues.retainAll(arguments.variables)
-                    yield(unification)
+        val delegate = currentDelegate
+        if (delegate != null) {
+            delegate.fulfill.invoke(this, arguments, ctxt)
+        } else {
+            for (clause in clauses) {
+                if (clause is CompoundTerm) {
+                    val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(clause.arguments, VariableMapping())
+                    val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
+                    if (unification != null) {
+                        unification.variableValues.retainAll(arguments.variables)
+                        yield(unification)
+                    }
+                } else if (clause is Rule) {
+                    clause.fulfill(this, arguments, ctxt)
+                } else {
+                    throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
                 }
-            }
-            else if (clause is Rule) {
-                clause.fulfill(this, arguments, ctxt)
-            }
-            else {
-                throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
             }
         }
     }
@@ -143,6 +151,10 @@ class ASTPrologPredicate(
     }
 
     private fun fireClauseAddedEvent(clause: Clause) {
+        if (dropDelegateOnModification) {
+            currentDelegate = null
+        }
+
         val event = ClauseAddedToPredicateEvent(this, clause)
         for (listener in modificationListeners) {
             listener(event)
@@ -150,6 +162,10 @@ class ASTPrologPredicate(
     }
 
     private fun fireClauseRetraced(clause: Clause) {
+        if (dropDelegateOnModification) {
+            currentDelegate = null
+        }
+
         val event = ClauseRetractedFromPredicateEvent(this, clause)
         for (listener in modificationListeners) {
             listener(event)
@@ -162,6 +178,16 @@ class ASTPrologPredicate(
 
     override fun removeModificationListener(listener: PredicateModificationListener) {
         modificationListeners.remove(listener)
+    }
+
+    override fun setDelegate(delegate: PrologCallable, dropOnModification: Boolean) {
+        dropDelegateOnModification = dropOnModification
+        currentDelegate = delegate
+    }
+
+    override fun dropDelegate() {
+        currentDelegate = null
+        dropDelegateOnModification = false
     }
 }
 
