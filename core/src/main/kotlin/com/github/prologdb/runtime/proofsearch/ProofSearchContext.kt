@@ -4,8 +4,8 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -25,10 +25,7 @@ interface ProofSearchContext {
 
     val authorization: Authorization
 
-    /**
-     * The modules available in the root runtime environment.
-     */
-    val rootAvailableModules: Map<String, Module>
+    val runtime: PrologRuntimeEnvironment
 
     /**
      * Starts a proof search on the given query. Solutions will be [LazySequenceBuilder.yield]ed onto the

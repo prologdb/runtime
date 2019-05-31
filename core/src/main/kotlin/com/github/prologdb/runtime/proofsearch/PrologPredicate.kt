@@ -61,7 +61,7 @@ interface DynamicPrologPredicate : PrologPredicate {
  */
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
-    private val declaringModule: Module
+    val declaringModule: Module
 ) : DynamicPrologPredicate, DelegatableCallable {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses

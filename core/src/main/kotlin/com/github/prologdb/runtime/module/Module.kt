@@ -1,10 +1,7 @@
 package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Authorization
@@ -36,12 +33,12 @@ interface Module {
             deriveFrom.principal,
             deriveFrom.randomVariableScope,
             deriveFrom.authorization,
-            deriveFrom.rootAvailableModules
+            deriveFrom.runtime
         )
     }
 
     fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
-                                 authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext
+                                 authorization: Authorization, runtime: PrologRuntimeEnvironment): ProofSearchContext
 }
 
 data class ModuleReference(
@@ -207,14 +204,14 @@ class ASTModule(
     }
 
     override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
-                                          authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
+                                          authorization: Authorization, runtime: PrologRuntimeEnvironment): ProofSearchContext {
         return ModuleScopeProofSearchContext(
             this,
             this.allDeclaredPredicates,
             principal,
             randomVariableScope,
             authorization,
-            rootAvailableModules
+            runtime
         )
     }
 }

@@ -28,10 +28,8 @@ class ModuleScopeProofSearchContext(
     override val principal: Principal,
     override val randomVariableScope: RandomVariableScope,
     override val authorization: Authorization,
-    override val rootAvailableModules: Map<String, Module>
+    override val runtime: PrologRuntimeEnvironment
 ) : ProofSearchContext, AbstractProofSearchContext() {
-
-
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
         val goal = query.goal
 
@@ -71,7 +69,7 @@ class ModuleScopeProofSearchContext(
     private val importLookupCache: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = mutableMapOf<ClauseIndicator, Pair<ModuleReference, PrologCallable>>().also { importLookupCache ->
         module.imports.asSequence()
             .forEach { import ->
-                val referencedModule = rootAvailableModules[import.moduleReference.moduleName]
+                val referencedModule = runtime.loadedModules[import.moduleReference.moduleName]
                     ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
 
                 val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {

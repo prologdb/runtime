@@ -1,11 +1,11 @@
 package com.github.prologdb.runtime.expression
 
 import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.FullModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
 import io.kotlintest.matchers.haveKey
@@ -345,7 +345,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
 
         val runtimeEnv = PrologRuntimeEnvironment(rootModule, moduleLoader)
 
-        val loadedModules = runtimeEnv.newProofSearchContext().rootAvailableModules
+        val loadedModules = runtimeEnv.newProofSearchContext().runtime.loadedModules
 
         loadedModules should haveKey("A")
         loadedModules should haveKey("B")

@@ -46,7 +46,7 @@ internal val BuiltinCompilePredicates = nativeRule("compile_predicates", 1) { ar
 
     for ((fqIndicator, callable) in fqIndicatorAndCallables) {
         if (callable is ASTPrologPredicate) {
-            tailcallOptimizer.tryOptimize(callable)?.let { optimized ->
+            tailcallOptimizer.tryOptimize(callable, context.runtime)?.let { optimized ->
                 callable.setDelegate(optimized, true)
             }
         }

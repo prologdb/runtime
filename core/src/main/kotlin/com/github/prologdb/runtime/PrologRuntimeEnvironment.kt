@@ -25,11 +25,13 @@ class PrologRuntimeEnvironment(
     /**
      * Maps module names to the loaded [Module]s.
      */
-    private val loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
+    private val _loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
     private val moduleLoadingMutex = Any()
 
+    val loadedModules: Map<String, Module> = Collections.unmodifiableMap(_loadedModules)
+
     init {
-        loadedModules[rootModule.name] = rootModule
+        _loadedModules[rootModule.name] = rootModule
         loadImports(rootModule)
     }
 
@@ -37,10 +39,10 @@ class PrologRuntimeEnvironment(
 
     private fun assureModuleLoaded(reference: ModuleReference) {
         synchronized(moduleLoadingMutex) {
-            val modulePresent = reference.moduleName in loadedModules
+            val modulePresent = reference.moduleName in _loadedModules
             if (modulePresent) return
 
-            val module = loadedModules.computeIfAbsent(reference.moduleName) { moduleLoader.load(reference) }
+            val module = _loadedModules.computeIfAbsent(reference.moduleName) { moduleLoader.load(reference) }
             loadImports(module)
         }
     }
@@ -56,7 +58,7 @@ class PrologRuntimeEnvironment(
             UUID.randomUUID(),
             RandomVariableScope(),
             ReadWriteAuthorization,
-            loadedModules
+            this
         )
     }
 

@@ -186,14 +186,14 @@ class NativeModule(
         return super.deriveScopedProofSearchContext(deriveFrom)
     }
 
-    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
+    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope, authorization: Authorization, runtime: PrologRuntimeEnvironment): ProofSearchContext {
         return ModuleScopeProofSearchContext(
             this,
             exportedPredicates,
             principal,
             randomVariableScope,
             authorization,
-            rootAvailableModules
+            runtime
         )
     }
 }
