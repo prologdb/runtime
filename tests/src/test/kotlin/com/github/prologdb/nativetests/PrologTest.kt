@@ -233,7 +233,7 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
             .map { it.substituteVariables(VariableBucket()) }
 
         val psc = runtime.newProofSearchContext()
-        val results = buildLazySequence(UUID.randomUUID()) {
+        val results = buildLazySequence<Unification>(UUID.randomUUID()) {
             fulfillAllGoals(substitutedGoals, psc, VariableBucket())
         }
 
