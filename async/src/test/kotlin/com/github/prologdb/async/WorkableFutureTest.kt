@@ -294,7 +294,7 @@ class WorkableFutureTest : FreeSpec({
 
     "folding" {
         val principal = RANDOM_PRINCIPAL
-        val foldable = buildLazySequence(principal) {
+        val foldable = buildLazySequence<Int>(principal) {
             yield(1)
             yield(2)
             yield(3)

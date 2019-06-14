@@ -5,9 +5,9 @@ import io.kotlintest.specs.FreeSpec
 
 class FlatMapLazySequenceTest : FreeSpec({
     "1:1" {
-        val sequence = buildLazySequence(RANDOM_PRINCIPAL) {
+        val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foo")
-        }.flatMapRemaining {
+        }.flatMapRemaining<String, String> {
             yield(it + "bar")
         }
 
@@ -16,9 +16,9 @@ class FlatMapLazySequenceTest : FreeSpec({
     }
 
     "1:n" {
-        val sequence = buildLazySequence(RANDOM_PRINCIPAL) {
+        val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foo")
-        }.flatMapRemaining {
+        }.flatMapRemaining<String, String> {
             yield(it + "bar")
             yield(it + "baz")
         }
@@ -29,10 +29,10 @@ class FlatMapLazySequenceTest : FreeSpec({
     }
 
     "n:1" {
-        val sequence = buildLazySequence(RANDOM_PRINCIPAL) {
+        val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("bar")
             yield("baz")
-        }.flatMapRemaining {
+        }.flatMapRemaining<String, String> {
             yield("foo$it")
         }
 
@@ -42,10 +42,10 @@ class FlatMapLazySequenceTest : FreeSpec({
     }
 
     "m:n" {
-        val sequence = buildLazySequence(RANDOM_PRINCIPAL) {
+        val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("bar")
             yield("fuzz")
-        }.flatMapRemaining {
+        }.flatMapRemaining<String, String> {
             yield(it + "foo")
             yield(it + "fizz")
         }
