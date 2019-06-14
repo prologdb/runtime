@@ -7,9 +7,12 @@ val ListsModule = nativeModule("lists") {
     add(MemberBuiltin)
     add(LengthBuiltin)
     add(SortBuiltin)
+    add(BuiltinPredsort3)
     add(Set2Builtin)
     add(Set3Builtin)
 
     add(BuiltinIota3)
     add(BuiltinIota4)
+
+    import("library", "comparison")
 }
