@@ -52,7 +52,7 @@ test "apply/2 with compound" by [
 
 test "apply/2 with lambda" by [
     apply(
-        (_(X) :-
+        (X :-
             X = abc
         ),
         [Out]

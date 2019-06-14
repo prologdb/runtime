@@ -55,7 +55,7 @@ fun Term.tryCastToLambda(): Rule? {
         return null
     }
 
-    val head = this.arguments[0] as? CompoundTerm ?: return null
+    val argumentList = this.arguments[0].commaCompoundToList().toTypedArray()
     val query = (this.arguments[1] as? CompoundTerm ?: return null)?.let {
         try {
             compoundToQuery(it)
@@ -64,5 +64,18 @@ fun Term.tryCastToLambda(): Rule? {
         }
     }
 
-    return Rule(head, query)
+    return Rule(CompoundTerm("_lambda", argumentList), query)
+}
+
+private fun Term.commaCompoundToList(): List<Term> {
+    val list = mutableListOf<Term>()
+    var pivot = this
+    while (pivot is CompoundTerm && pivot.arity == 2 && pivot.functor == ",") {
+        list.add(pivot.arguments[0])
+        pivot = pivot.arguments[1]
+    }
+
+    list.add(pivot)
+
+    return list
 }
