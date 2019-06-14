@@ -7,7 +7,7 @@ import java.util.concurrent.CompletableFuture
 
 class LazySequenceBuilderTest : FreeSpec() { init {
     "yield - single element" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foobar")
         }
 
@@ -16,7 +16,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yield - multiple elements" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foo")
             yield("bar")
         }
@@ -27,7 +27,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yieldAll - single element" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yieldAll(buildLazySequence(principal) {
                 yield("foobar")
             })
@@ -38,7 +38,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yieldAll - multiple elements" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
@@ -51,7 +51,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yield then yieldAll" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("baz")
 
             yieldAll(buildLazySequence(principal) {
@@ -67,7 +67,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yieldAll then yield" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
@@ -82,7 +82,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     }
 
     "yield then yieldAll then yield" {
-        val seq = buildLazySequence(RANDOM_PRINCIPAL) {
+        val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("beep")
             yieldAll(buildLazySequence(principal) {
                 yield("foo")

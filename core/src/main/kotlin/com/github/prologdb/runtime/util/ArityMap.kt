@@ -1,7 +1,6 @@
 package com.github.prologdb.runtime.util
 
 import java.util.concurrent.atomic.AtomicReferenceArray
-import kotlin.coroutines.experimental.buildSequence
 
 /**
  * A simplified [Map]<Integer,T>, thread safe.
@@ -35,7 +34,7 @@ open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
             }
         }
 
-    val arities: Iterable<Int> = buildSequence {
+    val arities: Iterable<Int> = sequence {
         (0 until items.length())
             .filter { items[it] != null }
             .forEach { yield(it) }

@@ -2,7 +2,7 @@ package com.github.prologdb.async
 
 import java.util.concurrent.CancellationException
 import java.util.concurrent.Future
-import kotlin.coroutines.experimental.RestrictsSuspension
+import kotlin.coroutines.RestrictsSuspension
 
 /**
  * Resembles the work needed to compute a result which is split into multiple

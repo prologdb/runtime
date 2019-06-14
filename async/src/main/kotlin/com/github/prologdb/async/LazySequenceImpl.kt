@@ -3,7 +3,7 @@ package com.github.prologdb.async
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
-import kotlin.coroutines.experimental.*
+import kotlin.coroutines.*
 
 internal class LazySequenceImpl<T>(override val principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit) : LazySequence<T> {
     /**
@@ -64,13 +64,13 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
     private val onComplete = object : Continuation<Unit> {
         override val context: CoroutineContext = EmptyCoroutineContext
 
-        override fun resume(value: Unit) {
-            innerState = InnerState.DEPLETED
-        }
-
-        override fun resumeWithException(exception: Throwable) {
-            error = exception
-            innerState = InnerState.FAILED
+        override fun resumeWith(result: Result<Unit>) {
+            if (result.isSuccess) {
+                innerState = InnerState.DEPLETED
+            } else {
+                error = result.exceptionOrNull()!!
+                innerState = InnerState.FAILED
+            }
         }
     }
 

@@ -4,29 +4,29 @@ import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.experimental.*
+import kotlin.coroutines.*
 
 class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
     private val onComplete = object : Continuation<T> {
         override val context: CoroutineContext = EmptyCoroutineContext
 
-        override fun resume(value: T) {
-            synchronized(mutex) {
-                result = value!!
-                state = State.COMPLETED
+        override fun resumeWith(result: Result<T>) {
+            try {
+                synchronized(mutex) {
+                    if (result.isSuccess) {
+                        this@WorkableFutureImpl.result = result.getOrNull()
+                        state = State.COMPLETED
+                    } else {
+                        synchronized(mutex) {
+                            error = result.exceptionOrNull()!!
+                            state = State.COMPLETED
+                        }
+                    }
+                }
+            } finally {
+                tearDown()
             }
-
-            tearDown()
-        }
-
-        override fun resumeWithException(exception: Throwable) {
-            synchronized(mutex) {
-                error = exception
-                state = State.COMPLETED
-            }
-
-            tearDown()
         }
     }
 
