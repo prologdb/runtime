@@ -2,6 +2,8 @@
 :- use_module(library(dynamics)).
 :- use_module(library(typesafety)).
 
+testPred(X, Y) :- X = abc, Y = def.
+
 testPred(X) :- X = abc.
 
 testPred() :- 1 = 1.
@@ -26,4 +28,35 @@ test "compound_name_arguments construct" by [
     compound_name_arguments(C, functor, [arg1, arg2]),
     nonvar(C),
     C = functor(arg1, arg2)
+].
+
+test "apply/2 with atom" by [
+    apply(testPred, [X]),
+    nonvar(X),
+    X = abc
+].
+
+test "apply/2 with empty compound" by [
+    apply(testPred(), [X]),
+    nonvar(X),
+    X = abc
+].
+
+test "apply/2 with compound" by [
+    apply(testPred(X), [Y]),
+    nonvar(X),
+    nonvar(Y),
+    X = abc,
+    Y = def
+].
+
+test "apply/2 with lambda" by [
+    apply(
+        (_(X) :-
+            X = abc
+        ),
+        [Out]
+    ),
+    nonvar(Out),
+    Out = abc
 ].
