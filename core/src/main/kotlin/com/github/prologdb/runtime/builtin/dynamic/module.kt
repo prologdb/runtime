@@ -11,6 +11,7 @@ val DynamicsModule = nativeModule("dynamics") {
     add(BuiltinFindAll)
     add(BuiltinFindAllOptimized)
     add(BuiltinCompilePredicates)
+    add(BuiltinCall1)
 }
 
 /**
