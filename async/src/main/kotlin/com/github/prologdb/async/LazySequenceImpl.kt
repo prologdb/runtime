@@ -186,9 +186,7 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
                                     ex
                                 } ?: RuntimeException("Sub-Sequence reported state FAILED but tryAdvance() did not throw.")
 
-                                error = ex
-                                innerState = InnerState.FAILED
-                                currentSubSequence = null
+                                continuation.resumeWithException(ex)
                             }
                             else -> { /* all good, go on */ }
                         }

@@ -315,4 +315,49 @@ class WorkableFutureTest : FreeSpec({
         future.step() shouldBe true
         future.get() shouldBe 1 + 2 + 3 + 5 + 102 + 4
     }
+
+    "rethrow in folding" {
+        val ex = RuntimeException("Some fancy exception")
+
+        val future = WorkableFutureImpl(RANDOM_PRINCIPAL) {
+            try {
+                return@WorkableFutureImpl foldRemaining(
+                    buildLazySequence<Unit>(principal) {
+                        throw ex
+                    },
+                    Unit,
+                    { _, _ -> Unit }
+                )
+            } catch (ex: RuntimeException) {
+                throw RuntimeException("Rethrow", ex)
+            }
+        }
+
+        val thrown = shouldThrow<RuntimeException> {
+            future.get()
+        }
+
+        thrown.message shouldBe "Rethrow"
+        thrown.cause shouldBe ex
+    }
+
+    "recover in folding" {
+        val ex = RuntimeException("Some fancy exception")
+
+        val future = launchWorkableFuture(RANDOM_PRINCIPAL) {
+            try {
+                foldRemaining(
+                    buildLazySequence<Unit>(principal) {
+                        throw ex
+                    },
+                    2,
+                    { _, _ -> 2 }
+                )
+            } catch (ex: RuntimeException) {
+                1
+            }
+        }
+
+        future.get() shouldBe 1
+    }
 })

@@ -18,10 +18,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                         this@WorkableFutureImpl.result = result.getOrNull()
                         state = State.COMPLETED
                     } else {
-                        synchronized(mutex) {
-                            error = result.exceptionOrNull()!!
-                            state = State.COMPLETED
-                        }
+                        error = result.exceptionOrNull()!!
+                        state = State.COMPLETED
                     }
                 }
             } finally {
@@ -135,8 +133,11 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
         do {
             step()
             when(state) {
+                State.RUNNING -> { /* do nothing, keep looping */
+                }
+                State.FOLDING_SEQUENCE -> { /* do nothing, keep looping */
+                }
                 State.COMPLETED -> return result ?: throw error!!
-                State.RUNNING -> { /* do nothing, keep looping */ }
                 State.WAITING_ON_FUTURE -> {
                     try {
                         currentWaitingFuture!!.get()
@@ -146,15 +147,10 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                          * the next iteration will call step()
                          * step() will detect that the future is
                          * completed and update the state accordingly
-                         * the CANCELLED branch of this when() will
+                         * the COMPLETED branch of this when() will
                          * pick that up
                          */
                     }
-                }
-                State.FOLDING_SEQUENCE -> {
-                    // the suspend fun will call tryAdvance() and thus do
-                    // all work necessary.
-                    continuation.resume(Unit)
                 }
             }
         } while (true)
