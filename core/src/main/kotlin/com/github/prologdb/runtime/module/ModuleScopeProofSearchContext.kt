@@ -32,7 +32,7 @@ class ModuleScopeProofSearchContext(
 ) : ProofSearchContext, AbstractProofSearchContext() {
 
 
-    override suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
+    override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
         val goal = query.goal
 
         // attempt core builtin
@@ -60,9 +60,9 @@ class ModuleScopeProofSearchContext(
         return
     }
 
-    override fun getStackTraceElementOf(goal: CompoundTerm) = PrologStackTraceElement(
-        goal,
-        if (goal is HasPrologSource) goal.sourceInformation else NullSourceInformation,
+    override fun getStackTraceElementOf(query: PredicateInvocationQuery) = PrologStackTraceElement(
+        query.goal,
+        if (query.goal is HasPrologSource) query.goal.sourceInformation else query.sourceInformation,
         module
     )
 

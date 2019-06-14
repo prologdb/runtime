@@ -3,13 +3,13 @@ package com.github.prologdb.runtime.proofsearch
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.prologTry
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -75,10 +75,16 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
         }
     }
 
-    protected abstract suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket)
+    private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
+        prologTry({ getStackTraceElementOf(query) }) {
+            doInvokePredicate(query, variables)
+        }
+    }
 
-    protected open fun getStackTraceElementOf(goal: CompoundTerm): PrologStackTraceElement = PrologStackTraceElement(
-        goal,
-        if (this is HasPrologSource) sourceInformation else NullSourceInformation
+    protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket)
+
+    protected open fun getStackTraceElementOf(query: PredicateInvocationQuery): PrologStackTraceElement = PrologStackTraceElement(
+        query.goal,
+        if (query.goal is HasPrologSource) query.goal.sourceInformation else query.sourceInformation
     )
 }

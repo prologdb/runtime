@@ -53,7 +53,7 @@ private val builtinArgumentVariables = arrayOf(
     Variable("_Arg4"),
     Variable("_Arg5"),
     Variable("_Arg6"),
-    Variable("-Arg7"),
+    Variable("_Arg7"),
     Variable("_Arg8"),
     Variable("_Arg9")
 )
