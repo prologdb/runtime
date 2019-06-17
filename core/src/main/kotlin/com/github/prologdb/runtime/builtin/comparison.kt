@@ -24,14 +24,14 @@ val BuiltinTermGreaterThanOrEqual = nativeRule("@>=", 2) { args, _ ->
 }
 
 private val AtomLessThan = Atom("<")
-private val AtomGreaterThan = Atom("<")
+private val AtomGreaterThan = Atom(">")
 private val AtomEqual = Atom("=")
 val BuiltinCompare = nativeRule("compare", 3) { args, ctxt ->
     val inputForOrder = args[0]
 
     val actualOrder = when {
-        args[0] > args[1] -> AtomGreaterThan
-        args[0] < args[1] -> AtomLessThan
+        args[1] > args[2] -> AtomGreaterThan
+        args[1] < args[2] -> AtomLessThan
         else              -> AtomEqual
     }
 

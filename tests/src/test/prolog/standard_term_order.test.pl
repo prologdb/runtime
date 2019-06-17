@@ -83,3 +83,21 @@ test "integer compared to decimal: compared as decimal" by [
     % in case of equality, the float is always considered less
     10000000000000004.0 @< 10000000000000003
 ].
+
+% ------------------------------
+
+test "compare integers" by [
+    2 @> 1
+].
+
+test "compare floats" by [
+    3.2 @> 2.9
+].
+
+test "compare atom" by [
+    x @> t
+].
+
+test "empty list is less than with content" by [
+    [] @< [z]
+].
