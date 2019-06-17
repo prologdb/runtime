@@ -171,15 +171,22 @@ class ASTModule(
 ) : Module {
     private val allDeclaredPredicates: Map<ClauseIndicator, PrologCallable>
     init {
-        allDeclaredPredicates = givenClauses.asSequence()
+        val _allDeclaredPredicates = givenClauses.asSequence()
             .groupingBy { ClauseIndicator.of(it) }
-            .fold(
+            .foldTo(
+                HashMap(),
                 { indicator, _ -> ASTPrologPredicate(indicator, this) },
                 { _, astPredicate, clause ->
                     astPredicate.assertz(clause)
                     astPredicate
                 }
             )
+
+        for (dynamicClauseIndicator in dynamicPredicates) {
+            _allDeclaredPredicates.computeIfAbsent(dynamicClauseIndicator) { indicator -> ASTPrologPredicate(indicator, this) }
+        }
+
+        allDeclaredPredicates = _allDeclaredPredicates
 
         allDeclaredPredicates.values.forEach {
             if (it.indicator !in dynamicPredicates) {
