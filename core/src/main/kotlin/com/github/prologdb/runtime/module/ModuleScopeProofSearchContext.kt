@@ -52,7 +52,9 @@ class ModuleScopeProofSearchContext(
             }
         }
 
-        val (fqIndicator, callable) = resolveCallable(ClauseIndicator.of(goal)) ?: return
+        val simpleIndicator = ClauseIndicator.of(goal)
+        val (fqIndicator, callable) = resolveCallable(simpleIndicator)
+            ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${module.name}")
 
         if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read $fqIndicator")
 
