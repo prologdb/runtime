@@ -146,11 +146,7 @@ open class PrologString private constructor(
     }
 
     override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
-        val escaped = toKotlinString()
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-
-        return '"' + escaped + '"'
+        return toString()
     }
 
     override fun toString(): String {

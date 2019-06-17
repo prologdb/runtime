@@ -1,5 +1,7 @@
 :- use_module(library(equality)).
 
+fact(_) :- 1 = 0.
+
 test "negation - argument is false" by [
     not(fact(arg))
 ].

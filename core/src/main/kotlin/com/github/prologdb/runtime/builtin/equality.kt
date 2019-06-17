@@ -1,9 +1,6 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.proofsearch.Rule
-import com.github.prologdb.runtime.module.ASTModule
-import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
@@ -22,53 +19,36 @@ val BuiltinNot = nativeRule("not", 1) { args, context ->
     if (!hasProof) yield(Unification.TRUE) // this is the core logic here
 }
 
+val BuiltinNotOperator = nativeRule("\\+", 1) { args, context ->
+    BuiltinNot.fulfill(this, args, context)
+}
+
+val BuiltinUnity = nativeRule("=", 2) { args, context ->
+    args[0].unify(args[1], context.randomVariableScope)?.let { yield(it) }
+}
+
+val BuiltinNegatedUnity = nativeRule("\\=", 2) { args, context ->
+    if (args[0].unify(args[1], context.randomVariableScope) == Unification.FALSE) {
+        yield(Unification.TRUE)
+    }
+}
+
 val BuiltinIdentity = nativeRule("==", 2) { args, _ ->
     if (args[0] == args[1]) yield(Unification.TRUE)
 }
 
-private val equalityClauses = listOf(
-    // =(X, X)
-    CompoundTerm("=", arrayOf(X, X)),
-
-    BuiltinNot,
-
-    // \+/1
-    Rule(
-        CompoundTerm("\\+", arrayOf(A)),
-        PredicateInvocationQuery(
-            CompoundTerm("not", arrayOf(A))
-        )
-    ),
-
-    // \=(A, B) :- not(=(A, B)).
-    Rule(
-        CompoundTerm("\\=", arrayOf(A, B)),
-        PredicateInvocationQuery(
-            CompoundTerm("not", arrayOf(
-                CompoundTerm("=", arrayOf(A, B))
-            ))
-        )
-    ),
-
-    BuiltinIdentity,
-
-    Rule(
-        CompoundTerm("\\==", arrayOf(A, B)),
-        PredicateInvocationQuery(
-            CompoundTerm("not", arrayOf(
-                CompoundTerm("==", arrayOf(A, B))
-            ))
-        )
-    )
-)
+val BuiltinNegatedIdentityOperator = nativeRule("\\==", 2) { args, _ ->
+    if (args[0] != args[1]) yield(Unification.TRUE)
+}
 
 /**
  * Defines the ISO equality and inequality predicates and operators.
  */
-val EqualityModule = ASTModule(
-    "equality",
-    emptyList(),
-    equalityClauses,
-    emptySet(),
-    equalityClauses.map { ClauseIndicator.of(it) }.toSet()
-)
+val EqualityModule = nativeModule("equality") {
+    add(BuiltinUnity)
+    add(BuiltinNegatedUnity)
+    add(BuiltinNot)
+    add(BuiltinNotOperator)
+    add(BuiltinIdentity)
+    add(BuiltinNegatedIdentityOperator)
+}
