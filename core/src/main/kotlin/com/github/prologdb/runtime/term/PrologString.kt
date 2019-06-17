@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.util.ImmutableSubList
+import com.github.prologdb.runtime.util.OperatorRegistry
 import kotlin.math.min
 
 /**
@@ -135,11 +136,21 @@ open class PrologString private constructor(
      * result in an equal string).
      */
     fun toKotlinString(): String {
-        return kotlinString ?: {
+        if (kotlinString == null) {
             val sb = StringBuilder(length)
             characters.forEach { sb.append(it) }
-            sb.toString()
-        }()
+            kotlinString = sb.toString()
+        }
+
+        return kotlinString!!
+    }
+
+    override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
+        val escaped = toKotlinString()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+
+        return '"' + escaped + '"'
     }
 
     override fun toString(): String {
