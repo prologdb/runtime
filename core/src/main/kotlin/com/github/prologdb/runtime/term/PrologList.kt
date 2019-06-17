@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
+import kotlin.math.min
 
 open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term {
 
@@ -141,20 +142,31 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
         if (other is PrologList) {
             // arity equal and functor name are equal, sort by elements
-            if (this.elements.isEmpty() && other.elements.isEmpty()) {
-                return 0
+            if (this.elements.isEmpty()) {
+                return if (other.elements.isEmpty()) 0 else -1
             }
 
-            // empty lists are lesser than non-empty lists
-            if (this.elements.isEmpty() && other.elements.isNotEmpty()) {
-                return -1
-            }
-            else if (this.elements.isNotEmpty() && other.elements.isEmpty()) {
-                return 1
+            // in ISO prolog, lists are trees of ./2 and now compared by elements
+            // which means that in case of an element tie the tails are compared
+
+            val comparableElementCount = min(this.elements.size, other.elements.size)
+
+            for (i in 0 until comparableElementCount) {
+                val elementResult = this.elements[i].compareTo(other.elements[i])
+                if (elementResult != 0) {
+                    return elementResult
+                }
             }
 
-            // both lists have at least one element at this point
-            return this.elements[0].compareTo(other.elements[1])
+            if (this.tail != null && other.tail != null) {
+                return this.tail.compareTo(other.tail)
+            }
+
+            // variables are always less than lists
+            val thisTailValue = if (this.tail == null) 1 else 0 // no tail => empty list, which is more than given tail (variable)
+            val otherTailValue = if (other.tail == null) 1 else 0
+
+            return thisTailValue - otherTailValue
         }
 
         if (other !is CompoundTerm && other !is PrologDictionary) throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list, compound term or dict)")

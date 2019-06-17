@@ -101,3 +101,15 @@ test "compare atom" by [
 test "empty list is less than with content" by [
     [] @< [z]
 ].
+
+test "lists are compared by elements" by [
+    [1, 3, 90, 1000] @> [1, 3, 90, 500]
+].
+
+test "compare lists: tail doesnt matter if elements can decide" by [
+    [1, 1 | T] @< [1, 1000 | Z]
+].
+
+test "compare lists: tail decides in case of elements tie" by [
+    [1, 1 | T] @< [1, 1 | Z]
+].
