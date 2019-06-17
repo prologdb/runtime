@@ -22,32 +22,30 @@ internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
         throw PrologRuntimeException("Argument 2 to predsort/3 must not have a tail")
     }
 
-    val comparator = object : Comparator<Term> {
-        override fun compare(termA: Term, termB: Term): Int {
-            val comparatorResultSequence = buildLazySequence<Unification>(ctxt.principal) {
-                BuiltinApply2.fulfill(this, arrayOf(prologComparator, Delta, termA, termB), ctxt)
-            }
+    val comparator = Comparator<Term> { termA, termB ->
+        val comparatorResultSequence = buildLazySequence<Unification>(ctxt.principal) {
+            BuiltinApply2.fulfill(this, arrayOf(prologComparator, PrologList(listOf(Delta, termA, termB))), ctxt)
+        }
 
-            val firstResult = comparatorResultSequence.tryAdvance()
-            comparatorResultSequence.close()
+        val firstResult = comparatorResultSequence.tryAdvance()
+        comparatorResultSequence.close()
 
-            if (firstResult == null) {
-                throw PrologRuntimeException("Comparator predicate did not yield a solution.")
-            }
+        if (firstResult == null) {
+            throw PrologRuntimeException("Comparator predicate did not yield a solution.")
+        }
 
-            if (!firstResult.variableValues.isInstantiated(Delta)) {
-                throw PrologRuntimeException("Comparator predicate did not instantiate first argument")
-            }
+        if (!firstResult.variableValues.isInstantiated(Delta)) {
+            throw PrologRuntimeException("Comparator predicate did not instantiate first argument")
+        }
 
-            val delta = firstResult.variableValues[Delta] as? Atom
-                ?: throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
+        val delta = firstResult.variableValues[Delta] as? Atom
+            ?: throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
 
-            return when (delta.name) {
-                "<" -> -1
-                "=" -> 0
-                ">" -> 1
-                else -> throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
-            }
+        when (delta.name) {
+            "<" -> -1
+            "=" -> 0
+            ">" -> 1
+            else -> throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
         }
     }
 
