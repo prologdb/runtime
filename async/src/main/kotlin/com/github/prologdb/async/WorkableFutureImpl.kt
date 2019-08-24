@@ -16,13 +16,12 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 synchronized(mutex) {
                     if (result.isSuccess) {
                         this@WorkableFutureImpl.result = result.getOrNull()
-                        state = State.COMPLETED
                     } else {
                         error = result.exceptionOrNull()!!
-                        state = State.COMPLETED
                     }
                 }
             } finally {
+                state = State.COMPLETED
                 tearDown()
             }
         }

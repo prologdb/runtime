@@ -57,7 +57,6 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <configuration>
-                    <experimentalCoroutines>enable</experimentalCoroutines>
                     <jvmTarget>1.8</jvmTarget>
                 </configuration>
                 <executions>

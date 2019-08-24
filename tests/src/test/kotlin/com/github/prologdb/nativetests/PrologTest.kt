@@ -191,7 +191,6 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
 
         var goalHadAnySolutions = false
         buildLazySequence<Unification>(context.principal) {
-            val x = testName
             context.fulfillAttach(this, goal, VariableBucket())
         }
             .forEachRemaining { goalUnification ->
