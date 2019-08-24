@@ -111,11 +111,11 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
         }
     }
 
-    fun behavesSemiDeterministicIf(condition: Array<TermConstraint>) {
-        require(condition.size == arity)
+    fun behavesSemiDeterministicIf(vararg conditions: TermConstraint) {
+        require(conditions.size == arity)
 
         behaviourConstraints.computeIfAbsent(DeterminismLevel.SEMI_DETERMINISTIC, { mutableListOf() }).add(
-            InvocationConstraint(condition)
+            InvocationConstraint(conditions)
         )
     }
 }

@@ -17,28 +17,40 @@ val BuiltinNot = nativeRule("not", 1) { args, context ->
     proofSequence.close()
 
     if (!hasProof) yield(Unification.TRUE) // this is the core logic here
+}.apply {
+    behavesSemiDeterministic()
 }
 
 val BuiltinNotOperator = nativeRule("\\+", 1) { args, context ->
     BuiltinNot.fulfill(this, args, context)
+}.apply {
+    behavesSemiDeterministic()
 }
 
 val BuiltinUnity = nativeRule("=", 2) { args, context ->
     args[0].unify(args[1], context.randomVariableScope)?.let { yield(it) }
+}.apply {
+    behavesSemiDeterministic()
 }
 
 val BuiltinNegatedUnity = nativeRule("\\=", 2) { args, context ->
     if (args[0].unify(args[1], context.randomVariableScope) == Unification.FALSE) {
         yield(Unification.TRUE)
     }
+}.apply {
+    behavesSemiDeterministic()
 }
 
 val BuiltinIdentity = nativeRule("==", 2) { args, _ ->
     if (args[0] == args[1]) yield(Unification.TRUE)
+}.apply {
+    behavesSemiDeterministic()
 }
 
 val BuiltinNegatedIdentityOperator = nativeRule("\\==", 2) { args, _ ->
     if (args[0] != args[1]) yield(Unification.TRUE)
+}.apply {
+    behavesSemiDeterministic()
 }
 
 /**

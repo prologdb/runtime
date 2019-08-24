@@ -25,33 +25,45 @@ val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
 
         if (correct) yield(Unification.TRUE)
     }
+}.apply {
+    behavesSemiDeterministic()
 }
+
 val TypeSafetyModule = nativeModule("typesafety") {
     // all of these are /1 tests
-    add(typeCheckBuiltin("atom") { it is Atom })
+    add(typeCheckBuiltin<Atom>("atom"))
 
-    add(typeCheckBuiltin("integer") { it is PrologInteger })
-    add(typeCheckBuiltin("decimal") { it is PrologDecimal })
-    add(typeCheckBuiltin("number") { it is PrologNumber })
+    add(typeCheckBuiltin<PrologInteger>("integer"))
+    add(typeCheckBuiltin<PrologDecimal>("decimal"))
+    add(typeCheckBuiltin<PrologNumber>("number"))
 
-    add(typeCheckBuiltin("string") { it is PrologString })
+    add(typeCheckBuiltin<PrologString>("string"))
 
-    add(typeCheckBuiltin("is_list") { it is PrologList })
+    add(typeCheckBuiltin<PrologList>("is_list"))
 
-    add(typeCheckBuiltin("var") { it is Variable })
-    add(typeCheckBuiltin("nonvar") { it !is Variable })
+    add(typeCheckBuiltin<Variable>("var"))
+    add(typeCheckBuiltin<Variable>("nonvar", negated = true))
 
-    add(typeCheckBuiltin("ground") { it.variables.isEmpty() })
-    add(typeCheckBuiltin("nonground") { it.variables.isNotEmpty() })
+    add(testingBuiltin("ground") { it.variables.isEmpty() })
+    add(testingBuiltin("nonground") { it.variables.isNotEmpty() })
 
     add(TypeofBuiltin)
 }
+
+private inline fun <reified T : Term> typeCheckBuiltin(name: String, negated: Boolean = false)  = typeCheckBuiltin(name, T::class.java, negated)
 
 /**
  * @return a clause with the given functor and arity 1 that succeeds if the first argument passes
  * the given predicate.
  */
-private fun typeCheckBuiltin(name: String, test: (Term) -> Boolean): Rule {
+private fun typeCheckBuiltin(name: String, type: Class<out Term>, negated: Boolean): Rule {
+    return nativeRule(name, 1, getInvocationStackFrame(), if (negated)
+        { args, _ -> if (type.isInstance(args[0])) yield(Unification.TRUE) }
+        else { args, _ -> if (!type.isInstance(args[0])) yield(Unification.TRUE) }
+    )
+}
+
+private fun testingBuiltin(name: String, test: (Term) -> Boolean): Rule {
     return nativeRule(name, 1, getInvocationStackFrame()) { args, _ ->
         if (test(args[0])) yield(Unification.TRUE)
     }
