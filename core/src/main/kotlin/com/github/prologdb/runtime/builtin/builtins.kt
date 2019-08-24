@@ -3,6 +3,10 @@ package com.github.prologdb.runtime.builtin
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.InvocationConstraint
+import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
+import com.github.prologdb.runtime.analyzation.constraint.TermConstraint
 import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -67,9 +71,11 @@ private val nativeCodeQuery = PredicateInvocationQuery(CompoundTerm("__nativeCod
 class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation) : Rule(
     CompoundTerm(name, builtinArgumentVariables.sliceArray(0 until arity)),
     nativeCodeQuery
-) {
+), BehaviourExposingPrologCallable {
     private val invocationStackFrame = definedAt
     private val stringRepresentation = """$head :- __nativeCode("${invocationStackFrame.fileName}:${invocationStackFrame.lineNumber}")"""
+
+    private val behaviourConstraints = mutableMapOf<DeterminismLevel, MutableList<InvocationConstraint>>()
 
     private val builtinStackFrame = PrologStackTraceElement(
         head,
@@ -95,6 +101,23 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
     }
 
     override fun toString() = stringRepresentation
+
+    override fun conditionsForBehaviour(level: DeterminismLevel): List<InvocationConstraint>? = behaviourConstraints[level]
+
+    fun behavesSemiDeterministic() {
+        behaviourConstraints.computeIfAbsent(DeterminismLevel.SEMI_DETERMINISTIC, { mutableListOf() }).also {
+            require(it.isEmpty())
+            it.add(InvocationConstraint(Array(arity) { NoopConstraint }))
+        }
+    }
+
+    fun behavesSemiDeterministicIf(condition: Array<TermConstraint>) {
+        require(condition.size == arity)
+
+        behaviourConstraints.computeIfAbsent(DeterminismLevel.SEMI_DETERMINISTIC, { mutableListOf() }).add(
+            InvocationConstraint(condition)
+        )
+    }
 }
 
 fun nativeRule(name: String, arity: Int, code: PrologBuiltinImplementation): NativeCodeRule {
