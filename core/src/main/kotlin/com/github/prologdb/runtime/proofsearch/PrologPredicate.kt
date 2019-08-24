@@ -2,6 +2,10 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.InvocationConstraint
+import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
+import com.github.prologdb.runtime.analyzation.constraint.unificationConditions
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -62,7 +66,7 @@ interface DynamicPrologPredicate : PrologPredicate {
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
     val declaringModule: Module
-) : DynamicPrologPredicate, DelegatableCallable {
+) : DynamicPrologPredicate, DelegatableCallable, BehaviourExposingPrologCallable {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
 
@@ -155,6 +159,8 @@ class ASTPrologPredicate(
             currentDelegate = null
         }
 
+        behaviourAnalysisResults.clear()
+
         val event = ClauseAddedToPredicateEvent(this, clause)
         for (listener in modificationListeners) {
             listener(event)
@@ -165,6 +171,8 @@ class ASTPrologPredicate(
         if (dropDelegateOnModification) {
             currentDelegate = null
         }
+
+        behaviourAnalysisResults.clear()
 
         val event = ClauseRetractedFromPredicateEvent(this, clause)
         for (listener in modificationListeners) {
@@ -188,6 +196,28 @@ class ASTPrologPredicate(
     override fun dropDelegate() {
         currentDelegate = null
         dropDelegateOnModification = false
+    }
+
+    private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<InvocationConstraint>?>()
+
+    override fun conditionsForBehaviour(level: DeterminismLevel): List<InvocationConstraint>? {
+        return behaviourAnalysisResults.computeIfAbsent(level) {
+            if (level != DeterminismLevel.SEMI_DETERMINISTIC) {
+                return@computeIfAbsent null
+            }
+
+            if (clauses.size == 1 && clauses.first() is CompoundTerm) {
+                return@computeIfAbsent  listOf(InvocationConstraint(Array(arity) { NoopConstraint }))
+            }
+
+            val clauseConditions = clauses.associateWith { clause -> when(clause) {
+                is CompoundTerm -> clause.unificationConditions
+                is Rule -> TODO()
+                else -> throw RuntimeException("Unknown clause type ${clause.javaClass.name}")
+            } }
+
+            return@computeIfAbsent  null
+        }
     }
 }
 
