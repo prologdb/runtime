@@ -274,6 +274,11 @@ public class SolutionExplorerPanel {
 
         Throwable pivot = ex;
         while (pivot != null) {
+            if (!(pivot instanceof PrologException)) {
+                sb.append(pivot.getClass().getSimpleName());
+                sb.append(": ");
+            }
+
             sb.append(pivot.getMessage());
 
             if (pivot instanceof PrologException) {
@@ -286,7 +291,7 @@ public class SolutionExplorerPanel {
                     sb.append("\n\tat ");
                     sb.append(jste.getClassName());
                     sb.append('.');
-                    sb.append(jste.getLineNumber());
+                    sb.append(jste.getMethodName());
                     sb.append('(');
                     sb.append(jste.getFileName());
                     sb.append(':');
