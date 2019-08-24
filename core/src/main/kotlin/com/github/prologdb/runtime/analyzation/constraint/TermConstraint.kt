@@ -87,8 +87,15 @@ class TypeCheckConstraint(val type: Class<out Term>) : TermConstraint() {
                     ImpossibleConstraint
                 }
             }
+            is IdentityTermConstraint -> {
+                if (check(other.literal)) other else ImpossibleConstraint
+            }
             is UnionTermConstraint -> other.and(this)
         }
+    }
+
+    companion object {
+        inline operator fun <reified T : Term> invoke() = TypeCheckConstraint(T::class.java)
     }
 }
 
@@ -140,6 +147,9 @@ data class ListConstraint(
                     ImpossibleConstraint
                 }
             }
+        is IdentityTermConstraint -> {
+            if (other.literal is PrologList && check(other.literal)) other else ImpossibleConstraint
+        }
         is TypeCheckConstraint,
         is UnionTermConstraint -> other.and(this)
     }
@@ -147,5 +157,29 @@ data class ListConstraint(
     companion object {
         @JvmStatic
         fun unifiesWith(term: PrologList) = ListConstraint(term.elements.size, term.tail != null)
+    }
+}
+
+/**
+ * The term under inspection must exactly match another term
+ */
+class IdentityTermConstraint(val literal: Term) : TermConstraint() {
+    override fun check(term: Term): Boolean = literal == term
+
+    override fun and(other: TermConstraint): TermConstraint {
+        return when (other) {
+            is NoopConstraint -> this
+            is ImpossibleConstraint -> other
+            is TypeCheckConstraint -> {
+                if (other.type.isInstance(literal)) this else ImpossibleConstraint
+            }
+            is ListConstraint -> {
+                if (other.check(literal)) this else ImpossibleConstraint
+            }
+            is UnionTermConstraint -> other.and(this)
+            is IdentityTermConstraint -> {
+                if (literal == other.literal) this else ImpossibleConstraint
+            }
+        }
     }
 }
