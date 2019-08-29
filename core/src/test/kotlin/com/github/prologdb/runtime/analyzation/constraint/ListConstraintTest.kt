@@ -15,7 +15,7 @@ class ListConstraintTest : FreeSpec({
     val oneListWithTail = PrologList(listOf(someTerm), tail)
 
     "nEntries = 0, moreAllowed = true" - {
-        val constraint = ListConstraint(0, true)
+        val constraint = ListConstraint(emptyList(), true)
 
         "empty list without tail" {
             constraint.check(emptyList) shouldBe true
@@ -39,7 +39,7 @@ class ListConstraintTest : FreeSpec({
     }
 
     "nEntries = 0, more allowed = false" - {
-        val constraint = ListConstraint(0, false)
+        val constraint = ListConstraint(emptyList(), false)
 
         "empty list without tail" {
             constraint.check(emptyList) shouldBe true
@@ -59,7 +59,7 @@ class ListConstraintTest : FreeSpec({
     }
 
     "nEntries = 1, more allowed = true" - {
-        val constraint = ListConstraint(1, true)
+        val constraint = ListConstraint(listOf(NoopConstraint), true)
 
         "empty list without tails" {
             constraint.check(emptyList) shouldBe false

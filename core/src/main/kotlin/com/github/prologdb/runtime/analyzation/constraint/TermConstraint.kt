@@ -2,6 +2,8 @@ package com.github.prologdb.runtime.analyzation.constraint
 
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.util.allIndexed
+import com.github.prologdb.runtime.util.toRandomAccessList
 import kotlin.math.max
 
 sealed class TermConstraint {
@@ -99,11 +101,8 @@ class TypeCheckConstraint(val type: Class<out Term>) : TermConstraint() {
     }
 }
 
-data class ListConstraint(
-    /**
-     * The list must have at least as many elements.
-     */
-    val nEntries: Int,
+class ListConstraint(
+    elementConstraints: List<TermConstraint>,
 
     /**
      * Whether more entries than [nEntries] are allowed.
@@ -111,52 +110,70 @@ data class ListConstraint(
     val moreAllowed: Boolean
 ) : TermConstraint() {
 
-    init {
-        require(nEntries >= 0)
-    }
+    val elementConstraints = elementConstraints.toRandomAccessList()
 
     override fun check(term: Term): Boolean {
         if (term !is PrologList) return false
 
-        if (term.elements.size < nEntries) return false
-        if (!moreAllowed && term.elements.size > nEntries) return false
+        if (term.elements.size < elementConstraints.size) return false
+        if (!moreAllowed && term.elements.size > elementConstraints.size) return false
+
+        return term.elements.allIndexed { index, element -> elementConstraints[index].check(element) }
+    }
+
+    override fun and(other: TermConstraint): TermConstraint {
+        when(other) {
+            is NoopConstraint -> return this
+            is ImpossibleConstraint -> return other
+            is ListConstraint -> {
+                if (other.elementConstraints.size > this.elementConstraints.size) {
+                    return other.and(this)
+                }
+
+                // this' size is always equal to or greater than that of rhs
+
+                if (this.elementConstraints.size > other.elementConstraints.size && !other.moreAllowed) {
+                    return ImpossibleConstraint
+                }
+
+                val resultingElements = ArrayList<TermConstraint>(max(this.elementConstraints.size, other.elementConstraints.size))
+                for (index in 0..this.elementConstraints.lastIndex) {
+                    val otherConstraint = if (index > other.elementConstraints.lastIndex) NoopConstraint else other.elementConstraints[index]
+                    resultingElements.add(otherConstraint.and(this.elementConstraints[index]))
+                }
+
+                return ListConstraint(resultingElements, this.moreAllowed && other.moreAllowed)
+            }
+            is IdentityTermConstraint -> {
+                return if (other.literal is PrologList && check(other.literal)) other else ImpossibleConstraint
+            }
+            is TypeCheckConstraint,
+            is UnionTermConstraint -> return other.and(this)
+        }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ListConstraint) return false
+
+        if (moreAllowed != other.moreAllowed) return false
+        if (elementConstraints != other.elementConstraints) return false
 
         return true
     }
 
-    override fun and(other: TermConstraint): TermConstraint = when(other) {
-        is NoopConstraint -> this
-        is ImpossibleConstraint -> other
-        is ListConstraint ->
-            if (this == other) this
-            else if (this.moreAllowed && other.moreAllowed) {
-                if (this.nEntries == other.nEntries) {
-                    this
-                } else {
-                    ListConstraint(max(this.nEntries, other.nEntries), true)
-                }
-            }
-            else {
-                if (this.nEntries <= other.nEntries && this.moreAllowed) {
-                    other
-                }
-                else if (this.nEntries >= other.nEntries && other.moreAllowed) {
-                    this
-                }
-                else {
-                    ImpossibleConstraint
-                }
-            }
-        is IdentityTermConstraint -> {
-            if (other.literal is PrologList && check(other.literal)) other else ImpossibleConstraint
-        }
-        is TypeCheckConstraint,
-        is UnionTermConstraint -> other.and(this)
+    override fun hashCode(): Int {
+        var result = moreAllowed.hashCode()
+        result = 31 * result + elementConstraints.hashCode()
+        return result
     }
 
     companion object {
         @JvmStatic
-        fun unifiesWith(term: PrologList) = ListConstraint(term.elements.size, term.tail != null)
+        fun unifiesWith(term: PrologList) = ListConstraint(
+            term.elements.map(TermConstraint.Companion::unifiesWith),
+            term.tail != null
+        )
     }
 }
 

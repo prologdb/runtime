@@ -52,7 +52,20 @@ fun <T, R : Any> Iterable<T>.crossover(compute: (T, T) -> R): Iterable<R> = obje
     }
 }
 
-public fun <T> Iterable<T>.toRandomAccessList(): List<T> {
-    val destination = if (this is Collection) ArrayList<T>(this.size) else ArrayList()
-    return this.toCollection(destination)
+fun <T> Iterable<T>.toRandomAccessList(): List<T> {
+    return if (this is List && this is RandomAccess) {
+        this
+    } else if (this is Collection) {
+        toCollection(ArrayList(size))
+    } else {
+        toCollection(ArrayList())
+    }
+}
+
+fun <T> Iterable<T>.allIndexed(predicate: (Int, T) -> Boolean): Boolean {
+    if (this is Collection && this.isEmpty()) return true
+    this.forEachIndexed { index, element ->
+        if (!predicate(index, element)) return@allIndexed false
+    }
+    return true
 }
