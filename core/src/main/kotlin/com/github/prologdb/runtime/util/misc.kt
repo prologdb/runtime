@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.util
 
-public fun <T, R> Iterable<out T>.crossover(compute: (T, T) -> R): Iterable<R> = object : Iterable<R> {
+fun <T, R : Any> Iterable<T>.crossover(compute: (T, T) -> R): Iterable<R> = object : Iterable<R> {
     override fun iterator(): Iterator<R> {
         val allSourceElements = this@crossover.toRandomAccessList()
 
@@ -44,7 +44,7 @@ public fun <T, R> Iterable<out T>.crossover(compute: (T, T) -> R): Iterable<R> =
 
                 val a = allSourceElements[currentFirstRoundIndex]
                 val b = allSourceElements[currentSecondRoundIndex]
-                next = compute(a, b) ?: throw RuntimeException("Illegal compute function: returned null")
+                next = compute(a, b)
 
                 currentSecondRoundIndex++
             }

@@ -2,7 +2,14 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.proofsearch.Rule
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.PrologDecimal
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
 val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
@@ -58,13 +65,17 @@ private inline fun <reified T : Term> typeCheckBuiltin(name: String, negated: Bo
  */
 private fun typeCheckBuiltin(name: String, type: Class<out Term>, negated: Boolean): Rule {
     return nativeRule(name, 1, getInvocationStackFrame(), if (negated)
-        { args, _ -> if (type.isInstance(args[0])) yield(Unification.TRUE) }
-        else { args, _ -> if (!type.isInstance(args[0])) yield(Unification.TRUE) }
-    )
+        { args, _ -> if (!type.isInstance(args[0])) yield(Unification.TRUE) }
+        else { args, _ -> if (type.isInstance(args[0])) yield(Unification.TRUE) }
+    ).apply {
+        behavesSemiDeterministic()
+    }
 }
 
 private fun testingBuiltin(name: String, test: (Term) -> Boolean): Rule {
     return nativeRule(name, 1, getInvocationStackFrame()) { args, _ ->
         if (test(args[0])) yield(Unification.TRUE)
+    }.apply {
+        behavesSemiDeterministic()
     }
 }

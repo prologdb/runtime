@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.HasFunctorAndArity
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.analyzation.constraint.InvocationConstraint
 import com.github.prologdb.runtime.term.Term
@@ -42,5 +43,5 @@ interface BehaviourExposingPrologCallable : PrologCallable {
      * not be determined (see halting problem).
      * TODO: find a more suitable name for this
      */
-    fun conditionsForBehaviour(level: DeterminismLevel): List<InvocationConstraint>?
+    fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<InvocationConstraint>?
 }

@@ -2,19 +2,37 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PrologException
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.analyzation.constraint.InvocationConstraint
 import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
 import com.github.prologdb.runtime.analyzation.constraint.TermConstraint
-import com.github.prologdb.runtime.module.*
-import com.github.prologdb.runtime.proofsearch.*
+import com.github.prologdb.runtime.module.FullModuleImport
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
+import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.BehaviourExposingPrologCallable
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
+import java.util.Collections
+import java.util.WeakHashMap
 
 internal val A = Variable("A")
 internal val B = Variable("B")
@@ -102,7 +120,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
 
     override fun toString() = stringRepresentation
 
-    override fun conditionsForBehaviour(level: DeterminismLevel): List<InvocationConstraint>? = behaviourConstraints[level]
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<InvocationConstraint>? = behaviourConstraints[level]
 
     fun behavesSemiDeterministic() {
         behaviourConstraints.computeIfAbsent(DeterminismLevel.SEMI_DETERMINISTIC, { mutableListOf() }).also {
@@ -218,5 +236,28 @@ class NativeModule(
             authorization,
             runtime
         )
+    }
+
+    private val importLookupCaches = Collections.synchronizedMap(WeakHashMap<PrologRuntimeEnvironment, Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>>())
+
+    override fun resolveCallable(runtime: PrologRuntimeEnvironment, simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
+        // attempt modules own scope
+        exportedPredicates[simpleIndicator]?.let { callable ->
+            val fqIndicator = FullyQualifiedClauseIndicator(name, simpleIndicator)
+            return Pair(fqIndicator, callable)
+        }
+
+        // attempt imported predicate
+        val importLookupCache = importLookupCaches.computeIfAbsent(runtime) {
+            Module.buildImportLookupCache(this, runtime)
+        }
+
+        importLookupCache[simpleIndicator]?.let { (sourceModule, callable) ->
+            val fqIndicator = FullyQualifiedClauseIndicator(sourceModule.moduleName, ClauseIndicator.of(callable))
+
+            return Pair(fqIndicator, callable)
+        }
+
+        return null
     }
 }
