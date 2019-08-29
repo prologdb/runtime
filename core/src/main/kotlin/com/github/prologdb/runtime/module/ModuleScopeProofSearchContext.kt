@@ -2,8 +2,21 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.proofsearch.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.PredicateNotDynamicException
+import com.github.prologdb.runtime.PrologPermissionError
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.DynamicPrologPredicate
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -99,8 +112,6 @@ class ModuleScopeProofSearchContext(
             }
     }
 
-    private fun findImport(indicator: ClauseIndicator): Pair<ModuleReference, PrologCallable>? = importLookupCache[indicator]
-
     private fun assertz(args: Array<out Term>) {
         if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
 
@@ -137,19 +148,6 @@ class ModuleScopeProofSearchContext(
     }
 
     override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
-        // attempt modules own scope
-        modulePredicates[simpleIndicator]?.let { callable ->
-            val fqIndicator = FullyQualifiedClauseIndicator(module.name, simpleIndicator)
-            return Pair(fqIndicator, callable)
-        }
-
-        // attempt imported predicate
-        findImport(simpleIndicator)?.let { (sourceModule, callable) ->
-            val fqIndicator = FullyQualifiedClauseIndicator(sourceModule.moduleName, ClauseIndicator.of(callable))
-
-            return Pair(fqIndicator, callable)
-        }
-
-        return null
+        return module.resolveCallable(runtime, simpleIndicator)
     }
 }

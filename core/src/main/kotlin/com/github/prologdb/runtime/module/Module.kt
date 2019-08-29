@@ -1,7 +1,12 @@
 package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Authorization
@@ -12,6 +17,8 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.util.OperatorRegistry
+import java.util.Collections
+import java.util.WeakHashMap
 
 /**
  * A module, as results from reading/consulting a prolog file.
@@ -39,6 +46,52 @@ interface Module {
 
     fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
                                  authorization: Authorization, runtime: PrologRuntimeEnvironment): ProofSearchContext
+
+    /**
+     * @return for code running within the given `runtime` within this module: the [PrologCallable] that is referred
+     * to by the module-local syntax `simpleIndicator`
+     */
+    fun resolveCallable(runtime: PrologRuntimeEnvironment, simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>?
+
+    companion object {
+        fun buildImportLookupCache(forModule: Module, inRuntime: PrologRuntimeEnvironment): Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> {
+            require(forModule in inRuntime.loadedModules.values) {
+                "A module must first be loaded into a runtime before the actual import references can be resolved"
+            }
+
+            return mutableMapOf<ClauseIndicator, Pair<ModuleReference, PrologCallable>>().also { importLookupCache ->
+                forModule.imports.forEach { import ->
+                    val referencedModule = inRuntime.loadedModules[import.moduleReference.moduleName]
+                        ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
+
+                    val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {
+                        is FullModuleImport -> referencedModule.exportedPredicates
+                            .mapValues { (_, callable) ->
+                                Pair(import.moduleReference, callable)
+                            }
+                        is SelectiveModuleImport -> import.imports
+                            .map { (exportedIndicator, alias) ->
+                                val callable = referencedModule.exportedPredicates[exportedIndicator]
+                                    ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
+                                if (exportedIndicator.functor == alias) {
+                                    exportedIndicator to Pair(import.moduleReference, callable)
+                                } else {
+                                    ClauseIndicator.of(alias, exportedIndicator.arity) to Pair(import.moduleReference, callable)
+                                }
+                            }
+                            .toMap()
+                        is ExceptModuleImport -> referencedModule.exportedPredicates
+                            .filterKeys { it !in import.excluded }
+                            .mapValues { (_, callable) ->
+                                Pair(import.moduleReference, callable)
+                            }
+                    }
+
+                    importLookupCache.putAll(visiblePredicates)
+                }
+            }
+        }
+    }
 }
 
 data class ModuleReference(
@@ -213,5 +266,28 @@ class ASTModule(
             authorization,
             runtime
         )
+    }
+
+    private val importLookupCaches = Collections.synchronizedMap(WeakHashMap<PrologRuntimeEnvironment, Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>>())
+
+    override fun resolveCallable(runtime: PrologRuntimeEnvironment, simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
+        // attempt modules own scope
+        allDeclaredPredicates[simpleIndicator]?.let { callable ->
+            val fqIndicator = FullyQualifiedClauseIndicator(name, simpleIndicator)
+            return Pair(fqIndicator, callable)
+        }
+
+        // attempt imported predicate
+        val importLookupCache = importLookupCaches.computeIfAbsent(runtime) {
+            Module.buildImportLookupCache(this, runtime)
+        }
+
+        importLookupCache[simpleIndicator]?.let { (sourceModule, callable) ->
+            val fqIndicator = FullyQualifiedClauseIndicator(sourceModule.moduleName, ClauseIndicator.of(callable))
+
+            return Pair(fqIndicator, callable)
+        }
+
+        return null
     }
 }
