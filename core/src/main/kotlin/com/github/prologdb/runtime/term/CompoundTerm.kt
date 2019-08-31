@@ -8,7 +8,13 @@ import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
-import com.github.prologdb.runtime.util.OperatorType.*
+import com.github.prologdb.runtime.util.OperatorType.FX
+import com.github.prologdb.runtime.util.OperatorType.FY
+import com.github.prologdb.runtime.util.OperatorType.XF
+import com.github.prologdb.runtime.util.OperatorType.XFX
+import com.github.prologdb.runtime.util.OperatorType.XFY
+import com.github.prologdb.runtime.util.OperatorType.YF
+import com.github.prologdb.runtime.util.OperatorType.YFX
 import sensibleHashCode
 import unify
 
@@ -230,7 +236,7 @@ private fun Term.toStringUsingOperatorNotationsInternal(operators: OperatorRegis
             )
         }
         
-        else -> throw RuntimeException("This should not have happened. ${OperatorType::class.qualifiedName}.isPrefix / .isPostfix / .isInfix are erroneous (exactly one of the three MUST be true)")
+        else -> throw RuntimeException("This should not have happened. ${OperatorType::javaClass.name}.isPrefix / .isPostfix / .isInfix are erroneous (exactly one of the three MUST be true)")
     }
 }
 
