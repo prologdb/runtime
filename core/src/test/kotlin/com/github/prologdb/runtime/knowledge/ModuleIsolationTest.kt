@@ -1,10 +1,19 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.FullModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.module.SelectiveModuleImport
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.shouldProve
+import com.github.prologdb.runtime.shouldProveWithinRuntime
+import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -115,7 +124,8 @@ class ModuleIsolationTest : FreeSpec({
         val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
 
         val ex = shouldThrow<PrologRuntimeException> {
-            runtimeEnv.fulfill(PredicateInvocationQuery(foo(R))).consumeAll()
+            runtimeEnv.fulfill(PredicateInvocationQuery(foo(R)))
+                .consumeAll()
         }
         ex.message shouldBe "Predicate a/1 not defined in context of module B"
     }
@@ -158,7 +168,8 @@ class ModuleIsolationTest : FreeSpec({
         }
 
         val ex = shouldThrow<PrologRuntimeException> {
-            runtimeEnv.fulfill(PredicateInvocationQuery(CompoundTerm("bar", arrayOf(R)))).consumeAll()
+            runtimeEnv.fulfill(PredicateInvocationQuery(CompoundTerm("bar", arrayOf(R))))
+                .consumeAll()
         }
         ex.message shouldBe "Predicate c/1 not defined in context of module B"
     }
