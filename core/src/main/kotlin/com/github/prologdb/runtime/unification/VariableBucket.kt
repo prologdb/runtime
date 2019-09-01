@@ -130,6 +130,9 @@ class VariableBucket private constructor(
 
     operator fun contains(variable: Variable) = variable in this.variableMap
 
+    val size: Int
+        get() = this.variableMap.size
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
 

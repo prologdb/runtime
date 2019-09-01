@@ -69,3 +69,25 @@ fun <T> Iterable<T>.allIndexed(predicate: (Int, T) -> Boolean): Boolean {
     }
     return true
 }
+
+fun <K : Any, V : Any> Iterable<Map<K, V>>.toMultiValueMap(): Map<K, List<V>> {
+    if (this is Collection && this.isEmpty()) return emptyMap()
+    val iterator = iterator()
+    val first = iterator.next()
+    val result = HashMap<K, MutableList<V>>(first.size)
+    first.forEach { (key, value) -> result[key] = mutableListOf(value) }
+    while (iterator.hasNext()) {
+        val current = iterator.next()
+        current.forEach { (key, value) ->
+            result.computeIfAbsent(key, { mutableListOf() }).add(value)
+        }
+    }
+
+    return result
+}
+
+fun <K : Any, V: Any, M> Map<K, V>.mapMapValues(mapper: (V) -> M): Map<K, M> {
+    val result = HashMap<K, M>(size)
+    forEach { key, value -> result[key] = mapper(value) }
+    return result
+}

@@ -11,6 +11,8 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import io.kotlintest.matchers.Matcher
+import io.kotlintest.matchers.Result
 
 typealias UnificationGenerator = () -> Unification
 typealias UnificationSequenceGenerator = () -> LazySequence<Unification>
@@ -143,4 +145,12 @@ fun moduleOfClauses(vararg clauses: Clause): Module {
         indicators,
         indicators
     )
+}
+
+fun beAnEmptyMap() = object : Matcher<Map<*, *>> {
+    override fun test(value: Map<*, *>): Result = Result(value.isEmpty(), "The map should be empty")
+}
+
+fun beMapOfSize(size: Int) = object : Matcher<Map<*, *>> {
+    override fun test(value: Map<*, *>): Result = Result(value.size == size, "The map should have exactly $size elements")
 }
