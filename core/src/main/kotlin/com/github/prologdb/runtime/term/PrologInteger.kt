@@ -5,6 +5,7 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.pow
 
 open class PrologInteger(
@@ -136,14 +137,14 @@ open class PrologInteger(
            strings and this avoids a lot of memory overhead. Also, this
            likely applies to other uses-cases where small numbers are used.
          */
-        private val CACHE: MutableMap<Short, PrologInteger> = mutableMapOf()
+        private val CACHE: MutableMap<Short, PrologInteger> = ConcurrentHashMap()
 
         fun createUsingStringOptimizerCache(value: Long): PrologInteger {
-            if (value > Short.MAX_VALUE || value < Short.MIN_VALUE) {
-                return PrologInteger(value) // constructor invocation
+            return if (value > Short.MAX_VALUE || value < Short.MIN_VALUE) {
+                PrologInteger(value) // constructor invocation
             } else {
                 val valueAsShort = value.toShort()
-                return CACHE[valueAsShort] ?: { val r = PrologInteger(value); CACHE[valueAsShort] = r; r }()
+                CACHE.computeIfAbsent(valueAsShort) { PrologInteger(value) }
             }
         }
     }

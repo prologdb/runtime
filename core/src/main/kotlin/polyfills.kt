@@ -10,4 +10,4 @@ internal fun Array<*>?.sensibleHashCode(): Int {
     return result
 }
 
-internal inline fun <T, reified R>Array<T>.mapToArray(mapper: (T) -> R): Array<out R> = Array(this.size, { index -> mapper(this[index]) })
+internal inline fun <T, reified R> Array<T>.mapToArray(mapper: (T) -> R): Array<out R> = Array(this.size, { index -> mapper(this[index]) })
