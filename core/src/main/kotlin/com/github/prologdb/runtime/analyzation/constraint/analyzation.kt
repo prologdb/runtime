@@ -1,8 +1,5 @@
 package com.github.prologdb.runtime.analyzation.constraint
 
-import com.github.prologdb.runtime.term.CompoundTerm
-import mapToArray
-
 class InvocationConstraint(val termConstraints: Array<out TermConstraint>) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -17,6 +14,3 @@ class InvocationConstraint(val termConstraints: Array<out TermConstraint>) {
         return termConstraints.contentHashCode()
     }
 }
-
-val CompoundTerm.unificationConditions: InvocationConstraint
-    get() = InvocationConstraint(arguments.mapToArray(TermConstraint.Companion::unifiesWith))

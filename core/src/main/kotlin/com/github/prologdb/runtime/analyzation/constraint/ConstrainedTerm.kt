@@ -6,6 +6,9 @@ import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 private fun TermConstraint?.and(rhs: TermConstraint?): TermConstraint = when {
     this == null -> rhs ?: NoopConstraint
@@ -101,32 +104,6 @@ class ConstrainedTerm(
             )
         }
 
-        return str
+        return "$str."
     }
-}
-
-fun main() {
-    val lhs = ConstrainedTerm(
-        CompoundTerm("is", arrayOf(
-            Variable("Result"),
-            Variable("Formula")
-        )),
-        mapOf(
-            Variable("Result") to TypeTermConstraint(PrologNumber::class.java),
-            Variable("Formula") to NoopConstraint
-        )
-    )
-
-    val rhs = ConstrainedTerm(
-        CompoundTerm("is", arrayOf(
-            Variable("N1"),
-            CompoundTerm("-", arrayOf(
-                Variable("N"),
-                PrologInteger(1)
-            ))
-        )),
-        emptyMap()
-    )
-
-    println(lhs.combineWith(rhs, RandomVariableScope()))
 }

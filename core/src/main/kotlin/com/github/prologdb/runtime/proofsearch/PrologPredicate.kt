@@ -5,7 +5,6 @@ import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.analyzation.constraint.InvocationConstraint
 import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
-import com.github.prologdb.runtime.analyzation.constraint.unificationConditions
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -200,7 +199,7 @@ class ASTPrologPredicate(
 
     private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<InvocationConstraint>?>()
 
-    override fun conditionsForBehaviour(level: DeterminismLevel): List<InvocationConstraint>? {
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<InvocationConstraint>? {
         return behaviourAnalysisResults.computeIfAbsent(level) {
             if (level != DeterminismLevel.SEMI_DETERMINISTIC) {
                 return@computeIfAbsent null
@@ -211,7 +210,7 @@ class ASTPrologPredicate(
             }
 
             val clauseConditions = clauses.associateWith { clause -> when(clause) {
-                is CompoundTerm -> clause.unificationConditions
+                is CompoundTerm -> TODO()
                 is Rule -> TODO()
                 else -> throw RuntimeException("Unknown clause type ${clause.javaClass.name}")
             } }
