@@ -12,8 +12,12 @@ import io.kotlintest.specs.FreeSpec
 
 class TypeTermConstraintTest : FreeSpec() {init {
     "check" - {
-        "with matching term" {
-            TypeTermConstraint(PrologNumber::class.java).check(PrologInteger(5131)) shouldBe true
+        "with exact type match" {
+            TypeTermConstraint(PrologInteger::class.java).check(PrologInteger(5123)) shouldBe true
+        }
+
+        "with term of matching subclass" {
+            TypeTermConstraint(PrologNumber::class.java).check(PrologDecimal(5131.0)) shouldBe true
         }
 
         "with mismatching term" {
@@ -22,6 +26,15 @@ class TypeTermConstraintTest : FreeSpec() {init {
     }
 
     "and" - {
+        "with noop" {
+            val typeConstraint = TypeTermConstraint(Atom::class.java)
+            typeConstraint.and(NoopConstraint) shouldBe typeConstraint
+        }
+
+        "with impossible constraint" {
+            TypeTermConstraint(Atom::class.java).and(ImpossibleConstraint) shouldBe ImpossibleConstraint
+        }
+
         "with type constraint" - {
             "should pick the most concrete - A" {
                 val a = TypeTermConstraint(PrologNumber::class.java)
