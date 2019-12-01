@@ -112,7 +112,8 @@ class ConstrainedTerm(
             val randomVariableScope = RandomVariableScope()
             return constrainedTerms
                 .crossover { a, b ->
-                    a.combineWith(b, randomVariableScope) == null
+                    val combination = a.combineWith(b, randomVariableScope)
+                    combination == null || combination.constraints.values.any { it is ImpossibleConstraint }
                 }
                 .all { it }
         }

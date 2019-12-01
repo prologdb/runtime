@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.builtin.lists
 
+import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.builtin.A
 import com.github.prologdb.runtime.builtin.B
 import com.github.prologdb.runtime.builtin.C
@@ -15,7 +16,7 @@ import com.github.prologdb.runtime.term.PrologList
  *     append([], L, L).
  *     append([H|T], L2, [H|R]) :- append(T, L2, R).
  */
-internal val AppendBuiltin = listOf(
+internal val AppendBuiltin: List<Clause> = listOf(
     // append([], L, L) :- list(L).
     CompoundTerm("append", arrayOf(
         PrologList(emptyList()),

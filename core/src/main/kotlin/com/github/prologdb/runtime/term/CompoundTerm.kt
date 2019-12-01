@@ -6,6 +6,7 @@ import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.proofsearch.BehaviourExposingPrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.unification.Unification
@@ -90,7 +91,7 @@ open class CompoundTerm(
         return toStringUsingOperatorNotationsInternal(operators).first
     }
 
-    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<ConstrainedTerm>? {
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
         return when(level) {
             DeterminismLevel.DETERMINISTIC -> listOf(ConstrainedTerm(this, emptyMap()))
             DeterminismLevel.SEMI_DETERMINISTIC, DeterminismLevel.NON_DETERMINISTIC -> listOf(ConstrainedTerm(CompoundTerm(functor, Array(this.arity) { AnonymousVariable }), emptyMap()))

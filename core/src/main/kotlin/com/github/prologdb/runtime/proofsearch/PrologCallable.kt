@@ -5,6 +5,7 @@ import com.github.prologdb.runtime.HasFunctorAndArity
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
@@ -43,5 +44,5 @@ interface BehaviourExposingPrologCallable : PrologCallable {
      * not be determined (see halting problem).
      * TODO: find a more suitable name for this
      */
-    fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<ConstrainedTerm>?
+    fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>?
 }

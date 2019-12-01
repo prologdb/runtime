@@ -4,17 +4,27 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
+import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.TermConstraint
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.query.AndQuery
+import com.github.prologdb.runtime.query.OrQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import unify
 import variables
 import withRandomVariables
 
-open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
+open class Rule(val head: CompoundTerm, val query: Query) : Clause, BehaviourExposingPrologCallable {
     override val functor = head.functor
     override val arity = head.arity
 
@@ -71,4 +81,25 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
     }
 
     override fun toString() = "$head :- $query"
+
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
+        TODO()
+    }
+
+    private fun Query.conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, contextModule: Module, level: DeterminismLevel): List<Map<Variable, TermConstraint>>? {
+        return when (query) {
+            is PredicateInvocationQuery -> {
+                val unificationConstraints = query.goal.conditionsForBehaviour(inRuntime, contextModule, level)
+                val invocationTarget = contextModule.resolveCallable(inRuntime, ClauseIndicator.of(query.goal))
+                TODO()
+            }
+            is AndQuery -> if (query.goals.size == 1) query.goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
+                TODO()
+            }
+            is OrQuery -> if (query.goals.size == 1) query.goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
+                TODO()
+            }
+            else -> null
+        }
+    }
 }

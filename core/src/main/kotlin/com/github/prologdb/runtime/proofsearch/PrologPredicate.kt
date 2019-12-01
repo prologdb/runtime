@@ -198,14 +198,19 @@ class ASTPrologPredicate(
 
     private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<ConstrainedTerm>?>()
 
-    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<ConstrainedTerm>? {
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
         return behaviourAnalysisResults.computeIfAbsent(level) {
             if (level != DeterminismLevel.SEMI_DETERMINISTIC) {
                 return@computeIfAbsent null
             }
 
             val clauseConditions = clauses.flatMap { clause -> when(clause) {
-                is BehaviourExposingPrologCallable -> clause.conditionsForBehaviour(inRuntime, level) ?: return@computeIfAbsent null
+                is BehaviourExposingPrologCallable -> {
+                    // this is where the module scope switches, because this predicate may be defined in
+                    // another module than which it is called from, and the query in rules (Rule : Clause) is executed
+                    // in the module context it was declared in
+                    clause.conditionsForBehaviour(inRuntime, declaringModule, level) ?: return@computeIfAbsent null
+                }
                 else -> return@computeIfAbsent null // all clauses must be certain for a correct result on the entire predicate
             } }
 
