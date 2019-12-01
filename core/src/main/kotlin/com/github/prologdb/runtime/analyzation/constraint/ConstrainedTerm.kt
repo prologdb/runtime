@@ -1,14 +1,9 @@
 package com.github.prologdb.runtime.analyzation.constraint
 
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorRegistry
+import com.github.prologdb.runtime.util.crossover
 
 private fun TermConstraint?.and(rhs: TermConstraint?): TermConstraint = when {
     this == null -> rhs ?: NoopConstraint
@@ -105,5 +100,21 @@ class ConstrainedTerm(
         }
 
         return "$str."
+    }
+
+    companion object {
+        fun unifiesWith(term: Term) = ConstrainedTerm(term, emptyMap())
+        fun areMutuallyExclusive(constrainedTerms: Collection<ConstrainedTerm>): Boolean {
+            if (constrainedTerms.size == 1) {
+                return true
+            }
+
+            val randomVariableScope = RandomVariableScope()
+            return constrainedTerms
+                .crossover { a, b ->
+                    a.combineWith(b, randomVariableScope) == null
+                }
+                .all { it }
+        }
     }
 }

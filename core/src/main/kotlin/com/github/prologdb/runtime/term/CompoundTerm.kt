@@ -2,26 +2,24 @@ package com.github.prologdb.runtime.term
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
+import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.proofsearch.BehaviourExposingPrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
-import com.github.prologdb.runtime.util.OperatorType.FX
-import com.github.prologdb.runtime.util.OperatorType.FY
-import com.github.prologdb.runtime.util.OperatorType.XF
-import com.github.prologdb.runtime.util.OperatorType.XFX
-import com.github.prologdb.runtime.util.OperatorType.XFY
-import com.github.prologdb.runtime.util.OperatorType.YF
-import com.github.prologdb.runtime.util.OperatorType.YFX
+import com.github.prologdb.runtime.util.OperatorType.*
 import sensibleHashCode
 import unify
 
 open class CompoundTerm(
         override val functor: String,
         arguments: Array<out Term>
-) : Term, Clause
+) : Term, Clause, BehaviourExposingPrologCallable
 {
     open val arguments: Array<out Term> = arguments
 
@@ -90,6 +88,14 @@ open class CompoundTerm(
 
     override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
         return toStringUsingOperatorNotationsInternal(operators).first
+    }
+
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<ConstrainedTerm>? {
+        return when(level) {
+            DeterminismLevel.DETERMINISTIC -> listOf(ConstrainedTerm(this, emptyMap()))
+            DeterminismLevel.SEMI_DETERMINISTIC, DeterminismLevel.NON_DETERMINISTIC -> listOf(ConstrainedTerm(CompoundTerm(functor, Array(this.arity) { AnonymousVariable }), emptyMap()))
+            else -> null
+        }
     }
 
     override fun equals(other: Any?): Boolean {

@@ -2,9 +2,8 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
-import com.github.prologdb.runtime.analyzation.constraint.InvocationConstraint
-import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -197,25 +196,23 @@ class ASTPrologPredicate(
         dropDelegateOnModification = false
     }
 
-    private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<InvocationConstraint>?>()
+    private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<ConstrainedTerm>?>()
 
-    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<InvocationConstraint>? {
+    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, level: DeterminismLevel): List<ConstrainedTerm>? {
         return behaviourAnalysisResults.computeIfAbsent(level) {
             if (level != DeterminismLevel.SEMI_DETERMINISTIC) {
                 return@computeIfAbsent null
             }
 
-            if (clauses.size == 1 && clauses.first() is CompoundTerm) {
-                return@computeIfAbsent  listOf(InvocationConstraint(Array(arity) { NoopConstraint }))
-            }
-
-            val clauseConditions = clauses.associateWith { clause -> when(clause) {
-                is CompoundTerm -> TODO()
-                is Rule -> TODO()
-                else -> throw RuntimeException("Unknown clause type ${clause.javaClass.name}")
+            val clauseConditions = clauses.flatMap { clause -> when(clause) {
+                is BehaviourExposingPrologCallable -> clause.conditionsForBehaviour(inRuntime, level) ?: return@computeIfAbsent null
+                else -> return@computeIfAbsent null // all clauses must be certain for a correct result on the entire predicate
             } }
 
-            return@computeIfAbsent  null
+            return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(clauseConditions)) {
+                // only one clause can ever yield one solution -> entire predicate behaves that way
+                clauseConditions
+            } else null
         }
     }
 }
