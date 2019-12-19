@@ -64,20 +64,15 @@ public class SolutionExplorerPanel {
         solutionsPanel = new JPanel(solutionsPaneLayout);
         solutionsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        JScrollPane solutionScrollPane = new JScrollPane(solutionsPanel);
-        solutionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        solutionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        solutionScrollPane.setBorder(null);
-        solutionScrollPane.getVerticalScrollBar().setUnitIncrement(22);
-
         JPanel solutionsWrapperPanel = new JPanel(new BorderLayout());
         solutionsWrapperPanel.add(solutionsPanel, BorderLayout.NORTH);
 
-        JScrollPane solutionsScrollPane = new JScrollPane(
-            solutionsWrapperPanel,
-            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
-        );
+        JScrollPane solutionsScrollPane = new JScrollPane(solutionsWrapperPanel);
+        solutionsScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        solutionsScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        solutionsScrollPane.setBorder(null);
+        solutionsScrollPane.getVerticalScrollBar().setUnitIncrement(22);
+        solutionsScrollPane.getHorizontalScrollBar().setUnitIncrement(22);
 
         panel = new JPanel();
         panel.setLayout(new BorderLayout());
