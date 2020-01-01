@@ -1,7 +1,13 @@
 package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDynamicException
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.module.Module
@@ -11,7 +17,7 @@ import com.github.prologdb.runtime.unification.Unification
 import unify
 import variables
 import withRandomVariables
-import java.util.*
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -220,6 +226,8 @@ class ASTPrologPredicate(
             } else null
         }
     }
+
+    override fun toString() = "${declaringModule.name}/$functor/$arity"
 }
 
 sealed class PredicateModifiedEvent
