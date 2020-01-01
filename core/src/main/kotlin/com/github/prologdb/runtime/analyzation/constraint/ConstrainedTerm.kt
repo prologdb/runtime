@@ -186,5 +186,23 @@ class ConstrainedTerm(
                 }
                 .all { it }
         }
+
+        /**
+         * Assuming both [lhs] and [rhs] are in the same variable scope, combines the two sets of constraints.
+         *
+         * @return The combined constraints if the constraints an be fulfilled. Null if the constraints are mutually exclusive.
+         */
+        fun combine(lhs: Map<Variable, TermConstraint>, rhs: Map<Variable, TermConstraint>): Map<Variable, TermConstraint>? {
+            val result = HashMap(lhs)
+            for ((rhsVariable, rhsConstraint) in rhs) {
+                result.merge(rhsVariable, rhsConstraint, TermConstraint::and)
+            }
+
+            if (result.values.any { it is ImpossibleConstraint }) {
+                return null
+            }
+
+            return result
+        }
     }
 }

@@ -8,9 +8,11 @@ import com.github.prologdb.runtime.PredicateNotDynamicException
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.analyzation.areMutuallyExclusive
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.term.AnonymousVariable
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
@@ -223,7 +225,9 @@ class ASTPrologPredicate(
             return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(clauseConditions)) {
                 // only one clause can ever yield one solution -> entire predicate behaves that way
                 clauseConditions
-            } else null
+            } else if (clauses.areMutuallyExclusive()) {
+                listOf(ConstrainedTerm(CompoundTerm(functor, Array(arity) { AnonymousVariable }), emptyMap()))
+            } else emptyList()
         }
     }
 

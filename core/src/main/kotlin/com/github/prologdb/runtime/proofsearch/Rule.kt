@@ -22,6 +22,7 @@ import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.util.permutateMap
 import unify
 import variables
 import withRandomVariables
@@ -103,8 +104,20 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, BehaviourExp
                 return behaviourConstraints
                     .map { behaviourConstraint -> behaviourConstraint.constraints.filterValues { it !is NoopConstraint } }
             }
-            is AndQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
-                TODO()
+            is AndQuery -> {
+                val goalsConditions = goals.map { it.conditionsForBehaviour(inRuntime, contextModule, level) }
+                if (goalsConditions.any { it == null }) {
+                    // unsure for at least one goal => unsure about entire query
+                    return null
+                }
+                @Suppress("UNCHECKED_CAST")
+                goalsConditions as List<List<Map<Variable, TermConstraint>>>
+
+                return goalsConditions.reduce { accList, list ->
+                    permutateMap(accList, list, ConstrainedTerm.Companion::combine)
+                        .filterNotNull()
+                        .toList()
+                }
             }
             is OrQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
                 TODO()
