@@ -5,7 +5,11 @@ import com.github.prologdb.runtime.beAnEmptyMap
 import com.github.prologdb.runtime.beMapOfSize
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.RandomVariable
 import com.github.prologdb.runtime.term.Variable
+import io.kotlintest.matchers.beInstanceOf
 import io.kotlintest.matchers.haveKey
 import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
@@ -126,6 +130,22 @@ class ConstrainedTermTest : FreeSpec() {init {
             result shouldNotBe null
             result!!.structure shouldBe a(bar, value)
             result.constraints should beAnEmptyMap()
+        }
+    }
+
+    "translate" - {
+        "a([A|B], B) translated to p(A, B) results in a([Random|B], B)" {
+            val A = Variable("A")
+            val B = Variable("B")
+            val term = ConstrainedTerm(a(PrologList(listOf(A), B), B), emptyMap())
+            val translated = term.translate(a(A, B), RandomVariableScope())?.structure
+
+            translated as CompoundTerm
+            translated.arity shouldBe 2
+            translated.arguments[0] should beInstanceOf(PrologList::class)
+            (translated.arguments[0] as PrologList).elements.size shouldBe 1
+            (translated.arguments[0] as PrologList).elements[0] should beInstanceOf(RandomVariable::class)
+            (translated.arguments[0] as PrologList).tail shouldBe B
         }
     }
 }
