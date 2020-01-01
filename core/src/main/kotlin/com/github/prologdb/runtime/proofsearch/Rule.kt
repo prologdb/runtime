@@ -6,9 +6,11 @@ import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
 import com.github.prologdb.runtime.analyzation.constraint.TermConstraint
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
@@ -83,23 +85,30 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, BehaviourExp
     override fun toString() = "$head :- $query"
 
     override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
-        TODO()
+        return query.conditionsForBehaviour(inRuntime, callingModule, level)
+            ?.map { ConstrainedTerm(head, it ) }
     }
 
     private fun Query.conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, contextModule: Module, level: DeterminismLevel): List<Map<Variable, TermConstraint>>? {
-        return when (query) {
+        if (level != DeterminismLevel.SEMI_DETERMINISTIC) return null
+        val randomVariableScope = RandomVariableScope()
+
+        return when (this) {
             is PredicateInvocationQuery -> {
-                val unificationConstraints = query.goal.conditionsForBehaviour(inRuntime, contextModule, level)
-                val invocationTarget = contextModule.resolveCallable(inRuntime, ClauseIndicator.of(query.goal))
+                val (_, invocationTarget) = contextModule.resolveCallable(inRuntime, ClauseIndicator.of(goal)) ?: return null
+                if (invocationTarget !is BehaviourExposingPrologCallable) return null
+                val behaviourConstraints = (invocationTarget.conditionsForBehaviour(inRuntime, contextModule, level) ?: return null)
+                    .mapNotNull { it.translate(goal, randomVariableScope) }
+
+                return behaviourConstraints
+                    .map { behaviourConstraint -> behaviourConstraint.constraints.filterValues { it !is NoopConstraint } }
+            }
+            is AndQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
                 TODO()
             }
-            is AndQuery -> if (query.goals.size == 1) query.goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
+            is OrQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
                 TODO()
             }
-            is OrQuery -> if (query.goals.size == 1) query.goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
-                TODO()
-            }
-            else -> null
         }
     }
 }

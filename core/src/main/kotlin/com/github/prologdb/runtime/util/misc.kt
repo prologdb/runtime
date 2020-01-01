@@ -91,3 +91,9 @@ fun <K : Any, V: Any, M> Map<K, V>.mapMapValues(mapper: (V) -> M): Map<K, M> {
     forEach { key, value -> result[key] = mapper(value) }
     return result
 }
+
+fun <T, M : Any> Iterable<T>.associateWithNotNull(mapper: (T) -> M?): Map<T, M> {
+    return asSequence()
+        .mapNotNull { mapper(it)?.let { mapped -> it to mapped } }
+        .toMap()
+}
