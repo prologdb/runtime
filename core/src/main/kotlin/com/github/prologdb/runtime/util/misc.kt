@@ -1,52 +1,55 @@
 package com.github.prologdb.runtime.util
 
-fun <T, R : Any> Iterable<T>.crossover(compute: (T, T) -> R): Iterable<R> = object : Iterable<R> {
-    override fun iterator(): Iterator<R> {
-        val allSourceElements = this@crossover.toRandomAccessList()
+fun <T, R : Any> Iterable<T>.crossover(compute: (T, T) -> R): Iterable<R> {
+    val allSourceElements = this@crossover.toRandomAccessList()
 
-        if (allSourceElements.size < 2) {
-            throw IllegalArgumentException("Can only compute a crossover for n >= 2 elements")
-        }
+    if (allSourceElements.size < 2) {
+        throw IllegalArgumentException("Can only compute a crossover for n >= 2 elements")
+    }
 
-        return object : Iterator<R> {
-            var currentFirstRoundIndex: Int = 0
-            var currentSecondRoundIndex: Int = 1
+    return object : Iterable<R> {
+        override fun iterator(): Iterator<R> {
 
-            var next: R? = null
+            return object : Iterator<R> {
+                var currentFirstRoundIndex: Int = 0
+                var currentSecondRoundIndex: Int = 1
 
-            override fun hasNext(): Boolean {
-                if (next == null) {
-                    findNext()
+                var next: R? = null
+
+                override fun hasNext(): Boolean {
+                    if (next == null) {
+                        findNext()
+                    }
+
+                    return next != null
                 }
 
-                return next != null
-            }
+                override fun next(): R {
+                    if (!hasNext()) {
+                        throw NoSuchElementException()
+                    }
 
-            override fun next(): R {
-                if (!hasNext()) {
-                    throw NoSuchElementException()
+                    val ret = next!!
+                    next = null
+                    return ret
                 }
 
-                val ret = next!!
-                next = null
-                return ret
-            }
+                private fun findNext() {
+                    if (currentSecondRoundIndex > allSourceElements.lastIndex) {
+                        currentFirstRoundIndex++
+                        currentSecondRoundIndex = currentFirstRoundIndex + 1
+                    }
 
-            private fun findNext() {
-                if (currentSecondRoundIndex > allSourceElements.lastIndex) {
-                    currentFirstRoundIndex++
-                    currentSecondRoundIndex = currentFirstRoundIndex + 1
+                    if (currentSecondRoundIndex > allSourceElements.lastIndex) {
+                        return
+                    }
+
+                    val a = allSourceElements[currentFirstRoundIndex]
+                    val b = allSourceElements[currentSecondRoundIndex]
+                    next = compute(a, b)
+
+                    currentSecondRoundIndex++
                 }
-
-                if (currentSecondRoundIndex > allSourceElements.lastIndex) {
-                    return
-                }
-
-                val a = allSourceElements[currentFirstRoundIndex]
-                val b = allSourceElements[currentSecondRoundIndex]
-                next = compute(a, b)
-
-                currentSecondRoundIndex++
             }
         }
     }

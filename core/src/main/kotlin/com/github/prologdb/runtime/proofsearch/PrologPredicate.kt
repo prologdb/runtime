@@ -8,7 +8,6 @@ import com.github.prologdb.runtime.PredicateNotDynamicException
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.analyzation.areMutuallyExclusive
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.module.Module
@@ -221,19 +220,17 @@ class ASTPrologPredicate(
                 else -> null // all clauses must be certain for a correct result on the entire predicate
             } }
 
-            if (clauseConditions.any { it?.isEmpty() == true }) {
-                return@computeIfAbsent emptyList()
-            }
             if (clauseConditions.any { it == null }) {
                 return@computeIfAbsent null
             }
 
             val flatClauseConditions = clauseConditions.flatMap { it!! }
 
-            return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(flatClauseConditions) || clauses.areMutuallyExclusive()) {
-                // only one clause can ever yield one solution -> entire predicate behaves that way
+            return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(flatClauseConditions)) {
                 flatClauseConditions
-            } else emptyList()
+            } else {
+                null
+            }
         }
     }
 
