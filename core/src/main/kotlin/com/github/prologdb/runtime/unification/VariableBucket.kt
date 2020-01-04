@@ -150,7 +150,21 @@ class VariableBucket private constructor(
     val values: Iterable<Pair<Variable,Term?>>
         get() = variableMap.map { it.key to it.value }
 
+    fun translate(mapper: (Variable) -> Variable): VariableBucket {
+        val newMap: MutableMap<Variable, Term?> = HashMap(variableMap.size)
+        for ((variable, value) in variableMap) {
+            if (value == null) continue
 
+            val mappedVariable = mapper(variable)
+            if (mappedVariable in newMap) {
+                throw IllegalArgumentException("The given mapper does not do an identity projection")
+            }
+            val mappedValue = value.substituteVariables(mapper)
+            newMap[mappedVariable] = mappedValue
+        }
+
+        return VariableBucket(newMap)
+    }
 }
 
 class NameError(message: String, override val cause: Throwable? = null) : RuntimeException(message)

@@ -22,7 +22,7 @@ import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import com.github.prologdb.runtime.util.permutateMap
+import com.github.prologdb.runtime.util.associateWithNotNull
 import unify
 import variables
 import withRandomVariables
@@ -86,13 +86,17 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, BehaviourExp
     override fun toString() = "$head :- $query"
 
     override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
-        return query.conditionsForBehaviour(inRuntime, callingModule, level)
-            ?.map { ConstrainedTerm(head, it ) }
+        return query.conditionsForBehaviour(inRuntime, callingModule, level, RandomVariableScope())
+            ?.map { queryBehaviour ->
+                ConstrainedTerm(
+                    head.substituteVariables(queryBehaviour.instantiatesOnSuccess.variableValues.asSubstitutionMapper()),
+                    queryBehaviour.behaviourExpectedGiven
+                )
+            }
     }
 
-    private fun Query.conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, contextModule: Module, level: DeterminismLevel): List<Map<Variable, TermConstraint>>? {
-        if (level != DeterminismLevel.SEMI_DETERMINISTIC) return null
-        val randomVariableScope = RandomVariableScope()
+    private fun Query.conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, contextModule: Module, level: DeterminismLevel, randomVariableScope: RandomVariableScope): List<QueryBehaviour>? {
+        if (level != DeterminismLevel.DETERMINISTIC) return null
 
         return when (this) {
             is PredicateInvocationQuery -> {
@@ -101,27 +105,42 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, BehaviourExp
                 val behaviourConstraints = (invocationTarget.conditionsForBehaviour(inRuntime, contextModule, level) ?: return null)
                     .mapNotNull { it.translate(goal, randomVariableScope) }
 
-                return behaviourConstraints
-                    .map { behaviourConstraint -> behaviourConstraint.constraints.filterValues { it !is NoopConstraint } }
+                val x = behaviourConstraints
+                    .associateWithNotNull { constraint ->
+                        goal.arguments.unify((constraint.structure as CompoundTerm).arguments, randomVariableScope)
+                    }
+                val y = x
+                    .map { (constrainedTerm, unification) ->
+                        val constraints = unification.variableValues.values
+                            .map { (queryVar, structureValue) ->
+                                val constraintFromQueryVar = constrainedTerm.constraints[queryVar] ?: NoopConstraint
+                                val constraintFromStructureValue = constrainedTerm.constraints[structureValue as? Variable] ?: NoopConstraint
+                                queryVar to constraintFromQueryVar.and(constraintFromStructureValue, randomVariableScope)
+                            }
+                            .filter { it.second !is NoopConstraint }
+                            .toMap()
+
+                        QueryBehaviour(
+                            level,
+                            constraints,
+                            unification
+                        )
+                    }
+
+                return y
             }
             is AndQuery -> {
-                val goalsConditions = goals.map { it.conditionsForBehaviour(inRuntime, contextModule, level) }
-                if (goalsConditions.any { it == null }) {
-                    // unsure for at least one goal => unsure about entire query
-                    return null
-                }
-                @Suppress("UNCHECKED_CAST")
-                goalsConditions as List<List<Map<Variable, TermConstraint>>>
-
-                return goalsConditions.reduce { accList, list ->
-                    permutateMap(accList, list, ConstrainedTerm.Companion::combine)
-                        .filterNotNull()
-                        .toList()
-                }
+                TODO()
             }
-            is OrQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level) else {
+            is OrQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level, randomVariableScope) else {
                 TODO()
             }
         }
     }
 }
+
+private data class QueryBehaviour(
+    val level: DeterminismLevel,
+    val behaviourExpectedGiven: Map<Variable, TermConstraint>,
+    val instantiatesOnSuccess: Unification
+)

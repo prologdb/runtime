@@ -13,7 +13,6 @@ import io.kotlintest.matchers.beInstanceOf
 import io.kotlintest.matchers.haveKey
 import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldNotBe
 import io.kotlintest.specs.FreeSpec
 import io.mockk.every
 import io.mockk.mockk
@@ -35,9 +34,8 @@ class ConstrainedTermTest : FreeSpec() {init {
 
         "with passing constraint on Variable" {
             every { constraint.check(value) } returns true
-            val result = lhs.combineWith(rhs, RandomVariableScope())
-            result shouldNotBe null
-            result!!.structure shouldBe value
+            val (result, _) = lhs.combineWith(rhs, RandomVariableScope())!!
+            result.structure shouldBe value
             result.constraints should beAnEmptyMap()
         }
 
@@ -57,11 +55,10 @@ class ConstrainedTermTest : FreeSpec() {init {
         every { combinedConstraint.toString(any()) } returns "combinedConstraint"
 
         "should combine constraints" {
-            every { constraint.and(constraint2) } returns combinedConstraint
+            every { constraint.and(constraint2, RandomVariableScope()) } returns combinedConstraint
 
-            val result = lhs.combineWith(rhs, RandomVariableScope())
-            result shouldNotBe null
-            result!!.structure shouldBe Variable2
+            val (result, _) = lhs.combineWith(rhs, RandomVariableScope())!!
+            result.structure shouldBe Variable2
             result.constraints should beMapOfSize(1)
             result.constraints should haveKey(Variable2)
             result.constraints[Variable2] shouldBe combinedConstraint
@@ -77,11 +74,10 @@ class ConstrainedTermTest : FreeSpec() {init {
         every { combinedConstraint.toString(any()) } returns "combinedConstraint"
 
         "should combine constraints" {
-            every { constraint.and(constraint2) } returns combinedConstraint
+            every { constraint.and(constraint2, RandomVariableScope()) } returns combinedConstraint
 
-            val result = lhs.combineWith(rhs, RandomVariableScope())
-            result shouldNotBe null
-            result!!.structure shouldBe a(Variable2)
+            val (result, _) = lhs.combineWith(rhs, RandomVariableScope())!!
+            result.structure shouldBe a(Variable2)
             result.constraints should beMapOfSize(1)
             result.constraints should haveKey(Variable2)
             result.constraints[Variable2] shouldBe combinedConstraint
@@ -97,11 +93,10 @@ class ConstrainedTermTest : FreeSpec() {init {
         every { combinedConstraint.toString(any()) } returns "combinedConstraint"
 
         "should combine constraints" {
-            every { constraint.and(constraint2) } returns combinedConstraint
+            every { constraint.and(constraint2, RandomVariableScope()) } returns combinedConstraint
 
-            val result = lhs.combineWith(rhs, RandomVariableScope())
-            result shouldNotBe null
-            result!!.structure shouldBe a(Variable)
+            val (result, _) = lhs.combineWith(rhs, RandomVariableScope())!!
+            result.structure shouldBe a(Variable)
             result.constraints should beMapOfSize(1)
             result.constraints should haveKey(Variable)
             result.constraints[Variable] shouldBe combinedConstraint
@@ -113,10 +108,9 @@ class ConstrainedTermTest : FreeSpec() {init {
         val rhs = ConstrainedTerm(a(foo(bar), Variable2), emptyMap())
 
         "should inline" {
-            val result = lhs.combineWith(rhs, RandomVariableScope())
+            val (result, _) = lhs.combineWith(rhs, RandomVariableScope())!!
 
-            result shouldNotBe null
-            result!!.structure shouldBe a(foo(bar), foo(bar))
+            result.structure shouldBe a(foo(bar), foo(bar))
         }
     }
 
@@ -125,10 +119,9 @@ class ConstrainedTermTest : FreeSpec() {init {
         val rhs = ConstrainedTerm(a(Variable, Variable2), mapOf(Variable2 to IdentityTermConstraint(value)))
 
         "should inline identity term constraints" {
-            val result = lhs.combineWith(rhs, RandomVariableScope())
+            val (result, _) = lhs.combineWith(rhs, RandomVariableScope())!!
 
-            result shouldNotBe null
-            result!!.structure shouldBe a(bar, value)
+            result.structure shouldBe a(bar, value)
             result.constraints should beAnEmptyMap()
         }
     }
@@ -138,7 +131,7 @@ class ConstrainedTermTest : FreeSpec() {init {
             val A = Variable("A")
             val B = Variable("B")
             val term = ConstrainedTerm(a(PrologList(listOf(A), B), B), emptyMap())
-            val translated = term.translate(a(A, B), RandomVariableScope())?.structure
+            val translated = term.translate(a(A, B), RandomVariableScope())
 
             translated as CompoundTerm
             translated.arity shouldBe 2

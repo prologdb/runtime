@@ -1,7 +1,10 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
+import com.github.prologdb.runtime.builtin.builtinArgumentVariables
 import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 
@@ -28,4 +31,12 @@ internal val MemberBuiltin = nativeRule("member", 2) { args, ctxt ->
         }
         else -> throw PrologRuntimeException("Argument 1 to member/2 must be a list, got ${list.prologTypeName}")
     }
+}.apply {
+    behavesDeterministicGiven(ConstrainedTerm(
+        CompoundTerm("member", arrayOf(
+            builtinArgumentVariables[0],
+            PrologList(listOf(builtinArgumentVariables[0]))
+        )),
+        emptyMap()
+    ))
 }

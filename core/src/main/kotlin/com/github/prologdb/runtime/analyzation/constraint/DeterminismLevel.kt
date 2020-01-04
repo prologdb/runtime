@@ -15,12 +15,12 @@ enum class DeterminismLevel {
     SEMI_DETERMINISTIC,
 
     /**
-     * The predicate may yield zero, one or multiple solutions
+     * The predicate yields zero, one or multiple solutions
      */
     NON_DETERMINISTIC,
 
     /**
-     * The predicate may yield zero, one or multiple solutions and then fail.
+     * The predicate yields zero, one or multiple solutions and then fails/raises an exception.
      */
     FAILING
 }

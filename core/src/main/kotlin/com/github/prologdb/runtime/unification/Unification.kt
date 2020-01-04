@@ -12,6 +12,8 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
         return Unification(variableValues.combinedWith(other.variableValues))
     }
 
+    fun translate(mapper: (Variable) -> Variable): Unification = Unification(variableValues.translate(mapper))
+
     override fun toString(): String {
         return variableValues.values.joinToString(", ") { (variable, value) ->
             "$variable = ${value ?: Variable.ANONYMOUS}"
@@ -31,7 +33,6 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     override fun hashCode(): Int {
         return variableValues.hashCode()
     }
-
 
     companion object {
         val FALSE: Unification? = null

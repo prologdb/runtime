@@ -4,24 +4,34 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.crossover
 
-private fun TermConstraint?.and(rhs: TermConstraint?): TermConstraint = when {
+private fun TermConstraint?.and(rhs: TermConstraint?, randomVariableScope: RandomVariableScope): TermConstraint = when {
     this == null -> rhs ?: NoopConstraint
     rhs == null  -> this
-    else -> this.and(rhs)
+    else -> this.and(rhs, randomVariableScope)
 }
 
 class ConstrainedTerm(
-    val structure: Term,
-    val constraints: Map<Variable, TermConstraint>
+    structure: Term,
+    constraints: Map<Variable, TermConstraint>
 ) {
+    val structure: Term = structure.substituteVariables { variable ->
+        val unificationConstraint = (constraints[variable] as? UnificationTermConstraint)
+        if (unificationConstraint?.negated == false) unificationConstraint.unifiesWith else variable
+    }
+
+    val constraints: Map<Variable, TermConstraint> = constraints
+        .filter { (_, constraint) -> constraint !is UnificationTermConstraint || constraint.negated }
+        .toMap()
+
     /**
      * Unifies the two [structure]s. If they don't unify, returns null. If they unify,
      * combines the [constraints] of both. If the constraints are incompatible, returns null.
-     * @return The combined structure and constraints.
+     * @return first: the combined structure and constraints, second: the result of unifying the two structure terms
      */
-    fun combineWith(rhs: ConstrainedTerm, randomVariableScope: RandomVariableScope): ConstrainedTerm? {
+    fun combineWith(rhs: ConstrainedTerm, randomVariableScope: RandomVariableScope): Pair<ConstrainedTerm, Unification>? {
         val structureUnification = structure.unify(rhs.structure, randomVariableScope) ?: return null
         var combinedStructure = structure.substituteVariables(structureUnification.variableValues.asSubstitutionMapper())
 
@@ -31,15 +41,15 @@ class ConstrainedTerm(
         for ((variable, value) in structureUnification.variableValues.values) {
             val lhsConstraint = constraints[variable]
             val rhsConstraint = rhs.constraints[variable]
-            var combinedConstraint = lhsConstraint.and(rhsConstraint)
+            var combinedConstraint = lhsConstraint.and(rhsConstraint, randomVariableScope)
 
             if (value != null) {
                 if (value is Variable) {
                     val lhsUnifiedConstraint = constraints[value]
                     val rhsUnifiedConstraint = rhs.constraints[value]
                     combinedConstraint = combinedConstraint
-                        .and(lhsUnifiedConstraint)
-                        .and(rhsUnifiedConstraint)
+                        .and(lhsUnifiedConstraint, randomVariableScope)
+                        .and(rhsUnifiedConstraint, randomVariableScope)
                 } else {
                     if (!combinedConstraint.check(value)) {
                         return null
@@ -51,7 +61,7 @@ class ConstrainedTerm(
                     if (value is Variable) {
                         literalConstraints[value] = combinedConstraint.literal
                     }
-                } else {
+                } else if (combinedConstraint != NoopConstraint) {
                     check(combinedConstraints.putIfAbsent(variable, combinedConstraint) == null)
                     if (value is Variable) {
                         check(combinedConstraints.putIfAbsent(value, combinedConstraint) == null)
@@ -66,7 +76,7 @@ class ConstrainedTerm(
             if (variable !in combinedConstraints) {
                 val lhsConstraint = constraints[variable]
                 val rhsConstraint = rhs.constraints[variable]
-                val combinedConstraint = lhsConstraint.and(rhsConstraint)
+                val combinedConstraint = lhsConstraint.and(rhsConstraint, randomVariableScope)
 
                 if (combinedConstraint is IdentityTermConstraint) {
                     literalConstraints[variable] = combinedConstraint.literal
@@ -83,7 +93,7 @@ class ConstrainedTerm(
 
         combinedConstraints.keys.removeIf { it !in combinedVariables }
 
-        return ConstrainedTerm(combinedStructure, combinedConstraints)
+        return Pair(ConstrainedTerm(combinedStructure, combinedConstraints), structureUnification)
     }
 
     /**
@@ -100,9 +110,9 @@ class ConstrainedTerm(
         val termMapping = VariableMapping()
         val randomTerm = randomVariableScope.withRandomVariables(term, termMapping)
 
-        val (randomSelf, _) = withRandomVariables(randomVariableScope)
+        val (randomSelf, structureUnification) = withRandomVariables(randomVariableScope)
 
-        val randomResult = randomSelf.combineWith(unifiesWith(randomTerm), randomVariableScope) ?: return null
+        val (randomResult, _) = randomSelf.combineWith(unifiesWith(randomTerm), randomVariableScope) ?: return null
         val resultStructure = randomResult.structure.substituteVariables {
             (randomResult.constraints[it] as? IdentityTermConstraint)?.literal
             ?: termMapping.getOriginal(it)
@@ -126,33 +136,12 @@ class ConstrainedTerm(
      */
     fun withRandomVariables(randomVariableScope: RandomVariableScope): Pair<ConstrainedTerm, VariableMapping> {
         val mapping = VariableMapping()
-        val randomStructure = randomVariableScope.withRandomVariables(structureWithIdentityTermsInlined(), mapping)
+        val randomStructure = randomVariableScope.withRandomVariables(structure, mapping)
         val randomConstraints = constraints
             .map { (variable, constraint) -> mapping.getSubstitution(variable)!! to constraint }
             .toMap()
 
         return ConstrainedTerm(randomStructure, randomConstraints) to mapping
-    }
-
-    private fun structureWithIdentityTermsInlined(): Term {
-        val identityTermConstraints = constraints
-            .filter { (_, constraint) -> constraint is IdentityTermConstraint }
-            .toMap() as Map<Variable, IdentityTermConstraint>
-
-        var carry = structure
-        do {
-            var nSubstituted = 0
-            carry = carry.substituteVariables {
-                val substitue = identityTermConstraints[it]?.literal
-                if (substitue != null) {
-                    nSubstituted++
-                    substitue
-                } else it
-            }
-        }
-        while (carry.variables.any { it in identityTermConstraints } && nSubstituted > 0)
-
-        return carry
     }
 
     override fun toString(): String {
@@ -173,8 +162,9 @@ class ConstrainedTerm(
 
     companion object {
         fun unifiesWith(term: Term) = ConstrainedTerm(term, emptyMap())
+
         fun areMutuallyExclusive(constrainedTerms: Collection<ConstrainedTerm>): Boolean {
-            if (constrainedTerms.size == 1) {
+            if (constrainedTerms.size < 2) {
                 return true
             }
 
@@ -182,27 +172,9 @@ class ConstrainedTerm(
             return constrainedTerms
                 .crossover { a, b ->
                     val combination = a.combineWith(b, randomVariableScope)
-                    combination == null || combination.constraints.values.any { it is ImpossibleConstraint }
+                    combination == null || combination.first.constraints.values.any { it is ImpossibleConstraint }
                 }
                 .all { it }
-        }
-
-        /**
-         * Assuming both [lhs] and [rhs] are in the same variable scope, combines the two sets of constraints.
-         *
-         * @return The combined constraints if the constraints an be fulfilled. Null if the constraints are mutually exclusive.
-         */
-        fun combine(lhs: Map<Variable, TermConstraint>, rhs: Map<Variable, TermConstraint>): Map<Variable, TermConstraint>? {
-            val result = HashMap(lhs)
-            for ((rhsVariable, rhsConstraint) in rhs) {
-                result.merge(rhsVariable, rhsConstraint, TermConstraint::and)
-            }
-
-            if (result.values.any { it is ImpossibleConstraint }) {
-                return null
-            }
-
-            return result
         }
     }
 }

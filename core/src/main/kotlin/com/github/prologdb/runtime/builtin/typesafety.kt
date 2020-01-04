@@ -35,7 +35,7 @@ val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
         if (correct) yield(Unification.TRUE)
     }
 }.apply {
-    behavesSemiDeterministic()
+
 }
 
 val CompoundBuiltin = nativeRule("compound", 1) { args, ctxt ->
@@ -45,7 +45,7 @@ val CompoundBuiltin = nativeRule("compound", 1) { args, ctxt ->
         yield(Unification.TRUE)
     }
 }.apply {
-    behavesSemiDeterministic()
+
 }
 
 val TypeSafetyModule = nativeModule("typesafety") {
@@ -82,7 +82,7 @@ private fun typeCheckBuiltin(name: String, type: Class<out Term>, negated: Boole
         { args, _ -> if (!type.isInstance(args[0])) yield(Unification.TRUE) }
         else { args, _ -> if (type.isInstance(args[0])) yield(Unification.TRUE) }
     ).apply {
-        behavesSemiDeterministic()
+
     }
 }
 
@@ -90,6 +90,6 @@ private fun testingBuiltin(name: String, test: (Term) -> Boolean): Rule {
     return nativeRule(name, 1, getInvocationStackFrame()) { args, _ ->
         if (test(args[0])) yield(Unification.TRUE)
     }.apply {
-        behavesSemiDeterministic()
+
     }
 }

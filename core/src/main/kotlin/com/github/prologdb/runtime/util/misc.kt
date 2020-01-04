@@ -98,10 +98,10 @@ fun <T, M : Any> Iterable<T>.associateWithNotNull(mapper: (T) -> M?): Map<T, M> 
         .toMap()
 }
 
-fun <T, V> permutateMap(first: Iterable<T>, second: Iterable<T>, action: (T, T) -> V): Sequence<V> = sequence {
+fun <T> permutate(first: Iterable<T>, second: Iterable<T>): Sequence<Pair<T, T>> = sequence {
     for (eFromFirst in first) {
         for (eFromSecond in second) {
-            yield(action(eFromFirst, eFromSecond))
+            yield(Pair(eFromFirst, eFromSecond))
         }
     }
 }

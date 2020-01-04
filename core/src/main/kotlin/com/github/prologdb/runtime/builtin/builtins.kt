@@ -2,31 +2,40 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PrologException
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
-import com.github.prologdb.runtime.module.*
-import com.github.prologdb.runtime.proofsearch.*
+import com.github.prologdb.runtime.module.FullModuleImport
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
+import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.BehaviourExposingPrologCallable
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import java.util.*
+import java.util.Collections
+import java.util.WeakHashMap
 
 internal val A = Variable("A")
 internal val B = Variable("B")
 internal val C = Variable("C")
 internal val X = Variable("X")
-
-@Deprecated("use the DSL instead")
-abstract class BuiltinPredicate(name: String, vararg arguments: Term) : CompoundTerm(name, arguments) {
-    override val variables: Set<Variable>
-        get() = emptySet()
-
-    override fun substituteVariables(mapper: (Variable) -> Term) = this
-}
 
 
 /**
@@ -48,7 +57,7 @@ typealias PrologBuiltinImplementation = suspend LazySequenceBuilder<Unification>
  * when defining the builtin `string_chars(A, B)`, `A` and `B` are obtained from
  * this list.
  */
-private val builtinArgumentVariables = arrayOf(
+internal val builtinArgumentVariables = arrayOf(
     Variable("_Arg0"),
     Variable("_Arg1"),
     Variable("_Arg2"),
@@ -91,7 +100,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
                 ex.addPrologStackFrame(builtinStackFrame)
                 throw ex
             } catch (ex: Throwable) {
-                val newEx = PrologRuntimeException(ex.message ?: "", ex)
+                val newEx = PrologRuntimeException("Internal error", ex)
                 newEx.addPrologStackFrame(builtinStackFrame)
 
                 throw newEx
@@ -107,6 +116,15 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
         behaviourConstraints.computeIfAbsent(DeterminismLevel.SEMI_DETERMINISTIC, { mutableListOf() }).also {
             require(it.isEmpty())
             it.add(ConstrainedTerm.unifiesWith(head))
+        }
+    }
+
+    fun behavesDeterministicGiven(constraint: ConstrainedTerm) {
+        require(constraint.structure is CompoundTerm)
+        require(constraint.structure.functor == functor)
+        require(constraint.structure.arity == arity)
+        behaviourConstraints.computeIfAbsent(DeterminismLevel.DETERMINISTIC, { mutableListOf() }).also {
+            it.add(constraint)
         }
     }
 }

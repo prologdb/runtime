@@ -12,7 +12,6 @@ import com.github.prologdb.runtime.analyzation.areMutuallyExclusive
 import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
 import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.term.AnonymousVariable
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
@@ -208,25 +207,32 @@ class ASTPrologPredicate(
 
     override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
         return behaviourAnalysisResults.computeIfAbsent(level) {
-            if (level != DeterminismLevel.SEMI_DETERMINISTIC) {
+            if (level != DeterminismLevel.DETERMINISTIC) {
                 return@computeIfAbsent null
             }
 
-            val clauseConditions = clauses.flatMap { clause -> when(clause) {
+            val clauseConditions = clauses.map { clause -> when(clause) {
                 is BehaviourExposingPrologCallable -> {
                     // this is where the module scope switches, because this predicate may be defined in
                     // another module than which it is called from, and the query in rules (Rule : Clause) is executed
                     // in the module context it was declared in
-                    clause.conditionsForBehaviour(inRuntime, declaringModule, level) ?: return@computeIfAbsent null
+                    clause.conditionsForBehaviour(inRuntime, declaringModule, level)
                 }
-                else -> return@computeIfAbsent null // all clauses must be certain for a correct result on the entire predicate
+                else -> null // all clauses must be certain for a correct result on the entire predicate
             } }
 
-            return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(clauseConditions)) {
+            if (clauseConditions.any { it?.isEmpty() == true }) {
+                return@computeIfAbsent emptyList()
+            }
+            if (clauseConditions.any { it == null }) {
+                return@computeIfAbsent null
+            }
+
+            val flatClauseConditions = clauseConditions.flatMap { it!! }
+
+            return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(flatClauseConditions) || clauses.areMutuallyExclusive()) {
                 // only one clause can ever yield one solution -> entire predicate behaves that way
-                clauseConditions
-            } else if (clauses.areMutuallyExclusive()) {
-                listOf(ConstrainedTerm(CompoundTerm(functor, Array(arity) { AnonymousVariable }), emptyMap()))
+                flatClauseConditions
             } else emptyList()
         }
     }

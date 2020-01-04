@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.analyzation.constraint
 
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDecimal
 import com.github.prologdb.runtime.term.PrologInteger
@@ -30,27 +31,27 @@ class IdentityTermConstraintTest : FreeSpec() { init {
     "and" - {
         "noop" {
             val constraint = IdentityTermConstraint(PrologInteger(1))
-            constraint.and(NoopConstraint) shouldBe constraint
+            constraint.and(NoopConstraint, RandomVariableScope()) shouldBe constraint
         }
 
         "impossible" {
-            IdentityTermConstraint(Atom("hans")).and(ImpossibleConstraint) shouldBe ImpossibleConstraint
+            IdentityTermConstraint(Atom("hans")).and(ImpossibleConstraint, RandomVariableScope()) shouldBe ImpossibleConstraint
         }
 
         "type" - {
             "the type constraints onto the same type" {
                 val constraint = IdentityTermConstraint(Atom("hans"))
-                constraint.and(TypeTermConstraint(Atom::class.java)) shouldBe constraint
+                constraint.and(TypeTermConstraint(Atom::class.java), RandomVariableScope()) shouldBe constraint
             }
 
             "the type constraints on a supertype" {
                 val constraint = IdentityTermConstraint(PrologInteger(123123))
-                constraint.and(TypeTermConstraint(PrologNumber::class.java)) shouldBe constraint
+                constraint.and(TypeTermConstraint(PrologNumber::class.java), RandomVariableScope()) shouldBe constraint
             }
 
             "the type constraints on a disjoint type" {
                 val constraint = IdentityTermConstraint(PrologDecimal(51024.0))
-                constraint.and(TypeTermConstraint(PrologInteger::class.java)) shouldBe ImpossibleConstraint
+                constraint.and(TypeTermConstraint(PrologInteger::class.java), RandomVariableScope()) shouldBe ImpossibleConstraint
             }
         }
 
@@ -58,7 +59,7 @@ class IdentityTermConstraintTest : FreeSpec() { init {
             "same instance" {
                 val term = Atom("foo")
                 val constraint = IdentityTermConstraint(term)
-                constraint.and(IdentityTermConstraint(term)) shouldBe constraint
+                constraint.and(IdentityTermConstraint(term), RandomVariableScope()) shouldBe constraint
             }
 
             "identical terms of different identity" {
@@ -68,11 +69,11 @@ class IdentityTermConstraintTest : FreeSpec() { init {
                 check(termA !== termB)
 
                 val constraint = IdentityTermConstraint(termA)
-                constraint.and(IdentityTermConstraint(termB)) shouldBe constraint
+                constraint.and(IdentityTermConstraint(termB), RandomVariableScope()) shouldBe constraint
             }
 
             "unequal terms" {
-                IdentityTermConstraint(PrologInteger(512312)).and(IdentityTermConstraint(PrologInteger(63251))) shouldBe ImpossibleConstraint
+                IdentityTermConstraint(PrologInteger(512312)).and(IdentityTermConstraint(PrologInteger(63251)), RandomVariableScope()) shouldBe ImpossibleConstraint
             }
         }
     }

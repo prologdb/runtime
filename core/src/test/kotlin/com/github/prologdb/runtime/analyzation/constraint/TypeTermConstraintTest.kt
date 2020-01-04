@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.analyzation.constraint
 
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologDecimal
@@ -28,18 +29,18 @@ class TypeTermConstraintTest : FreeSpec() {init {
     "and" - {
         "with noop" {
             val typeConstraint = TypeTermConstraint(Atom::class.java)
-            typeConstraint.and(NoopConstraint) shouldBe typeConstraint
+            typeConstraint.and(NoopConstraint, RandomVariableScope()) shouldBe typeConstraint
         }
 
         "with impossible constraint" {
-            TypeTermConstraint(Atom::class.java).and(ImpossibleConstraint) shouldBe ImpossibleConstraint
+            TypeTermConstraint(Atom::class.java).and(ImpossibleConstraint, RandomVariableScope()) shouldBe ImpossibleConstraint
         }
 
         "with type constraint" - {
             "should pick the most concrete - A" {
                 val a = TypeTermConstraint(PrologNumber::class.java)
                 val b = TypeTermConstraint(PrologDecimal::class.java)
-                val result = a.and(b)
+                val result = a.and(b, RandomVariableScope())
                 result should beInstanceOf(TypeTermConstraint::class)
                 (result as TypeTermConstraint).type shouldBe PrologDecimal::class.java
             }
@@ -47,7 +48,7 @@ class TypeTermConstraintTest : FreeSpec() {init {
             "should pick the most concrete - B" {
                 val a = TypeTermConstraint(PrologDecimal::class.java)
                 val b = TypeTermConstraint(PrologNumber::class.java)
-                val result = a.and(b)
+                val result = a.and(b, RandomVariableScope())
                 result should beInstanceOf(TypeTermConstraint::class)
                 (result as TypeTermConstraint).type shouldBe PrologDecimal::class.java
             }
@@ -55,7 +56,7 @@ class TypeTermConstraintTest : FreeSpec() {init {
             "should return impossible on disjoint types" {
                 val a = TypeTermConstraint(Atom::class.java)
                 val b = TypeTermConstraint(CompoundTerm::class.java)
-                val result = a.and(b)
+                val result = a.and(b, RandomVariableScope())
 
                 result shouldBe ImpossibleConstraint
             }
@@ -65,13 +66,13 @@ class TypeTermConstraintTest : FreeSpec() {init {
             "of matching type should return the literal" {
                 val literal = IdentityTermConstraint(Atom("a"))
                 val type = TypeTermConstraint(Atom::class.java)
-                type.and(literal) shouldBe literal
+                type.and(literal, RandomVariableScope()) shouldBe literal
             }
 
             "of disjoint type should return Impossible" {
                 val literal = IdentityTermConstraint(PrologInteger(1621))
                 val type = TypeTermConstraint(Atom::class.java)
-                type.and(literal) shouldBe ImpossibleConstraint
+                type.and(literal, RandomVariableScope()) shouldBe ImpossibleConstraint
             }
         }
     }
