@@ -41,8 +41,8 @@ class VariableBucket private constructor(
     fun instantiate(variable: Variable, value: Term) {
         if (variable == Variable.ANONYMOUS) return
 
-        if (isInstantiated(variable)) {
-            throw NameError("Variable $variable is already instantiated in this bucket.")
+        if (variableMap[variable]?.let { it == value } == false) {
+            throw VariableDiscrepancyException("Variable $variable is already instantiated in this bucket.")
         }
 
         variableMap[variable] = value
