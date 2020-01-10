@@ -21,7 +21,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
     override val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, VariableBucket) -> Unit = { q, variables ->
         when (q) {
             is AndQuery -> fulfillAndQuery(q, variables)
-            is OrQuery -> for (goal in q.goals) fulfillOrQuery(q, variables)
+            is OrQuery -> fulfillOrQuery(q, variables)
             is PredicateInvocationQuery -> invokePredicate(q, variables)
         }
     }
@@ -69,7 +69,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
             }
     }
 
-    protected suspend fun LazySequenceBuilder<Unification>.fulfillOrQuery(query: OrQuery, initialVariables: VariableBucket) {
+    protected suspend inline fun LazySequenceBuilder<Unification>.fulfillOrQuery(query: OrQuery, initialVariables: VariableBucket) {
         for (goal in query.goals) {
             fulfillAttach(goal, initialVariables)
         }
