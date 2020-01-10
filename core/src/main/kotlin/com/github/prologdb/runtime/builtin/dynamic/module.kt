@@ -15,6 +15,7 @@ import com.github.prologdb.runtime.term.Term
 val DynamicsModule = nativeModule("dynamics") {
     add(BuiltinFindAll)
     add(BuiltinFindAllOptimized)
+    add(BuiltinFindNSols4)
     add(BuiltinCompilePredicates)
     add(BuiltinCall1)
     add(BuiltinCompoundNameArguments3)
