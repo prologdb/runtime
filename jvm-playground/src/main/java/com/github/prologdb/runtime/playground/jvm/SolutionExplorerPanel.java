@@ -251,7 +251,7 @@ public class SolutionExplorerPanel {
         }
 
         // seconds
-        BigDecimal time = new BigDecimal(Long.toString(millis)).divide(THOUSAND, RoundingMode.UNNECESSARY);
+        BigDecimal time = new BigDecimal(Long.toString(millis)).divide(THOUSAND, RoundingMode.CEILING);
         if (time.compareTo(SIXTY) < 0) {
             return time.toString() + "s";
         }
