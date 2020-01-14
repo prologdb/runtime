@@ -9,6 +9,8 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
+import io.kotlintest.matchers.shouldBe
+import io.kotlintest.matchers.shouldThrow
 import io.kotlintest.specs.FreeSpec
 
 class ModuleIsolationTest : FreeSpec({
@@ -112,7 +114,10 @@ class ModuleIsolationTest : FreeSpec({
 
         val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
 
-        runtimeEnv shouldNotProve foo(R)
+        val ex = shouldThrow<PrologRuntimeException> {
+            runtimeEnv.fulfill(PredicateInvocationQuery(foo(R))).consumeAll()
+        }
+        ex.message shouldBe "Predicate a/1 not defined in context of module B"
     }
 
     "partial import - predicates in module don't see predicates not imported (but exported)" {
@@ -152,7 +157,10 @@ class ModuleIsolationTest : FreeSpec({
             }
         }
 
-        runtimeEnv shouldNotProve CompoundTerm("bar", arrayOf(R))
+        val ex = shouldThrow<PrologRuntimeException> {
+            runtimeEnv.fulfill(PredicateInvocationQuery(CompoundTerm("bar", arrayOf(R)))).consumeAll()
+        }
+        ex.message shouldBe "Predicate c/1 not defined in context of module B"
     }
 
     "module local predicates" - {
