@@ -44,8 +44,7 @@ internal val BuiltinStringChars = nativeRule("string_chars", 2) { args, ctxt ->
         val result = referenceValueForB.unify(inputB, ctxt.randomVariableScope)
         if (result != null) yield(result)
     }
-
-    if (inputB is PrologList) {
+    else {
         val referenceValueForA = convertInputBToPrologString()
         val result = referenceValueForA.unify(inputA, ctxt.randomVariableScope)
         if (result != null) yield(result)
