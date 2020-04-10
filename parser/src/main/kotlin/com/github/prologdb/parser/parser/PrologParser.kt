@@ -1,8 +1,40 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.*
-import com.github.prologdb.parser.lexer.*
-import com.github.prologdb.parser.lexer.Operator.*
+import com.github.prologdb.parser.ModuleDeclaration
+import com.github.prologdb.parser.ParsedAndQuery
+import com.github.prologdb.parser.ParsedAnonymousVariable
+import com.github.prologdb.parser.ParsedAtom
+import com.github.prologdb.parser.ParsedCompoundTerm
+import com.github.prologdb.parser.ParsedDictionary
+import com.github.prologdb.parser.ParsedList
+import com.github.prologdb.parser.ParsedOrQuery
+import com.github.prologdb.parser.ParsedPredicateInvocationQuery
+import com.github.prologdb.parser.ParsedPrologString
+import com.github.prologdb.parser.ParsedRule
+import com.github.prologdb.parser.ParsedVariable
+import com.github.prologdb.parser.Reporting
+import com.github.prologdb.parser.ReportingException
+import com.github.prologdb.parser.SemanticError
+import com.github.prologdb.parser.SemanticWarning
+import com.github.prologdb.parser.SyntaxError
+import com.github.prologdb.parser.UnexpectedEOFError
+import com.github.prologdb.parser.UnexpectedTokenError
+import com.github.prologdb.parser.lexer.AtomLiteralToken
+import com.github.prologdb.parser.lexer.IdentifierToken
+import com.github.prologdb.parser.lexer.NumericLiteralToken
+import com.github.prologdb.parser.lexer.Operator
+import com.github.prologdb.parser.lexer.Operator.BRACKET_CLOSE
+import com.github.prologdb.parser.lexer.Operator.BRACKET_OPEN
+import com.github.prologdb.parser.lexer.Operator.CURLY_CLOSE
+import com.github.prologdb.parser.lexer.Operator.CURLY_OPEN
+import com.github.prologdb.parser.lexer.Operator.FULL_STOP
+import com.github.prologdb.parser.lexer.Operator.HEAD_QUERY_SEPARATOR
+import com.github.prologdb.parser.lexer.Operator.HEAD_TAIL_SEPARATOR
+import com.github.prologdb.parser.lexer.Operator.PARENT_CLOSE
+import com.github.prologdb.parser.lexer.Operator.PARENT_OPEN
+import com.github.prologdb.parser.lexer.OperatorToken
+import com.github.prologdb.parser.lexer.StringLiteralToken
+import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.lexer.TokenType.IDENTIFIER
 import com.github.prologdb.parser.lexer.TokenType.NUMERIC_LITERAL
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
@@ -19,12 +51,21 @@ import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologDecimal
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
-import com.github.prologdb.runtime.util.OperatorType.*
+import com.github.prologdb.runtime.util.OperatorType.FX
+import com.github.prologdb.runtime.util.OperatorType.XFX
+import com.github.prologdb.runtime.util.OperatorType.YF
+import com.github.prologdb.runtime.util.OperatorType.YFX
 
 /** If kotlin had union types this would be `Token | Term` */
 private typealias TokenOrTerm = Any
@@ -355,8 +396,6 @@ class PrologParser {
     }
 
     fun parseDictionary(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<ParsedDictionary> {
-        // copied from parseList and adapted
-
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("dict")))
 
         tokens.mark()
@@ -386,7 +425,7 @@ class PrologParser {
         // else: dict with content
         tokens.rollback()
 
-        val elementsResult = parseTerm(tokens, opRegistry, { t -> stopAtOperator(HEAD_TAIL_SEPARATOR)(t) || stopAtOperator(CURLY_CLOSE)(t) })
+        val elementsResult = parseTerm(tokens, opRegistry, stopAtAnyOf(HEAD_TAIL_SEPARATOR, CURLY_CLOSE))
         if (!elementsResult.isSuccess) {
             tokens.rollback()
             return ParseResult(null, NOT_RECOGNIZED, elementsResult.reportings)
@@ -954,6 +993,18 @@ class PrologParser {
                     token is OperatorToken && token.operator == operator
                 } else false
                 // return false so that EOF can be detected independently of the break condition
+            }
+        }
+
+        fun stopAtAnyOf(operator1: Operator, operator2: Operator): (TransactionalSequence<Token>) -> Boolean {
+            return { tokens ->
+                if (tokens.hasNext()) {
+                    tokens.mark()
+                    val token = tokens.next()
+                    tokens.rollback()
+
+                    token is OperatorToken && (token.operator == operator1 || token.operator == operator2)
+                } else false
             }
         }
 
