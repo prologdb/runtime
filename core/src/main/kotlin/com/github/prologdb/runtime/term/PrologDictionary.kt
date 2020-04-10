@@ -129,7 +129,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
             variables.toSet()
         }
 
-    override fun substituteVariables(mapper: (Variable) -> Term): Term
+    override fun substituteVariables(mapper: (Variable) -> Term): PrologDictionary
         = PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
 
     override val prologTypeName = "dict"

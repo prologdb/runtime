@@ -31,8 +31,9 @@ interface ProofSearchContext {
     val rootAvailableModules: Map<String, Module>
 
     /**
-     * Starts a proof search on the given query. This method will take control of
-     * the coroutine until the proof search for the (sub)query is complete.
+     * Starts a proof search on the given query. Solutions will be [LazySequenceBuilder.yield]ed onto the
+     * given [LazySequenceBuilder]. This method will remain in control of the coroutine until execution of
+     * the query has finished.
      */
     val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, initialVariables: VariableBucket) -> Unit
 

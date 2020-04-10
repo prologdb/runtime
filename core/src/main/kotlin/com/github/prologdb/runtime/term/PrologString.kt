@@ -91,7 +91,7 @@ open class PrologString private constructor(
 
     override val variables: Set<Variable> = emptySet()
 
-    override fun substituteVariables(mapper: (Variable) -> Term): PrologList = this
+    override fun substituteVariables(mapper: (Variable) -> Term): PrologString = this
 
     override fun equals(other: Any?): Boolean {
         if (other is PrologString) {

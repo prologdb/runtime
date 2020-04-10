@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.RandomVariable
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -40,6 +41,8 @@ class RandomVariableScope {
             }
         }
     }
+
+    fun withRandomVariables(term: CompoundTerm, mapping: VariableMapping) = withRandomVariables(term as Term, mapping) as CompoundTerm
 
     fun createNewRandomVariable(): Variable {
         if (randomCounter == Long.MAX_VALUE) {
