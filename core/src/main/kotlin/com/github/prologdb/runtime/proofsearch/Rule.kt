@@ -8,11 +8,9 @@ import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
-import com.github.prologdb.runtime.analyzation.constraint.ImpossibleConstraint
-import com.github.prologdb.runtime.analyzation.constraint.NoopConstraint
-import com.github.prologdb.runtime.analyzation.constraint.TermConstraint
+import com.github.prologdb.runtime.analyzation.constraint.GoalBehaviour
+import com.github.prologdb.runtime.analyzation.constraint.InvocationBehaviour
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -20,11 +18,8 @@ import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import com.github.prologdb.runtime.unification.VariableDiscrepancyException
-import com.github.prologdb.runtime.util.associateWithNotNull
 import unify
 import variables
 import withRandomVariables
@@ -87,101 +82,33 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, BehaviourExp
 
     override fun toString() = "$head :- $query"
 
-    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
+    override fun getBehaviours(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<InvocationBehaviour>? {
         return query.conditionsForBehaviour(inRuntime, callingModule, level, RandomVariableScope())
             ?.map { queryBehaviour ->
-                ConstrainedTerm(
-                    head.substituteVariables(queryBehaviour.instantiatesOnSuccess.variableValues.asSubstitutionMapper()),
-                    queryBehaviour.behaviourExpectedGiven
+                InvocationBehaviour(
+                    head,
+                    queryBehaviour.inConstraints,
+                    queryBehaviour.outConstraints
                 )
             }
     }
 
-    private fun Query.conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, contextModule: Module, level: DeterminismLevel, randomVariableScope: RandomVariableScope): List<QueryBehaviour>? {
+    private fun Query.conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, contextModule: Module, level: DeterminismLevel, randomVariableScope: RandomVariableScope): List<GoalBehaviour>? {
         if (level != DeterminismLevel.DETERMINISTIC) return null
 
         return when (this) {
             is PredicateInvocationQuery -> {
                 val (_, invocationTarget) = contextModule.resolveCallable(inRuntime, ClauseIndicator.of(goal)) ?: return null
                 if (invocationTarget !is BehaviourExposingPrologCallable) return null
-                return (invocationTarget.conditionsForBehaviour(inRuntime, contextModule, level) ?: return null)
+                return (invocationTarget.getBehaviours(inRuntime, contextModule, level) ?: return null)
                     .mapNotNull { it.translate(goal, randomVariableScope) }
-                    .associateWithNotNull { constraint ->
-                        // unification tells us the instantiations that occur as the result of the goal.
-                        goal.arguments.unify((constraint.structure as CompoundTerm).arguments, randomVariableScope)
-                    }
-                    .map { (constrainedTerm, unification) ->
-                        val constraints = unification.variableValues.values
-                            .map { (queryVar, structureValue) ->
-                                val constraintFromQueryVar = constrainedTerm.constraints[queryVar] ?: NoopConstraint
-                                val constraintFromStructureValue = constrainedTerm.constraints[structureValue as? Variable] ?: NoopConstraint
-                                queryVar to constraintFromQueryVar.and(constraintFromStructureValue, randomVariableScope)
-                            }
-                            .filter { it.second !is NoopConstraint }
-                            .toMap()
-
-                        QueryBehaviour(
-                            level,
-                            constraints,
-                            unification
-                        )
-                    }
             }
             is AndQuery -> {
-                var behaviours: List<QueryBehaviour> = listOf(QueryBehaviour(level, emptyMap(), Unification.TRUE))
-                for (goal in goals) {
-                    val behavioursFlatMapped = ArrayList<QueryBehaviour>(behaviours.size * 2)
-                    for (previousBehaviour in behaviours) {
-                        val goalBehaviours = goal
-                             .substituteVariables(previousBehaviour.instantiatesOnSuccess.variableValues)
-                             .conditionsForBehaviour(inRuntime, contextModule, level, randomVariableScope)
-                             ?: return null
-
-                        for (goalBehaviour in goalBehaviours) {
-                            val combined = previousBehaviour.combineWith(goalBehaviour, randomVariableScope)
-                            if (combined != null) {
-                                behavioursFlatMapped.add(combined)
-                            }
-                        }
-                    }
-
-                    behaviours = behavioursFlatMapped
-                }
-
-                behaviours
+                TODO()
             }
             is OrQuery -> if (goals.size == 1) goals.single().conditionsForBehaviour(inRuntime, contextModule, level, randomVariableScope) else {
                 TODO()
             }
         }
-    }
-}
-
-private data class QueryBehaviour(
-    val level: DeterminismLevel,
-    val behaviourExpectedGiven: Map<Variable, TermConstraint>,
-    val instantiatesOnSuccess: Unification
-) {
-    fun combineWith(other: QueryBehaviour, randomVariableScope: RandomVariableScope): QueryBehaviour? {
-        if (level != other.level) return null
-        val combinedInstantiations = try {
-            instantiatesOnSuccess.combinedWith(other.instantiatesOnSuccess)
-        } catch (ex: VariableDiscrepancyException) {
-            return null
-        }
-
-        val behaviourExpectedGivenCombined = HashMap<Variable, TermConstraint>(instantiatesOnSuccess.variableValues.size + other.instantiatesOnSuccess.variableValues.size)
-        behaviourExpectedGivenCombined.putAll(behaviourExpectedGiven)
-        for ((otherVariable, otherConstraint) in other.behaviourExpectedGiven) {
-            if (otherVariable in behaviourExpectedGivenCombined) {
-                val combinedConstraint = behaviourExpectedGivenCombined.getValue(otherVariable).and(otherConstraint, randomVariableScope)
-                if (combinedConstraint is ImpossibleConstraint) {
-                    return null
-                }
-                behaviourExpectedGivenCombined[otherVariable] = combinedConstraint
-            }
-        }
-
-        return QueryBehaviour(level, behaviourExpectedGivenCombined, combinedInstantiations)
     }
 }

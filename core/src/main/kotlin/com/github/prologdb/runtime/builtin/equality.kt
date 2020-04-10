@@ -1,10 +1,7 @@
 package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
-import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
-import com.github.prologdb.runtime.proofsearch.BehaviourExposingPrologCallable
+import com.github.prologdb.runtime.analyzation.constraint.InvocationBehaviour
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
@@ -34,8 +31,8 @@ val BuiltinNotOperator = nativeRule("\\+", 1) { args, context ->
 val BuiltinUnity = nativeRule("=", 2) { args, context ->
     args[0].unify(args[1], context.randomVariableScope)?.let { yield(it) }
 }.apply {
-    behavesDeterministicGiven(
-        ConstrainedTerm.unifiesWith(
+    addDeterministicBehaviour(
+        InvocationBehaviour.unifiesWith(
             CompoundTerm("=", arrayOf(builtinArgumentVariables[0], builtinArgumentVariables[0]))
         )
     )
@@ -71,22 +68,4 @@ val EqualityModule = nativeModule("equality") {
     add(BuiltinNotOperator)
     add(BuiltinIdentity)
     add(BuiltinNegatedIdentityOperator)
-    add(nativeRule("analyze", 1) { args, ctxt ->
-        val indicator = ClauseIndicator.ofIdiomatic(args[0], "Argument 1 to analyze/1")
-        val (_, predicate) = ctxt.resolveCallable(indicator)!!
-
-        predicate as BehaviourExposingPrologCallable
-        val conditions = predicate.conditionsForBehaviour(
-            ctxt.runtime,
-            ctxt.runtime.rootModule,
-            DeterminismLevel.DETERMINISTIC
-        )
-
-        println(conditions?.size)
-        conditions?.forEach {
-            println(it)
-        }
-
-        yield(Unification.TRUE)
-    })
 }

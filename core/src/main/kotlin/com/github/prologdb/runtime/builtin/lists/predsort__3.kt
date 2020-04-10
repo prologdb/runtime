@@ -38,10 +38,7 @@ internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
             throw PrologRuntimeException("Comparator predicate did not instantiate first argument")
         }
 
-        val delta = firstResult.variableValues[Delta] as? Atom
-            ?: throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
-
-        when (delta.name) {
+        when ((firstResult.variableValues[Delta] as? Atom)?.name) {
             "<" -> -1
             "=" -> 0
             ">" -> 1

@@ -3,8 +3,8 @@ package com.github.prologdb.runtime.proofsearch
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.HasFunctorAndArity
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
-import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.InvocationBehaviour
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
@@ -39,10 +39,9 @@ interface DelegatableCallable : PrologCallable {
 
 interface BehaviourExposingPrologCallable : PrologCallable {
     /**
-     * @return the conditions under which the receiver behaves according to the given [DeterminismLevel]. An empty list
-     * indicates the the receiver will, under no circumstances, behave that way. Null indicates that the constraints could
-     * not be determined (see halting problem).
-     * TODO: find a more suitable name for this
+     * @return the behaviours to be expected from `this`' [PrologCallable.fulfill] that are categorized as [DeterminismLevel].
+     * An empty list indicates the the receiver will, under no circumstances, behave that way.
+     * Null indicates that the behaviours could not be reliably determined (see halting problem).
      */
-    fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>?
+    fun getBehaviours(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<InvocationBehaviour>?
 }

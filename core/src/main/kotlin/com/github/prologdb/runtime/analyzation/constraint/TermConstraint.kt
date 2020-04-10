@@ -73,8 +73,24 @@ class TypeTermConstraint(val type: Class<out Term>) : TermConstraint() {
             PrologList::class.java.isAssignableFrom(type) -> "is_list($forSubject)"
             PrologDictionary::class.java.isAssignableFrom(type) -> "is_dict($forSubject)"
             CompoundTerm::class.java.isAssignableFrom(type) -> "typeof($forSubject, `compound term`)"
+            Variable::class.java.isAssignableFrom(type) -> "var($forSubject)"
             else -> "$forSubject is instance of ${type.simpleName}"
         }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as TypeTermConstraint
+
+        if (type != other.type) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return type.hashCode()
     }
 
     companion object {

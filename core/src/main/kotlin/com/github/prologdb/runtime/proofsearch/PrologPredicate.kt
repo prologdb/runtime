@@ -8,8 +8,8 @@ import com.github.prologdb.runtime.PredicateNotDynamicException
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.InvocationBehaviour
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -202,10 +202,10 @@ class ASTPrologPredicate(
         dropDelegateOnModification = false
     }
 
-    private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<ConstrainedTerm>?>()
+    private val behaviourAnalysisResults = mutableMapOf<DeterminismLevel, List<InvocationBehaviour>?>()
 
-    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? {
-        return behaviourAnalysisResults.computeIfAbsent(level) {
+    override fun getBehaviours(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<InvocationBehaviour>? {
+        return behaviourAnalysisResults.computeIfAbsent(level) { _ ->
             if (level != DeterminismLevel.DETERMINISTIC) {
                 return@computeIfAbsent null
             }
@@ -215,7 +215,7 @@ class ASTPrologPredicate(
                     // this is where the module scope switches, because this predicate may be defined in
                     // another module than which it is called from, and the query in rules (Rule : Clause) is executed
                     // in the module context it was declared in
-                    clause.conditionsForBehaviour(inRuntime, declaringModule, level)
+                    clause.getBehaviours(inRuntime, declaringModule, level)
                 }
                 else -> null // all clauses must be certain for a correct result on the entire predicate
             } }
@@ -226,7 +226,7 @@ class ASTPrologPredicate(
 
             val flatClauseConditions = clauseConditions.flatMap { it!! }
 
-            return@computeIfAbsent if (ConstrainedTerm.areMutuallyExclusive(flatClauseConditions)) {
+            return@computeIfAbsent if (InvocationBehaviour.areMutuallyExclusive(flatClauseConditions)) {
                 flatClauseConditions
             } else {
                 null

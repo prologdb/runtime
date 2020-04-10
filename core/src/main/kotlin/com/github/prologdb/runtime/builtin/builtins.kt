@@ -10,8 +10,8 @@ import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.analyzation.constraint.ConstrainedTerm
 import com.github.prologdb.runtime.analyzation.constraint.DeterminismLevel
+import com.github.prologdb.runtime.analyzation.constraint.InvocationBehaviour
 import com.github.prologdb.runtime.module.FullModuleImport
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
@@ -83,7 +83,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
     private val invocationStackFrame = definedAt
     private val stringRepresentation = """$head :- __nativeCode("${invocationStackFrame.fileName}:${invocationStackFrame.lineNumber}")"""
 
-    private val behaviourConstraints = mutableMapOf<DeterminismLevel, MutableList<ConstrainedTerm>>()
+    private val behaviours = mutableMapOf<DeterminismLevel, MutableList<InvocationBehaviour>>()
 
     private val builtinStackFrame = PrologStackTraceElement(
         head,
@@ -110,21 +110,15 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
 
     override fun toString() = stringRepresentation
 
-    override fun conditionsForBehaviour(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<ConstrainedTerm>? = behaviourConstraints[level]
+    override fun getBehaviours(inRuntime: PrologRuntimeEnvironment, callingModule: Module, level: DeterminismLevel): List<InvocationBehaviour>? = behaviours[level]
 
-    fun behavesSemiDeterministic() {
-        behaviourConstraints.computeIfAbsent(DeterminismLevel.SEMI_DETERMINISTIC, { mutableListOf() }).also {
-            require(it.isEmpty())
-            it.add(ConstrainedTerm.unifiesWith(head))
-        }
-    }
+    fun addDeterministicBehaviour(behaviour: InvocationBehaviour) {
+        require(behaviour.targetCallableHead.functor == functor)
+        require(behaviour.targetCallableHead.arity == arity)
+        require(behaviour.outConstraints.size == 1)
 
-    fun behavesDeterministicGiven(constraint: ConstrainedTerm) {
-        require(constraint.structure is CompoundTerm)
-        require(constraint.structure.functor == functor)
-        require(constraint.structure.arity == arity)
-        behaviourConstraints.computeIfAbsent(DeterminismLevel.DETERMINISTIC, { mutableListOf() }).also {
-            it.add(constraint)
+        behaviours.computeIfAbsent(DeterminismLevel.DETERMINISTIC, { mutableListOf() }).also {
+            it.add(behaviour)
         }
     }
 }

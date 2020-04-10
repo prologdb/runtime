@@ -1,7 +1,11 @@
 package com.github.prologdb.runtime.builtin.lists
 
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.analyzation.constraint.InvocationBehaviour
+import com.github.prologdb.runtime.analyzation.constraint.TypeTermConstraint
+import com.github.prologdb.runtime.builtin.builtinArgumentVariables
 import com.github.prologdb.runtime.builtin.nativeRule
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
@@ -27,4 +31,22 @@ internal val LengthBuiltin = nativeRule("length", 2) { args, ctxt ->
             PrologList(elements, null).unify(arg0, ctxt.randomVariableScope)?.let { yield(it) }
         }
     }
+}.apply {
+    addDeterministicBehaviour(
+        InvocationBehaviour(
+            CompoundTerm("length", arrayOf(
+                builtinArgumentVariables[0],
+                builtinArgumentVariables[1]
+            )),
+            mapOf(
+                builtinArgumentVariables[0] to TypeTermConstraint<PrologList>(),
+                builtinArgumentVariables[1] to TypeTermConstraint<Variable>()
+            ),
+            listOf(
+                mapOf(
+                    builtinArgumentVariables[1] to TypeTermConstraint<PrologInteger>()
+                )
+            )
+        )
+    )
 }

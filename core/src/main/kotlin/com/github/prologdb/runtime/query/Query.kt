@@ -69,7 +69,7 @@ open class PredicateInvocationQuery(
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateInvocationQuery(
-            randomVarsScope.withRandomVariables(goal, mapping) as CompoundTerm,
+            randomVarsScope.withRandomVariables(goal, mapping),
             sourceInformation
         )
     }
