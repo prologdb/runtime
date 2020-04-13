@@ -2,7 +2,11 @@ package com.github.prologdb.runtime.builtin.dynamic
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 val BuiltinCompoundNameArguments3 = nativeRule("compound_name_arguments", 3) { args, ctxt ->
@@ -42,6 +46,5 @@ val BuiltinCompoundNameArguments3 = nativeRule("compound_name_arguments", 3) { a
         throw PrologRuntimeException("If argument 1 to compound_name_arguments/3 is unbound, argument 3 must not have a tail")
     }
 
-    compoundInput.unify(CompoundTerm(desiredFunctor, desiredArgumentsInput.elements.toTypedArray()), ctxt.randomVariableScope)
-        ?.let { yield(it) }
+    return@nativeRule compoundInput.unify(CompoundTerm(desiredFunctor, desiredArgumentsInput.elements.toTypedArray()), ctxt.randomVariableScope)
 }

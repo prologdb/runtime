@@ -38,5 +38,7 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
         val FALSE: Unification? = null
         val TRUE: Unification = Unification()
         val NONE: LazySequence<Unification> = LazySequence.empty()
+
+        fun whether(condition: Boolean): Unification? = if(condition) TRUE else FALSE
     }
 }

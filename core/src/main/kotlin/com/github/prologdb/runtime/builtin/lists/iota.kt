@@ -31,7 +31,7 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
 
     if (start == endExcl) {
         // empty range
-        return@nativeRule
+        return@nativeRule null
     }
 
     if (target !is Variable) {
@@ -42,7 +42,7 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
             }
         }
         // else: will not unify, ever
-        return@nativeRule
+        return@nativeRule null
     }
 
     // implicit: target as Variable
@@ -62,9 +62,15 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
             val nextN = source.next()
             batchStorage.add(target.unify(PrologInteger.createUsingStringOptimizerCache(nextN), ctxt.randomVariableScope))
         }
-        yieldAll(batchStorage)
+        if (source.hasNext()) {
+            yieldAll(batchStorage)
+        } else {
+            return@nativeRule yieldAllFinal(batchStorage.asSequence())
+        }
     }
     while(source.hasNext())
+
+    return@nativeRule null
 }
 
 /**
@@ -100,7 +106,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
 
     if (start == endExcl) {
         // empty range
-        return@nativeRule
+        return@nativeRule null
     }
 
     if (target !is Variable) {
@@ -111,7 +117,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
             }
         }
         // else: will not unify, ever
-        return@nativeRule
+        return@nativeRule null
     }
 
     // implicit: target as Variable
@@ -140,7 +146,13 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
             val nextN = source.next()
             batchStorage.add(target.unify(nextN, ctxt.randomVariableScope))
         }
-        yieldAll(batchStorage)
+        if (source.hasNext()) {
+            yieldAll(batchStorage)
+        } else {
+            return@nativeRule yieldAllFinal(batchStorage.asSequence())
+        }
     }
     while(source.hasNext())
+
+    null
 }

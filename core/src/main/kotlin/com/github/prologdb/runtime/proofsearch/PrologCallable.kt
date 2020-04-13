@@ -5,6 +5,8 @@ import com.github.prologdb.runtime.HasFunctorAndArity
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 
+typealias PrologCallableFulfill = suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unification?
+
 /**
  * Something that can be called in prolog.
  */
@@ -12,7 +14,7 @@ interface PrologCallable : HasFunctorAndArity {
     /**
      * Calls this callable with the given arguments. Yields the results on the given receiver.
      */
-    val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit
+    val fulfill: PrologCallableFulfill
 }
 
 /**

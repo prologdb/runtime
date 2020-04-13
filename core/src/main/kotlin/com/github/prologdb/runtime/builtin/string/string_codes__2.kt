@@ -40,14 +40,12 @@ internal val BuiltinStringCodes2 = nativeRule("string_codes", 2) { args, ctxt ->
         throw PrologRuntimeException("Arguments are not sufficiently instantiated")
     }
 
-    if (inputA is PrologString) {
+    return@nativeRule if (inputA is PrologString) {
         val referenceValueForB = convertInputAToListOfCodes()
-        val result = referenceValueForB.unify(inputB, ctxt.randomVariableScope)
-        if (result != null) yield(result)
+        referenceValueForB.unify(inputB, ctxt.randomVariableScope)
     }
     else {
         val referenceValueForA = convertInputBToPrologString()
-        val result = referenceValueForA.unify(inputA, ctxt.randomVariableScope)
-        if (result != null) yield(result)
+        return@nativeRule referenceValueForA.unify(inputA, ctxt.randomVariableScope)
     }
 }

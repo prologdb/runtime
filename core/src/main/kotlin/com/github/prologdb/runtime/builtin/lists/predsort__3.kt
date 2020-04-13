@@ -51,5 +51,5 @@ internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
 
     val sortedElements = unsorted.elements.sortedWith(comparator)
 
-    PrologList(sortedElements).unify(sorted, ctxt.randomVariableScope)?.let { yield(it) }
+    return@nativeRule PrologList(sortedElements).unify(sorted, ctxt.randomVariableScope)
 }

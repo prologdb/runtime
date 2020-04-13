@@ -13,9 +13,9 @@ internal val MemberBuiltin = nativeRule("member", 2) { args, ctxt ->
     val list = args[1]
 
     when (list) {
-        is PrologList -> for (element in list.elements) {
-            element.unify(member, ctxt.randomVariableScope)?.let { yield(it) }
-        }
+        is PrologList -> return@nativeRule yieldAllFinal(list.elements.asSequence().mapNotNull { element ->
+            element.unify(member, ctxt.randomVariableScope)
+        })
         is Variable -> {
             var nRandoms = 0
             while (true) {
@@ -25,6 +25,7 @@ internal val MemberBuiltin = nativeRule("member", 2) { args, ctxt ->
                 yield(list.unify(PrologList(elements, ctxt.randomVariableScope.createNewRandomVariable()), ctxt.randomVariableScope))
                 nRandoms++
             }
+            @Suppress("UNREACHABLE_CODE") null
         }
         else -> throw PrologRuntimeException("Argument 1 to member/2 must be a list, got ${list.prologTypeName}")
     }

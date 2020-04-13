@@ -10,6 +10,8 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
+typealias ProofSearch = suspend LazySequenceBuilder<Unification>.(Query, initialVariables: VariableBucket) -> Unification?
+
 interface ProofSearchContext {
     /**
      * Used to prevent race conditions between side effects of multiple
@@ -35,7 +37,7 @@ interface ProofSearchContext {
      * given [LazySequenceBuilder]. This method will remain in control of the coroutine until execution of
      * the query has finished.
      */
-    val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, initialVariables: VariableBucket) -> Unit
+    val fulfillAttach: ProofSearch
 
     /**
      * Resolves the given, context-sensitive indicator against the contexts imports

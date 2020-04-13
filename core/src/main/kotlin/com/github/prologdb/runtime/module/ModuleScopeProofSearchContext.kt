@@ -43,20 +43,18 @@ class ModuleScopeProofSearchContext(
 ) : ProofSearchContext, AbstractProofSearchContext() {
 
 
-    override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
+    override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
         val goal = query.goal
 
         // attempt core builtin
         when (goal.functor) {
             "assert", "assertz" -> {
                 assertz(goal.arguments)
-                yield(Unification.TRUE)
-                return
+                return Unification.TRUE
             }
             "abolish" -> {
                 abolish(goal.arguments)
-                yield(Unification.TRUE)
-                return
+                return Unification.TRUE
             }
             "retract", "retractAll" -> {
                 throw PrologRuntimeException("${ClauseIndicator.of(goal)} is not fully implemented yet.")
@@ -69,8 +67,7 @@ class ModuleScopeProofSearchContext(
 
         if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read $fqIndicator")
 
-        callable.fulfill(this, goal.arguments, this@ModuleScopeProofSearchContext)
-        return
+        return callable.fulfill(this, goal.arguments, this@ModuleScopeProofSearchContext)
     }
 
     override fun getStackTraceElementOf(query: PredicateInvocationQuery) = PrologStackTraceElement(

@@ -1,8 +1,10 @@
 package com.github.prologdb.nativetests
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.forEachRemaining
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.parser.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.ReportingException
@@ -148,7 +150,8 @@ private val prologTestFiles: List<Path>
         val classLoader = MethodHandles.lookup().javaClass.classLoader
         val resolver = PathMatchingResourcePatternResolver(classLoader)
 
-        return resolver.getResources("classpath:**/*.test.pl").map { Paths.get(it.file.absolutePath) }
+        return resolver.getResources("classpath:**/*.test.pl")
+            .map { Paths.get(it.file.absolutePath) }
     }
 
 private interface TestResultCallback {
@@ -186,45 +189,48 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
     private var failedGoal: Query? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                         vars: VariableBucket = VariableBucket()) {
-        val goal = goals[0].substituteVariables(vars)
+                                                                         initialVariables: VariableBucket = VariableBucket()): Unification? {
+        var sequence = LazySequence.singleton(Unification(initialVariables.copy()))
 
-        var goalHadAnySolutions = false
-        buildLazySequence<Unification>(context.principal) {
-            context.fulfillAttach(this, goal, VariableBucket())
-        }
-            .forEachRemaining { goalUnification ->
-                goalHadAnySolutions = true
-                val goalVars = vars.copy()
-                for ((variable, value) in goalUnification.variableValues.values) {
-                    if (value != null) {
-                        // substitute all instantiated variables for simplicity and performance
-                        val substitutedValue = value.substituteVariables(goalVars.asSubstitutionMapper())
-                        if (goalVars.isInstantiated(variable)) {
-                            if (goalVars[variable] != substitutedValue && goalVars[variable] != value) {
-                                // instantiated to different value => no unification
-                                return@forEachRemaining
+        for (goalIndex in goals.indices) {
+            sequence = sequence.flatMapRemaining { stateBefore ->
+                val goalSequence = buildLazySequence<Unification>(principal) {
+                    val lastSolution = context.fulfillAttach(
+                        this,
+                        goals[goalIndex].substituteVariables(stateBefore.variableValues),
+                        stateBefore.variableValues.copy()
+                    )
+
+                    if (lastSolution == null) {
+                        failedGoal = goals[goalIndex]
+                    }
+
+                    lastSolution
+                }
+                return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
+                    val stateCombined = stateBefore.variableValues.copy()
+                    for ((variable, value) in goalUnification.variableValues.values) {
+                        if (value != null) {
+                            // substitute all instantiated variables for simplicity and performance
+                            val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
+                            if (stateCombined.isInstantiated(variable)) {
+                                if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
+                                    // instantiated to different value => no unification
+                                    failedGoal = goals[goalIndex]
+                                    return@mapRemainingNotNull null
+                                }
+                            }
+                            else {
+                                stateCombined.instantiate(variable, substitutedValue)
                             }
                         }
-                        else {
-                            goalVars.instantiate(variable, substitutedValue)
-                        }
                     }
-                }
-
-                if (goals.size == 1) {
-                    // this was the last goal in the list and it is fulfilled
-                    // the variable bucket now holds all necessary instantiations
-                    yield(Unification(goalVars))
-                }
-                else {
-                    fulfillAllGoals(goals.subList(1, goals.size), context, goalVars)
-                }
+                    Unification(stateCombined)
+                })
             }
-
-        if (!goalHadAnySolutions) {
-            failedGoal = allGoals[allGoals.size - goals.size]
         }
+
+        return yieldAllFinal(sequence)
     }
 
     fun run(callback: TestResultCallback) {

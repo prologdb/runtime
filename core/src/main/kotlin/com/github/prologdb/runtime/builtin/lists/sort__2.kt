@@ -28,8 +28,5 @@ internal val SortBuiltin = nativeRule("sort", 2) { args, context ->
     }
 
     val sorted = PrologList(inputElementsSortedUnique, inputUnsorted.tail)
-    val result = sorted.unify(inputSorted, context.randomVariableScope)
-    if (result != null) {
-        yield(result)
-    }
+    return@nativeRule sorted.unify(inputSorted, context.randomVariableScope)
 }

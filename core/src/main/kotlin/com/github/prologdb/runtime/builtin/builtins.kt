@@ -1,6 +1,5 @@
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
@@ -16,33 +15,18 @@ import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.PrologCallableFulfill
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 
 internal val A = Variable("A")
 internal val B = Variable("B")
 internal val C = Variable("C")
 internal val X = Variable("X")
-
-/**
- * Provides the implementation to a builtin. Is intended to be used **ONLY** in
- * combination with [nativeRule] to help ensure all preconditions for [invoke].
- *
- * Is invoked when the builtin is invoked from prolog. When invoked, it must be assured that:
- * * the predicate invoked from the prolog code actually matches the builtin (functor & arity)
- *
- * Arguments to the function:
- * 1. The arguments given to the builtin from the prolog code that invokes it
- * 2. The knowledge base within which the builtin is being executed
- * 3. Source of random variables to prevent collisions
- */
-typealias PrologBuiltinImplementation = suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit
 
 /**
  * [Variable]s to be used in the "prolog"-ish representation of builtins. E.g.
@@ -68,7 +52,7 @@ private val builtinArgumentVariables = arrayOf(
  */
 private val nativeCodeQuery = PredicateInvocationQuery(CompoundTerm("__nativeCode", emptyArray()))
 
-class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation) : Rule(
+class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologCallableFulfill) : Rule(
     CompoundTerm(name, builtinArgumentVariables.sliceArray(0 until arity)),
     nativeCodeQuery
 ) {
@@ -82,7 +66,7 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
         "$name/$arity native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
     )
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, context ->
+    override val fulfill: PrologCallableFulfill = { arguments, context ->
         if (head.arity == arguments.size) {
             try {
                 code(this, arguments, context)
@@ -95,18 +79,18 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
 
                 throw newEx
             }
-        }
+        } else null
     }
 
     override fun toString() = stringRepresentation
 }
 
-fun nativeRule(name: String, arity: Int, code: PrologBuiltinImplementation): NativeCodeRule {
+fun nativeRule(name: String, arity: Int, code: PrologCallableFulfill): NativeCodeRule {
     val definedAt = getInvocationStackFrame()
     return NativeCodeRule(name, arity, definedAt, code)
 }
 
-fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologBuiltinImplementation): NativeCodeRule {
+fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologCallableFulfill): NativeCodeRule {
     return NativeCodeRule(name, arity, definedAt, code)
 }
 

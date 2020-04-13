@@ -20,7 +20,7 @@ internal val BuiltinIs = nativeRule("is", 2) { args, ctxt ->
         yield(inputForB.unify(inputForA.asPrologNumber, ctxt.randomVariableScope))
     }
 
-    if (inputForA is PrologNumber) {
-        if (inputForB.asPrologNumber == inputForA) yield(Unification.TRUE)
-    }
+    return@nativeRule Unification.whether(
+        inputForA is PrologNumber && inputForB.asPrologNumber == inputForA
+    )
 }

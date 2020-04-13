@@ -1,6 +1,5 @@
 package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.Clause
@@ -9,7 +8,6 @@ import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import unify
@@ -30,7 +28,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
      *
      * This can be re-defined for built-ins.
      */
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, context ->
+    override val fulfill: PrologCallableFulfill = { arguments, context ->
         val goalRandomVarsMapping = VariableMapping()
         val randomArgs = context.randomVariableScope.withRandomVariables(arguments, goalRandomVarsMapping)
 
@@ -70,6 +68,8 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
             })
         }
         // else: does not match the rule head
+
+        null
     }
 
     override fun toString() = "$head :- $query"

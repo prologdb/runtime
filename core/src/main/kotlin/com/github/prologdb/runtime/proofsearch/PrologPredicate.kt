@@ -1,15 +1,21 @@
 package com.github.prologdb.runtime.proofsearch
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.*
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDynamicException
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import unify
 import variables
 import withRandomVariables
-import java.util.*
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -89,27 +95,30 @@ class ASTPrologPredicate(
         isSealed = true
     }
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { arguments, invocationCtxt ->
+    override val fulfill: PrologCallableFulfill = fulfill@{ arguments, invocationCtxt ->
         val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
 
         val delegate = currentDelegate
-        if (delegate != null) {
+        return@fulfill if (delegate != null) {
             delegate.fulfill.invoke(this, arguments, ctxt)
         } else {
-            for (clause in clauses) {
+            yieldAllFinal(LazySequence.ofCollection(clauses, principal).flatMapRemaining { clause ->
                 if (clause is CompoundTerm) {
                     val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(clause.arguments, VariableMapping())
                     val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
                     if (unification != null) {
                         unification.variableValues.retainAll(arguments.variables)
-                        yield(unification)
+                        return@flatMapRemaining unification
+                    } else {
+                        return@flatMapRemaining null
                     }
-                } else if (clause is Rule) {
-                    clause.fulfill(this, arguments, ctxt)
+                }
+                else if (clause is Rule) {
+                    return@flatMapRemaining clause.fulfill(this, arguments, ctxt)
                 } else {
                     throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
                 }
-            }
+            })
         }
     }
 

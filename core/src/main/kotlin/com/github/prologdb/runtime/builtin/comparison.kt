@@ -5,22 +5,22 @@ import com.github.prologdb.runtime.unification.Unification
 
 /** Implements the builtin @</2 */
 val BuiltinTermLessThan = nativeRule("@<", 2) { args, _ ->
-    if (args[0] < args[1]) yield(Unification.TRUE)
+    Unification.whether(args[0] < args[1])
 }
 
 /** Implements the builtin @=</2 */
 val BuiltinTermLessThanOrEqual = nativeRule("@=<", 2) { args, _ ->
-    if (args[0] <= args[1]) yield(Unification.TRUE)
+    Unification.whether(args[0] <= args[1])
 }
 
 /** Implements the builtin @>/2 */
 val BuiltinTermGreaterThan = nativeRule("@>", 2) { args, _ ->
-    if (args[0] > args[1]) yield(Unification.TRUE)
+    Unification.whether(args[0] > args[1])
 }
 
 /** Implements the builtin @>=/2 */
 val BuiltinTermGreaterThanOrEqual = nativeRule("@>=", 2) { args, _ ->
-    if (args[0] >= args[1]) yield(Unification.TRUE)
+    Unification.whether(args[0] >= args[1])
 }
 
 private val AtomLessThan = Atom("<")
@@ -35,8 +35,7 @@ val BuiltinCompare = nativeRule("compare", 3) { args, ctxt ->
         else              -> AtomEqual
     }
 
-    val unification = inputForOrder.unify(actualOrder, ctxt.randomVariableScope)
-    if (unification != null) yield(unification)
+    return@nativeRule inputForOrder.unify(actualOrder, ctxt.randomVariableScope)
 }
 
 /**

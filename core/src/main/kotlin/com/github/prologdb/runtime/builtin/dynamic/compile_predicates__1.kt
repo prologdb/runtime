@@ -52,5 +52,5 @@ internal val BuiltinCompilePredicates = nativeRule("compile_predicates", 1) { ar
         }
     }
 
-    yield(Unification.TRUE)
+    return@nativeRule Unification.TRUE
 }

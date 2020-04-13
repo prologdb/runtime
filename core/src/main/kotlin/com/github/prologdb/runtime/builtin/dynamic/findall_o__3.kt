@@ -74,9 +74,11 @@ internal val BuiltinFindAllOptimized = nativeRule("findall_o", 3) { args, contex
             })
 
             val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
-            if (resultListUnified != null) {
+            return@nativeRule if (resultListUnified != null) {
                 resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
-                yield(resultListUnified)
+                resultListUnified
+            } else {
+                null
             }
         }
     }

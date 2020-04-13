@@ -2,7 +2,14 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.proofsearch.Rule
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.PrologDecimal
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
 val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
@@ -11,7 +18,7 @@ val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
 
     if (arg1 is Variable) {
         val actualValueArg1 = Atom(arg0.prologTypeName)
-        yield(arg1.unify(actualValueArg1, ctxt.randomVariableScope))
+        return@nativeRule arg1.unify(actualValueArg1, ctxt.randomVariableScope)
     } else {
         if (arg1 !is Atom) throw PrologRuntimeException("Type error: argument 2 to typeof/2 must be an atom or unbound")
 
@@ -23,7 +30,7 @@ val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
                 ||
                 (arg0.prologTypeName == arg1.name)
 
-        if (correct) yield(Unification.TRUE)
+        return@nativeRule Unification.whether(correct)
     }
 }
 val TypeSafetyModule = nativeModule("typesafety") {
@@ -52,7 +59,5 @@ val TypeSafetyModule = nativeModule("typesafety") {
  * the given predicate.
  */
 private fun typeCheckBuiltin(name: String, test: (Term) -> Boolean): Rule {
-    return nativeRule(name, 1, getInvocationStackFrame()) { args, _ ->
-        if (test(args[0])) yield(Unification.TRUE)
-    }
+    return nativeRule(name, 1, getInvocationStackFrame()) { args, _ -> Unification.whether(test(args[0])) }
 }

@@ -30,7 +30,7 @@ internal val Set2Builtin = nativeRule("set", 2) { args, _ ->
         val arg0asSet = arg0.elements.toSet()
         val result = VariableBucket()
         result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        yield(Unification(result))
+        return@nativeRule Unification(result)
     }
     else
     {
@@ -38,10 +38,12 @@ internal val Set2Builtin = nativeRule("set", 2) { args, _ ->
         if (arg1.tail is Variable) throw PrologRuntimeException("Type error: tail of argument 2 to set/1 not sufficiently instantiated")
 
         val isSet = arg1.elements.size == arg1.elements.toSet().size
-        if (isSet) {
+        return@nativeRule if (isSet) {
             val result = VariableBucket()
             result.instantiate(arg0, arg1)
-            yield(Unification(result))
+            Unification(result)
+        } else {
+            null
         }
     }
 }

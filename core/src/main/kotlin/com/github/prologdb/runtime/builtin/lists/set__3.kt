@@ -4,7 +4,11 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -52,7 +56,7 @@ internal val Set3Builtin = nativeRule("set", 3) { args, context ->
         val arg0asSet = arg0.elements.toSetUsingComparator(comparatorName)
         val result = VariableBucket()
         result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        yield(Unification(result))
+        return@nativeRule Unification(result)
     }
     else
     {
@@ -60,10 +64,12 @@ internal val Set3Builtin = nativeRule("set", 3) { args, context ->
         if (arg1.tail is Variable) throw PrologRuntimeException("Type error: tail of argument 2 to set/1 not sufficiently instantiated")
 
         val isSet = arg1.elements.size == arg1.elements.toSetUsingComparator(comparatorName).size
-        if (isSet) {
+        return@nativeRule if (isSet) {
             val result = VariableBucket()
             result.instantiate(arg0, arg1)
-            yield(Unification(result))
+            Unification(result)
+        } else {
+            null
         }
     }
 }

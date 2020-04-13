@@ -1,5 +1,7 @@
 package com.github.prologdb.runtime.builtin.dict
 
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.Atom
@@ -24,29 +26,32 @@ internal val GetDictBuiltin = nativeRule("get_dict", 3) { args, ctxt ->
     }
 
     if (keyArg is Variable) {
-        for ((dictKey, dictValue) in dictArg.pairs) {
+        return@nativeRule yieldAllFinal(LazySequence.ofCollection(dictArg.pairs.entries, principal).mapRemainingNotNull { (dictKey, dictValue) ->
             val valueUnification = valueArg.unify(dictValue, ctxt.randomVariableScope)
             if (valueUnification != null) {
                 if (valueUnification.variableValues.isInstantiated(keyArg)) {
                     if (valueUnification.variableValues[keyArg] == dictKey) {
-                        yield(valueUnification)
+                        return@mapRemainingNotNull valueUnification
                     }
                 }
                 else {
                     valueUnification.variableValues.instantiate(keyArg, dictKey)
-                    yield(valueUnification)
+                    return@mapRemainingNotNull valueUnification
                 }
             }
-        }
+
+            return@mapRemainingNotNull null
+        })
     }
     else
     {
         keyArg as Atom
         val valueForArg = dictArg.pairs[keyArg]
 
-        if (valueForArg != null) {
-            val unification = valueArg.unify(valueForArg, ctxt.randomVariableScope)
-            if (unification != null) yield(unification)
+        return@nativeRule if (valueForArg != null) {
+            valueArg.unify(valueForArg, ctxt.randomVariableScope)
+        } else {
+            null
         }
     }
 }
