@@ -227,7 +227,7 @@ internal class LazySequenceImpl<T : Any>(override val principal: Any, code: susp
         return state
     }
 
-    override fun tryAdvance(): T? {
+    override tailrec fun tryAdvance(): T? {
         while (queuedResults.isEmpty()) {
             when (innerState) {
                 InnerState.DEPLETED -> return null
