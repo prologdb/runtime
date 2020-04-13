@@ -1,10 +1,17 @@
 package com.github.prologdb.async
 
-import java.util.*
+import java.util.ArrayList
+import java.util.LinkedList
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.*
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.createCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 

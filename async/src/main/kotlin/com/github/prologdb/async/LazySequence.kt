@@ -15,7 +15,7 @@ import java.util.concurrent.Future
  * Calling [tryAdvance] will perform **all** necessary steps to calculate the next result (or determine
  * that there are no more). For more fine grained control and information use [step] and [state].
  */
-interface LazySequence<T> {
+interface LazySequence<T : Any> {
     /**
      * The concurrency principal. Instead of [Thread], this is used to obtain locks and mutexes in the
      * name of the coroutine. Traditional [synchronized] blocks are still used to prevent multiple threads
@@ -325,7 +325,7 @@ interface LazySequence<T> {
     }
 }
 
-interface LazySequenceBuilder<T> {
+interface LazySequenceBuilder<T : Any> {
     /** The principal of the sequence being built. To be used to initialize sub-sequences. */
     val principal: Principal
 
@@ -363,7 +363,7 @@ interface LazySequenceBuilder<T> {
     suspend fun yieldAll(results: LazySequence<T>)
 }
 
-fun <T> buildLazySequence(principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit): LazySequence<T> = LazySequenceImpl(principal, code)
+fun <T : Any> buildLazySequence(principal: Any, code: suspend LazySequenceBuilder<T>.() -> T?): LazySequence<T> = LazySequenceImpl(principal, code)
 
 /**
  * Adds all elements remaining in this [LazySequence] to the collection obtained by invoking the given [supplier].
@@ -372,7 +372,7 @@ fun <T> buildLazySequence(principal: Any, code: suspend LazySequenceBuilder<T>.(
  *
  * @return The collection obtained from [supplier]
  */
-fun <T, C : MutableCollection<in T>> LazySequence<T>.remainingTo(supplier: () -> C): C {
+fun <T : Any, C : MutableCollection<in T>> LazySequence<T>.remainingTo(supplier: () -> C): C {
     val target = supplier()
     forEachRemaining { target.add(it) }
     return target
@@ -381,7 +381,7 @@ fun <T, C : MutableCollection<in T>> LazySequence<T>.remainingTo(supplier: () ->
 /**
  * @return The next element that matches the given predicate
  */
-fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
+fun <T : Any> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
     var baseResult: T
     var predicateResult: Boolean
     do {
@@ -406,7 +406,7 @@ fun <T : Any> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySe
  *
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
-fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
+fun <T : Any, M : Any> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
     = MappedLazySequence(this, mapper)
 
 fun <T : Any, M : Any> LazySequence<T>.mapRemainingNotNull(mapper: (T) -> M?): LazySequence<M>
@@ -418,7 +418,7 @@ fun <T : Any, M : Any> LazySequence<T>.mapRemainingNotNull(mapper: (T) -> M?): L
  *
  * *[LazySequence.step]ing and [LazySequence.tryAdvance]ing this sequence may consume elements from this [LazySequence]*
  */
-fun <T, M> LazySequence<T>.flatMapRemaining(mapper: suspend LazySequenceBuilder<M>.(T) -> Unit): LazySequence<M>
+fun <T : Any, M : Any> LazySequence<T>.flatMapRemaining(mapper: suspend LazySequenceBuilder<M>.(T) -> M?): LazySequence<M>
     = FlatMapLazySequence(this, mapper)
 
 /**
@@ -427,21 +427,21 @@ fun <T, M> LazySequence<T>.flatMapRemaining(mapper: suspend LazySequenceBuilder<
  *
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
-inline fun <T, reified E> LazySequence<T>.transformExceptionsOnRemaining(noinline mapper: (E) -> Throwable): LazySequence<T>
-    where E : Throwable {
-    if (E::class == Throwable::class) {
-        return RethrowingExceptionMappingLazySequence(this, mapper as (Throwable) -> Throwable)
+inline fun <T : Any, reified E> LazySequence<T>.transformExceptionsOnRemaining(noinline mapper: (E) -> Throwable): LazySequence<T> {
+    return if (E::class == Throwable::class) {
+        @Suppress("UNCHECKED_CAST")
+        RethrowingExceptionMappingLazySequence(this, mapper as (Throwable) -> Throwable)
     } else {
-        return RethrowingExceptionMappingLazySequence(this, { e: Throwable ->
+        RethrowingExceptionMappingLazySequence(this) { e: Throwable ->
             if (e is E) mapper(e) else e
-        })
+        }
     }
 }
 
 /**
  * Invokes the given action for all remaining elements in this [LazySequence]
  */
-inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
+inline fun <T : Any> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
     while (true) consumer(tryAdvance() ?: break)
     close()
 }
@@ -451,7 +451,7 @@ inline fun <T> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
  * value and, for each element, applying the given accumulator.
  * @return the last return value of the accumulator
  */
-inline fun <T, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (T, R) -> R): R {
+inline fun <T : Any, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (T, R) -> R): R {
     var carry = initial
     while (true) {
         val el = tryAdvance() ?: break
@@ -464,8 +464,4 @@ inline fun <T, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (T, R) 
 /**
  * Adds the remaining elements to a list and returns that list.
  */
-fun <T> LazySequence<T>.remainingToList(): List<T> {
-    val target = ArrayList<T>()
-    forEachRemaining { target.add(it) }
-    return target
-}
+fun <T : Any> LazySequence<T>.remainingToList(): List<T> = remainingTo { ArrayList<T>() }

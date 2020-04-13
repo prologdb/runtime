@@ -1,6 +1,6 @@
 package com.github.prologdb.async
 
-class MappedLazySequence<T, M>(
+class MappedLazySequence<T : Any, M : Any>(
     private val base: LazySequence<T>,
     private val mapper: (T) -> M
 ) : LazySequence<M> {

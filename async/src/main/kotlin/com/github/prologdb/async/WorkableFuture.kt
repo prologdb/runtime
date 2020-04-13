@@ -87,7 +87,7 @@ interface WorkableFutureBuilder {
      * * calls to [WorkableFuture.step] are deferred to the sequence
      * @throws PrincipalConflictException If the given sequence belongs to another principal.
      */
-    suspend fun <Element, Carry> foldRemaining(sequence: LazySequence<Element>, initial: Carry, accumulator: (Carry, Element) -> Carry): Carry
+    suspend fun <Element : Any, Carry> foldRemaining(sequence: LazySequence<Element>, initial: Carry, accumulator: (Carry, Element) -> Carry): Carry
 }
 
 fun <T> launchWorkableFuture(principal: Any, code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(principal, code)

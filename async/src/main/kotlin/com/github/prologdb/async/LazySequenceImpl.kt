@@ -5,7 +5,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.coroutines.*
 
-internal class LazySequenceImpl<T>(override val principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit) : LazySequence<T> {
+internal class LazySequenceImpl<T : Any>(override val principal: Any, code: suspend LazySequenceBuilder<T>.() -> T?) : LazySequence<T> {
     /**
      * The sequence itself is always working. Results are cached if
      * [step] is called more often than necessary for one result.
