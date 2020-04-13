@@ -96,6 +96,21 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>io.mockk</groupId>
+                <artifactId>mockk</artifactId>
+                <version>1.9.3</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.9.10</version> <!-- pinned because mockk needs 1.9.10, but 1.6 from kotlintest overrides -->
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>1.9.10</version> <!-- pinned because mockk needs 1.9.10, but 1.6 from kotlintest overrides -->
+            </dependency>
+            <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-test-junit</artifactId>
                 <version>${kotlin.version}</version>
@@ -149,7 +164,7 @@
                 <plugin>
                     <groupId>org.jetbrains.dokka</groupId>
                     <artifactId>dokka-maven-plugin</artifactId>
-                    <version>0.9.18</version>
+                    <version>0.10.0</version>
                     <executions>
                         <execution>
                             <phase>pre-site</phase>

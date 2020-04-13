@@ -1,17 +1,23 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.async.remainingTo
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.DoublyIndexedClauseStore
+import com.github.prologdb.runtime.MutableClauseStore
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.SimpleClauseStore
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.forOne
-import io.kotlintest.matchers.*
-import io.kotlintest.mock.mock
+import io.kotlintest.matchers.beEmpty
+import io.kotlintest.matchers.contain
+import io.kotlintest.matchers.should
+import io.kotlintest.matchers.shouldEqual
+import io.kotlintest.matchers.shouldNot
 import io.kotlintest.specs.FreeSpec
 
 class MutableClauseStoreTest : FreeSpec() {
