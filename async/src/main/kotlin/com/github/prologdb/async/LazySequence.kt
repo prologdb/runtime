@@ -74,7 +74,7 @@ interface LazySequence<T> {
      * @see Sequence.distinctBy
      */
     fun <K> distinctBy(selector: (T) -> K): LazySequence<T>
-        = FilteredLazySequence(this, distinctFilter(selector))
+        = MapNotNullAndFilterLazySequence(this, { it }, distinctFilter(selector))
 
     /**
      * Consumes all of the remaining elements in this sequence.
@@ -397,11 +397,8 @@ fun <T> LazySequence<T>.find(predicate: (T) -> Boolean): T? {
  *
  * *Consuming elements from the returned [LazySequence] also consumes them from this [LazySequence]*
  */
-fun <T> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
-    = FilteredLazySequence(this, predicate)
-
-fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
-    = @Suppress("UNCHECKED_CAST") (FilteredLazySequence(this) { it != null} as LazySequence<T>)
+fun <T : Any> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySequence<T>
+    = MapNotNullAndFilterLazySequence(this, { it }, predicate)
 
 /**
  * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
@@ -411,6 +408,9 @@ fun <T> LazySequence<T?>.filterRemainingNotNull(): LazySequence<T>
  */
 fun <T, M> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySequence<M>
     = MappedLazySequence(this, mapper)
+
+fun <T : Any, M : Any> LazySequence<T>.mapRemainingNotNull(mapper: (T) -> M?): LazySequence<M>
+    = MapNotNullAndFilterLazySequence(this, mapper, { true })
 
 /**
  * For every remaining element in `this`, invokes the given mapper, drains the resulting sequence yielding
