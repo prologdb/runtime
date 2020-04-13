@@ -89,7 +89,7 @@ class PrologTest : FreeSpec() { init {
         }
 
         val testModule = parseResult.item ?: throw RuntimeException("Invalid return value from parser: is success but item is null")
-        val testCases = getPrologTestCases(testModule, callback::onTestParseError)
+        val testCases = getPrologTestCases(testModule)
 
         testCases.forEach { it.runWith(callback) }
     }
@@ -106,7 +106,7 @@ class PrologTest : FreeSpec() { init {
         )
     }
 
-    private fun getPrologTestCases(testModule: Module, parseErrorCallback: (Collection<Reporting>) -> Any?): Set<PrologTestCase> {
+    private fun getPrologTestCases(testModule: Module): Set<PrologTestCase> {
         val by2 = testModule.exportedPredicates[ClauseIndicator.of("by", 2)]
             ?: return emptySet()
 
