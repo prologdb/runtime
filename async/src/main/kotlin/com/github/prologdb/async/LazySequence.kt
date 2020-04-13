@@ -343,11 +343,15 @@ interface LazySequenceBuilder<T : Any> {
     suspend fun <E> await(future: Future<E>): E
 
     /**
+     * **DO NOT USE AS THE LAST INVOCATION IN A BUILDER; return the value instead.**
+     *
      * Yields the given object as one result to the lazy sequence
      */
     suspend fun yield(result: T)
 
     /**
+     * **DO NOT USE AS THE LAST INVOCATION IN A BUILDER; use [yieldAllFinal] or [flatMapRemaining] instead.**
+     *
      * Yields all results of the given collection from this lazy sequence.
      */
     suspend fun yieldAll(results: Iterable<T>) {
@@ -357,10 +361,43 @@ interface LazySequenceBuilder<T : Any> {
     }
 
     /**
+     * Yields all but the last element from the given [Iterable]. The last element
+     * is returned from this function. This is supposed to be used **exclusively** in this fashion:
+     *
+     *     return yieldAllFinal(results)
+     */
+    suspend fun yieldAllFinal(results: Sequence<T>): T? {
+        val iterator = results.iterator()
+        var element: T? = null
+        while (iterator.hasNext()) {
+            element = iterator.next()
+            if (!iterator.hasNext()) {
+                break
+            }
+
+            yield(element)
+        }
+
+        return element
+    }
+
+    /**
      * Yields all results of the given lazy sequence to this lazy sequence.
+     *
+     * **DO NOT USE AS THE LAST INVOCATION IN A BUILDER; use [yieldAllFinal] or [flatMapRemaining] instead.**
      * @throws PrincipalConflictException If the given sequence is of another principal.
      */
     suspend fun yieldAll(results: LazySequence<T>)
+
+    /**
+     * Yields all but the last element from the given [LazySequence]. The last element
+     * is returned from this function. This is supposed to be used **exclusively** in this fashion:
+     *
+     *     return yieldAllFinal(results)
+     *
+     * @throws PrincipalConflictException If the given sequence is of another principal.
+     */
+    suspend fun yieldAllFinal(results: LazySequence<T>): T?
 }
 
 fun <T : Any> buildLazySequence(principal: Any, code: suspend LazySequenceBuilder<T>.() -> T?): LazySequence<T> = LazySequenceImpl(principal, code)

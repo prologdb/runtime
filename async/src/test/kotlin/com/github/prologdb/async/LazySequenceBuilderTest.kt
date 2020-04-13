@@ -10,6 +10,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     "yield - single element" {
         val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foobar")
+            null
         }
 
         seq.tryAdvance() shouldEqual "foobar"
@@ -20,6 +21,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
         val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foo")
             yield("bar")
+            null
         }
 
         seq.tryAdvance() shouldEqual "foo"
@@ -31,7 +33,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
         val seq = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yieldAll(buildLazySequence(principal) {
                 yield("foobar")
+                null
             })
+            null
         }
 
         seq.tryAdvance() shouldEqual "foobar"
@@ -43,7 +47,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
+                null
             })
+            null
         }
 
         seq.tryAdvance() shouldEqual "foo"
@@ -58,7 +64,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
+                null
             })
+            null
         }
 
         seq.tryAdvance() shouldEqual "baz"
@@ -72,8 +80,10 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
+                null
             })
             yield("baz")
+            null
         }
 
         seq.tryAdvance() shouldEqual "foo"
@@ -88,8 +98,10 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             yieldAll(buildLazySequence(principal) {
                 yield("foo")
                 yield("bar")
+                null
             })
             yield("baz")
+            null
         }
 
         seq.tryAdvance() shouldEqual "beep"
@@ -111,6 +123,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             catch (ex: Throwable) {
                 exceptionCaughtInLS = ex
             }
+            null
         }
 
         seq.step() // now hangs on the future
@@ -181,6 +194,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             } catch (ex: RuntimeException) {
                 yield(Unit)
             }
+
+            null
         }
 
         seq.tryAdvance() shouldBe Unit
@@ -220,6 +235,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             } catch (ex: RuntimeException) {
                 yield(Unit)
             }
+
+            null
         }
 
         seq.tryAdvance() shouldBe Unit
@@ -232,5 +249,35 @@ class LazySequenceBuilderTest : FreeSpec() { init {
 
         seq.tryAdvance() shouldEqual "foobar"
         seq.tryAdvance() shouldEqual null
+    }
+
+    "final result" {
+        val withFinal = buildLazySequence<String>(RANDOM_PRINCIPAL) {
+            yield("a")
+            "b"
+        }
+
+        val withoutFinal = buildLazySequence<String>(RANDOM_PRINCIPAL) {
+            yield("a")
+            yield("b")
+            null
+        }
+
+        withFinal.tryAdvance() shouldBe "a"
+        withoutFinal.tryAdvance() shouldBe "a"
+
+        withFinal.state shouldBe LazySequence.State.PENDING
+        withoutFinal.state shouldBe LazySequence.State.PENDING
+
+        withFinal.step() shouldBe LazySequence.State.RESULTS_AVAILABLE
+        withoutFinal.step() shouldBe LazySequence.State.RESULTS_AVAILABLE
+
+        withFinal.tryAdvance() shouldBe "b"
+        withoutFinal.tryAdvance() shouldBe "b"
+
+        withFinal.state shouldBe LazySequence.State.DEPLETED
+        withoutFinal.state shouldBe LazySequence.State.PENDING
+
+        withoutFinal.step() shouldBe LazySequence.State.DEPLETED
     }
 }}
