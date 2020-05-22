@@ -60,3 +60,10 @@ test "apply/2 with lambda" by [
     nonvar(Out),
     Out = abc
 ].
+
+test "term_variables/2 with no variables" by [
+    term_variables(a(1), [])
+].
+test "term_variables/2" by [
+    term_variables(a(Z, 2, [Y, 1|X], {f:W}), [Z, Y, X, W])
+].
