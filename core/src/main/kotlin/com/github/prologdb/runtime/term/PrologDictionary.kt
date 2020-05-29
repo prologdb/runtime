@@ -18,14 +18,14 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
 
         if (givenTail is PrologDictionary) {
             val combinedPairs = givenPairs as? MutableMap ?: givenPairs.toMutableMap()
-            var pivot: Variable? = givenTail as Variable?
+            var pivot: Term? = givenTail
             while (pivot is PrologDictionary) {
-                pivot.pairs.forEach { combinedPairs[it.key] = it.value }
+                pivot.pairs.forEach { combinedPairs.putIfAbsent(it.key, it.value) }
                 pivot = pivot.tail
             }
 
             pairs = combinedPairs
-            tail = pivot
+            tail = pivot as Variable?
         }
         else {
             pairs = givenPairs
