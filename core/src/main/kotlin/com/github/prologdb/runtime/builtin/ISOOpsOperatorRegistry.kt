@@ -2,7 +2,11 @@
 @file:JvmName("ISOOpsOperatorRegistry")
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.util.*
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.OperatorDefinition
+import com.github.prologdb.runtime.util.OperatorRegistrationTarget
+import com.github.prologdb.runtime.util.OperatorRegistry
+import com.github.prologdb.runtime.util.OperatorType
 
 /**
  * An [OperatorRegistry] that contains these ISO operators:
@@ -17,20 +21,20 @@ import com.github.prologdb.runtime.util.*
  * |1100    |XFY          |`;`      |
  * |        |XFY          |`|`      |
  * |1000    |XFY          |`,`      |
- * |900     |FY           |`\\+`    |
+ * |900     |FY           |`\+`     |
  * |        |XFY          |`typeof` |
  * |600     |XFY          |`:`      |
  * |700     |XFX          |`=`      |
  * |        |XFX          |`==`     |
- * |        |XFX          |`\\=`    |
- * |        |XFX          |`\\==`   |
+ * |        |XFX          |`\=`     |
+ * |        |XFX          |`\==`    |
  * |        |XFX          |`@<`     |
  * |        |XFX          |`@=<`    |
  * |        |XFX          |`@>`     |
  * |        |XFX          |`@>=`    |
  * |        |XFX          |`<`      |
  * |        |XFX          |`=<`     |
- * |        |XFX          |`=\\=`   |
+ * |        |XFX          |`=\=`    |
  * |        |XFX          |`>`      |
  * |        |XFX          |`>=`     |
  * |        |XFX          |`is`     |
