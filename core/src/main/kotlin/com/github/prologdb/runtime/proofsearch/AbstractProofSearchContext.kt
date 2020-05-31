@@ -5,8 +5,6 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.async.mapRemainingNotNull
-import com.github.prologdb.runtime.HasPrologSource
-import com.github.prologdb.async.forEachRemaining
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.prologTry
 import com.github.prologdb.runtime.query.AndQuery
@@ -29,6 +27,9 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
     }
 
     protected suspend fun LazySequenceBuilder<Unification>.fulfillAndQuery(query: AndQuery, initialVariables: VariableBucket): Unification? {
+        if (query.goals.isEmpty()) {
+            return Unification(initialVariables)
+        }
         if (query.goals.size == 1) {
             return fulfillAttach(query.goals.first(), initialVariables)
         }
