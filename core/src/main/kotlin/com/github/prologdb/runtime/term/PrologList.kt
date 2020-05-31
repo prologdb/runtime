@@ -1,5 +1,7 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
@@ -8,7 +10,7 @@ import kotlin.math.min
 
 open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term {
 
-    open val elements: List<Term>
+    val elements: List<Term>
     val tail: Variable?
 
     init {
@@ -112,7 +114,9 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
     }
 
     override fun substituteVariables(mapper: (Variable) -> Term): PrologList {
-        return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
+        return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {
+            it.sourceInformation = this.sourceInformation
+        }
     }
 
     override fun toString(): String {
@@ -190,4 +194,6 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
         result = 31 * result + (tail?.hashCode() ?: 0)
         return result
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 }

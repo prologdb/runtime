@@ -7,9 +7,8 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 
-open class PrologInteger(
-    val value: Long,
-    override val sourceInformation: PrologSourceInformation = NullSourceInformation
+class PrologInteger(
+    val value: Long
 ) : PrologNumber {
 
     override val isInteger = true
@@ -130,6 +129,8 @@ open class PrologInteger(
     }
 
     override fun toString() = value.toString()
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 
     companion object {
         /* The integers 0 through 65536 are cached: these are used for

@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.query
 
-import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
@@ -18,9 +18,12 @@ sealed class Query {
     abstract fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query
 
     abstract fun substituteVariables(variableValues: VariableBucket): Query
+
+    /** From where this term was parsed. Set to [com.github.prologdb.runtime.NullSourceInformation] if unavailable. */
+    var sourceInformation: PrologSourceInformation = NullSourceInformation
 }
 
-open class AndQuery(val goals: Array<out Query>) : Query() {
+class AndQuery(val goals: Array<out Query>) : Query() {
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return AndQuery(
             goals.mapToArray { it.withRandomVariables(randomVarsScope, mapping) }
@@ -40,7 +43,7 @@ open class AndQuery(val goals: Array<out Query>) : Query() {
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
 }
 
-open class OrQuery(val goals: Array<out Query>) : Query() {
+class OrQuery(val goals: Array<out Query>) : Query() {
     override fun toString(): String {
         return goals.mapToArray { it.toString() }.joinToString(" ; ")
     }
@@ -60,12 +63,15 @@ open class OrQuery(val goals: Array<out Query>) : Query() {
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
 }
 
-open class PredicateInvocationQuery(
+class PredicateInvocationQuery(
     val goal: CompoundTerm,
-    override val sourceInformation: PrologSourceInformation
-) : Query(), HasPrologSource
-{
+    sourceInformation: PrologSourceInformation
+) : Query() {
     constructor(goal: CompoundTerm) : this(goal, getInvocationStackFrame().prologSourceInformation)
+
+    init {
+        this.sourceInformation = sourceInformation
+    }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateInvocationQuery(

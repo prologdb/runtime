@@ -1,6 +1,7 @@
 @file:JvmName("TermUtils")
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorRegistry
@@ -18,6 +19,9 @@ interface Term : Comparable<Term> {
 
     /** The name of the type of this term in prolog language lowercase (e.g. atom, list, ...) */
     val prologTypeName: String
+
+    /** From where this term was parsed. Set to [com.github.prologdb.runtime.NullSourceInformation] if unavailable. */
+    var sourceInformation: PrologSourceInformation
 
     /**
      * Two terms equal when they are the same Prolog structure. This method builds the identity predicate.

@@ -2,9 +2,22 @@ package com.github.prologdb.runtime.builtin
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.module.*
-import com.github.prologdb.runtime.proofsearch.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologException
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.module.FullModuleImport
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
+import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -16,15 +29,6 @@ internal val A = Variable("A")
 internal val B = Variable("B")
 internal val C = Variable("C")
 internal val X = Variable("X")
-
-@Deprecated("use the DSL instead")
-abstract class BuiltinPredicate(name: String, vararg arguments: Term) : CompoundTerm(name, arguments) {
-    override val variables: Set<Variable>
-        get() = emptySet()
-
-    override fun substituteVariables(mapper: (Variable) -> Term) = this
-}
-
 
 /**
  * Provides the implementation to a builtin. Is intended to be used **ONLY** in

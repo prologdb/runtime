@@ -3,7 +3,6 @@ package com.github.prologdb.runtime.proofsearch
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
-import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.prologTry
 import com.github.prologdb.runtime.query.AndQuery
@@ -85,6 +84,6 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
 
     protected open fun getStackTraceElementOf(query: PredicateInvocationQuery): PrologStackTraceElement = PrologStackTraceElement(
         query.goal,
-        if (query.goal is HasPrologSource) query.goal.sourceInformation else query.sourceInformation
+        query.goal.sourceInformation.orElse(query.sourceInformation)
     )
 }

@@ -1,8 +1,6 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
 import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.HasPrologSource
-import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Rule
@@ -17,7 +15,6 @@ import com.github.prologdb.runtime.unification.VariableBucket
 internal val BuiltinCall1 = object : Rule(CompoundTerm("call", arrayOf(Variable("_Arg1"))), PredicateInvocationQuery(CompoundTerm("__nativeCode", emptyArray()))) {
     override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit = { args, ctxt ->
         val goalInput = args[0]
-        val sourceInfo = (goalInput as? HasPrologSource)?.sourceInformation ?: NullSourceInformation
 
         val goalInputAsLambda = goalInput.tryCastToLambda()
         if (goalInputAsLambda != null) {
@@ -31,7 +28,7 @@ internal val BuiltinCall1 = object : Rule(CompoundTerm("call", arrayOf(Variable(
 
             ctxt.fulfillAttach(
                 this,
-                PredicateInvocationQuery(goal, sourceInfo),
+                PredicateInvocationQuery(goal, goalInput.sourceInformation),
                 VariableBucket()
             )
         }

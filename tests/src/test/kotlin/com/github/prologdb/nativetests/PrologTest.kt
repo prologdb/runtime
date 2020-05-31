@@ -3,20 +3,24 @@ package com.github.prologdb.nativetests
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.forEachRemaining
-import com.github.prologdb.parser.*
+import com.github.prologdb.parser.ModuleDeclaration
+import com.github.prologdb.parser.Reporting
+import com.github.prologdb.parser.ReportingException
+import com.github.prologdb.parser.SyntaxError
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.HasPrologSource
-import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.query.AndQuery
+import com.github.prologdb.runtime.query.OrQuery
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
@@ -36,7 +40,7 @@ import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
+import java.util.UUID
 
 /** runs the tests found in the *.test.pl files in the prolog tests directory */
 class PrologTest : FreeSpec() { init {
@@ -123,11 +127,7 @@ class PrologTest : FreeSpec() { init {
 
             val testName = (arg0.arguments[0] as PrologString).toKotlinString()
 
-            if (by2instance !is ParsedCompoundTerm) {
-                testCases.add(PrologTestCase.erroring(testName, IllegalArgumentException("Test cases must be constructed from parsed code so failure locations can be reported.")))
-            }
-
-            val goalList = (arg1 as ParsedList).elements.map { it.asCompound().toQuery() }.toList()
+            val goalList = arg1.elements.map { it.asCompound().toQuery() }.toList()
 
             testCases.add(object : PrologTestCase {
                 override val name = testName
@@ -252,7 +252,7 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
     }
 }
 
-private fun ParsedCompoundTerm.toQuery(): Query {
+private fun CompoundTerm.toQuery(): Query {
     if (this.functor == ",") {
         val goals = mutableListOf<Query>()
         goals.add(this.arguments[0].asCompound().toQuery())
@@ -264,7 +264,7 @@ private fun ParsedCompoundTerm.toQuery(): Query {
         }
 
         goals.add(pivot.toQuery())
-        return ParsedAndQuery(goals.toTypedArray(), this.sourceInformation)
+        return AndQuery(goals.toTypedArray()).also { it.sourceInformation = this.sourceInformation }
     }
     else if (this.functor == ";") {
         val goals = mutableListOf<Query>()
@@ -277,17 +277,16 @@ private fun ParsedCompoundTerm.toQuery(): Query {
         }
 
         goals.add(pivot.toQuery())
-        return ParsedOrQuery(goals.toTypedArray(), this.sourceInformation)
+        return OrQuery(goals.toTypedArray()).also { it.sourceInformation = this.sourceInformation }
     }
     else {
-        return ParsedPredicateInvocationQuery(this)
+        return PredicateInvocationQuery(this).also { it.sourceInformation = this.sourceInformation }
     }
 }
 
-private fun Term.asCompound(): ParsedCompoundTerm {
-    if (this is ParsedCompoundTerm) return this
+private fun Term.asCompound(): CompoundTerm {
+    if (this is CompoundTerm) return this
 
-    val sourceInformation = if (this is HasPrologSource) this.sourceInformation else NullSourceInformation
     val location = SourceLocation(
         SourceUnit(sourceInformation.sourceFileName ?: "unknown file"),
         sourceInformation.sourceFileLine ?: 0,

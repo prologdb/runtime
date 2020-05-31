@@ -9,7 +9,13 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologDecimal
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 
 /**
  * Creates a new [CompoundTerm] with [this] as the functor and the
@@ -20,7 +26,7 @@ operator fun String.invoke(vararg args: Term) = CompoundTerm(this, args)
 /**
  * Creates a new [Variable] with the given name
  */
-fun V(name: String) = if (name == "_") AnonymousVariable else Variable(name)
+fun V(name: String) = if (name == "_") Variable.ANONYMOUS else Variable(name)
 
 /**
  * Creates a new prolog list of the given elements without a tail.

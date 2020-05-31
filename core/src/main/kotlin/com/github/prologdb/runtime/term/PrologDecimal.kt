@@ -8,11 +8,9 @@ import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-open class PrologDecimal(
-    val value: Double,
-    override val sourceInformation: PrologSourceInformation = NullSourceInformation
+class PrologDecimal(
+    val value: Double
 ) : PrologNumber {
-
     override val isInteger = false
 
     override fun plus(other: PrologNumber) =
@@ -133,4 +131,6 @@ open class PrologDecimal(
     }
 
     override fun toString() = value.toString()
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 }

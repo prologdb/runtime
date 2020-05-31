@@ -1,7 +1,5 @@
 package com.github.prologdb.runtime.term
 
-import com.github.prologdb.runtime.HasPrologSource
-
 /**
  * Numbers in prolog.
  *
@@ -12,7 +10,7 @@ import com.github.prologdb.runtime.HasPrologSource
  * a subtype of number to attach the source information to. So this class offers
  * a way to store the source information.
  */
-interface PrologNumber : Term, HasPrologSource {
+interface PrologNumber : Term {
     operator fun plus(other: PrologNumber): PrologNumber
     operator fun minus(other: PrologNumber): PrologNumber
     operator fun times(other: PrologNumber): PrologNumber

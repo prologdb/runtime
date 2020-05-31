@@ -1,6 +1,5 @@
 package com.github.prologdb.runtime.builtin.dynamic
 
-import com.github.prologdb.runtime.HasPrologSource
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.nativeModule
 import com.github.prologdb.runtime.builtin.prologSourceInformation
@@ -28,8 +27,7 @@ val DynamicsModule = nativeModule("dynamics") {
  * queries).
  */
 fun compoundToQuery(compoundTerm: CompoundTerm): Query {
-    val sourceInformation = (compoundTerm as? HasPrologSource)?.sourceInformation
-        ?: getInvocationStackFrame().prologSourceInformation
+    val sourceInformation = compoundTerm.sourceInformation.orElse { getInvocationStackFrame().prologSourceInformation }
 
     if (compoundTerm.arity != 2) {
         return PredicateInvocationQuery(compoundTerm, sourceInformation)

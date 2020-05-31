@@ -2,8 +2,19 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.proofsearch.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDynamicException
+import com.github.prologdb.runtime.PrologPermissionError
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
+import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.DynamicPrologPredicate
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -64,7 +75,7 @@ class ModuleScopeProofSearchContext(
 
     override fun getStackTraceElementOf(query: PredicateInvocationQuery) = PrologStackTraceElement(
         query.goal,
-        if (query.goal is HasPrologSource) query.goal.sourceInformation else query.sourceInformation,
+        query.goal.sourceInformation.orElse(query.sourceInformation),
         module
     )
 

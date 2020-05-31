@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.util.ArityMap
-import java.util.*
+import java.util.WeakHashMap
 
 interface Clause : PrologCallable
 
@@ -24,9 +24,7 @@ data class ClauseIndicator internal constructor(
 
     override fun toString() = "$functor/$arity"
 
-    fun toIdiomatic(): CompoundTerm = object : CompoundTerm("/", arrayOf(Atom(functor), PrologInteger.createUsingStringOptimizerCache(arity.toLong()))) {
-        override fun toString() = this@ClauseIndicator.toString()
-    }
+    fun toIdiomatic(): CompoundTerm = CompoundTerm("/", arrayOf(Atom(functor), PrologInteger.createUsingStringOptimizerCache(arity.toLong())))
 
     companion object {
         /**
@@ -115,7 +113,5 @@ data class FullyQualifiedClauseIndicator(
 
     override fun toString() = "$moduleName/$indicator"
 
-    fun toIdiomatic() = object : CompoundTerm("/", arrayOf(indicator.toIdiomatic())) {
-        override fun toString() = this@FullyQualifiedClauseIndicator.toString()
-    }
+    fun toIdiomatic() = CompoundTerm("/", arrayOf(indicator.toIdiomatic()))
 }

@@ -1,15 +1,17 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 
-open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : Term {
+class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : Term {
 
     val tail: Variable?
 
-    open val pairs: Map<Atom, Term>
+    val pairs: Map<Atom, Term>
 
     init {
         if (givenTail !is Variable? && givenTail !is PrologDictionary?) {
@@ -129,8 +131,11 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
             variables.toSet()
         }
 
-    override fun substituteVariables(mapper: (Variable) -> Term): PrologDictionary
-        = PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
+    override fun substituteVariables(mapper: (Variable) -> Term): PrologDictionary {
+        return PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {
+            it.sourceInformation = this.sourceInformation
+        }
+    }
 
     override val prologTypeName = "dict"
 
@@ -191,4 +196,6 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
     companion object {
         val EMPTY = PrologDictionary(emptyMap())
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 }

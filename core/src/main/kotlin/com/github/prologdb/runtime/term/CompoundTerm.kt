@@ -2,19 +2,27 @@ package com.github.prologdb.runtime.term
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
-import com.github.prologdb.runtime.util.OperatorType.*
+import com.github.prologdb.runtime.util.OperatorType.FX
+import com.github.prologdb.runtime.util.OperatorType.FY
+import com.github.prologdb.runtime.util.OperatorType.XF
+import com.github.prologdb.runtime.util.OperatorType.XFX
+import com.github.prologdb.runtime.util.OperatorType.XFY
+import com.github.prologdb.runtime.util.OperatorType.YF
+import com.github.prologdb.runtime.util.OperatorType.YFX
 import sensibleHashCode
 import unify
 
-open class CompoundTerm(
-        override val functor: String,
-        arguments: Array<out Term>
+class CompoundTerm(
+    override val functor: String,
+    arguments: Array<out Term>
 ) : Term, Clause
 {
     open val arguments: Array<out Term> = arguments
@@ -50,7 +58,9 @@ open class CompoundTerm(
     }
 
     override fun substituteVariables(mapper: (Variable) -> Term): CompoundTerm {
-        return CompoundTerm(functor, arguments.map { it.substituteVariables(mapper) }.toTypedArray())
+        return CompoundTerm(functor, arguments.map { it.substituteVariables(mapper) }.toTypedArray()).also {
+            it.sourceInformation = this.sourceInformation
+        }
     }
 
     override fun compareTo(other: Term): Int {
@@ -101,6 +111,11 @@ open class CompoundTerm(
         result = 31 * result + arguments.sensibleHashCode()
         return result
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
+
+    /** Whether there were explicit parenthesis around this term. Important for the parser mostly. */
+    var parenthesized: Boolean = false
 }
 
 class CompoundBuilder(private val functor: String) {

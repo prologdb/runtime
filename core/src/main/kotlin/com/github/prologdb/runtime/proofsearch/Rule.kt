@@ -4,6 +4,8 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -71,4 +73,6 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
     }
 
     override fun toString() = "$head :- $query"
+
+    var sourceInformation: PrologSourceInformation = NullSourceInformation
 }

@@ -14,6 +14,8 @@ class ParseResult<out T>(
 ) {
     val isSuccess = certainty >= ParseResultCertainty.MATCHED && item != null
 
+    fun <E : Any> map(mapper: (T) -> E): ParseResult<E> = ParseResult(item?.let(mapper), certainty, reportings)
+
     companion object {
         fun <T> of(item: T) = ParseResult(item!!, ParseResultCertainty.MATCHED, emptySet())
     }

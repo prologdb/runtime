@@ -1,10 +1,11 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 
-open class Atom(val name: String) : Term {
-
+class Atom(val name: String) : Term {
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         when (rhs) {
             this        -> return Unification.TRUE
@@ -54,4 +55,8 @@ open class Atom(val name: String) : Term {
     override fun hashCode(): Int {
         return name.hashCode()
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
+    /** Whether this atom appeared in quotes. Important for the parser mostly. */
+    var quoted: Boolean = false
 }
