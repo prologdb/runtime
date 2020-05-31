@@ -45,7 +45,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
                 context.fulfillAttach(this, randomQuery, VariableBucket())
             }
 
-            yieldAll(randomResults.mapRemaining { unification ->
+            yieldAllFinal(randomResults.mapRemaining { unification ->
                 val solutionVars = VariableBucket()
 
                 for (randomGoalVariable in randomArgs.variables)
@@ -67,9 +67,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
                     .withVariablesResolvedFrom(goalRandomVarsMapping))
             })
         }
-        // else: does not match the rule head
-
-        null
+        else null
     }
 
     override fun toString() = "$head :- $query"
