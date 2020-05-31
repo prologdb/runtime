@@ -240,28 +240,36 @@ public class SolutionExplorerPanel {
 
     private static final BigDecimal THOUSAND = new BigDecimal("1000");
     private static final BigDecimal SIXTY = new BigDecimal("60");
-    private String formatMillis(long millis) {
+    private static String formatMillis(long millis) {
         if (millis < 1000) {
             return millis + "ms";
         }
 
         // seconds
-        BigDecimal time = new BigDecimal(Long.toString(millis)).divide(THOUSAND, RoundingMode.CEILING);
+        BigDecimal time = new BigDecimal(Long.toString(millis, 10)).divide(THOUSAND, 3, RoundingMode.CEILING);
         if (time.compareTo(SIXTY) < 0) {
-            return time.toString() + "s";
+            return time.setScale(1, RoundingMode.CEILING).toString() + "s";
         }
 
         // minutes
         BigDecimal minutes = time.divide(SIXTY, 0, RoundingMode.FLOOR);
-        BigDecimal seconds = time.min(minutes.multiply(SIXTY));
-        if (time.compareTo(SIXTY) < 0) {
-            return minutes + "m " + seconds + "s";
+        BigDecimal seconds = time.subtract(minutes.multiply(SIXTY)).setScale(0, RoundingMode.HALF_UP);
+        if (minutes.compareTo(SIXTY) < 0) {
+            if (seconds.compareTo(BigDecimal.ZERO) > 0) {
+                return minutes + "m " + seconds + "s";
+            } else {
+                return minutes + "m";
+            }
         }
 
         // hours
         BigDecimal hours = minutes.divide(SIXTY, 0, RoundingMode.FLOOR);
-        minutes = minutes.min(hours.multiply(SIXTY));
-        return hours + "h " + minutes + "m";
+        minutes = minutes.subtract(hours.multiply(SIXTY));
+        if (minutes.compareTo(BigDecimal.ZERO) > 0) {
+            return hours + "h " + minutes + "m";
+        } else {
+            return hours + "h";
+        }
     }
 
     private String formatPrologException(PrologException ex) {
