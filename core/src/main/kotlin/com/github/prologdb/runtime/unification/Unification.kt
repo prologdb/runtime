@@ -19,6 +19,7 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     }
 
     override fun equals(other: Any?): Boolean {
+        if (other === null) return false
         if (this === other) return true
 
         other as Unification
