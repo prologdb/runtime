@@ -63,7 +63,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
         prepareCall(arguments, context)?.let { preparation ->
             yieldAllFinal(buildLazySequence<Unification>(context.principal) {
                 fulfillPreparedCall.invoke(this, preparation)
-            }.mapRemaining(preparation::derandomize))
+            }.mapRemaining(preparation::untranslateResult))
         }
     }
 
@@ -71,7 +71,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
 
     var sourceInformation: PrologSourceInformation = NullSourceInformation
 
-    data class PreparedCall internal constructor(
+    class PreparedCall internal constructor(
         val context: ProofSearchContext,
         val randomQuery: Query,
         private val argumentsRandomVarsMapping: VariableMapping,
@@ -79,12 +79,61 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
         private val ruleRandomVarsMapping: VariableMapping,
         private val goalAndHeadUnification: Unification
     ) {
-        fun randomize(term: CompoundTerm): CompoundTerm {
+        operator fun component1() = context
+        operator fun component2() = randomQuery
+
+        /**
+         * Adjusts variables in the given term as if that term had been part of the clause body when the call
+         * was prepared. For example:
+         *
+         * ```prolog
+         * p(X) :- X = 2.
+         * ?- p(A).
+         * ```
+         *
+         * The call preparation will translate
+         * * the call into `p(_G1)`
+         * * and the clause of `p/1` into `p(_G2) :- _G2 = 2`
+         * to avoid variable name collisions with the invocation.
+         *
+         * In the above example, this method would convert `>(X, 2)` into `>(_G2, 2)`.
+         */
+        fun translateClausePart(term: CompoundTerm): CompoundTerm {
             return context.randomVariableScope.withRandomVariables(term, ruleRandomVarsMapping)
                 .substituteVariables(goalAndHeadUnification.variableValues.asSubstitutionMapper())
         }
 
-        fun derandomize(solution: Unification): Unification {
+        /**
+         * Translates the stack frame (invocation-local variables) back to the variable space/scope
+         * of the caller. For example:
+         *
+         * ```prolog
+         * p(X) :- X = 2, Local = 3.
+         * ?- p(A).
+         * ```
+         *
+         * The call preparation will translate the clause into
+         *
+         * ```
+         * P(_G2) :- _G2 = 2, _G3 = 3.
+         * ```
+         *
+         * After the last clause, the stack frame will look like so:
+         *
+         * ```
+         * _G2 = 2,
+         * _G3 = 3
+         * ```
+         *
+         * In this example, this method would translate that stack state into
+         *
+         * ```
+         * A = 2
+         * ```
+         *
+         * thereby also dropping the clause-local variables.
+         */
+        fun untranslateResult(solution: Unification): Unification {
             val solutionVars = VariableBucket()
 
             for (randomGoalVariable in randomArguments.variables)
@@ -103,6 +152,12 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
             }
 
             return Unification(solutionVars.withVariablesResolvedFrom(argumentsRandomVarsMapping))
+        }
+
+        fun untranslateResult(term: CompoundTerm): CompoundTerm? {
+            return term.substituteVariables {
+                argumentsRandomVarsMapping.getOriginal(it) ?: ruleRandomVarsMapping.getOriginal(it) ?: it
+            }
         }
     }
 }
