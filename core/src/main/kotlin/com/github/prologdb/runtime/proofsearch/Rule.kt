@@ -10,6 +10,7 @@ import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import unify
@@ -33,9 +34,10 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
                 .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
                 .substituteVariables(goalAndHeadUnification.variableValues)
 
-            PreparedCall(
+            this.PreparedCall(
                 context,
                 randomQuery,
+                randomHeadArgs,
                 argumentsRandomVarsMapping,
                 randomArgs,
                 ruleRandomVarsMapping,
@@ -71,9 +73,10 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
 
     var sourceInformation: PrologSourceInformation = NullSourceInformation
 
-    class PreparedCall internal constructor(
+    inner class PreparedCall internal constructor(
         val context: ProofSearchContext,
         val randomQuery: Query,
+        private val randomHeadArgs: Array<out Term>,
         private val argumentsRandomVarsMapping: VariableMapping,
         private val randomArguments: Array<out Term>,
         private val ruleRandomVarsMapping: VariableMapping,
@@ -158,6 +161,28 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
             return term.substituteVariables {
                 argumentsRandomVarsMapping.getOriginal(it) ?: ruleRandomVarsMapping.getOriginal(it) ?: it
             }
+        }
+
+        /**
+         * @param tailCall the tail call, as given in the original code.
+         */
+        fun getTailCallArguments(stackFrameAfterLastGoal: Unification, tailCall: CompoundTerm): Array<out Term>? {
+            val stepsForHeadUnificationRequired = randomHeadArgs.flatMap { it.variables }.any { headVar ->
+                if (goalAndHeadUnification.variableValues.isInstantiated(headVar)) {
+                    val value = goalAndHeadUnification.variableValues[headVar]
+                    value !is Variable && value.variables.isNotEmpty()
+                } else {
+                    false
+                }
+            }
+
+            if (stepsForHeadUnificationRequired) {
+                return null
+            }
+
+            val tailCallConcrete = translateClausePart(tailCall)
+                .substituteVariables(stackFrameAfterLastGoal.variableValues.asSubstitutionMapper())
+            return untranslateResult(tailCallConcrete)?.arguments
         }
     }
 }

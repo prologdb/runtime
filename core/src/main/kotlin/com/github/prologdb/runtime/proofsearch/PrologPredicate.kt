@@ -18,7 +18,6 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapIndexedToArray
@@ -129,9 +128,7 @@ class ASTPrologPredicate(
                         )
                         val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
                         unification?.variableValues?.retainAll(arguments.variables)
-                        if (lastClause === clause) {
-                            return@fulfill unification
-                        } else {
+                        if (lastClause === clause) return@fulfill unification else {
                             unification?.let { yield(it) }
                         }
                     }
@@ -152,15 +149,10 @@ class ASTPrologPredicate(
 
                                 val firstPartialResult = lastClausePartialResults.tryAdvance() ?: return@fulfill null
                                 if (lastClausePartialResults.state == LazySequence.State.DEPLETED) {
-                                    val headRequiresSteps = clause.head.arguments.any { it !is Variable && it.variables.isNotEmpty() }
-                                    if (!headRequiresSteps) {
-                                        val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
-                                            .substituteVariables(firstPartialResult.variableValues.asSubstitutionMapper())
-                                        val tailCallArguments = lastClauseCallPreparation.untranslateResult(tailCallConcrete)?.arguments
-                                        if (tailCallArguments != null) {
-                                            arguments = tailCallArguments
-                                            continue@tailCallLoop
-                                        }
+                                    val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
+                                    if (tailCallArguments != null) {
+                                        arguments = tailCallArguments
+                                        continue@tailCallLoop
                                     }
                                 }
 
@@ -274,6 +266,10 @@ class ASTPrologPredicate(
         dropDelegateOnModification = false
     }
 
+    /**
+     * If the last goal in this rule is a recursive call, returns a rule with that last goal omitted
+     * and a separate reference onto that last, omitted goal.
+     */
     private fun Rule.toTailCall(): Pair<Rule, CompoundTerm>? {
         if (this is NativeCodeRule) return null
 
