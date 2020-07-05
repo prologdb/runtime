@@ -22,10 +22,8 @@ internal val LengthBuiltin = nativeRule("length", 2) { args, ctxt ->
             throw PrologRuntimeException("If argument 1 to length/2 is a variable, argument 2 must be an integer (got ${arg1.prologTypeName})")
         }
 
-        for (size in 0..arg1.toInteger()) {
-            val elements = List(size.toInt()) { ctxt.randomVariableScope.createNewRandomVariable() }
-            PrologList(elements, null).unify(arg0, ctxt.randomVariableScope)?.let { yield(it) }
-        }
+        val elements = List(arg1.value.toInt()) { ctxt.randomVariableScope.createNewRandomVariable() }
+        PrologList(elements, null).unify(arg0, ctxt.randomVariableScope)?.let { yield(it) }
     }
 
     return@nativeRule null
