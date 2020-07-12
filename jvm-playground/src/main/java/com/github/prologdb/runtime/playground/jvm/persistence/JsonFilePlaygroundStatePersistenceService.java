@@ -63,7 +63,9 @@ public class JsonFilePlaygroundStatePersistenceService implements PlaygroundStat
         }
 
         Files.deleteIfExists(backupPath);
-        Files.move(filePath, backupPath);
+        if (Files.exists(filePath)) {
+            Files.move(filePath, backupPath);
+        }
         objectMapper.writeValue(filePath.toFile(), state);
         Files.deleteIfExists(backupPath);
     }
