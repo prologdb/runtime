@@ -37,7 +37,6 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
             this.PreparedCall(
                 context,
                 randomQuery,
-                randomHeadArgs,
                 argumentsRandomVarsMapping,
                 randomArgs,
                 ruleRandomVarsMapping,
@@ -76,7 +75,6 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
     inner class PreparedCall internal constructor(
         val context: ProofSearchContext,
         val randomQuery: Query,
-        private val randomHeadArgs: Array<out Term>,
         private val argumentsRandomVarsMapping: VariableMapping,
         private val randomArguments: Array<out Term>,
         private val ruleRandomVarsMapping: VariableMapping,
@@ -167,7 +165,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          * @param tailCall the tail call, as given in the original code.
          */
         fun getTailCallArguments(stackFrameAfterLastGoal: Unification, tailCall: CompoundTerm): Array<out Term>? {
-            val stepsForHeadUnificationRequired = randomHeadArgs.flatMap { it.variables }.any { headVar ->
+            val stepsForHeadUnificationRequired = randomArguments.flatMap { it.variables }.any { headVar ->
                 if (goalAndHeadUnification.variableValues.isInstantiated(headVar)) {
                     val value = goalAndHeadUnification.variableValues[headVar]
                     value !is Variable && value.variables.isNotEmpty()
