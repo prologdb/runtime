@@ -34,7 +34,6 @@ import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.matchers.fail
-import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import java.lang.invoke.MethodHandles
@@ -48,111 +47,106 @@ import java.util.UUID
 class PrologTest : FreeSpec() { init {
     for (prologTestFilePath in prologTestFiles) {
         "${prologTestFilePath.fileName}" - {
-            // run the test
-            val callback = object : TestResultCallback {
-                override fun onTestSuccess(testName: String) {
-                    testName.invoke {
-                        // implicit success
-                        true shouldEqual true // for good measure
-                    }
-                }
+            for (testCase in getPrologTestCases(prologTestFilePath)) {
+                testCase.name.invoke {
+                    testCase.runWith(object : TestResultCallback {
+                        override fun onTestSuccess(testName: String) {
+                        }
 
-                override fun onTestFailure(testName: String, message: String) {
-                    testName.invoke {
-                        fail(message)
-                    }
-                }
+                        override fun onTestFailure(testName: String, message: String) {
+                            fail(message)
+                        }
 
-                override fun onTestError(testName: String, error: Throwable) {
-                    testName.invoke {
-                        throw error
-                    }
-                }
+                        override fun onTestError(testName: String, error: Throwable) {
+                            throw error
+                        }
 
-                override fun onTestParseError(errors: Collection<Reporting>) {
-                    errors.forEach(::println)
+                        override fun onTestParseError(errors: Collection<Reporting>) {
+                            errors.forEach(::println)
 
-                    throw RuntimeException("Failed to parse test case file, see STDOUT for errors.")
+                            throw RuntimeException("Failed to parse test case file, see STDOUT for errors.")
+                        }
+                    })
                 }
             }
-
-            runPrologTestFile(prologTestFilePath, callback)
         }
     }
 }
-    private fun runPrologTestFile(path: Path, callback: TestResultCallback) {
-        val parseResult = parseFile(path)
+    private companion object {
+        val prologTestFiles: List<Path>
+            get() {
+                val classLoader = MethodHandles.lookup().javaClass.classLoader
+                val resolver = PathMatchingResourcePatternResolver(classLoader)
 
-        if (!parseResult.isSuccess || parseResult.reportings.isNotEmpty()) {
-            callback.onTestParseError(parseResult.reportings)
-            return
+                return resolver.getResources("classpath:**/*.test.pl")
+                    .map { Paths.get(it.file.absolutePath) }
+            }
+
+        fun parseFile(path: Path): ParseResult<Module> {
+            val fileContent = String(Files.readAllBytes(path), Charset.forName("UTF-8"))
+            val sourceUnit = SourceUnit(path.toString())
+            val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
+
+            return PrologParser().parseModule(
+                lexer,
+                TestingOperatorRegistry,
+                ModuleDeclaration(path.toString(), null)
+            )
         }
 
-        val testModule = parseResult.item ?: throw RuntimeException("Invalid return value from parser: is success but item is null")
-        val testCases = getPrologTestCases(testModule)
+        fun getPrologTestCases(path: Path): Set<PrologTestCase> {
+            val parseResult = parseFile(path)
 
-        testCases.forEach { it.runWith(callback) }
-    }
+            if (!parseResult.isSuccess || parseResult.reportings.isNotEmpty()) {
+                return setOf(PrologTestCase.erroring("_", ParseErrorException(parseResult.reportings)))
+            }
 
-    private fun parseFile(path: Path): ParseResult<Module> {
-        val fileContent = String(Files.readAllBytes(path), Charset.forName("UTF-8"))
-        val sourceUnit = SourceUnit(path.toString())
-        val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
-
-        return PrologParser().parseModule(
-            lexer,
-            TestingOperatorRegistry,
-            ModuleDeclaration(path.toString(), null)
-        )
-    }
-
-    private fun getPrologTestCases(testModule: Module): Set<PrologTestCase> {
-        val by2 = testModule.exportedPredicates[ClauseIndicator.of("by", 2)]
-            ?: return emptySet()
-
-        if (by2 !is ASTPrologPredicate) {
-            throw IllegalStateException("Who the heck parsed this? predicate by/2 from test module is a ${by2.javaClass.name}, expected ${ASTPrologPredicate::class.simpleName}")
+            val testModule = parseResult.item ?: throw RuntimeException("Invalid return value from parser: is success but item is null")
+            return getPrologTestCases(testModule)
         }
 
-        val testCases = mutableSetOf<PrologTestCase>()
-        for (by2instance in by2.clauses) {
-            if (by2instance !is CompoundTerm) continue
+        fun getPrologTestCases(testModule: Module): Set<PrologTestCase> {
+            val by2 = testModule.exportedPredicates[ClauseIndicator.of("by", 2)]
+                      ?: return emptySet()
 
-            val arg0 = by2instance.arguments[0]
-            val arg1 = by2instance.arguments[1]
-            if (arg0 !is CompoundTerm) continue
-            if (arg1 !is PrologList) continue
+            if (by2 !is ASTPrologPredicate) {
+                throw IllegalStateException("Who the heck parsed this? predicate by/2 from test module is a ${by2.javaClass.name}, expected ${ASTPrologPredicate::class.simpleName}")
+            }
 
-            if (arg0.functor != "test") continue
-            if (arg0.arity != 1) continue
-            if (arg0.arguments[0] !is PrologString) continue
+            val testCases = mutableSetOf<PrologTestCase>()
+            for (by2instance in by2.clauses) {
+                if (by2instance !is CompoundTerm) continue
 
-            val testName = (arg0.arguments[0] as PrologString).toKotlinString()
+                val arg0 = by2instance.arguments[0]
+                val arg1 = by2instance.arguments[1]
+                if (arg0 !is CompoundTerm) continue
+                if (arg1 !is PrologList) continue
 
-            val goalList = arg1.elements.map { it.asCompound().toQuery() }.toList()
+                if (arg0.functor != "test") continue
+                if (arg0.arity != 1) continue
+                if (arg0.arguments[0] !is PrologString) continue
 
-            testCases.add(object : PrologTestCase {
-                override val name = testName
+                val testName = (arg0.arguments[0] as PrologString).toKotlinString()
 
-                override fun runWith(callback: TestResultCallback) {
-                    val runtimeEnv = PrologRuntimeEnvironment(testModule)
-                    TestExecution(runtimeEnv, testName, goalList).run(callback)
-                }
-            })
+                val goalList = arg1.elements.map { it.asCompound().toQuery() }.toList()
+
+                testCases.add(object : PrologTestCase {
+                    override val name = testName
+
+                    override fun runWith(callback: TestResultCallback) {
+                        val runtimeEnv = PrologRuntimeEnvironment(testModule)
+                        TestExecution(runtimeEnv, testName, goalList).run(callback)
+                    }
+                })
+            }
+
+            return testCases
         }
-
-        return testCases
     }
+
+    override val oneInstancePerTest: Boolean
+        get() = super.oneInstancePerTest
 }
-
-private val prologTestFiles: List<Path>
-    get() {
-        val classLoader = MethodHandles.lookup().javaClass.classLoader
-        val resolver = PathMatchingResourcePatternResolver(classLoader)
-
-        return resolver.getResources("classpath:**/*.test.pl")
-            .map { Paths.get(it.file.absolutePath) }
-    }
 
 private interface TestResultCallback {
     fun onTestSuccess(testName: String)
@@ -187,6 +181,7 @@ private val TestingOperatorRegistry = DefaultOperatorRegistry().apply {
 
 private class TestExecution(private val runtime: PrologRuntimeEnvironment, private val testName: String, private val allGoals: List<Query>) {
     private var failedGoal: Query? = null
+    private var stateBeforeFailedGoal: Unification? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
                                                                          initialVariables: VariableBucket = VariableBucket()): Unification? {
@@ -195,38 +190,45 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
         for (goalIndex in goals.indices) {
             sequence = sequence.flatMapRemaining { stateBefore ->
                 val goalSequence = buildLazySequence<Unification>(principal) {
-                    val lastSolution = context.fulfillAttach(
+                    context.fulfillAttach(
                         this,
                         goals[goalIndex].substituteVariables(stateBefore.variableValues),
                         stateBefore.variableValues.copy()
                     )
-
-                    if (lastSolution == null) {
-                        failedGoal = goals[goalIndex]
-                    }
-
-                    lastSolution
                 }
-                return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
-                    val stateCombined = stateBefore.variableValues.copy()
-                    for ((variable, value) in goalUnification.variableValues.values) {
-                        if (value != null) {
-                            // substitute all instantiated variables for simplicity and performance
-                            val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
-                            if (stateCombined.isInstantiated(variable)) {
-                                if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
-                                    // instantiated to different value => no unification
-                                    failedGoal = goals[goalIndex]
-                                    return@mapRemainingNotNull null
+                val firstSolution = goalSequence.tryAdvance()
+
+                if (firstSolution == null) {
+                    failedGoal = goals[goalIndex]
+                    stateBeforeFailedGoal = stateBefore
+                }
+
+                return@flatMapRemaining yieldAllFinal(
+                    buildLazySequence<Unification>(principal) {
+                        firstSolution?.let { yield(it) }
+                        yieldAllFinal(goalSequence)
+                    }
+                    .mapRemainingNotNull { goalUnification ->
+                        val stateCombined = stateBefore.variableValues.copy()
+                        for ((variable, value) in goalUnification.variableValues.values) {
+                            if (value != null) {
+                                // substitute all instantiated variables for simplicity and performance
+                                val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
+                                if (stateCombined.isInstantiated(variable)) {
+                                    if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
+                                        // instantiated to different value => no unification
+                                        failedGoal = goals[goalIndex]
+                                        return@mapRemainingNotNull null
+                                    }
+                                }
+                                else {
+                                    stateCombined.instantiate(variable, substitutedValue)
                                 }
                             }
-                            else {
-                                stateCombined.instantiate(variable, substitutedValue)
-                            }
                         }
+                        Unification(stateCombined)
                     }
-                    Unification(stateCombined)
-                })
+                )
             }
         }
 
@@ -246,7 +248,18 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
             if (results.tryAdvance() != null) {
                 callback.onTestSuccess(testName)
             } else {
-                callback.onTestFailure(testName, "Goal ${failedGoal!!} failed (did not yield a solution).")
+                var goalStr = ""
+                for ((variable, value) in stateBeforeFailedGoal!!.variableValues.values) {
+                    val entryTerm = if (value != null) {
+                        CompoundTerm("=", arrayOf(variable, value))
+                    } else {
+                        CompoundTerm("var", arrayOf(variable))
+                    }
+                    goalStr += entryTerm.toStringUsingOperatorNotations(runtime.rootModule.localOperators)
+                    goalStr += ",\n"
+                }
+                goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.rootModule.localOperators)
+                callback.onTestFailure(testName, "This goal failed (did not yield a solution):\n$goalStr.")
             }
         }
         catch (ex: Throwable) {
@@ -302,3 +315,5 @@ private fun Term.asCompound(): CompoundTerm {
 
     throw ReportingException(SyntaxError("Expected compound term, got $prologTypeName", location))
 }
+
+private class ParseErrorException(val reportings: Collection<Reporting>) : Exception(reportings.firstOrNull()?.message)
