@@ -258,6 +258,7 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
                     goalStr += entryTerm.toStringUsingOperatorNotations(runtime.rootModule.localOperators)
                     goalStr += ",\n"
                 }
+                goalStr += "\n"
                 goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.rootModule.localOperators)
                 callback.onTestFailure(testName, "This goal failed (did not yield a solution):\n$goalStr.")
             }
