@@ -5,7 +5,7 @@ import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldThrow
 import io.kotlintest.specs.FreeSpec
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.concurrent.thread
 
@@ -300,6 +300,7 @@ class WorkableFutureTest : FreeSpec({
             yield(3)
             yield(5)
             yield(102)
+            null
         }
 
         val future = WorkableFutureImpl(principal) {

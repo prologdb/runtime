@@ -1,6 +1,6 @@
 package com.github.prologdb.async
 
-class RethrowingExceptionMappingLazySequence<T>(
+class RethrowingExceptionMappingLazySequence<T : Any>(
     private val nested: LazySequence<T>,
     private val mapper: (Throwable) -> Throwable
 ) : LazySequence<T> {

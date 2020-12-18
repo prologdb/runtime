@@ -7,8 +7,10 @@ class FlatMapLazySequenceTest : FreeSpec({
     "1:1" {
         val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foo")
+            null
         }.flatMapRemaining<String, String> {
             yield(it + "bar")
+            null
         }
 
         sequence.tryAdvance() shouldBe "foobar"
@@ -18,9 +20,11 @@ class FlatMapLazySequenceTest : FreeSpec({
     "1:n" {
         val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("foo")
+            null
         }.flatMapRemaining<String, String> {
             yield(it + "bar")
             yield(it + "baz")
+            null
         }
 
         sequence.tryAdvance() shouldBe "foobar"
@@ -32,8 +36,10 @@ class FlatMapLazySequenceTest : FreeSpec({
         val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("bar")
             yield("baz")
+            null
         }.flatMapRemaining<String, String> {
             yield("foo$it")
+            null
         }
 
         sequence.tryAdvance() shouldBe "foobar"
@@ -45,9 +51,11 @@ class FlatMapLazySequenceTest : FreeSpec({
         val sequence = buildLazySequence<String>(RANDOM_PRINCIPAL) {
             yield("bar")
             yield("fuzz")
+            null
         }.flatMapRemaining<String, String> {
             yield(it + "foo")
             yield(it + "fizz")
+            null
         }
 
         sequence.tryAdvance() shouldBe "barfoo"

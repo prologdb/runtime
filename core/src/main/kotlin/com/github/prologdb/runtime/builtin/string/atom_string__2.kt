@@ -2,7 +2,11 @@ package com.github.prologdb.runtime.builtin.string
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.PrologDecimal
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
 internal val BuiltinAtomString = nativeRule("atom_string", 2) { args, context ->
@@ -35,6 +39,5 @@ internal val BuiltinAtomString = nativeRule("atom_string", 2) { args, context ->
     }
 
     // implicit: b is not instantiated
-    val result = inputForB.unify(PrologString(convertInputForAToKotlinString()), context.randomVariableScope)
-    if (result != null) yield(result)
+    return@nativeRule inputForB.unify(PrologString(convertInputForAToKotlinString()), context.randomVariableScope)
 }

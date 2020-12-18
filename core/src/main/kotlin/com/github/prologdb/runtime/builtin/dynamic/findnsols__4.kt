@@ -43,5 +43,5 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
 
     val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
     resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
-    yield(resultListUnified)
+    return@nativeRule resultListUnified
 }

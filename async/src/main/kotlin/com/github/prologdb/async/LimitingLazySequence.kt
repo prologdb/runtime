@@ -1,6 +1,6 @@
 package com.github.prologdb.async
 
-class LimitingLazySequence<T>(
+class LimitingLazySequence<T : Any>(
     private val nested: LazySequence<T>,
     private val limit: Long
 ) : LazySequence<T> {

@@ -1,9 +1,10 @@
 package com.github.prologdb.async
 
-class FilteredLazySequence<T>(
+class MapNotNullAndFilterLazySequence<T : Any, M : Any>(
     private val base: LazySequence<out T>,
-    private val predicate: (T) -> Boolean
-) : LazySequence<T> {
+    private val mapper: (T) -> M?,
+    private val predicate: (M) -> Boolean
+) : LazySequence<M> {
     override val principal = base.principal
 
     /** True when closed or errored */
@@ -13,7 +14,7 @@ class FilteredLazySequence<T>(
     var error: Throwable? = null
 
     /** Cached result from calculating in step() */
-    var cached: T? = null
+    var cached: M? = null
 
     override val state: LazySequence.State
         get() = when {
@@ -33,9 +34,8 @@ class FilteredLazySequence<T>(
         when (base.step()) {
             LazySequence.State.RESULTS_AVAILABLE -> {
                 checkBaseResults@while (base.state == LazySequence.State.RESULTS_AVAILABLE) {
-                    val baseValue = base.tryAdvance()
-                    baseValue!!
-                    if (predicate(baseValue)) {
+                    val baseValue = mapper(base.tryAdvance()!!)
+                    if (baseValue != null && predicate(baseValue)) {
                         cached = baseValue
                         break@checkBaseResults
                     }
@@ -57,7 +57,7 @@ class FilteredLazySequence<T>(
             }
             LazySequence.State.PENDING -> {
                 if (joinIfPending) {
-                    val baseValue = base.tryAdvance()
+                    val baseValue = base.tryAdvance()?.let(mapper)
                     if (baseValue == null) {
                         close()
                     }
@@ -75,7 +75,7 @@ class FilteredLazySequence<T>(
         return state
     }
 
-    override tailrec fun tryAdvance(): T? {
+    override tailrec fun tryAdvance(): M? {
         when {
             error != null -> throw error!!
             closed -> return null

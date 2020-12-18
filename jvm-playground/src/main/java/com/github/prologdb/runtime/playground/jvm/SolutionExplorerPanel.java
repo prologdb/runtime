@@ -151,7 +151,8 @@ public class SolutionExplorerPanel {
             if (solution != null) {
                 solutionTimeOutput.setText(formatMillis(solutionDuration));
                 addSolution(solution);
-            } else {
+            }
+            if (solution == null || currentSolutions.getState() == LazySequence.State.DEPLETED) {
                 addSolutionComponent(createFalseComponent());
                 setDepleted();
             }

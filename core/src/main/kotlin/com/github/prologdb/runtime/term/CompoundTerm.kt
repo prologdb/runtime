@@ -1,11 +1,10 @@
 package com.github.prologdb.runtime.term
 
-import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.PrologCallableFulfill
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
@@ -48,10 +47,7 @@ class CompoundTerm(
         }
     }
 
-    override val fulfill: suspend LazySequenceBuilder<Unification>.(Array<out Term>, ProofSearchContext) -> Unit =  { arguments, context ->
-        val unification = arguments.unify(arguments, context.randomVariableScope)
-        if (unification != null) yield(unification)
-    }
+    override val fulfill: PrologCallableFulfill =  { arguments, context -> arguments.unify(arguments, context.randomVariableScope) }
 
     override val variables by lazy {
         arguments.flatMap(Term::variables).toSet()

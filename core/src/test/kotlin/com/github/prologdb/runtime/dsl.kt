@@ -92,7 +92,7 @@ infix fun PrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenc
     val firstSolution = sequence.tryAdvance()
     sequence.close()
 
-    if (firstSolution == null) throw AssertionError("Failed to fulfill $query using knowledge base $this")
+    if (firstSolution == null) throw AssertionError("$query does not hold in module ${this.rootModule.name}")
 
     return { this.fulfill(query) }
 }
@@ -128,7 +128,7 @@ infix fun PrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundTerm) {
     shouldNotProve(PredicateInvocationQuery(compoundTerm))
 }
 
-private fun <T> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
+private fun <T : Any> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
     = find(predicate) != null
 
 fun moduleOfClauses(vararg clauses: Clause): Module {

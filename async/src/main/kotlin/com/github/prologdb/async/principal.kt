@@ -4,7 +4,7 @@
  */
 package com.github.prologdb.async
 
-import java.util.*
+import java.util.UUID
 
 typealias Principal = Any
 
@@ -22,5 +22,17 @@ val RANDOM_PRINCIPAL: Principal
  * belonging to [violatedPrincipal]. This attempt is comparable to one [Thread] attempting to change
  * thread-local (e.g. stack) variables of another thread.
  */
-class PrincipalConflictException(val principalInError: Principal, val violatedPrincipal: Principal):
-    RuntimeException("Code of principal $principalInError attempted to execute code belonging to principal $violatedPrincipal")
+class PrincipalConflictException private constructor(val principalInError: Principal, val violatedPrincipal: Principal):
+    RuntimeException("Code of principal $principalInError attempted to execute code belonging to principal $violatedPrincipal") {
+    companion object {
+        fun requireCompatible(current: Principal, newlyJoined: Principal) {
+            if (current === IrrelevantPrincipal || newlyJoined === IrrelevantPrincipal) {
+                return
+            }
+
+            if (current != newlyJoined) {
+                throw PrincipalConflictException(current, newlyJoined)
+            }
+        }
+    }
+}

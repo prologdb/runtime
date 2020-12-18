@@ -39,14 +39,12 @@ internal val BuiltinStringChars = nativeRule("string_chars", 2) { args, ctxt ->
         throw PrologRuntimeException("Arguments are not sufficiently instantiated")
     }
 
-    if (inputA is PrologString) {
+    return@nativeRule if (inputA is PrologString) {
         val referenceValueForB = convertInputAToListOfCharacters()
-        val result = referenceValueForB.unify(inputB, ctxt.randomVariableScope)
-        if (result != null) yield(result)
+        referenceValueForB.unify(inputB, ctxt.randomVariableScope)
     }
     else {
         val referenceValueForA = convertInputBToPrologString()
-        val result = referenceValueForA.unify(inputA, ctxt.randomVariableScope)
-        if (result != null) yield(result)
+        referenceValueForA.unify(inputA, ctxt.randomVariableScope)
     }
 }

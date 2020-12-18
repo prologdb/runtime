@@ -13,14 +13,14 @@ internal val BuiltinIs = nativeRule("is", 2) { args, ctxt ->
     val inputForB = args[1]
 
     if (inputForA is Variable) {
-        yield(inputForA.unify(inputForB.asPrologNumber, ctxt.randomVariableScope))
+        return@nativeRule inputForA.unify(inputForB.asPrologNumber, ctxt.randomVariableScope)
     }
 
     if (inputForB is Variable) {
-        yield(inputForB.unify(inputForA.asPrologNumber, ctxt.randomVariableScope))
+        return@nativeRule inputForB.unify(inputForA.asPrologNumber, ctxt.randomVariableScope)
     }
 
-    if (inputForA is PrologNumber) {
-        if (inputForB.asPrologNumber == inputForA) yield(Unification.TRUE)
-    }
+    return@nativeRule Unification.whether(
+        inputForA is PrologNumber && inputForB.asPrologNumber == inputForA
+    )
 }

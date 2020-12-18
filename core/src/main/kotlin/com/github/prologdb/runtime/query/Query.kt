@@ -9,6 +9,7 @@ import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.util.OperatorRegistry
 import mapToArray
 
 sealed class Query {
@@ -21,6 +22,8 @@ sealed class Query {
 
     /** From where this term was parsed. Set to [com.github.prologdb.runtime.NullSourceInformation] if unavailable. */
     var sourceInformation: PrologSourceInformation = NullSourceInformation
+
+    abstract fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String = ""): String
 }
 
 class AndQuery(val goals: Array<out Query>) : Query() {
@@ -41,6 +44,11 @@ class AndQuery(val goals: Array<out Query>) : Query() {
     }
 
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
+
+    override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = goals.joinToString(
+            transform = { it.toStringUsingOperatorNotation(operators, "$indent  ") },
+            separator = "\n$indent,\n"
+        )
 }
 
 class OrQuery(val goals: Array<out Query>) : Query() {
@@ -61,6 +69,11 @@ class OrQuery(val goals: Array<out Query>) : Query() {
     }
 
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
+
+    override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = goals.joinToString(
+        transform = { it.toStringUsingOperatorNotation(operators, "$indent  ") },
+        separator = "\n$indent;\n"
+    )
 }
 
 class PredicateInvocationQuery(
@@ -93,4 +106,6 @@ class PredicateInvocationQuery(
 
     override val variables: Set<Variable>
         get() = goal.variables
+
+    override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = indent + goal.toStringUsingOperatorNotations(operators)
 }

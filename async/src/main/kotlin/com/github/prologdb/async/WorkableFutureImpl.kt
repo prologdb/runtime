@@ -1,10 +1,17 @@
 package com.github.prologdb.async
 
-import java.util.*
+import java.util.ArrayList
+import java.util.LinkedList
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.*
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.createCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
@@ -195,8 +202,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
         override val principal = this@WorkableFutureImpl.principal
 
         override suspend fun <E> await(future: Future<E>): E {
-            if (future is WorkableFuture && future.principal != principal && future.principal != IrrelevantPrincipal) {
-                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
+            if (future is WorkableFuture) {
+                PrincipalConflictException.requireCompatible(principal, future.principal)
             }
 
             synchronized(mutex) {
@@ -226,10 +233,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             }
         }
 
-        override suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
-            if (sequence.principal != principal && sequence.principal != IrrelevantPrincipal) {
-                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = sequence.principal)
-            }
+        override suspend fun <E : Any, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
+            PrincipalConflictException.requireCompatible(principal, sequence.principal)
 
             synchronized(mutex) {
                 if (state != State.RUNNING) {

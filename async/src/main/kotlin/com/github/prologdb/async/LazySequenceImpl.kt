@@ -2,10 +2,16 @@ package com.github.prologdb.async
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
-import java.util.concurrent.LinkedBlockingQueue
-import kotlin.coroutines.*
+import java.util.concurrent.LinkedBlockingDeque
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.createCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
-internal class LazySequenceImpl<T>(override val principal: Any, code: suspend LazySequenceBuilder<T>.() -> Unit) : LazySequence<T> {
+internal class LazySequenceImpl<T : Any>(override val principal: Any, code: suspend LazySequenceBuilder<T>.() -> T?) : LazySequence<T> {
     /**
      * The sequence itself is always working. Results are cached if
      * [step] is called more often than necessary for one result.
@@ -21,6 +27,11 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
          * Calculations and result access is to be done on the subsequence.
          */
         SUBSEQUENCE,
+
+        /**
+         * Like [SUBSEQUENCE] but for [LazySequenceBuilder.yieldAllFinal].
+         */
+        SUBSEQUENCE_FINAL,
 
         /**
          * Currently waiting for a future. In this case, the [continuation]
@@ -39,7 +50,7 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
      * This way, invocations of [step] can advance the progress; consumption
      * of the results can follow another pace.
      */
-    private val queuedResults = LinkedBlockingQueue<T>()
+    private val queuedResults = LinkedBlockingDeque<T>()
 
     @Volatile private var innerState: InnerState = InnerState.RUNNING
 
@@ -56,16 +67,18 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
         get() = if (queuedResults.isNotEmpty()) LazySequence.State.RESULTS_AVAILABLE else when (innerState) {
             InnerState.RUNNING,
             InnerState.SUBSEQUENCE,
+            InnerState.SUBSEQUENCE_FINAL,
             InnerState.WAITING_ON_FUTURE -> LazySequence.State.PENDING
             InnerState.DEPLETED -> LazySequence.State.DEPLETED
             InnerState.FAILED -> LazySequence.State.FAILED
         }
 
-    private val onComplete = object : Continuation<Unit> {
+    private val onComplete = object : Continuation<T?> {
         override val context: CoroutineContext = EmptyCoroutineContext
 
-        override fun resumeWith(result: Result<Unit>) {
+        override fun resumeWith(result: Result<T?>) {
             if (result.isSuccess) {
+                result.getOrThrow()?.let(queuedResults::add)
                 innerState = InnerState.DEPLETED
             } else {
                 error = result.exceptionOrNull()!!
@@ -78,15 +91,15 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
         override val principal = this@LazySequenceImpl.principal
 
         override suspend fun <E> await(future: Future<E>): E {
-            if (future is WorkableFuture && future.principal != principal && future.principal != IrrelevantPrincipal) {
-                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
+            if (future is WorkableFuture ) {
+                PrincipalConflictException.requireCompatible(principal, future.principal)
             }
 
             if (!future.isDone) {
                 currentWaitingFuture = future
                 innerState = InnerState.WAITING_ON_FUTURE
 
-                suspendCoroutine<Any> { continuation = it }
+                suspendCoroutine<Any?> { continuation = it }
             }
 
             return try {
@@ -104,29 +117,38 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
             queuedResults.add(result)
             innerState = InnerState.RUNNING
 
-            suspendCoroutine<Any> { continuation = it }
+            suspendCoroutine<Any?> { continuation = it }
         }
 
         override suspend fun yieldAll(results: Iterable<T>) {
             queuedResults.addAll(results)
             innerState = InnerState.RUNNING
 
-            suspendCoroutine<Any> { continuation = it }
+            suspendCoroutine<Any?> { continuation = it }
         }
 
         override suspend fun yieldAll(results: LazySequence<T>) {
-            if (results.principal != principal && results.principal != IrrelevantPrincipal) {
-                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = results.principal)
-            }
+            PrincipalConflictException.requireCompatible(principal, results.principal)
 
             currentSubSequence = results
             innerState = InnerState.SUBSEQUENCE
 
-            suspendCoroutine<Any> { continuation = it }
+            suspendCoroutine<Any?> { continuation = it }
+        }
+
+        override suspend fun yieldAllFinal(results: LazySequence<T>): T? {
+            PrincipalConflictException.requireCompatible(principal, results.principal)
+
+            currentSubSequence = results
+            innerState = InnerState.SUBSEQUENCE_FINAL
+
+            @Suppress("UNCHECKED_CAST")
+            return suspendCoroutine<Any?> { continuation = it } as T?
         }
     }
 
-    private var continuation: Continuation<Any> = code.createCoroutine(builder, onComplete) as Continuation<Any>
+    @Suppress("UNCHECKED_CAST")
+    private var continuation: Continuation<Any?> = code.createCoroutine(builder, onComplete) as Continuation<Any?>
 
     private val stepMutex = Any()
 
@@ -153,14 +175,15 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
 
                 InnerState.RUNNING -> continuation.resume(Unit)
 
-                InnerState.SUBSEQUENCE -> {
+                InnerState.SUBSEQUENCE,
+                InnerState.SUBSEQUENCE_FINAL -> {
                     val subSeq = currentSubSequence!!
                     var subState = subSeq.step()
 
                     if (subState == LazySequence.State.DEPLETED) {
                         innerState = InnerState.RUNNING
                         currentSubSequence = null
-                        continuation.resume(Unit)
+                        continuation.resume(null)
                     }
                     else
                     {
@@ -169,14 +192,19 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
                                 subSeq.tryAdvance()
                             } catch (handledRightBelow: Throwable) { null }
 
-                            queuedResults.add(result ?: break)
+                            queuedResults.addLast(result ?: break)
                             subState = subSeq.state
                         }
 
                         when (subState) {
                             LazySequence.State.DEPLETED -> {
+                                val wasFinal = innerState == InnerState.SUBSEQUENCE_FINAL
                                 innerState = InnerState.RUNNING
                                 currentSubSequence = null
+
+                                if (wasFinal) {
+                                    continuation.resumeWith(Result.success(queuedResults.pollLast()))
+                                }
                             }
                             LazySequence.State.FAILED -> {
                                 val ex = try {
@@ -199,7 +227,7 @@ internal class LazySequenceImpl<T>(override val principal: Any, code: suspend La
         return state
     }
 
-    override fun tryAdvance(): T? {
+    override tailrec fun tryAdvance(): T? {
         while (queuedResults.isEmpty()) {
             when (innerState) {
                 InnerState.DEPLETED -> return null
