@@ -24,8 +24,6 @@ import mapIndexedToArray
 import unify
 import variables
 import withRandomVariables
-import java.util.Collections
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -65,10 +63,6 @@ interface DynamicPrologPredicate : PrologPredicate {
      * If this predicate is sealed (see [seal])
      */
     val isSealed: Boolean
-
-    fun addModificationListener(listener: PredicateModificationListener)
-
-    fun removeModificationListener(listener: PredicateModificationListener)
 }
 
 /**
@@ -77,7 +71,7 @@ interface DynamicPrologPredicate : PrologPredicate {
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
     private val declaringModule: Module
-) : DynamicPrologPredicate, DelegatableCallable {
+) : DynamicPrologPredicate {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
 
@@ -85,13 +79,6 @@ class ASTPrologPredicate(
     override val arity   = indicator.arity
 
     override val fqIndicator = FullyQualifiedClauseIndicator(declaringModule.name, indicator)
-
-    private val modificationListeners: MutableSet<PredicateModificationListener> = Collections.newSetFromMap(ConcurrentHashMap())
-
-    @Volatile
-    private var currentDelegate: PrologCallable? = null
-    @Volatile
-    private var dropDelegateOnModification: Boolean = false
 
     private var lastClauseForTailCall: Rule? = null
     private var tailCall: CompoundTerm? = null
@@ -113,79 +100,74 @@ class ASTPrologPredicate(
 
         val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
 
-        val delegate = currentDelegate
-        if (delegate != null) {
-            return@fulfill delegate.fulfill.invoke(this, initialArguments, ctxt)
-        } else {
-            val lastClause = clauses.last()
-            var arguments = initialArguments
-            tailCallLoop@while(true) {
-                clauses@for (clause in clauses) {
-                    if (clause is CompoundTerm) {
-                        val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(
-                            clause.arguments,
-                            VariableMapping()
-                        )
-                        val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
-                        unification?.variableValues?.retainAll(arguments.variables)
-                        if (lastClause === clause) return@fulfill unification else {
-                            unification?.let { yield(it) }
-                        }
-                    }
-                    else if (clause is Rule) {
-                        if (lastClause !== clause) {
-                            clause.fulfill(this, arguments, ctxt)?.let { yield(it) }
-                        } else {
-                            val tailCall = tailCall
-                            if (tailCall != null) {
-                                val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
-                                                                ?: return@fulfill null
-                                val lastClausePartialResults = buildLazySequence<Unification>(principal) {
-                                    return@buildLazySequence lastClauseForTailCall!!.fulfillPreparedCall(
-                                        this@buildLazySequence,
-                                        lastClauseCallPreparation
-                                    )
-                                }
-
-                                val firstPartialResult = lastClausePartialResults.tryAdvance() ?: return@fulfill null
-                                if (lastClausePartialResults.state == LazySequence.State.DEPLETED) {
-                                    val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
-                                    if (tailCallArguments != null) {
-                                        arguments = tailCallArguments
-                                        continue@tailCallLoop
-                                    }
-                                }
-
-                                val partialSolutions = buildLazySequence<Unification>(principal) {
-                                    yield(firstPartialResult)
-                                    yieldAllFinal(lastClausePartialResults)
-                                }
-                                val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
-                                    val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
-                                        .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
-
-                                    return@flatMapRemaining ctxt.fulfillAttach.invoke(
-                                        this,
-                                        PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
-                                        VariableBucket()
-                                    )
-                                }
-                                val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
-                                return@fulfill yieldAllFinal(untranslatedSolutions)
-                            }
-                            else {
-                                return@fulfill clause.fulfill(this, arguments, ctxt)
-                            }
-                        }
-                    }
-                    else {
-                        throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
+        val lastClause = clauses.last()
+        var arguments = initialArguments
+        tailCallLoop@while(true) {
+            clauses@for (clause in clauses) {
+                if (clause is CompoundTerm) {
+                    val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(
+                        clause.arguments,
+                        VariableMapping()
+                    )
+                    val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
+                    unification?.variableValues?.retainAll(arguments.variables)
+                    if (lastClause === clause) return@fulfill unification else {
+                        unification?.let { yield(it) }
                     }
                 }
-            }
+                else if (clause is Rule) {
+                    if (lastClause !== clause) {
+                        clause.fulfill(this, arguments, ctxt)?.let { yield(it) }
+                    } else {
+                        val tailCall = tailCall
+                        if (tailCall != null) {
+                            val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
+                                                            ?: return@fulfill null
+                            val lastClausePartialResults = buildLazySequence<Unification>(principal) {
+                                return@buildLazySequence lastClauseForTailCall!!.fulfillPreparedCall(
+                                    this@buildLazySequence,
+                                    lastClauseCallPreparation
+                                )
+                            }
 
-            @Suppress("UNREACHABLE_CODE") null
+                            val firstPartialResult = lastClausePartialResults.tryAdvance() ?: return@fulfill null
+                            if (lastClausePartialResults.state == LazySequence.State.DEPLETED) {
+                                val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
+                                if (tailCallArguments != null) {
+                                    arguments = tailCallArguments
+                                    continue@tailCallLoop
+                                }
+                            }
+
+                            val partialSolutions = buildLazySequence<Unification>(principal) {
+                                yield(firstPartialResult)
+                                yieldAllFinal(lastClausePartialResults)
+                            }
+                            val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
+                                val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
+                                    .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
+
+                                return@flatMapRemaining ctxt.fulfillAttach.invoke(
+                                    this,
+                                    PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
+                                    VariableBucket()
+                                )
+                            }
+                            val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
+                            return@fulfill yieldAllFinal(untranslatedSolutions)
+                        }
+                        else {
+                            return@fulfill clause.fulfill(this, arguments, ctxt)
+                        }
+                    }
+                }
+                else {
+                    throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
+                }
+            }
         }
+
+        @Suppress("UNREACHABLE_CODE") return@fulfill null
     }
 
     override fun assertz(clause: Clause) {
@@ -200,7 +182,6 @@ class ASTPrologPredicate(
         _clauses.add(clause)
 
         updateTailCall()
-        fireClauseAddedEvent(clause)
     }
 
     override val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { matching, ctxt ->
@@ -218,52 +199,11 @@ class ASTPrologPredicate(
                 clauses.remove(clause)
 
                 updateTailCall()
-                fireClauseRetraced(clause)
 
                 unification.variableValues.retainAll(matching.variables)
                 yield(unification)
             }
         }
-    }
-
-    private fun fireClauseAddedEvent(clause: Clause) {
-        if (dropDelegateOnModification) {
-            currentDelegate = null
-        }
-
-        val event = ClauseAddedToPredicateEvent(this, clause)
-        for (listener in modificationListeners) {
-            listener(event)
-        }
-    }
-
-    private fun fireClauseRetraced(clause: Clause) {
-        if (dropDelegateOnModification) {
-            currentDelegate = null
-        }
-
-        val event = ClauseRetractedFromPredicateEvent(this, clause)
-        for (listener in modificationListeners) {
-            listener(event)
-        }
-    }
-
-    override fun addModificationListener(listener: PredicateModificationListener) {
-        modificationListeners.add(listener)
-    }
-
-    override fun removeModificationListener(listener: PredicateModificationListener) {
-        modificationListeners.remove(listener)
-    }
-
-    override fun setDelegate(delegate: PrologCallable, dropOnModification: Boolean) {
-        dropDelegateOnModification = dropOnModification
-        currentDelegate = delegate
-    }
-
-    override fun dropDelegate() {
-        currentDelegate = null
-        dropDelegateOnModification = false
     }
 
     /**
@@ -316,9 +256,3 @@ class ASTPrologPredicate(
         tailCallInitialized = true
     }
 }
-
-sealed class PredicateModifiedEvent
-class ClauseAddedToPredicateEvent(val predicate: PrologPredicate, val clause: Clause) : PredicateModifiedEvent()
-class ClauseRetractedFromPredicateEvent(val predicate: PrologPredicate, val clause: Clause) : PredicateModifiedEvent()
-
-typealias PredicateModificationListener = (PredicateModifiedEvent) -> Any?

@@ -16,21 +16,3 @@ interface PrologCallable : HasFunctorAndArity {
      */
     val fulfill: PrologCallableFulfill
 }
-
-/**
- * A [PrologCallable] that can delegate calls to its [fulfill] method
- * to another [PrologCallable] if desired. Used for optimization and jitting.
- */
-interface DelegatableCallable : PrologCallable {
-    /**
-     * Sets the delegate to be used.
-     * @param dropOnModification If true, the delegate should be dropped (see [dropDelegate]) when the
-     *                           predicate is modified.
-     */
-    fun setDelegate(delegate: PrologCallable, dropOnModification: Boolean)
-
-    /**
-     * Removes the delegation until the next invocation of [setDelegate]
-     */
-    fun dropDelegate()
-}
