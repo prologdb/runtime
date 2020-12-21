@@ -2,6 +2,7 @@ package com.github.prologdb.parser.lexer
 
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import io.kotlintest.matchers.shouldBe
 import io.kotlintest.matchers.shouldEqual
 import io.kotlintest.specs.FreeSpec
 
@@ -18,6 +19,7 @@ class LexerIteratorTest : FreeSpec() {init{
             foo bar % this comment should be ignored, too
             /* ignore! */
             bar /* ignore! */ foo
+            'atom literal'
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
@@ -421,6 +423,15 @@ class LexerIteratorTest : FreeSpec() {init{
             next.location.start.column shouldEqual 31
             next.location.end.line shouldEqual 11
             next.location.end.column shouldEqual 33
+        }
+
+        "line 12" - {
+            next = lexer.next()
+            next.type shouldBe TokenType.ATOM_LITERAL
+            next.location.start.line shouldBe 12
+            next.location.start.column shouldBe 13
+            next.location.end.line shouldBe 12
+            next.location.end.column shouldBe 26
         }
 
         "eof" - {
