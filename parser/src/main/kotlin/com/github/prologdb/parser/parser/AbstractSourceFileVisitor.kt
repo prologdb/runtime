@@ -59,7 +59,7 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         }
 
         return listOf(SemanticError(
-            "Directive ${command.functor}/${command.arity} is not defined.",
+            "Directive ${ClauseIndicator.of(command)} is not defined.",
             command.sourceInformation as SourceLocation
         ))
     }
@@ -79,19 +79,23 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
 
     protected abstract fun visitImport(import: ModuleImport, location: SourceLocation): Collection<Reporting>
 
+    /**
+     * Converts the AST of a `:- op/3` directive into an [OperatorDefinition].
+     * @param opDefinitionAST The instance of `op/3`
+     */
     protected open fun convertOperatorDefinition(opDefinitionAST: CompoundTerm): ParseResult<OperatorDefinition> {
         require(opDefinitionAST.arity == 3)
 
-        val priorityArgument = opDefinitionAST.arguments[0]
-        if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
+        val precedenceArgument = opDefinitionAST.arguments[0]
+        if (precedenceArgument !is PrologNumber || !precedenceArgument.isInteger) {
             return ParseResult(null, ParseResultCertainty.MATCHED, setOf(
-                SemanticError("operator priority must be an integer", priorityArgument.sourceInformation as SourceLocation)
+                SemanticError("operator precedence must be an integer", precedenceArgument.sourceInformation as SourceLocation)
             ))
         }
 
         val reportings = mutableSetOf<Reporting>()
 
-        var precedenceAsLong = priorityArgument.toInteger()
+        var precedenceAsLong = precedenceArgument.toInteger()
         if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
             reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].sourceInformation as SourceLocation))
             precedenceAsLong = min(max(0, precedenceAsLong), 1200)
@@ -99,7 +103,7 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         val precedence = precedenceAsLong.toShort()
 
         if (opDefinitionAST.arguments[1] !is Atom) {
-            reportings.add(SemanticError("operator type: expected atom but found ${opDefinitionAST.arguments[1].prologTypeName}", opDefinitionAST.arguments[1].sourceInformation as SourceLocation))
+            reportings.add(SemanticError("operator type: expected atom but got ${opDefinitionAST.arguments[1].prologTypeName}", opDefinitionAST.arguments[1].sourceInformation as SourceLocation))
             return ParseResult(null, ParseResultCertainty.MATCHED, reportings)
         }
 
@@ -124,6 +128,10 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         )
     }
 
+    /**
+     * Converts the AST of a `:- module/1` or `:- module/2` directive into a [ModuleDeclaration].
+     * @param moduleDeclarationAST The instance of `module/1` or `module/2`
+     */
     protected open fun convertModuleDeclaration(moduleDeclarationAST: CompoundTerm): ParseResult<ModuleDeclaration> {
         val args = moduleDeclarationAST.arguments
         require(args.size in 1..2)
@@ -143,7 +151,9 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
             if (args[1] is PrologList) {
                 exportSelection = (args[1] as PrologList).elements
                     .mapNotNull {
-                        ClauseIndicator.fromIdiomatic(it, reportings)
+                        val indicatorResult = convertIdiomaticClauseIndicator(it)
+                        reportings.addAll(indicatorResult.reportings)
+                        indicatorResult.item
                     }
                     .toSet()
             } else {
@@ -163,6 +173,32 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         )
     }
 
+    /**
+     * Converts the AST of a `:- use_module/1` or `:- use_module/2` directive into a [ModuleImport].
+     *
+     * Formally, the given AST must succeed this goal:
+     *
+     *     compound_name_arguments(ImportAST, use_module, Args),
+     *     [Ref|_] = Args,
+     *     compound_name_arguments(Ref, Group, [RefName]),
+     *     atom(Group),
+     *     atom(RefName),
+     *     (length(Args, 1); length(Args, 2),
+     *         [_, Selection] = Args,
+     *         (
+     *             is_list(Selection),
+     *             member(SelectionE, Selection),
+     *             valid_clause_indicator(SelectionE)
+     *         ) ; (
+     *             except(Exclusions) = Selection,
+     *             is_list(Exclusions),
+     *             member(ExclusionE, Exclusions),
+     *             valid_clause_indicator(ExclusionE)
+     *         )
+     *     )
+     *
+     * @param importAST The instance of `use_module/1` or `use_module/2`
+     */
     protected open fun convertModuleImport(importAST: CompoundTerm) : ParseResult<ModuleImport> {
         val args = importAST.arguments
         require(args.size in 1..2)
@@ -264,6 +300,17 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         }
     }
 
+    /**
+     * Converts a term that should denote a clause indicator to a [ClauseIndicator].
+     *
+     * Formally, the given AST must succeed this goal:
+     *
+     *     Term = /(Name, Arity),
+     *     atom(Name),
+     *     integer(Arity),
+     *     Arity >= 0.
+     * @param term the indicator AST
+     */
     private fun convertIdiomaticClauseIndicator(term: Term): ParseResult<ClauseIndicator> {
         if (term !is CompoundTerm || term.arity != 2 || term.functor != "/") {
             return ParseResult(null, ParseResultCertainty.MATCHED, setOf(SyntaxError(
@@ -306,12 +353,14 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         return ParseResult.of(ClauseIndicator.of(functorTerm.name, arityTerm.toInteger().toInt()))
     }
 
-    private fun <I : Term, R : Any> convertAndVisit(input: I, converter: (I) -> ParseResult<R>, visitor: (R, SourceLocation) -> Collection<Reporting>): Collection<Reporting> {
-        val result = converter(input)
-        if (result.item == null) {
-            return result.reportings
-        }
+    companion object {
+        protected fun <I : Term, R : Any> convertAndVisit(input: I, converter: (I) -> ParseResult<R>, visitor: (R, SourceLocation) -> Collection<Reporting>): Collection<Reporting> {
+            val result = converter(input)
+            if (result.item == null) {
+                return result.reportings
+            }
 
-        return result.reportings + visitor(result.item, input.sourceInformation as SourceLocation)
+            return result.reportings + visitor(result.item, input.sourceInformation as SourceLocation)
+        }
     }
 }

@@ -29,7 +29,6 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
-import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -42,7 +41,6 @@ import com.github.prologdb.runtime.term.PrologDecimal
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -1104,44 +1102,4 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
     // there is no way to use the operator
     throw ExpressionASTBuildingException(SemanticError("Cannot meaningfully use operator ${elements[index]}", elements[index].location))
-}
-
-fun ClauseIndicator.Companion.fromIdiomatic(indicator: Term, reportings: MutableCollection<in Reporting>): ClauseIndicator? {
-    if (indicator !is CompoundTerm) {
-        reportings += SemanticError(
-            "Clause indicators must be instances of `/`/2, got ${indicator.prologTypeName}",
-            indicator.location
-        )
-        return null
-    }
-
-    val name = indicator.arguments[0]
-    val arity = indicator.arguments[1]
-
-    if (name !is Atom) {
-        reportings += SemanticError(
-            "Argument 0 to `/`/2 must be an atom",
-            name.location
-        )
-        return null
-    }
-
-    if (arity !is PrologNumber || !arity.isInteger) {
-        reportings += SemanticError(
-            "Argument 1 to `/`/2 must be an integer",
-            arity.location
-        )
-        return null
-    }
-
-    val arityValue = arity.toInteger()
-    if (arityValue < 0L || arityValue > Integer.MAX_VALUE.toLong()) {
-        reportings += SemanticError(
-            "Argument 1 to `/`/2 must be an integer in the range [0; ${Int.MAX_VALUE}]",
-            arity.location
-        )
-        return null
-    }
-
-    return of(name.name, arityValue.toInt())
 }
