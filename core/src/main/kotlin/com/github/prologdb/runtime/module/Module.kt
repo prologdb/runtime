@@ -3,17 +3,12 @@ package com.github.prologdb.runtime.module
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
@@ -53,21 +48,6 @@ data class ModuleReference(
 
     val moduleName: String
 ) {
-    companion object {
-        /**
-         * Takes a term of arity 1 where the first argument is an atom
-         * @throws PrologRuntimeException If the given term is not a valid module reference.
-         */
-        @JvmStatic
-        fun fromCompoundTerm(term: CompoundTerm): ModuleReference {
-            if (term.arity != 1 || term.arguments[0] !is Atom) {
-                throw PrologRuntimeException("Illegal module reference: must be of arity 1 and the sole argument must be an atom")
-            }
-
-            return ModuleReference(term.functor, (term.arguments[0] as Atom).name)
-        }
-    }
-
     override fun toString(): String {
         return "$pathAlias($moduleName)"
     }
@@ -75,68 +55,7 @@ data class ModuleReference(
 
 sealed class ModuleImport(
     val moduleReference: ModuleReference
-) {
-    companion object {
-        @JvmStatic
-        fun fromUseModuleSyntax(useModuleArguments: Array<out Term>): ModuleImport {
-            val moduleRefTerm = useModuleArguments[0]
-            if (moduleRefTerm !is CompoundTerm) {
-                throw PrologRuntimeException("Argument 0 to use_module/${useModuleArguments.size} must be a compound, got ${moduleRefTerm.prologTypeName}")
-            }
-
-            val moduleReference = ModuleReference.fromCompoundTerm(moduleRefTerm)
-
-            if (useModuleArguments.size == 1) {
-                return FullModuleImport(moduleReference)
-            }
-
-            val selectionTerm = useModuleArguments[1]
-
-            if (selectionTerm is PrologList) {
-                val imports = mutableMapOf<ClauseIndicator, String>()
-                selectionTerm.elements.forEach { importTerm ->
-                    if (importTerm !is CompoundTerm) {
-                        throw PrologRuntimeException("References to single predicates in argument 1 to use_module/2 must be compounds, got ${importTerm.prologTypeName}")
-                    }
-
-                    if (importTerm.functor == "/") {
-                        val indicator = ClauseIndicator.ofIdiomatic(importTerm, "argument 1 to use_module/2")
-                        imports[indicator] = indicator.functor
-                    } else if (importTerm.functor == "as") {
-                        val indicator = ClauseIndicator.ofIdiomatic(importTerm.arguments[0], "argument 1 to use_module/2")
-                        val aliasTerm = importTerm.arguments[1]
-                        if (aliasTerm !is Atom) {
-                            throw PrologRuntimeException("Predicate aliases in argument 1 to use_module/2 must be atoms, got ${aliasTerm.prologTypeName}")
-                        }
-
-                        imports[indicator] = aliasTerm.name
-                    } else {
-                        throw PrologRuntimeException("References to single predicates in argument 1 to use_module/2 must unify with either _/_ or _/_ as _")
-                    }
-                }
-
-                return SelectiveModuleImport(moduleReference, imports)
-            } else if (selectionTerm is CompoundTerm && selectionTerm.functor == "except" && selectionTerm.arity == 1) {
-                val listTerm = selectionTerm.arguments[0]
-                if (listTerm !is PrologList) {
-                    throw PrologRuntimeException("Argument 0 to except/1 in argument 1 to use_module/2 must be a list, got ${listTerm.prologTypeName}")
-                }
-
-                val except = listTerm.elements
-                    .map {
-                        ClauseIndicator.ofIdiomatic(it, "Indicators in argument 0 to except/1 in argument 1 to use_module/2")
-                    }
-                    .toSet()
-
-                return ExceptModuleImport(moduleReference, except)
-            } else {
-                throw PrologRuntimeException("argument 1 to use_module/2 must be either a list or an instance of except/1, got ${selectionTerm.prologTypeName}")
-            }
-        }
-
-
-    }
-}
+)
 
 class FullModuleImport(moduleReference: ModuleReference) : ModuleImport(moduleReference)
 class SelectiveModuleImport(

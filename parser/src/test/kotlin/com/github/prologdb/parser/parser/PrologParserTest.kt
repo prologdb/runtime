@@ -675,7 +675,7 @@ class PrologParserTest : FreeSpec() {
     }
 
     "module" {
-        fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseModule(tokens, ISOOpsOperatorRegistry)
+        fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseSourceFile(tokens, DefaultModuleSourceFileVisitor())
         fun parseModule(code: String) = parseModule(tokensOf(code))
 
         val result = parseModule("""

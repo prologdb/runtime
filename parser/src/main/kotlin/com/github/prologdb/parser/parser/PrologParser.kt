@@ -1,6 +1,5 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.ReportingException
 import com.github.prologdb.parser.SemanticError
@@ -30,13 +29,7 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
-import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
-import com.github.prologdb.runtime.module.ASTModule
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -53,10 +46,8 @@ import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
-import com.github.prologdb.runtime.util.OperatorType
 import com.github.prologdb.runtime.util.OperatorType.FX
 import com.github.prologdb.runtime.util.OperatorType.XFX
 import com.github.prologdb.runtime.util.OperatorType.YF
@@ -664,213 +655,43 @@ class PrologParser {
         }
     }
 
-    /**
-     * Parse the given tokens as a module file.
-     *
-     * @param moduleDeclaration If given, it is used for the resulting module. As a result, the code in `tokens`
-     *                          **must not** and need to contain a `module/1` directive.
-     */
-    fun parseModule(
+    fun <Result : Any> parseSourceFile(
         tokens: TransactionalSequence<Token>,
-        contextOperators: OperatorRegistry = ISOOpsOperatorRegistry,
-        moduleDeclaration: ModuleDeclaration? = null
-    ): ParseResult<Module> {
-        val moduleLocalOperators = DefaultOperatorRegistry()
-        moduleLocalOperators.include(contextOperators)
-
-        val clauses = mutableListOf<Clause>()
-        val dynamics = mutableSetOf<ClauseIndicator>()
-        var moduleDeclarationSeen = moduleDeclaration != null
-        var parsedModuleDeclaration: ModuleDeclaration? = null
-        val imports = mutableListOf<ModuleImport>()
-        val reportings = mutableSetOf<Reporting>()
-
-        var moduleDeclarationNotFirstStatementErrorEmitted = false
-        fun emitModuleDeclarationNotFirstStatementError(onLocation: SourceLocationRange) {
-            if (moduleDeclarationNotFirstStatementErrorEmitted) return
-
-            reportings.add(SemanticError(
-                "The module/1 directive must be the first statement in the file.",
-                onLocation
-            ))
-
-            moduleDeclarationNotFirstStatementErrorEmitted = true
-        }
-
-        /**
-         * Adds the given operator definition to the library.
-         * @param opDefinitionAST The definition, e.g.: `op(400,xf,isDead)`
-         */
-        fun handleOperator(opDefinitionAST: CompoundTerm) {
-            val priorityArgument = opDefinitionAST.arguments[0]
-            if (priorityArgument !is PrologNumber || !priorityArgument.isInteger) {
-                reportings.add(SemanticError("operator priority must be an integer", priorityArgument.location))
-                return
-            }
-
-            val precedenceAsLong = priorityArgument.toInteger()
-            if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
-                reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].location))
-                return
-            }
-            val precedence = precedenceAsLong.toShort()
-
-            if (opDefinitionAST.arguments[1] !is Atom) {
-                reportings.add(SemanticError("atom expected but found ${opDefinitionAST.arguments[1]}", opDefinitionAST.arguments[1].location))
-            }
-
-            val typeAsUCString = (opDefinitionAST.arguments[1] as Atom).name.toUpperCase()
-            val operatorType = try {
-                OperatorType.valueOf(typeAsUCString)
-            }
-            catch (ex: IllegalArgumentException) {
-                reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opDefinitionAST.arguments[1].location))
-                return
-            }
-
-            if (opDefinitionAST.arguments[2] !is Atom) {
-                reportings.add(SemanticError("Atom expected but got ${opDefinitionAST.arguments[2]}", opDefinitionAST.arguments[2].location))
-                return
-            }
-
-            moduleLocalOperators.defineOperator(OperatorDefinition(precedence, operatorType, (opDefinitionAST.arguments[2] as Atom).name))
-        }
-
-        fun handleDynamicDirective(indicatorTerm: Term) {
-            if (indicatorTerm !is CompoundTerm || indicatorTerm.arity != 2 || indicatorTerm.functor != "/") {
-                reportings.add(SemanticError(
-                    "The argument to dynamic/1 must be an instance of `/`/2",
-                    indicatorTerm.location
-                ))
-                return
-            }
-
-            val indicator = ClauseIndicator.fromIdiomatic(indicatorTerm, reportings)
-
-            indicator?.let { dynamics.add(it) }
-        }
-
-        fun handleModuleDeclaration(invocation: CompoundTerm) {
-            val args = invocation.arguments
-            if (args.size !in 1..2) {
-                reportings.add(SemanticError(
-                    "Directive module/${args.size} is not defined.",
-                    invocation.location
-                ))
-                return
-            }
-
-            if (moduleDeclarationSeen) {
-                reportings.add(SemanticError(
-                    "Cannot declare module more than once.",
-                    invocation.location
-                ))
-                return
-            }
-
-            moduleDeclarationSeen = true
-
-            if (args[0] !is Atom) {
-                reportings.add(SemanticError(
-                    "Argument 0 to module/${args.size} must be an atom, got ${args[0].prologTypeName}",
-                    args[0].location
-                ))
-                return
-            }
-
-            val name = (args[0] as Atom).name
-            var exportSelection: Set<ClauseIndicator>? = null
-
-            if (args.size == 2) {
-                if (args[1] is PrologList) {
-                    exportSelection = (args[1] as PrologList).elements
-                        .mapNotNull {
-                            ClauseIndicator.fromIdiomatic(it, reportings)
-                        }
-                        .toSet()
-                } else {
-                    reportings.add(SemanticError(
-                        "Argument 1 to module/2 must be a list, got ${args[1].prologTypeName}",
-                        args[1].location
-                    ))
-                }
-            }
-
-            parsedModuleDeclaration = ModuleDeclaration(name, exportSelection)
-        }
-
-        fun handleUseModuleDirective(invocation: CompoundTerm) {
-            try {
-                imports.add(ModuleImport.fromUseModuleSyntax(invocation.arguments))
-            } catch (ex: PrologRuntimeException) {
-                reportings.add(SemanticError(
-                    ex.message ?: "Invalid import directive",
-                    invocation.location
-                ))
-            }
-        }
-
-        fun handleDirective(command: CompoundTerm) {
-            if (!moduleDeclarationSeen && command.functor != "module") {
-                emitModuleDeclarationNotFirstStatementError(command.location)
-            }
-
-            when(command.arity) {
-                3 -> when(command.functor) {
-                    "op" -> return handleOperator(command)
-                }
-                2 -> when (command.functor) {
-                    "module" -> return handleModuleDeclaration(command)
-                    "use_module" -> return handleUseModuleDirective(command)
-                }
-                1 -> when(command.functor) {
-                    "dynamic" -> return handleDynamicDirective(command.arguments[0])
-                    "module" -> return handleModuleDeclaration(command)
-                    "use_module" -> return handleUseModuleDirective(command)
-                }
-            }
-
-            reportings += SemanticError(
-                "Directive ${command.functor}/${command.arity} is not defined.",
-                command.location
-            )
-        }
-
-        fun handleRule(definition: CompoundTerm) {
-            val head = definition.arguments[0] as? CompoundTerm ?: throw InternalParserError("Rule heads must be compound term")
-            val queryTerm = definition.arguments[1] as? CompoundTerm ?: throw InternalParserError("Queries must be compound term")
-            val transformResult = transformQuery(queryTerm)
-
-            if (transformResult.item != null) {
-                clauses.add(Rule(head, transformResult.item).also { it.sourceInformation = head.location..queryTerm.location })
-            }
-
-            reportings += transformResult.reportings
-        }
+        visitor: SourceFileVisitor<Result>
+    ): ParseResult<Result> {
+        val reportings = mutableListOf<Reporting>()
 
         while (tokens.hasNext()) {
-            val parseResult = parseTerm(tokens, moduleLocalOperators, stopAtOperator(FULL_STOP))
+            val parseResult = parseTerm(tokens, visitor.operators, stopAtOperator(FULL_STOP))
             reportings += parseResult.reportings
 
             if (parseResult.isSuccess) {
                 val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
                 if (item is CompoundTerm) {
                     item as? CompoundTerm ?: throw InternalParserError("Expected CompoundTerm, got CompoundTerm")
-                    // detect directive
+
                     if (item.isDirectiveInvocation) {
-                        handleDirective(item.arguments[0] as CompoundTerm)
+                        reportings += visitor.visitDirective(item.arguments[0] as CompoundTerm)
                     }
                     else if (item.isRuleDefinition) {
-                        if (!moduleDeclarationSeen) emitModuleDeclarationNotFirstStatementError(item.location)
-                        handleRule(item)
+                        val head = item.arguments[0] as? CompoundTerm ?: throw InternalParserError("Rule heads must be compound term")
+                        val queryTerm = item.arguments[1] as? CompoundTerm ?: throw InternalParserError("Queries must be compound term")
+                        val transformResult = transformQuery(queryTerm)
+                        reportings += transformResult.reportings
+
+                        if (transformResult.item != null) {
+                            val location = head.location..queryTerm.location
+                            val rule = Rule(head, transformResult.item).apply {
+                                sourceInformation = location
+                            }
+                            reportings += visitor.visitClause(rule, location)
+                        }
                     }
                     else {
-                        if (!moduleDeclarationSeen) emitModuleDeclarationNotFirstStatementError(item.location)
-                        clauses.add(item)
+                        reportings += visitor.visitClause(item, item.location)
                     }
                 } else {
-                    if (!moduleDeclarationSeen) emitModuleDeclarationNotFirstStatementError(item.location)
-                    reportings += SemanticError("A ${item.prologTypeName} is not a top level declaration, expected a compound term.", item.location)
+                    reportings += visitor.visitNonClause(item)
                 }
             }
             else {
@@ -884,34 +705,14 @@ class PrologParser {
             }
         }
 
-        val finalModuleDeclaration = moduleDeclaration ?: parsedModuleDeclaration
-
-        if (finalModuleDeclaration == null) {
-            reportings += SemanticError(
-                "Missing module declaration",
-                SourceLocationRange(SourceLocation.EOF, SourceLocation.EOF)
-            )
-
-            return ParseResult(
-                null,
-                MATCHED,
-                reportings
+        val result = visitor.buildResult()
+        return if (reportings.isEmpty()) result else {
+            ParseResult(
+                result.item,
+                result.certainty,
+                (reportings + result.reportings).toSet()
             )
         }
-
-        return ParseResult(
-            ASTModule(
-                finalModuleDeclaration.moduleName,
-                imports,
-                clauses,
-                dynamics,
-                finalModuleDeclaration.exportedPredicates
-                    ?: clauses.map { ClauseIndicator.of(it) }.toSet(),
-                moduleLocalOperators
-            ),
-            MATCHED,
-            reportings
-        )
     }
 
     /**

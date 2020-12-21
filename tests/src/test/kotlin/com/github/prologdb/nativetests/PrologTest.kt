@@ -5,7 +5,6 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.async.mapRemainingNotNull
-import com.github.prologdb.parser.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.ReportingException
 import com.github.prologdb.parser.SyntaxError
@@ -16,7 +15,6 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
@@ -30,9 +28,6 @@ import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorDefinition
-import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.matchers.fail
 import io.kotlintest.specs.FreeSpec
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
@@ -87,10 +82,9 @@ class PrologTest : FreeSpec() { init {
             val sourceUnit = SourceUnit(path.toString())
             val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
 
-            return PrologParser().parseModule(
+            return PrologParser().parseSourceFile(
                 lexer,
-                TestingOperatorRegistry,
-                ModuleDeclaration(path.toString(), null)
+                TestSourceFileVisitor(path)
             )
         }
 
@@ -171,12 +165,6 @@ private interface PrologTestCase {
             }
         }
     }
-}
-
-private val TestingOperatorRegistry = DefaultOperatorRegistry().apply {
-    include(ISOOpsOperatorRegistry)
-    defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
-    defineOperator(OperatorDefinition(800, OperatorType.XFX, "by"))
 }
 
 private class TestExecution(private val runtime: PrologRuntimeEnvironment, private val testName: String, private val allGoals: List<Query>) {

@@ -5,12 +5,12 @@ import com.github.prologdb.parser.ModuleDeclaration;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
 import com.github.prologdb.parser.lexer.LineEndingNormalizer;
+import com.github.prologdb.parser.parser.DefaultModuleSourceFileVisitor;
 import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.PrologRuntimeEnvironment;
 import com.github.prologdb.runtime.PrologRuntimeException;
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry;
 import com.github.prologdb.runtime.module.Module;
 import com.github.prologdb.runtime.module.NativeLibraryLoader;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
@@ -125,7 +125,10 @@ public class PlaygroundPanel {
         );
 
         long parseStart = System.currentTimeMillis();
-        ParseResult<Module> result = parser.parseModule(lexer, ISOOpsOperatorRegistry.getInstance(), new ModuleDeclaration("_root", null));
+        ParseResult<? extends Module> result = parser.parseSourceFile(
+            lexer,
+            new DefaultModuleSourceFileVisitor(new ModuleDeclaration("_root", null))
+        );
         solutionExplorerPanel.setParseTime(System.currentTimeMillis() - parseStart);
 
         if (result.getReportings().isEmpty()) {
