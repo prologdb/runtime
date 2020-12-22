@@ -42,6 +42,7 @@ class ModuleScopeProofSearchContext(
     override val rootAvailableModules: Map<String, Module>
 ) : ProofSearchContext, AbstractProofSearchContext() {
 
+    override val operators = module.localOperators
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
         val goal = query.goal

@@ -9,6 +9,7 @@ import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 typealias ProofSearch = suspend LazySequenceBuilder<Unification>.(Query, initialVariables: VariableBucket) -> Unification?
 
@@ -31,6 +32,8 @@ interface ProofSearchContext {
      * The modules available in the root runtime environment.
      */
     val rootAvailableModules: Map<String, Module>
+
+    val operators: OperatorRegistry
 
     /**
      * Starts a proof search on the given query. Solutions will be [LazySequenceBuilder.yield]ed onto the
