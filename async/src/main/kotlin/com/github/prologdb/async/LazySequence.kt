@@ -224,7 +224,7 @@ interface LazySequence<T : Any> {
     }
 
     companion object {
-        fun <T : Any> ofCollection(elements: Collection<T>, principal: Principal = IrrelevantPrincipal): LazySequence<T> = when {
+        fun <T : Any> ofIterable(elements: Iterable<T>, principal: Principal = IrrelevantPrincipal): LazySequence<T> = when {
             elements is List<T> && elements is RandomAccess -> RandomAccessListLazySequence(elements, principal)
             else -> IteratorLazySequence(elements, principal)
         }
