@@ -7,6 +7,7 @@ import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.parser.withMockSourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
@@ -22,6 +23,7 @@ import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.forAll
+import io.kotlintest.forOne
 import io.kotlintest.matchers.beEmpty
 import io.kotlintest.matchers.haveKey
 import io.kotlintest.matchers.haveSize
@@ -655,6 +657,131 @@ class PrologParserTest : FreeSpec() {
                 item.functor shouldEqual "infixAndPrefixOp"
                 item.arity shouldEqual 1
             }
+        }
+    }
+
+    "invalid :-op/3" - {
+        "non-numeric precedence" {
+            val declaration = CompoundTerm("op", arrayOf(Atom("invalid"), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.item shouldBe null
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator precedence must be an integer"
+        }
+
+        "precedence out of range below" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(-10), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator precedence must be between 0 and 1200 (inclusive)"
+            result.item shouldNotBe null
+            result.item!!.precedence shouldBe 0.toShort()
+        }
+
+        "precedence out of range above" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(1201), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator precedence must be between 0 and 1200 (inclusive)"
+            result.item shouldNotBe null
+            result.item!!.precedence shouldBe 1200.toShort()
+        }
+
+        "type argument not atom" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), PrologList(emptyList()), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator type: expected atom but got list"
+            result.item shouldBe null
+        }
+
+        "undefined type" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), Atom("yfy"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "yfy is not a known operator type"
+            result.item shouldBe null
+        }
+
+        "name argument not atom" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), Atom("xfx"), PrologList(emptyList()))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator name: expected atom but got list"
+            result.item shouldBe null
+        }
+    }
+
+    "valid :-op/3" {
+        val declaration = CompoundTerm("op", arrayOf(PrologInteger(800), Atom("xfx"), Atom("myop"))).withMockSourceLocation()
+        val result = PrologParser().parseOperatorDefinition(declaration)
+        result.reportings should beEmpty()
+        result.item shouldNotBe null
+        result.item!!.precedence shouldBe 800.toShort()
+        result.item!!.type shouldBe OperatorType.XFX
+        result.item!!.name shouldBe "myop"
+    }
+
+    "invalid :-module/1" {
+        val declaration = CompoundTerm("module", arrayOf(PrologList(emptyList()))).withMockSourceLocation()
+        val result = PrologParser().parseModuleDeclaration(declaration)
+        result.reportings.size shouldBe 1
+        result.reportings.first().message shouldBe "Argument 0 to module/1 must be an atom, got list"
+        result.item shouldBe null
+    }
+
+    "valid :-module/1" {
+        val declaration = CompoundTerm("module", arrayOf(Atom("mymodule"))).withMockSourceLocation()
+        val result = PrologParser().parseModuleDeclaration(declaration)
+        result.reportings should beEmpty()
+        result.item shouldNotBe null
+        result.item!!.moduleName shouldBe "mymodule"
+        result.item!!.exportedPredicates shouldBe null
+    }
+
+    "invalid :-module/2" - {
+        "second argument not a list" {
+            val declaration = CompoundTerm("module", arrayOf(Atom("name"), Atom("bla"))).withMockSourceLocation()
+            val result = PrologParser().parseModuleDeclaration(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "Argument 1 to module/2 must be a list, got atom"
+            result.item shouldNotBe null
+            result.item!!.moduleName shouldBe "name"
+            result.item!!.exportedPredicates shouldBe null
+        }
+        "export list with invalid clause indicator" {
+            val declaration = CompoundTerm("module", arrayOf(Atom("name"), PrologList(listOf(Atom("predname"))))).withMockSourceLocation()
+            val result = PrologParser().parseModuleDeclaration(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "Predicate indicators must be instances of `/`/2"
+            result.item shouldNotBe null
+            result.item!!.moduleName shouldBe "name"
+            result.item!!.exportedPredicates shouldNotBe null
+            result.item!!.exportedPredicates!! should beEmpty()
+        }
+    }
+
+    "valid :-module/2" {
+        val exports = listOf(
+            CompoundTerm("/", arrayOf(Atom("predname"), PrologInteger(2))),
+            CompoundTerm("/", arrayOf(Atom("otherpred"), PrologInteger(4)))
+        )
+        val declaration = CompoundTerm("module", arrayOf(Atom("name"), PrologList(exports))).withMockSourceLocation()
+        val result = PrologParser().parseModuleDeclaration(declaration)
+        result.reportings should beEmpty()
+        result.item shouldNotBe null
+        result.item!!.moduleName shouldBe "name"
+        result.item!!.exportedPredicates shouldNotBe null
+        result.item!!.exportedPredicates!!.size shouldBe 2
+
+        forOne(result.item!!.exportedPredicates!!) {
+            it.functor shouldBe "predname"
+            it.arity shouldBe 2
+        }
+
+        forOne(result.item!!.exportedPredicates!!) {
+            it.functor shouldBe "otherpred"
+            it.arity shouldBe 4
         }
     }
 
