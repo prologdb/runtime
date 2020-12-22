@@ -26,15 +26,14 @@ internal val GetDictBuiltin = nativeRule("get_dict", 3) { args, ctxt ->
     }
 
     if (keyArg is Variable) {
-        return@nativeRule yieldAllFinal(LazySequence.ofCollection(dictArg.pairs.entries, principal).mapRemainingNotNull { (dictKey, dictValue) ->
+        return@nativeRule yieldAllFinal(LazySequence.ofIterable(dictArg.pairs.entries, principal).mapRemainingNotNull { (dictKey, dictValue) ->
             val valueUnification = valueArg.unify(dictValue, ctxt.randomVariableScope)
             if (valueUnification != null) {
                 if (valueUnification.variableValues.isInstantiated(keyArg)) {
                     if (valueUnification.variableValues[keyArg] == dictKey) {
                         return@mapRemainingNotNull valueUnification
                     }
-                }
-                else {
+                } else {
                     valueUnification.variableValues.instantiate(keyArg, dictKey)
                     return@mapRemainingNotNull valueUnification
                 }

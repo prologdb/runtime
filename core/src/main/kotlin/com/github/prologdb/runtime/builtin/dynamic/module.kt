@@ -19,6 +19,7 @@ val DynamicsModule = nativeModule("dynamics") {
     add(BuiltinCompoundNameArguments3)
     add(BuiltinApply2)
     add(BuiltinTermVariables2)
+    add(BuiltinCurrentOp3)
 }
 
 /**
