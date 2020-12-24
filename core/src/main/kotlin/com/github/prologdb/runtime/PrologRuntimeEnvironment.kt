@@ -4,6 +4,7 @@ import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleLoader
+import com.github.prologdb.runtime.module.ModuleNotFoundException
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.module.NativeLibraryLoader
 import com.github.prologdb.runtime.proofsearch.Authorization
@@ -47,7 +48,12 @@ class PrologRuntimeEnvironment(
 
     private fun loadImports(module: Module) {
         module.imports.forEach { import ->
-            assureModuleLoaded(import.moduleReference)
+            try {
+                assureModuleLoaded(import.moduleReference)
+            } catch (ex: ModuleNotFoundException) {
+                ex.addLoadChainElement("imported by module ${module.name}")
+                throw ex
+            }
         }
     }
 

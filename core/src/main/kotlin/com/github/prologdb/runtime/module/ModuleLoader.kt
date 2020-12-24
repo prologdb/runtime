@@ -17,7 +17,7 @@ interface ModuleLoader {
 
 class NoopModuleLoader : ModuleLoader {
     override fun load(reference: ModuleReference): Module {
-        throw PrologRuntimeException("Module $reference not found.")
+        throw ModuleNotFoundException(reference)
     }
 }
 
