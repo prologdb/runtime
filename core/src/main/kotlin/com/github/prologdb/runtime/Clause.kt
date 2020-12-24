@@ -69,8 +69,7 @@ data class ClauseIndicator internal constructor(
 }
 
 /**
- * Like [ClauseIndicator] but adds the parent module name. Fully qualified clause indicators always refer to the
- * predicate name local to the declaring module (so that the name is unambiguous and canonical)
+ * Like [ClauseIndicator], including a module name: `module:functor/arity`. A [FullyQualifiedClauseIndicator]
  */
 data class FullyQualifiedClauseIndicator(
     val moduleName: String,
@@ -80,7 +79,7 @@ data class FullyQualifiedClauseIndicator(
         require(moduleName.isNotBlank())
     }
 
-    override fun toString() = "$moduleName/$indicator"
+    override fun toString() = "$moduleName:$indicator"
 
-    fun toIdiomatic() = CompoundTerm("/", arrayOf(indicator.toIdiomatic()))
+    fun toIdiomatic() = CompoundTerm(":", arrayOf(indicator.toIdiomatic()))
 }
