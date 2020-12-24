@@ -1,6 +1,6 @@
-:- use_module(library(math)).
-:- use_module(library(equality)).
-:- use_module(library(comparison)).
+:- use_module(essential($math)).
+:- use_module(essential($equality)).
+:- use_module(essential($comparison)).
 
 % is/2
 

@@ -99,8 +99,8 @@ fun nativeModule(name: String, initCode: NativeModuleBuilder.() -> Any?): Module
 class NativeModuleBuilder(private val moduleName: String) {
     private val clauses = mutableListOf<Clause>()
     private val nativePredicates = mutableListOf<PrologCallable>()
-    private val imports = mutableListOf<ModuleReference>(
-        ModuleReference("library", "equality")
+    private val imports = mutableListOf(
+        ModuleReference("essential", "\$equality")
     )
 
     fun add(predicate: PrologCallable) {

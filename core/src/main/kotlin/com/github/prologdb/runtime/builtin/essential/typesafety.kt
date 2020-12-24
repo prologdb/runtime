@@ -1,9 +1,13 @@
-package com.github.prologdb.runtime.builtin
+package com.github.prologdb.runtime.builtin.essential
 
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.builtin.getInvocationStackFrame
+import com.github.prologdb.runtime.builtin.nativeModule
+import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDecimal
+import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologNumber
@@ -12,7 +16,7 @@ import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
-val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
+val BuiltinTypeof2 = nativeRule("typeof", 2) { args, ctxt ->
     val arg0 = args[0]
     val arg1 = args[1]
 
@@ -33,7 +37,8 @@ val TypeofBuiltin = nativeRule("typeof", 2) { args, ctxt ->
         return@nativeRule Unification.whether(correct)
     }
 }
-val TypeSafetyModule = nativeModule("typesafety") {
+
+val EssentialTypeSafetyModule = nativeModule("\$typesafety") {
     // all of these are /1 tests
     add(typeCheckBuiltin("atom") { it is Atom })
 
@@ -44,6 +49,7 @@ val TypeSafetyModule = nativeModule("typesafety") {
     add(typeCheckBuiltin("string") { it is PrologString })
 
     add(typeCheckBuiltin("is_list") { it is PrologList })
+    add(typeCheckBuiltin("is_dict") { it is PrologDictionary })
 
     add(typeCheckBuiltin("var") { it is Variable })
     add(typeCheckBuiltin("nonvar") { it !is Variable })
@@ -51,7 +57,7 @@ val TypeSafetyModule = nativeModule("typesafety") {
     add(typeCheckBuiltin("ground") { it.variables.isEmpty() })
     add(typeCheckBuiltin("nonground") { it.variables.isNotEmpty() })
 
-    add(TypeofBuiltin)
+    add(BuiltinTypeof2)
 }
 
 /**

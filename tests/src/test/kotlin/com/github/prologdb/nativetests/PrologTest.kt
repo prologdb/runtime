@@ -305,4 +305,4 @@ private fun Term.asCompound(): CompoundTerm {
     throw ReportingException(SyntaxError("Expected compound term, got $prologTypeName", location))
 }
 
-private class ParseErrorException(val reportings: Collection<Reporting>) : Exception(reportings.firstOrNull()?.message)
+private class ParseErrorException(val reportings: Collection<Reporting>) : Exception(reportings.firstOrNull()?.run { "$message in $location" })

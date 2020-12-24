@@ -41,7 +41,7 @@ val BuiltinCompare = nativeRule("compare", 3) { args, ctxt ->
 /**
  * Defines predicates for the standard order of terms.
  */
-val ComparisonModule = nativeModule("comparison") {
+val EssentialComparisonModule = nativeModule("\$comparison") {
     add(BuiltinTermLessThan)
     add(BuiltinTermLessThanOrEqual)
     add(BuiltinTermGreaterThan)

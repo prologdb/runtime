@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.builtin.math
+package com.github.prologdb.runtime.builtin.essential.math
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.term.CompoundTerm

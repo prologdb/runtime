@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.builtin.dict
+package com.github.prologdb.runtime.builtin.dicts
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.mapRemainingNotNull
@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
 
-internal val GetDictBuiltin = nativeRule("get_dict", 3) { args, ctxt ->
+val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
     val keyArg = args[0]
     val dictArg = args[1]
     val valueArg = args[2]
@@ -41,9 +41,7 @@ internal val GetDictBuiltin = nativeRule("get_dict", 3) { args, ctxt ->
 
             return@mapRemainingNotNull null
         })
-    }
-    else
-    {
+    } else {
         keyArg as Atom
         val valueForArg = dictArg.pairs[keyArg]
 

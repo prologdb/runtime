@@ -17,12 +17,11 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
-internal val Set2Builtin = nativeRule("set", 2) { args, _ ->
+internal val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
     val arg0 = args[0]
     val arg1 = args[1]
 
-    if (arg0 !is Variable)
-    {
+    if (arg0 !is Variable) {
         if (arg0 !is PrologList) throw PrologRuntimeException("Type error: argument 1 to set/1 must be of type list")
         if (arg0.tail is Variable) throw PrologRuntimeException("Type error: tail of argument 1 to set/1 not sufficiently instantiated")
         if (arg1 !is Variable) throw PrologRuntimeException("Type error: if argument 1 to set/1 is instantiated, argument 2 must be unbound")

@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.term.Variable
 /**
  * length(++List, :Length)
  */
-internal val LengthBuiltin = nativeRule("length", 2) { args, ctxt ->
+internal val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
     val arg0 = args[0]
     val arg1 = args[1]
 

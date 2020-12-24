@@ -1,8 +1,8 @@
-package com.github.prologdb.runtime.builtin.string
+package com.github.prologdb.runtime.builtin.essential.string
 
 import com.github.prologdb.runtime.builtin.nativeModule
 
-val StringsModule = nativeModule("strings") {
+val EssentialStringsModule = nativeModule("\$strings") {
     add(BuiltinAtomString)
     add(BuiltinStringChars)
     add(BuiltinStringCodes2)

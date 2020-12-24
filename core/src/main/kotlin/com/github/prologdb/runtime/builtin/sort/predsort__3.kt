@@ -1,8 +1,8 @@
-package com.github.prologdb.runtime.builtin.lists
+package com.github.prologdb.runtime.builtin.sort
 
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.builtin.dynamic.BuiltinApply2
+import com.github.prologdb.runtime.builtin.essential.dynamic.BuiltinApply2
 import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList

@@ -1,6 +1,6 @@
-:- use_module(library(equality)).
-:- use_module(library(math)).
-:- use_module(library(typesafety)).
+:- use_module(essential($equality)).
+:- use_module(essential($math)).
+:- use_module(essential($typesafety)).
 
 count(0, A, A).
 count(N, A, R) :-

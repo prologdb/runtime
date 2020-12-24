@@ -1,7 +1,7 @@
-:- use_module(library(equality)).
-:- use_module(library(typesafety)).
-:- use_module(library(dict)).
-:- use_module(library(dynamics)).
+:- use_module(essential($equality)).
+:- use_module(essential($typesafety)).
+:- use_module(essential($dynamic)).
+:- use_module(library(dicts)).
 :- use_module(library(lists)).
 
 test "is_dict/1" by [

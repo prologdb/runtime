@@ -1,13 +1,22 @@
-package com.github.prologdb.runtime.builtin.math
+package com.github.prologdb.runtime.builtin.essential.math
 
 import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.builtin.nativeModule
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
+val EssentialMathModule = nativeModule("\$math") {
+    add(BuiltinIs2)
+    add(BuiltinGreaterThan2)
+    add(BuiltinGreaterThanOrEqual2)
+    add(BuiltinLessThan2)
+    add(BuiltinLessThanOrEqual2)
+}
+
 internal val Term.asPrologNumber: PrologNumber
-    get() = when(this) {
+    get() = when (this) {
         is PrologNumber -> this
         is Variable -> throw PrologRuntimeException("Arguments not sufficiently instantiated: $this")
         is CompoundTerm -> MathOperatorRegistry.evaluate(this)

@@ -1,4 +1,4 @@
-:- use_module(library(equality)).
+:- use_module(essential($equality)).
 :- use_module(library(lists)).
 
 test "from collection to set" by [

@@ -1,6 +1,6 @@
-:- use_module(library(equality)).
-:- use_module(library(typesafety)).
-:- use_module(library(comparison)).
+:- use_module(essential($equality)).
+:- use_module(essential($typesafety)).
+:- use_module(essential($comparison)).
 
 test "variable is less than number" by [
     var(Z),

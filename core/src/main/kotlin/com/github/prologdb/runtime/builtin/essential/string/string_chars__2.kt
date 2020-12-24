@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.builtin.string
+package com.github.prologdb.runtime.builtin.essential.string
 
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.builtin.nativeRule

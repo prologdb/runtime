@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.builtin.dynamic
+package com.github.prologdb.runtime.builtin.essential.dynamic
 
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining

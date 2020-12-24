@@ -1,4 +1,4 @@
-:- use_module(library(dynamics)).
+:- use_module(essential($dynamic)).
 :- use_module(library(lists)).
 
 foo(a).

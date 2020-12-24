@@ -42,7 +42,7 @@ val BuiltinNegatedIdentityOperator = nativeRule("\\==", 2) { args, _ ->
 /**
  * Defines the ISO equality and inequality predicates and operators.
  */
-val EqualityModule = nativeModule("equality") {
+val EssentialEqualityModule = nativeModule("\$equality") {
     add(BuiltinUnity)
     add(BuiltinNegatedUnity)
     add(BuiltinNot)

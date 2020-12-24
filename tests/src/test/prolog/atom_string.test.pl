@@ -1,5 +1,5 @@
-:- use_module(library(equality)).
-:- use_module(library(strings)).
+:- use_module(essential($equality)).
+:- use_module(essential($strings)).
 
 test "atom_string/2 conversion from atom to string" by [
     atom_string(foo, X),

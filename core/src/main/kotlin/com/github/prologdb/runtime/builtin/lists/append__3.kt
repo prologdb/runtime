@@ -15,7 +15,7 @@ import com.github.prologdb.runtime.term.PrologList
  *     append([], L, L).
  *     append([H|T], L2, [H|R]) :- append(T, L2, R).
  */
-internal val AppendBuiltin = listOf(
+internal val BuiltinAppend3 = listOf(
     // append([], L, L) :- list(L).
     CompoundTerm("append", arrayOf(
         PrologList(emptyList()),

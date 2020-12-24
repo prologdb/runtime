@@ -1,7 +1,7 @@
 :- use_module(library(lists)).
-:- use_module(library(dynamics)).
-:- use_module(library(equality)).
-:- use_module(library(typesafety)).
+:- use_module(essential($dynamic)).
+:- use_module(essential($equality)).
+:- use_module(essential($typesafety)).
 
 test "both arguments unbound" by [
     findall_o([Length, List], length(List, Length), [R0, R1, R2|_]),

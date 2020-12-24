@@ -1,20 +1,20 @@
-package com.github.prologdb.runtime.builtin.math
+package com.github.prologdb.runtime.builtin.essential.math
 
 import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.unification.Unification
 
-internal val BuiltinGreaterThan = nativeRule(">", 2) { args, _ ->
+internal val BuiltinGreaterThan2 = nativeRule(">", 2) { args, _ ->
     Unification.whether(args[0].asPrologNumber > args[1].asPrologNumber)
 }
 
-internal val BuiltinGreaterThanOrEqual = nativeRule(">=", 2) { args, _ ->
+internal val BuiltinGreaterThanOrEqual2 = nativeRule(">=", 2) { args, _ ->
     Unification.whether(args[0].asPrologNumber >= args[1].asPrologNumber)
 }
 
-internal val BuiltinLessThan = nativeRule("<", 2) { args, _ ->
+internal val BuiltinLessThan2 = nativeRule("<", 2) { args, _ ->
     Unification.whether(args[0].asPrologNumber < args[1].asPrologNumber)
 }
 
-internal val BuiltinLessThanOrEqual = nativeRule("=<", 2) { args, _ ->
+internal val BuiltinLessThanOrEqual2 = nativeRule("=<", 2) { args, _ ->
     Unification.whether(args[0].asPrologNumber <= args[1].asPrologNumber)
 }

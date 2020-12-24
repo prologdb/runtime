@@ -1,4 +1,4 @@
-package com.github.prologdb.runtime.builtin.math
+package com.github.prologdb.runtime.builtin.essential.math
 
 import com.github.prologdb.runtime.builtin.nativeRule
 import com.github.prologdb.runtime.term.PrologNumber
@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.unification.Unification
 /**
  * Implements the is/2 builtin that evaluates mathematical expressions
  */
-internal val BuiltinIs = nativeRule("is", 2) { args, ctxt ->
+internal val BuiltinIs2 = nativeRule("is", 2) { args, ctxt ->
     val inputForA = args[0]
     val inputForB = args[1]
 
