@@ -12,8 +12,6 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class MainFrame extends JFrame {
 
@@ -196,9 +194,7 @@ public class MainFrame extends JFrame {
     private PlaygroundState getInitialState() {
         PlaygroundState state = new PlaygroundState();
         state.setKnowledgeBaseText(
-            Stream.of("equality", "comparison", "typesafety", "dict", "dynamics", "lists", "math", "strings")
-                .map(name -> ":- use_module(library(" + name + ")).")
-                .collect(Collectors.joining("\n"))
+            "% put your facts and rules here"
         );
         state.setQuery("append([1, 2], A, [1, 2, 3, 4, 5]).");
 

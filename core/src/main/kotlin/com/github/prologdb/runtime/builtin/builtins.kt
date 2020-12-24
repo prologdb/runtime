@@ -7,7 +7,6 @@ import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.module.FullModuleImport
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
@@ -118,7 +117,7 @@ class NativeModuleBuilder(private val moduleName: String) {
     private fun build(): Module {
         return NativeModule(
             name = moduleName,
-            imports = imports.map(::FullModuleImport),
+            imports = imports.map(ModuleImport::Full),
             nativePredicates = nativePredicates,
             otherClauses = clauses
         )

@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.builtin.EssentialComparisonModule
 import com.github.prologdb.runtime.builtin.EssentialEqualityModule
 import com.github.prologdb.runtime.builtin.dicts.DictsModule
 import com.github.prologdb.runtime.builtin.essential.EssentialTypeSafetyModule
-import com.github.prologdb.runtime.builtin.essential.dynamic.EssentialDynamicsModule
+import com.github.prologdb.runtime.builtin.essential.dynamic.EssentialDynamicModule
 import com.github.prologdb.runtime.builtin.essential.math.EssentialMathModule
 import com.github.prologdb.runtime.builtin.essential.string.EssentialStringsModule
 import com.github.prologdb.runtime.builtin.lists.ListsModule
@@ -65,7 +65,7 @@ constructor(private val delegate: ModuleLoader = NoopModuleLoader) : ModuleLoade
         fun withCoreLibraries(delegate: ModuleLoader = NoopModuleLoader): ModuleLoader {
             val loader = NativeLibraryLoader(delegate)
 
-            loader.registerModule("essential", EssentialDynamicsModule)
+            loader.registerModule("essential", EssentialDynamicModule)
             loader.registerModule("essential", EssentialMathModule)
             loader.registerModule("essential", EssentialStringsModule)
             loader.registerModule("essential", EssentialComparisonModule)

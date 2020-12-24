@@ -11,7 +11,7 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 
-val EssentialDynamicsModule = nativeModule("\$dynamic") {
+val EssentialDynamicModule = nativeModule("\$dynamic") {
     add(BuiltinFindAll)
     add(BuiltinFindAllOptimized)
     add(BuiltinFindNSols4)

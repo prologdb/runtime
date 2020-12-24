@@ -84,11 +84,11 @@ class ModuleScopeProofSearchContext(
                     ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
 
                 val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {
-                    is FullModuleImport -> referencedModule.exportedPredicates
+                    is ModuleImport.Full -> referencedModule.exportedPredicates
                         .mapValues { (_, callable) ->
                             Pair(import.moduleReference, callable)
                         }
-                    is SelectiveModuleImport -> import.imports
+                    is ModuleImport.Selective -> import.imports
                         .map { (exportedIndicator, alias) ->
                             val callable = referencedModule.exportedPredicates[exportedIndicator]
                                 ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
@@ -99,7 +99,7 @@ class ModuleScopeProofSearchContext(
                             }
                         }
                         .toMap()
-                    is ExceptModuleImport -> referencedModule.exportedPredicates
+                    is ModuleImport.Except -> referencedModule.exportedPredicates
                         .filterKeys { it !in import.excluded }
                         .mapValues { (_, callable) ->
                             Pair(import.moduleReference, callable)

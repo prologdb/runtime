@@ -1,10 +1,18 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.NativeLibraryLoader
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.shouldProve
+import com.github.prologdb.runtime.shouldProveWithinRuntime
+import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -72,7 +80,7 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(moduleARef)
+                ModuleImport.Full(moduleARef)
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
@@ -105,7 +113,7 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                FullModuleImport(moduleARef)
+                ModuleImport.Full(moduleARef)
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
@@ -138,7 +146,7 @@ class ModuleIsolationTest : FreeSpec({
         val moduleB = ASTModule(
             name = "B",
             imports = listOf(
-                SelectiveModuleImport(moduleARef, mapOf(
+                ModuleImport.Selective(moduleARef, mapOf(
                     ClauseIndicator.of(clauseA01) to clauseA01.functor
                     // c/1 is not imported
                 ))
@@ -222,7 +230,7 @@ class ModuleIsolationTest : FreeSpec({
                 val runtimeEnv = PrologRuntimeEnvironment(
                     ASTModule(
                         name = "__root",
-                        imports = listOf(FullModuleImport(moduleARef), FullModuleImport(moduleBRef)),
+                        imports = listOf(ModuleImport.Full(moduleARef), ModuleImport.Full(moduleBRef)),
                         givenClauses = emptyList(),
                         dynamicPredicates = emptySet(),
                         exportedPredicateIndicators = emptySet()
@@ -250,8 +258,8 @@ class ModuleIsolationTest : FreeSpec({
                     ASTModule(
                         name = "__root",
                         imports = listOf(
-                            FullModuleImport(moduleARef),
-                            FullModuleImport(moduleBRef)
+                            ModuleImport.Full(moduleARef),
+                            ModuleImport.Full(moduleBRef)
                         ),
                         givenClauses = emptyList(),
                         dynamicPredicates = emptySet(),
@@ -290,7 +298,7 @@ class ModuleIsolationTest : FreeSpec({
 
         val moduleB = ASTModule(
             name = "b",
-            imports = listOf(SelectiveModuleImport(
+            imports = listOf(ModuleImport.Selective(
                 ModuleReference("module", "a"),
                 mapOf(
                     ClauseIndicator.of("foo", 1) to "bar"

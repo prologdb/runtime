@@ -32,11 +32,8 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.module.ExceptModuleImport
-import com.github.prologdb.runtime.module.FullModuleImport
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.SelectiveModuleImport
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -826,7 +823,7 @@ class PrologParser {
         val moduleReference = ModuleReference(moduleRefTerm.functor, (moduleRefTerm.arguments[0] as Atom).name)
 
         if (args.size == 1) {
-            return ParseResult.of(FullModuleImport(moduleReference))
+            return ParseResult.of(ModuleImport.Full(moduleReference))
         }
 
         val selectionTerm = args[1]
@@ -875,7 +872,7 @@ class PrologParser {
             }
 
             return ParseResult(
-                SelectiveModuleImport(moduleReference, imports),
+                ModuleImport.Selective(moduleReference, imports),
                 MATCHED,
                 reportings
             )
@@ -898,7 +895,7 @@ class PrologParser {
             }
 
             return ParseResult(
-                ExceptModuleImport(moduleReference, except),
+                ModuleImport.Except(moduleReference, except),
                 MATCHED,
                 reportings
             )

@@ -9,19 +9,26 @@ import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.term.CompoundTerm
 
-open class DefaultModuleSourceFileVisitor(
+open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
     /**
      * If not-null: makes the module declaration implicit, the source file need not declare a module.
      * It becomes an error for the source file to contain a `:- module` directive.
      */
-    protected val implicitModule: ModuleDeclaration? = null
+    protected val implicitModule: ModuleDeclaration? = null,
+
+    /**
+     * These modules will be imported by default (no explicit import necessary)
+     */
+    defaultImports: Set<ModuleImport.Full> = DEFAULT_IMPORTS
 ) : AbstractSourceFileVisitor<ASTModule>() {
     private val clauses = mutableListOf<Clause>()
     private val dynamics = mutableSetOf<ClauseIndicator>()
     private var visitedModuleDeclaration: ModuleDeclaration? = null
     private val imports = mutableListOf<ModuleImport>()
+    private val defaultImports: MutableSet<ModuleImport> = defaultImports.toMutableSet()
 
     private val moduleDeclared: Boolean get() = implicitModule != null || visitedModuleDeclaration != null
 
@@ -77,7 +84,10 @@ open class DefaultModuleSourceFileVisitor(
     }
 
     override fun visitImport(import: ModuleImport, location: SourceLocation): Collection<Reporting> {
-        imports.add(import)
+        if (import !in defaultImports) {
+            defaultImports.removeIf { it.moduleReference == import.moduleReference }
+            imports.add(import)
+        }
 
         return if (!moduleDeclared) {
             listOf(moduleNotFirstStatementInFileError(location))
@@ -106,7 +116,7 @@ open class DefaultModuleSourceFileVisitor(
         return ParseResult(
             ASTModule(
                 moduleDeclaration.moduleName,
-                imports,
+                defaultImports.toList() + imports,
                 clauses,
                 dynamics,
                 moduleDeclaration.exportedPredicates
@@ -122,4 +132,21 @@ open class DefaultModuleSourceFileVisitor(
         "The module/1 directive must be the first statement in the file",
         location
     )
+
+    companion object {
+        /**
+         * These are modules containing the basic built-ins that are callable without import in other prologs.
+         */
+        val DEFAULT_IMPORTS: Set<ModuleImport.Full> = setOf(
+            ModuleImport.Full(ModuleReference("essential", "\$equality")),
+            ModuleImport.Full(ModuleReference("essential", "\$dynamic")),
+            ModuleImport.Full(ModuleReference("essential", "\$math")),
+            ModuleImport.Full(ModuleReference("essential", "\$strings")),
+            ModuleImport.Full(ModuleReference("essential", "\$comparison")),
+            ModuleImport.Full(ModuleReference("essential", "\$typesafety")),
+            ModuleImport.Full(ModuleReference("library", "lists")),
+            ModuleImport.Full(ModuleReference("library", "sort")),
+            ModuleImport.Full(ModuleReference("library", "dicts"))
+        )
+    }
 }

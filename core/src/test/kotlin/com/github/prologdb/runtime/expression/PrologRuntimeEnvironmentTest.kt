@@ -1,13 +1,22 @@
 package com.github.prologdb.runtime.expression
 
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.proofsearch.Rule
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.ASTModule
-import com.github.prologdb.runtime.module.FullModuleImport
+import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.moduleOfClauses
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.shouldNotProve
+import com.github.prologdb.runtime.shouldProve
+import com.github.prologdb.runtime.suchThat
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundBuilder
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.RandomVariable
+import com.github.prologdb.runtime.term.Variable
 import io.kotlintest.matchers.haveKey
 import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
@@ -317,7 +326,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
 
         val moduleA = ASTModule(
             "A",
-            listOf(FullModuleImport(moduleBRef)),
+            listOf(ModuleImport.Full(moduleBRef)),
             emptyList(),
             emptySet(),
             emptySet()
@@ -325,7 +334,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
 
         val moduleB = ASTModule(
             "B",
-            listOf(FullModuleImport(moduleARef)),
+            listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
             emptySet(),
             emptySet()
@@ -333,7 +342,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
 
         val rootModule = ASTModule(
             "__root",
-            listOf(FullModuleImport(moduleARef)),
+            listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
             emptySet(),
             emptySet()
