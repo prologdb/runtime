@@ -116,7 +116,7 @@ public class PlaygroundPanel {
             return;
         }
         Lexer lexer = new Lexer(
-            new SourceUnit("root module"),
+            new SourceUnit("knowledge_base"),
             new LineEndingNormalizer(
                 new CharacterIterable(
                     knowledgeBaseEditorPanel.getCodeAsString()
@@ -127,7 +127,7 @@ public class PlaygroundPanel {
         long parseStart = System.currentTimeMillis();
         ParseResult<? extends Module> result = parser.parseSourceFile(
             lexer,
-            new DefaultModuleSourceFileVisitor(new ModuleDeclaration("_root", null))
+            new DefaultModuleSourceFileVisitor(new ModuleDeclaration("user", null))
         );
         solutionExplorerPanel.setParseTime(System.currentTimeMillis() - parseStart);
 
