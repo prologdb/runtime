@@ -5,7 +5,7 @@ class LimitingLazySequence<T : Any>(
     private val limit: Long
 ) : LazySequence<T> {
     init {
-        require(limit > 0)
+        require(limit >= 0)
     }
 
     var counter = 0L
@@ -13,6 +13,12 @@ class LimitingLazySequence<T : Any>(
     var closedState: LazySequence.State = LazySequence.State.DEPLETED
 
     override val principal = nested.principal
+
+    init {
+        if (limit == 0L) {
+            close()
+        }
+    }
 
     override fun step() = if (closed) closedState else nested.step()
 
