@@ -90,10 +90,23 @@ class FlatMapLazySequence<T : Any, M : Any>(
     }
 
     override fun close() {
-        currentMapperSequence?.close()
+        val mapperSequenceEx = try {
+            currentMapperSequence?.close()
+            null
+        } catch (ex: Throwable) {
+            ex
+        }
         currentMapperSequence = null
+
         inMapper = false
         state = DEPLETED
-        nested.close()
+        val nestedEx = try {
+            nested.close()
+            null
+        } catch (ex: Throwable) {
+            ex
+        }
+
+        throwMultipleNotNull(nestedEx, mapperSequenceEx)
     }
 }
