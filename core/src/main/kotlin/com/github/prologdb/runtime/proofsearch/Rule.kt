@@ -147,8 +147,9 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
                     solutionVars.instantiate(randomGoalVariable, value)
                 }
                 else if (solution.variableValues.isInstantiated(randomGoalVariable)) {
-                    val originalVar = argumentsRandomVarsMapping.getOriginal(randomGoalVariable)!!
-                    solutionVars.instantiate(originalVar, solution.variableValues[randomGoalVariable])
+                    argumentsRandomVarsMapping.getOriginal(randomGoalVariable)?.let { originalVar ->
+                        solutionVars.instantiate(originalVar, solution.variableValues[randomGoalVariable])
+                    }
                 }
             }
 
