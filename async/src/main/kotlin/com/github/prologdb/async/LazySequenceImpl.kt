@@ -184,9 +184,7 @@ internal class LazySequenceImpl<T : Any>(override val principal: Any, code: susp
                         innerState = InnerState.RUNNING
                         currentSubSequence = null
                         continuation.resume(null)
-                    }
-                    else
-                    {
+                    } else {
                         while (subState == LazySequence.State.RESULTS_AVAILABLE) {
                             val result = try {
                                 subSeq.tryAdvance()
@@ -214,11 +212,13 @@ internal class LazySequenceImpl<T : Any>(override val principal: Any, code: susp
                                     null
                                 } catch (ex: Throwable) {
                                     ex
-                                } ?: RuntimeException("Sub-Sequence reported state FAILED but tryAdvance() did not throw.")
+                                }
+                                    ?: RuntimeException("Sub-Sequence reported state FAILED but tryAdvance() did not throw.")
 
                                 continuation.resumeWithException(ex)
                             }
-                            else -> { /* all good, go on */ }
+                            else -> { /* all good, go on */
+                            }
                         }
                     }
                 }
@@ -256,7 +256,20 @@ internal class LazySequenceImpl<T : Any>(override val principal: Any, code: susp
             innerState = InnerState.DEPLETED
         }
 
-        currentSubSequence?.close()
-        currentWaitingFuture?.cancel(true)
+        val subSequenceEx = try {
+            currentSubSequence?.close()
+            null
+        } catch (ex: Throwable) {
+            ex
+        }
+
+        val futureEx = try {
+            currentWaitingFuture?.cancel(true)
+            null
+        } catch (ex: Throwable) {
+            ex
+        }
+
+        throwMultipleNotNull(subSequenceEx, futureEx)
     }
 }
