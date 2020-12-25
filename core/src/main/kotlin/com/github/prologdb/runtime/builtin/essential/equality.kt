@@ -3,6 +3,7 @@ package com.github.prologdb.runtime.builtin
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -49,4 +50,8 @@ val EssentialEqualityModule = nativeModule("\$equality") {
     add(BuiltinNotOperator)
     add(BuiltinIdentity)
     add(BuiltinNegatedIdentityOperator)
+    add(nativeRule("sleep", 1) { args, ctxt ->
+        Thread.sleep((args[0] as PrologInteger).toInteger())
+        Unification.TRUE
+    })
 }

@@ -12,6 +12,7 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ForkJoinPool;
 
 public class SolutionExplorerPanel {
 
@@ -140,76 +141,83 @@ public class SolutionExplorerPanel {
         currentSolutionIndex++;
     }
 
-    public void showNextSolution() {
-        if (currentSolutionsDepleated) return;
-
-        try {
-            long solutionStart = System.currentTimeMillis();
-            Unification solution = currentSolutions.tryAdvance();
-            long solutionDuration = System.currentTimeMillis() - solutionStart;
-
-            if (solution != null) {
-                solutionTimeOutput.setText(formatMillis(solutionDuration));
-                addSolution(solution);
-            }
-            if (solution == null || currentSolutions.getState() == LazySequence.State.DEPLETED) {
-                addSolutionComponent(createFalseComponent());
-                setDepleted();
-            }
-        }
-        catch (NoSuchElementException ex) {
-            addSolutionComponent(createFalseComponent());
-            setDepleted();
-        }
-        catch (PrologRuntimeException e) {
-            addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
-            e.printStackTrace(System.err);
-            setDepleted();
-        }
-        catch (StackOverflowError e) {
-            addSolutionComponent(createErrorComponent("Out of local stack."));
-            setDepleted();
+    public void showNextSolution()
+    {
+        if (currentSolutionsDepleated) {
+            return;
         }
 
-        solutionsPanel.revalidate();
-        solutionsPanel.repaint();
-        panel.revalidate();
-        panel.repaint();
-    }
-
-    public void showAllRemainingSolutions() {
-        if (currentSolutionsDepleated) return;
-
-        long duration = 0;
-        try {
-            while (true) {
+        ForkJoinPool.commonPool().execute(() -> {
+            try {
                 long solutionStart = System.currentTimeMillis();
                 Unification solution = currentSolutions.tryAdvance();
-                duration += System.currentTimeMillis() - solutionStart;
+                long solutionDuration = System.currentTimeMillis() - solutionStart;
 
                 if (solution != null) {
+                    solutionTimeOutput.setText(formatMillis(solutionDuration));
                     addSolution(solution);
-                } else break;
+                }
+                if (solution == null || currentSolutions.getState() == LazySequence.State.DEPLETED) {
+                    addSolutionComponent(createFalseComponent());
+                    setDepleted();
+                }
+            } catch (NoSuchElementException ex) {
+                addSolutionComponent(createFalseComponent());
+                setDepleted();
+            } catch (PrologRuntimeException e) {
+                addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
+                e.printStackTrace(System.err);
+                setDepleted();
+            } catch (StackOverflowError e) {
+                addSolutionComponent(createErrorComponent("Out of local stack."));
+                setDepleted();
             }
-        }
-        catch (PrologRuntimeException e) {
-            addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
-            e.printStackTrace(System.err);
-            setDepleted();
-        }
-        catch (StackOverflowError e) {
-            addSolutionComponent(createErrorComponent("Out of local stack."));
-            setDepleted();
+
+            solutionsPanel.revalidate();
+            solutionsPanel.repaint();
+            panel.revalidate();
+            panel.repaint();
+        });
+    }
+
+    public void showAllRemainingSolutions()
+    {
+        if (currentSolutionsDepleated) {
+            return;
         }
 
-        addSolutionComponent(createFalseComponent());
-        setDepleted();
-        solutionTimeOutput.setText(formatMillis(duration) + " (all)");
+        ForkJoinPool.commonPool().execute(() -> {
+            long duration = 0;
+            try {
+                while (true) {
+                    long solutionStart = System.currentTimeMillis();
+                    Unification solution = currentSolutions.tryAdvance();
+                    duration += System.currentTimeMillis() - solutionStart;
 
-        solutionsPanel.revalidate();
-        solutionsPanel.repaint();
-        panel.revalidate();
-        panel.repaint();
+                    if (solution != null) {
+                        addSolution(solution);
+                    } else {
+                        break;
+                    }
+                }
+            } catch (PrologRuntimeException e) {
+                addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
+                e.printStackTrace(System.err);
+                setDepleted();
+            } catch (StackOverflowError e) {
+                addSolutionComponent(createErrorComponent("Out of local stack."));
+                setDepleted();
+            }
+
+            addSolutionComponent(createFalseComponent());
+            setDepleted();
+            solutionTimeOutput.setText(formatMillis(duration) + " (all)");
+
+            solutionsPanel.revalidate();
+            solutionsPanel.repaint();
+            panel.revalidate();
+            panel.repaint();
+        });
     }
 
     public void setSolutions(LazySequence<Unification> solutions, OperatorRegistry displayOperators) {
