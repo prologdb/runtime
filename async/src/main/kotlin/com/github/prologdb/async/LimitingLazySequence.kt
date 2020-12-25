@@ -5,9 +5,7 @@ class LimitingLazySequence<T : Any>(
     private val limit: Long
 ) : LazySequence<T> {
     init {
-        if (limit < 0) {
-            throw IllegalArgumentException()
-        }
+        require(limit > 0)
     }
 
     var counter = 0L
