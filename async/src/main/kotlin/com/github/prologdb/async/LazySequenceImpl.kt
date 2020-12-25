@@ -190,10 +190,12 @@ internal class LazySequenceImpl<T : Any>(override val principal: Any, code: susp
                         while (subState == LazySequence.State.RESULTS_AVAILABLE) {
                             val result = try {
                                 subSeq.tryAdvance()
-                            } catch (handledRightBelow: Throwable) { null }
+                            } catch (handledRightBelow: Throwable) {
+                                null
+                            }
 
-                            queuedResults.addLast(result ?: break)
                             subState = subSeq.state
+                            queuedResults.addLast(result ?: break)
                         }
 
                         when (subState) {

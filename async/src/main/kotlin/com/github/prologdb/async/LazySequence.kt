@@ -3,7 +3,7 @@ package com.github.prologdb.async
 import java.util.concurrent.Future
 
 /**
- * A lazysequence that calculates / obtains the next element only when it is actually needed (as opposed to when
+ * A sequence that calculates / obtains the next element only when it is actually needed (as opposed to when
  * the presence is queried, e.g. like [Iterator.hasNext]). This class is used over [Iterator] because [Iterator.hasNext]
  * implies a read-only action. But prolog solution sequences can have side-effects (e.g. with `retract/1`) and that
  * implication would be misleading.

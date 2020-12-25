@@ -140,7 +140,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
 
         val seq = buildLazySequence<Unit>(RANDOM_PRINCIPAL) {
             try {
-                buildLazySequence<Unit>(this.principal) {
+                yieldAll(buildLazySequence(this.principal) {
                     try {
                         buildLazySequence<Unit>(this.principal) {
                             throw ex
@@ -148,7 +148,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
                     } catch (ex: RuntimeException) {
                         throw RuntimeException(ex)
                     }
-                }.consumeAll()
+                })
             } catch (ex: RuntimeException) {
                 throw RuntimeException(ex)
             }
