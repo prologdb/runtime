@@ -2,8 +2,9 @@ package com.github.prologdb.runtime.stdlib.dicts
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.mapRemainingNotNull
-import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
+import com.github.prologdb.runtime.ArgumentNotInstantiatedError
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
