@@ -139,6 +139,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
          */
         val DEFAULT_IMPORTS: Set<ModuleImport.Full> = setOf(
             ModuleImport.Full(ModuleReference("essential", "\$equality")),
+            ModuleImport.Full(ModuleReference("essential", "\$clauses")),
             ModuleImport.Full(ModuleReference("essential", "\$dynamic")),
             ModuleImport.Full(ModuleReference("essential", "\$math")),
             ModuleImport.Full(ModuleReference("essential", "\$strings")),

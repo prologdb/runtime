@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.builtin.EssentialComparisonModule
 import com.github.prologdb.runtime.builtin.EssentialEqualityModule
 import com.github.prologdb.runtime.builtin.dicts.DictsModule
 import com.github.prologdb.runtime.builtin.essential.EssentialTypeSafetyModule
+import com.github.prologdb.runtime.builtin.essential.clauses.EssentialClausesModule
 import com.github.prologdb.runtime.builtin.essential.dynamic.EssentialDynamicModule
 import com.github.prologdb.runtime.builtin.essential.math.EssentialMathModule
 import com.github.prologdb.runtime.builtin.essential.string.EssentialStringsModule
@@ -61,6 +62,7 @@ constructor(private val delegate: ModuleLoader = NoopModuleLoader) : ModuleLoade
             loader.registerModule("essential", EssentialComparisonModule)
             loader.registerModule("essential", EssentialEqualityModule)
             loader.registerModule("essential", EssentialTypeSafetyModule)
+            loader.registerModule("essential", EssentialClausesModule)
 
             loader.registerModule("library", ListsModule)
             loader.registerModule("library", SortModule)

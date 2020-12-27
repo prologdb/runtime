@@ -31,8 +31,8 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
 
     override fun visitDirective(command: CompoundTerm): Collection<Reporting> {
         when(command.arity) {
-            1 -> when(command.functor) {
-                "dynamic" -> return convertAndVisit(command, PrologParser()::parseIdiomaticClauseIndicator, this::visitDynamicDeclaration)
+            1 -> when (command.functor) {
+                "dynamic" -> return convertAndVisit(command.arguments[0], parser::parseIdiomaticClauseIndicator, this::visitDynamicDeclaration)
                 "module" -> return convertAndVisit(command, this::convertModuleDeclaration, this::visitModuleDeclaration)
                 "use_module" -> return convertAndVisit(command, this::convertModuleImport, this::visitImport)
             }

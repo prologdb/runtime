@@ -2,24 +2,17 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
-import com.github.prologdb.runtime.PredicateNotDynamicException
 import com.github.prologdb.runtime.PrologPermissionError
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Authorization
-import com.github.prologdb.runtime.proofsearch.DynamicPrologPredicate
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -45,30 +38,13 @@ class ModuleScopeProofSearchContext(
     override val operators = module.localOperators
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
-        val goal = query.goal
-
-        // attempt core builtin
-        when (goal.functor) {
-            "assert", "assertz" -> {
-                assertz(goal.arguments)
-                return Unification.TRUE
-            }
-            "abolish" -> {
-                abolish(goal.arguments)
-                return Unification.TRUE
-            }
-            "retract", "retractAll" -> {
-                throw PrologRuntimeException("${ClauseIndicator.of(goal)} is not fully implemented yet.")
-            }
-        }
-
-        val simpleIndicator = ClauseIndicator.of(goal)
+        val simpleIndicator = ClauseIndicator.of(query.goal)
         val (fqIndicator, callable) = resolveCallable(simpleIndicator)
             ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${module.name}")
 
-        if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read $fqIndicator")
+        if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
 
-        return callable.fulfill(this, goal.arguments, this@ModuleScopeProofSearchContext)
+        return callable.fulfill(this, query.goal.arguments, this@ModuleScopeProofSearchContext)
     }
 
     override fun getStackTraceElementOf(query: PredicateInvocationQuery) = PrologStackTraceElement(
@@ -111,41 +87,6 @@ class ModuleScopeProofSearchContext(
     }
 
     private fun findImport(indicator: ClauseIndicator): Pair<ModuleReference, PrologCallable>? = importLookupCache[indicator]
-
-    private fun assertz(args: Array<out Term>) {
-        if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
-
-        val clause = args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause")
-
-        val simpleIndicator = ClauseIndicator.of(clause)
-
-        val (fqIndicator, callable) = resolveCallable(simpleIndicator)
-            ?: throw PrologRuntimeException("Predicate $simpleIndicator is not known")
-
-        if (callable is DynamicPrologPredicate) {
-            callable.assertz(clause)
-        } else {
-            throw PredicateNotDynamicException(fqIndicator)
-        }
-    }
-
-    private fun abolish(args: Array<out Term>) {
-        if (args.size != 1) throw PrologRuntimeException("abolish/${args.size} is not defined")
-        val arg0 = args[0]
-        if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.functor != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
-        if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolish/1 must be an indicator")
-
-        val name = (arg0.arguments[0] as Atom).name
-        val arity = (arg0.arguments[1] as PrologInteger).value.toInt()
-
-        val (fqIndicator, callable) = resolveCallable(ClauseIndicator.of(name, arity)) ?: return
-
-        if (!authorization.mayWrite(fqIndicator)) {
-            throw PrologPermissionError("Not allowed to write $fqIndicator")
-        }
-
-        throw PrologRuntimeException("abolish/1 is not fully implemented yet.")
-    }
 
     override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
         // attempt modules own scope
