@@ -17,8 +17,6 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.unify
-import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapIndexedToArray
@@ -191,7 +189,7 @@ class ASTPrologPredicate(
     override val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unification? =
         retract@{ matching, ctxt ->
             if (isSealed) {
-                throw PredicateNotDynamicException(indicator)
+                throw PredicateNotDynamicException(fqIndicator)
             }
 
             while (true) {

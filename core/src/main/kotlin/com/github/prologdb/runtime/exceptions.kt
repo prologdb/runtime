@@ -25,17 +25,9 @@ open class PrologException(message: String, override val cause: Throwable? = nul
  */
 open class PrologRuntimeException(message: String, cause: Throwable? = null) : PrologException(message, cause)
 
-open class PredicateNotDynamicException private constructor(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause) {
-    constructor(indicator: ClauseIndicator) : this(
-        "Predicate $indicator is not dynamic"
-    )
+open class PredicateNotDynamicException(val indicator: FullyQualifiedClauseIndicator, cause: Throwable? = null) : PrologRuntimeException("Predicate $indicator is not dynamic", cause)
 
-    constructor(indicator: FullyQualifiedClauseIndicator) : this(
-        "Predicate $indicator is not dynamic"
-    )
-}
-
-class PrologPermissionError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
+open class PrologPermissionError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
 
 class ArgumentTypeError(
     val predicate: ClauseIndicator?,
