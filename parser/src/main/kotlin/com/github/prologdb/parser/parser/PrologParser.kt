@@ -970,8 +970,6 @@ class PrologParser {
             if (parseResult.isSuccess) {
                 val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
                 if (item is CompoundTerm) {
-                    item as? CompoundTerm ?: throw InternalParserError("Expected CompoundTerm, got CompoundTerm")
-
                     if (item.isDirectiveInvocation) {
                         reportings += visitor.visitDirective(item.arguments[0] as CompoundTerm)
                     }
@@ -1082,7 +1080,7 @@ class PrologParser {
     companion object {
         /**
          * Helper function for the `shouldStop` parameter to [parseTerm].
-         * @return Aborts matching if the next token in the lazysequence is an [OperatorToken] with the given [Operator], otherwise false.
+         * @return Aborts matching if the next token in the sequence is an [OperatorToken] with the given [Operator], otherwise false.
          *         Does not consume the final token if aborting.
          */
         fun stopAtOperator(operator: Operator): (TransactionalSequence<Token>) -> Boolean {
@@ -1125,7 +1123,7 @@ private val CompoundTerm.isRuleDefinition: Boolean
     get() = functor == Operator.HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is CompoundTerm
 
 /**
- * Skips (`next()`s) tokens in the receiver lazysequence until the parenthesis + bracket levels are 0 and the given
+ * Skips (`next()`s) tokens in the receiver sequence until the parenthesis + bracket levels are 0 and the given
  * predicate returns false.
  * @return The skipped tokens
  */
