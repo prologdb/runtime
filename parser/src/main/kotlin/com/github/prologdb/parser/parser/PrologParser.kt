@@ -219,7 +219,7 @@ class PrologParser {
 
         val functorToken = tokens.next()
 
-        if (functorToken !is IdentifierToken && functorToken !is OperatorToken) {
+        if (functorToken !is IdentifierToken) {
             tokens.rollback()
             return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(functorToken, "identifier")))
         }
