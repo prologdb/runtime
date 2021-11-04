@@ -21,6 +21,7 @@ class ASTModule(
     override val imports: List<ModuleImport>,
     val givenClauses: Iterable<Clause>,
     val dynamicPredicates: Set<ClauseIndicator>,
+    val moduleTransparents: Set<ClauseIndicator>,
     val exportedPredicateIndicators: Set<ClauseIndicator>,
     override val localOperators: OperatorRegistry = ISOOpsOperatorRegistry
 ) : Module {
@@ -31,7 +32,13 @@ class ASTModule(
             .groupingBy { ClauseIndicator.of(it) }
             .foldTo(
                 HashMap(),
-                { indicator, _ -> ASTPrologPredicate(indicator, this) },
+                { indicator, _ ->
+                    ASTPrologPredicate(
+                        indicator,
+                        this,
+                        indicator in moduleTransparents
+                    )
+                },
                 { _, astPredicate, clause ->
                     astPredicate.assertz(clause)
                     astPredicate
@@ -39,7 +46,9 @@ class ASTModule(
             )
 
         for (dynamicClauseIndicator in dynamicPredicates) {
-            _allDeclaredPredicates.computeIfAbsent(dynamicClauseIndicator) { indicator -> ASTPrologPredicate(indicator, this) }
+            _allDeclaredPredicates.computeIfAbsent(dynamicClauseIndicator) { indicator ->
+                ASTPrologPredicate(indicator, this, indicator in moduleTransparents)
+            }
         }
 
         allDeclaredPredicates = _allDeclaredPredicates

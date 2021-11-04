@@ -26,6 +26,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
 ) : AbstractSourceFileVisitor<ASTModule>() {
     private val clauses = mutableListOf<Clause>()
     private val dynamics = mutableSetOf<ClauseIndicator>()
+    private val moduleTransparents = mutableSetOf<ClauseIndicator>()
     private var visitedModuleDeclaration: ModuleDeclaration? = null
     private val imports = mutableListOf<ModuleImport>()
     private val defaultImports: MutableSet<ModuleImport> = defaultImports.toMutableSet()
@@ -50,12 +51,24 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
     ): Collection<Reporting> {
         if (clauseIndicator in dynamics) {
             return listOf(SemanticInfo(
-                "Clause $clauseIndicator has been declared dynamic multiple times.",
+                "Predicate $clauseIndicator has been declared dynamic multiple times.",
                 location
             ))
         }
 
         dynamics.add(clauseIndicator)
+        return emptyList()
+    }
+
+    override fun visitModuleTransparentDeclaration(clauseIndicator: ClauseIndicator, location: SourceLocation): Collection<Reporting> {
+        if (clauseIndicator in moduleTransparents) {
+            return listOf(SemanticInfo(
+                "Predicate $clauseIndicator has been declared module transparent multiple times.",
+                location
+            ))
+        }
+
+        moduleTransparents.add(clauseIndicator)
         return emptyList()
     }
 
@@ -119,6 +132,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
                 defaultImports.toList() + imports,
                 clauses,
                 dynamics,
+                moduleTransparents,
                 moduleDeclaration.exportedPredicates
                     ?: clauses.map { ClauseIndicator.of(it) }.toSet(),
                 operators

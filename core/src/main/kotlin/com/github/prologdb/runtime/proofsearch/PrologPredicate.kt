@@ -69,7 +69,8 @@ interface DynamicPrologPredicate : PrologPredicate {
  */
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
-    private val declaringModule: Module
+    private val declaringModule: Module,
+    val isModuleTransparent: Boolean
 ) : DynamicPrologPredicate {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
@@ -97,12 +98,14 @@ class ASTPrologPredicate(
     override val fulfill: PrologCallableFulfill = fulfill@{ initialArguments, invocationCtxt ->
         if (!tailCallInitialized) updateTailCall()
 
-        val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+        val ctxt = if (isModuleTransparent) invocationCtxt else {
+            declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+        }
 
         val lastClause = clauses.last()
         var arguments = initialArguments
-        tailCallLoop@while(true) {
-            clauses@for (clause in clauses) {
+        tailCallLoop@ while (true) {
+            clauses@ for (clause in clauses) {
                 if (clause is CompoundTerm) {
                     val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(
                         clause.arguments,

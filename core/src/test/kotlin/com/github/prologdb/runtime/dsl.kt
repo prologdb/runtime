@@ -141,6 +141,7 @@ fun moduleOfClauses(vararg clauses: Clause): Module {
         emptyList(),
         clauses.asIterable(),
         indicators,
+        emptySet(),
         indicators
     )
 }
