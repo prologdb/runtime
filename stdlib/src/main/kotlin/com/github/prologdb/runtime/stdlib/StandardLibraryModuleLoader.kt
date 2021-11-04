@@ -27,6 +27,10 @@ import com.github.prologdb.runtime.stdlib.essential.BuiltinNumber1
 import com.github.prologdb.runtime.stdlib.essential.BuiltinString1
 import com.github.prologdb.runtime.stdlib.essential.BuiltinTypeof2
 import com.github.prologdb.runtime.stdlib.essential.BuiltinVar1
+import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAbolish1
+import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
+import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetract1
+import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetractAll1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinApply2
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCall1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCompoundNameArguments3
@@ -179,6 +183,12 @@ object StandardLibraryModuleLoader : ModuleLoader {
                     BuiltinAtomString2,
                     BuiltinStringChars2,
                     BuiltinStringCodes2
+                ),
+                "essential(\$clauses)" to listOf(
+                    BuiltinAbolish1,
+                    BuiltinAssert1,
+                    BuiltinRetract1,
+                    BuiltinRetractAll1
                 ),
                 "library(dicts)" to listOf(
                     BuiltinGetDict3
