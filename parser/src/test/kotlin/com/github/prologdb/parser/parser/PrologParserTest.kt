@@ -12,6 +12,7 @@ import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologDictionary
@@ -51,23 +52,26 @@ class PrologParserTest : FreeSpec() {
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
-    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
-    fun parseTerm(code: String) = parseTerm(tokensOf(code))
+        fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
+        fun parseTerm(code: String) = parseTerm(tokensOf(code))
 
-    fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
-    fun parseList(code: String) = parseList(tokensOf(code))
+        fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
+        fun parseList(code: String) = parseList(tokensOf(code))
 
-    fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
-    fun parseDict(code: String) = parseDict(tokensOf(code))
+        fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
+        fun parseDict(code: String) = parseDict(tokensOf(code))
 
-    "atom" - {
-        "a" {
-            val result = parseTerm("a")
-            result.certainty shouldEqual MATCHED
-            result.reportings.should(beEmpty())
-            assert(result.item is Atom)
-            (result.item!! as Atom).name shouldEqual "a"
-        }
+        fun parseQuery(tokens: TransactionalSequence<Token>) = PrologParser().parseQuery(tokens, operators)
+        fun parseQuery(code: String) = parseQuery(tokensOf(code))
+
+        "atom" - {
+            "a" {
+                val result = parseTerm("a")
+                result.certainty shouldEqual MATCHED
+                result.reportings.should(beEmpty())
+                assert(result.item is Atom)
+                (result.item!! as Atom).name shouldEqual "a"
+            }
 
         "someAtom" {
             val result = parseTerm("someAtom")
@@ -822,11 +826,31 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
-    "module" {
-        fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseSourceFile(tokens, DefaultModuleSourceFileVisitor())
-        fun parseModule(code: String) = parseModule(tokensOf(code))
+        "module qualified goal" {
+            val tokens = tokensOf("lists:(append()).")
+            val result = parseQuery(tokens)
+            result.certainty shouldEqual MATCHED
+            result.reportings should beEmpty()
 
-        val result = parseModule("""
+            result.item!! should beInstanceOf(PredicateInvocationQuery::class)
+
+            val outerColon = (result.item!! as PredicateInvocationQuery).goal
+            outerColon.functor shouldEqual ":"
+            outerColon.arity shouldEqual 2
+            outerColon.arguments[0] should beInstanceOf(Atom::class)
+            (outerColon.arguments[0] as Atom).name shouldEqual "lists"
+            outerColon.arguments[1] should beInstanceOf(CompoundTerm::class)
+
+            val innerGoal = outerColon.arguments[1] as CompoundTerm
+            innerGoal.functor shouldEqual "append"
+            innerGoal.arity shouldEqual 0
+        }
+
+        "module" {
+            fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseSourceFile(tokens, DefaultModuleSourceFileVisitor())
+            fun parseModule(code: String) = parseModule(tokensOf(code))
+
+            val result = parseModule("""
             :- module(test).
 
             :- op(200,xf,isDead).
