@@ -18,12 +18,12 @@ test "append/3 - two lists" by [
     X = [a, b, c, d]
 ].
 
-test "append/3 - first argument missing" by [
+test "append/3 - first argument unbound" by [
     append(X, [c, d], [a, b, c, d]),
     X = [a, b]
 ].
 
-test "append/3 - second argument missing" by [
+test "append/3 - second argument unbound" by [
     append([a, b], X, [a, b, c, d|T]),
     X = [c, d|T]
 ].

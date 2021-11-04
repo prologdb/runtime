@@ -22,6 +22,7 @@
         <module>async</module>
         <module>core</module>
         <module>parser</module>
+        <module>stdlib</module>
         <module>tests</module>
         <module>jvm-playground</module>
     </modules>
@@ -135,6 +136,11 @@
             <dependency>
                 <groupId>com.github.prologdb</groupId>
                 <artifactId>runtime-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.prologdb</groupId>
+                <artifactId>runtime-stdlib</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

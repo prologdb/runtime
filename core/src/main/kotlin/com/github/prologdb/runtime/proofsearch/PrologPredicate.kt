@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PredicateNotDynamicException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.builtin.NativeCodeRule
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -211,8 +210,6 @@ class ASTPrologPredicate(
      * and a separate reference onto that last, omitted goal.
      */
     private fun Rule.toTailCall(): Pair<Rule, CompoundTerm>? {
-        if (this is NativeCodeRule) return null
-
         fun Query.toTailCall(): Pair<Query, CompoundTerm>? = when(this) {
             is AndQuery,
             is OrQuery -> {
