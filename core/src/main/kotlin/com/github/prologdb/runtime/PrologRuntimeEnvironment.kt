@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleNotFoundException
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.module.NoopModuleLoader
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class PrologRuntimeEnvironment(
     val rootModule: Module,
-    private val moduleLoader: ModuleLoader = NativeLibraryLoader.withCoreLibraries()
+    private val moduleLoader: ModuleLoader = NoopModuleLoader
 ) {
     /**
      * Maps module names to the loaded [Module]s.

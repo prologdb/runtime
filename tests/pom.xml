@@ -26,6 +26,10 @@
             <artifactId>runtime-parser</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.prologdb</groupId>
+            <artifactId>runtime-stdlib</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.kotlintest</groupId>
             <artifactId>kotlintest</artifactId>
             <scope>test</scope>

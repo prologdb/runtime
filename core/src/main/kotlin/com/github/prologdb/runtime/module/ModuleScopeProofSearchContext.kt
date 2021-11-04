@@ -23,7 +23,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * module within the proper [ModuleScopeProofSearchContext] achieves that behaviour.
  */
 class ModuleScopeProofSearchContext(
-    internal val module: Module,
+    val module: Module,
     /**
      * Predicates declared in [module], including private ones.
      */
