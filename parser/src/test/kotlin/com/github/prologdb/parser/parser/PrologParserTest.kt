@@ -25,6 +25,7 @@ import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.forAll
 import io.kotlintest.forOne
 import io.kotlintest.matchers.beEmpty
+import io.kotlintest.matchers.beInstanceOf
 import io.kotlintest.matchers.haveKey
 import io.kotlintest.matchers.haveSize
 import io.kotlintest.matchers.instanceOf
@@ -586,6 +587,26 @@ class PrologParserTest : FreeSpec() {
                 inner.functor shouldEqual "prefixOpFX200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
+            }
+
+            "associativity test 06 correction" {
+                val result = parseTerm("dynamic append/3")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(CompoundTerm::class)
+
+                val outerDynamic = result.item as CompoundTerm
+                outerDynamic.functor shouldEqual "dynamic"
+                outerDynamic.arity shouldEqual 1
+                outerDynamic.arguments[0] should beInstanceOf(CompoundTerm::class)
+
+                val indicator = outerDynamic.arguments[0] as CompoundTerm
+                indicator.functor shouldEqual "/"
+                indicator.arity shouldEqual 2
+                indicator.arguments[0] shouldEqual Atom("append")
+                indicator.arguments[1] shouldEqual PrologInteger(3)
             }
         }
 

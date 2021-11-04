@@ -1257,7 +1257,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
 
             if (operatorDef.type == FX && rhsResult.item?.second != null) {
                 val rhsOp = rhsResult.item.second!!
-                if (rhsOp.type == YFX) {
+                if (rhsOp.type == YFX && rhsOp.precedence >= operatorDef.precedence) {
                     val rhsCompound = rhsResult.item.first as CompoundTerm
                     thisTerm = CompoundTerm(
                         rhsOp.name,
