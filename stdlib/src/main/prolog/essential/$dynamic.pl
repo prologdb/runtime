@@ -8,3 +8,4 @@
 :- native apply/2.
 :- native term_variables/2.
 :- native current_op/3.
+:- native ':'/2.

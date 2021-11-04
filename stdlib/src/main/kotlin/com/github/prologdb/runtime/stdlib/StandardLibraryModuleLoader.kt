@@ -33,6 +33,7 @@ import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetract1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetractAll1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinApply2
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCall1
+import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinColon2
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCompoundNameArguments3
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCurrentOp3
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinFindAll3
@@ -170,7 +171,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
                     BuiltinCompoundNameArguments3,
                     BuiltinApply2,
                     BuiltinTermVariables2,
-                    BuiltinCurrentOp3
+                    BuiltinCurrentOp3,
+                    BuiltinColon2
                 ),
                 "essential(\$math)" to listOf(
                     BuiltinIs2,
