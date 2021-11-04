@@ -329,6 +329,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(ModuleImport.Full(moduleBRef)),
             emptyList(),
             emptySet(),
+            emptySet(),
             emptySet()
         )
 
@@ -337,6 +338,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
             emptySet(),
+            emptySet(),
             emptySet()
         )
 
@@ -344,6 +346,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             "__root",
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
+            emptySet(),
             emptySet(),
             emptySet()
         )

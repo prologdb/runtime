@@ -9,3 +9,11 @@
 :- native term_variables/2.
 :- native current_op/3.
 :- native ':'/2.
+
+:- module_transparent(findall/3).
+:- module_transparent(findall_o/3).
+:- module_transparent(findnsols/4).
+:- module_transparent(call/1).
+:- module_transparent(apply/2).
+:- module_transparent(current_op/3).
+:- module_transparent(':'/2).

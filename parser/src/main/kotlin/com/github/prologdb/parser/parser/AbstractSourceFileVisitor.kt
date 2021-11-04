@@ -35,6 +35,9 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
                 "dynamic" -> return convertAndVisit(command.arguments[0], parser::parseIdiomaticClauseIndicator, this::visitDynamicDeclaration)
                 "module" -> return convertAndVisit(command, this::convertModuleDeclaration, this::visitModuleDeclaration)
                 "use_module" -> return convertAndVisit(command, this::convertModuleImport, this::visitImport)
+                "module_transparent" -> return convertAndVisit(command.arguments[0],
+                    parser::parseIdiomaticClauseIndicator,
+                    this::visitModuleTransparentDeclaration)
             }
             2 -> when (command.functor) {
                 "module" -> return convertAndVisit(command, this::convertModuleDeclaration, this::visitModuleDeclaration)
@@ -61,6 +64,11 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
     }
 
     protected abstract fun visitDynamicDeclaration(clauseIndicator: ClauseIndicator, location: SourceLocation): Collection<Reporting>
+
+    protected abstract fun visitModuleTransparentDeclaration(
+        clauseIndicator: ClauseIndicator,
+        location: SourceLocation
+    ): Collection<Reporting>
 
     protected abstract fun visitModuleDeclaration(declaration: ModuleDeclaration, location: SourceLocation): Collection<Reporting>
 
