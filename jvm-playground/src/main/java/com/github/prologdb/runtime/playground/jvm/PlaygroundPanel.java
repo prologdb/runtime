@@ -16,7 +16,7 @@ import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
 import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization;
 import com.github.prologdb.runtime.query.Query;
-import com.github.prologdb.runtime.stdlib.StandardLibraryModuleLoader;
+import com.github.prologdb.runtime.stdlib.loader.StandardLibraryModuleLoader;
 import com.github.prologdb.runtime.unification.Unification;
 
 import javax.swing.*;

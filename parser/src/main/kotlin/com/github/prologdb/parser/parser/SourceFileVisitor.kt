@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.util.OperatorRegistry
 /**
  * To be used with [PrologParser.parseSourceFile].
  */
-interface SourceFileVisitor<Result : Any> {
+interface SourceFileVisitor<out Result : Any> {
     /**
      * The operators available while parsing. New operator definitions passed to [visitDirective] must be
      * made available here so that they can take effect for the rest of the file.
