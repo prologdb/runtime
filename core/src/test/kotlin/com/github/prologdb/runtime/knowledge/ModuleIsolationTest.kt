@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.module.PredefinedModuleLoader
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -76,7 +76,7 @@ class ModuleIsolationTest : FreeSpec({
         )
         val moduleARef = ModuleReference("module", "A")
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
 
         val moduleB = ASTModule(
@@ -111,7 +111,7 @@ class ModuleIsolationTest : FreeSpec({
         )
         val moduleARef = ModuleReference("module", "A")
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
 
         val moduleB = ASTModule(
@@ -146,7 +146,7 @@ class ModuleIsolationTest : FreeSpec({
         )
         val moduleARef = ModuleReference("module", "A")
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
 
         val moduleB = ASTModule(
@@ -230,7 +230,7 @@ class ModuleIsolationTest : FreeSpec({
 
 
         "when loaded into same runtime" - {
-            val moduleLoader = NativeLibraryLoader().apply {
+            val moduleLoader = PredefinedModuleLoader().apply {
                 registerModule("module", moduleA)
                 registerModule("module", moduleB)
             }
@@ -322,7 +322,7 @@ class ModuleIsolationTest : FreeSpec({
             moduleTransparents = emptySet()
         )
 
-        val loader = NativeLibraryLoader().apply {
+        val loader = PredefinedModuleLoader().apply {
             registerModule("module", moduleA)
             registerModule("module", moduleB)
         }
