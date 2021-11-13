@@ -13,6 +13,8 @@ import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -39,7 +41,8 @@ class ModuleScopeProofSearchContext(
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
         val simpleIndicator = ClauseIndicator.of(query.goal)
-        val (fqIndicator, callable) = resolveCallable(simpleIndicator)
+        val (fqIndicator, callable) = resolveModuleScopedCallable(query.goal)
+            ?: resolveCallable(simpleIndicator)
             ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${module.name}")
 
         if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
@@ -88,14 +91,46 @@ class ModuleScopeProofSearchContext(
 
     private fun findImport(indicator: ClauseIndicator): Pair<ModuleReference, PrologCallable>? = importLookupCache[indicator]
 
+    private fun resolveModuleScopedCallable(goal: CompoundTerm): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
+        if (goal.functor != ":" || goal.arity != 2) {
+            return null
+        }
+
+        val moduleNameTerm = goal.arguments[0]
+        val unscopedGoal = goal.arguments[1]
+
+        if (moduleNameTerm !is Atom || unscopedGoal !is CompoundTerm) {
+            return null
+        }
+
+        val simpleIndicator = ClauseIndicator.of(unscopedGoal)
+
+        if (moduleNameTerm.name == this.module.name) {
+            val callable = modulePredicates[simpleIndicator]
+                ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${this.module.name}")
+
+            val fqIndicator = FullyQualifiedClauseIndicator(this.module.name, simpleIndicator)
+            return Pair(fqIndicator, callable)
+        }
+
+        val module = rootAvailableModules[moduleNameTerm.name]
+            ?: throw PrologRuntimeException("Module ${moduleNameTerm.name} not loaded")
+
+        val callable = module.exportedPredicates[simpleIndicator]
+            ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in/exported by module ${module.name}")
+
+        return Pair(
+            FullyQualifiedClauseIndicator(module.name, simpleIndicator),
+            callable
+        )
+    }
+
     override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
-        // attempt modules own scope
         modulePredicates[simpleIndicator]?.let { callable ->
             val fqIndicator = FullyQualifiedClauseIndicator(module.name, simpleIndicator)
             return Pair(fqIndicator, callable)
         }
 
-        // attempt imported predicate
         findImport(simpleIndicator)?.let { (sourceModule, callable) ->
             val fqIndicator = FullyQualifiedClauseIndicator(sourceModule.moduleName, ClauseIndicator.of(callable))
 
