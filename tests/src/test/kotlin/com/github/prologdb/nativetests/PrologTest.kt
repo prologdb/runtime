@@ -23,7 +23,6 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.stdlib.loader.StandardLibraryModuleLoader
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
@@ -129,7 +128,7 @@ class PrologTest : FreeSpec() { init {
                     override val name = testName
 
                     override fun runWith(callback: TestResultCallback) {
-                        val runtimeEnv = PrologRuntimeEnvironment(testModule, StandardLibraryModuleLoader)
+                        val runtimeEnv = PrologRuntimeEnvironment(testModule, TestingModuleLoader)
                         TestExecution(runtimeEnv, testName, goalList).run(callback)
                     }
                 })
