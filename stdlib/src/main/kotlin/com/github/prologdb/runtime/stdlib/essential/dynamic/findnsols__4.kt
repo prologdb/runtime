@@ -27,7 +27,7 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
 
     if (goalInput !is CompoundTerm) throw PrologRuntimeException("Type error: argument 3 to findnsols/4 must be a query.")
 
-    if (solutionInput !is Variable) throw PrologRuntimeException("Type error: argument 4 to findnsols/4 must be unbound.")
+    if (solutionInput !is Variable && solutionInput !is PrologList) throw PrologRuntimeException("Type error: argument 4 to findnsols/4 must be unbound or a list, got ${solutionInput.prologTypeName}")
 
     val resultList = await(launchWorkableFuture(principal) {
         val resultSequence = buildLazySequence<Unification>(principal) {
@@ -42,6 +42,6 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
     })
 
     val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
-    resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
+    resultListUnified?.variableValues?.retainAll(templateInput.variables + solutionInput.variables)
     return@nativeRule resultListUnified
 }
