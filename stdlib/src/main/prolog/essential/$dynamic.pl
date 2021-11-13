@@ -17,3 +17,5 @@
 :- module_transparent(apply/2).
 :- module_transparent(current_op/3).
 :- module_transparent(':'/2).
+
+once(Goal) :- findnsols(1, Goal, Goal, [Goal]).
