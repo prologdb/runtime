@@ -13,6 +13,7 @@ import com.github.prologdb.runtime.module.ModuleNotFoundException
 import com.github.prologdb.runtime.module.ModuleReference
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.MissingResourceException
 
 class ClasspathPrologSourceModuleLoader(
     private val sourceFileVisitorSupplier: (ModuleReference) -> SourceFileVisitor<Module> = { _ -> DefaultModuleSourceFileVisitor() },
@@ -23,10 +24,16 @@ class ClasspathPrologSourceModuleLoader(
     }
 ) : ModuleLoader {
     override fun load(reference: ModuleReference): Module {
-        val sourceFileUrl = classLoader.getResource(
-            moduleReferenceToClasspathPath(reference).toString()
-        )
-            ?: throw ModuleNotFoundException(reference)
+        val classpathPath = moduleReferenceToClasspathPath(reference).toString()
+        val sourceFileUrl = classLoader.getResource(classpathPath)
+            ?: throw ModuleNotFoundException(
+                reference,
+                MissingResourceException(
+                    "Cannot find $classpathPath in the classpath",
+                    classpathPath,
+                    ""
+                )
+            )
 
         val sourceText = sourceFileUrl.readText(Charsets.UTF_8)
         val result = parser.parseSourceFile(

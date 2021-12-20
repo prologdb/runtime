@@ -2,7 +2,8 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.runtime.PrologRuntimeException
 
-class ModuleNotFoundException(val reference: ModuleReference) : PrologRuntimeException("Module $reference not found") {
+class ModuleNotFoundException(val reference: ModuleReference, cause: Throwable? = null) :
+    PrologRuntimeException("Module $reference not found", cause) {
     private val _loadChain = mutableListOf<String>()
     val loadChain: List<String> = _loadChain
 
