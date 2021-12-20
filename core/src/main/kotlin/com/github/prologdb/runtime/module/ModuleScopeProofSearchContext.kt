@@ -15,6 +15,7 @@ import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -40,9 +41,16 @@ class ModuleScopeProofSearchContext(
     override val operators = module.localOperators
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
+        val fqInvocation = resolveModuleScopedCallable(query.goal)
+        if (fqInvocation != null) {
+            val (fqIndicator, callable, arguments) = fqInvocation
+            if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
+
+            return callable.fulfill(this, arguments, this@ModuleScopeProofSearchContext)
+        }
+
         val simpleIndicator = ClauseIndicator.of(query.goal)
-        val (fqIndicator, callable) = resolveModuleScopedCallable(query.goal)
-            ?: resolveCallable(simpleIndicator)
+        val (fqIndicator, callable) = resolveCallable(simpleIndicator)
             ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${module.name}")
 
         if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
@@ -91,7 +99,12 @@ class ModuleScopeProofSearchContext(
 
     private fun findImport(indicator: ClauseIndicator): Pair<ModuleReference, PrologCallable>? = importLookupCache[indicator]
 
-    private fun resolveModuleScopedCallable(goal: CompoundTerm): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
+    /**
+     * @return if goal is an instance of `:/2` and the referred predicate exists
+     * and is callable: first: the fqn of the referred callable, second: the callable
+     * third: the invocation arguments
+     */
+    private fun resolveModuleScopedCallable(goal: CompoundTerm): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>? {
         if (goal.functor != ":" || goal.arity != 2) {
             return null
         }
@@ -110,7 +123,7 @@ class ModuleScopeProofSearchContext(
                 ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${this.module.name}")
 
             val fqIndicator = FullyQualifiedClauseIndicator(this.module.name, simpleIndicator)
-            return Pair(fqIndicator, callable)
+            return Triple(fqIndicator, callable, unscopedGoal.arguments)
         }
 
         val module = rootAvailableModules[moduleNameTerm.name]
@@ -119,9 +132,10 @@ class ModuleScopeProofSearchContext(
         val callable = module.exportedPredicates[simpleIndicator]
             ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in/exported by module ${module.name}")
 
-        return Pair(
+        return Triple(
             FullyQualifiedClauseIndicator(module.name, simpleIndicator),
-            callable
+            callable,
+            unscopedGoal.arguments
         )
     }
 
