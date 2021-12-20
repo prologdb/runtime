@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.stdlib.essential.dynamic
 
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
-import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -38,24 +37,7 @@ internal fun compoundToQuery(compoundTerm: CompoundTerm): Query {
     return PredicateInvocationQuery(compoundTerm, sourceInformation)
 }
 
-internal fun Term.tryCastToLambda(): Rule? {
-    if (this !is CompoundTerm || this.functor != ":-" || this.arity != 2) {
-        return null
-    }
-
-    val argumentList = this.arguments[0].commaCompoundToList().toTypedArray()
-    val query = (this.arguments[1] as? CompoundTerm ?: return null)?.let {
-        try {
-            compoundToQuery(it)
-        } catch (ex: IllegalArgumentException) {
-            return null
-        }
-    }
-
-    return Rule(CompoundTerm("_lambda", argumentList), query)
-}
-
-private fun Term.commaCompoundToList(): List<Term> {
+internal fun Term.commaCompoundToList(): List<Term> {
     val list = mutableListOf<Term>()
     var pivot = this
     while (pivot is CompoundTerm && pivot.arity == 2 && pivot.functor == ",") {

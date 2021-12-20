@@ -15,22 +15,15 @@ val BuiltinApply2 = nativeRule("apply", 2) { args, ctxt ->
         throw PrologRuntimeException("Argument 2 to apply/2 must not have a tail.")
     }
 
-    val targetInput = args[0]
-    val targetInputAsLambda = targetInput.tryCastToLambda()
-
-    if (targetInputAsLambda != null) {
-        targetInputAsLambda.fulfill(this, arguments.elements.toTypedArray(), ctxt)
-    } else {
-        when (targetInput) {
-            is CompoundTerm -> {
-                val actualGoal = CompoundTerm(targetInput.functor, (targetInput.arguments.asList() + arguments.elements).toTypedArray())
-                ctxt.fulfillAttach(this, PredicateInvocationQuery(actualGoal, targetInput.sourceInformation), VariableBucket())
-            }
-            is Atom -> {
-                val actualGoal = CompoundTerm(targetInput.name, arguments.elements.toTypedArray())
-                ctxt.fulfillAttach(this, PredicateInvocationQuery(actualGoal, targetInput.sourceInformation), VariableBucket())
-            }
-            else -> throw PrologRuntimeException("Argument 1 to apply/2 must be a compound term or an atom, got ${targetInput.prologTypeName}")
+    when (val targetInput = args[0]) {
+        is CompoundTerm -> {
+            val actualGoal = CompoundTerm(targetInput.functor, (targetInput.arguments.asList() + arguments.elements).toTypedArray())
+            ctxt.fulfillAttach(this, PredicateInvocationQuery(actualGoal, targetInput.sourceInformation), VariableBucket())
         }
+        is Atom -> {
+            val actualGoal = CompoundTerm(targetInput.name, arguments.elements.toTypedArray())
+            ctxt.fulfillAttach(this, PredicateInvocationQuery(actualGoal, targetInput.sourceInformation), VariableBucket())
+        }
+        else -> throw PrologRuntimeException("Argument 1 to apply/2 must be a compound term or an atom, got ${targetInput.prologTypeName}")
     }
 }
