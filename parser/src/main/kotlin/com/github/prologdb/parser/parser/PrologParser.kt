@@ -25,6 +25,7 @@ import com.github.prologdb.parser.lexer.StringLiteralToken
 import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.lexer.TokenType.IDENTIFIER
 import com.github.prologdb.parser.lexer.TokenType.NUMERIC_LITERAL
+import com.github.prologdb.parser.lexer.TokenType.OPERATOR
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
@@ -66,7 +67,30 @@ private typealias TokenOrTerm = Any
 class PrologParser {
 
     fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Query> {
-        return parseQuery(tokens, opRegistry, stopAtOperator(FULL_STOP))
+        val result = parseQuery(tokens, opRegistry, stopAtOperator(FULL_STOP))
+
+        if (!result.isSuccess) {
+            return result
+        }
+
+        tokens.mark()
+        check(tokens.next().type == OPERATOR) // skips the FULL_STOP
+        if (!tokens.hasNext()) {
+            tokens.rollback()
+            return result
+        }
+
+        val nextToken = tokens.next()
+        tokens.rollback()
+
+        return ParseResult(
+            result.item,
+            result.certainty,
+            result.reportings + SyntaxError(
+                "Unexpected $nextToken, expected end of input",
+                nextToken.location
+            )
+        )
     }
 
     fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Query> {

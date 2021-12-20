@@ -826,17 +826,17 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
-        "module qualified goal" {
-            val tokens = tokensOf("lists:(append()).")
-            val result = parseQuery(tokens)
-            result.certainty shouldEqual MATCHED
-            result.reportings should beEmpty()
+    "module qualified goal" {
+        val tokens = tokensOf("lists:(append()).")
+        val result = parseQuery(tokens)
+        result.certainty shouldEqual MATCHED
+        result.reportings should beEmpty()
 
-            result.item!! should beInstanceOf(PredicateInvocationQuery::class)
+        result.item!! should beInstanceOf(PredicateInvocationQuery::class)
 
-            val outerColon = (result.item!! as PredicateInvocationQuery).goal
-            outerColon.functor shouldEqual ":"
-            outerColon.arity shouldEqual 2
+        val outerColon = (result.item!! as PredicateInvocationQuery).goal
+        outerColon.functor shouldEqual ":"
+        outerColon.arity shouldEqual 2
             outerColon.arguments[0] should beInstanceOf(Atom::class)
             (outerColon.arguments[0] as Atom).name shouldEqual "lists"
             outerColon.arguments[1] should beInstanceOf(CompoundTerm::class)
@@ -871,14 +871,29 @@ class PrologParserTest : FreeSpec() {
         module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
         module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
 
-        val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
-        isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
-        isDead1 as ASTPrologPredicate
-        isDead1.functor shouldBe "isDead"
-        isDead1.arity shouldBe 1
-        isDead1.clauses should haveSize(1)
-        isDead1.clauses[0] shouldBe instanceOf(Rule::class)
+            val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
+            isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
+            isDead1 as ASTPrologPredicate
+            isDead1.functor shouldBe "isDead"
+            isDead1.arity shouldBe 1
+            isDead1.clauses should haveSize(1)
+            isDead1.clauses[0] shouldBe instanceOf(Rule::class)
 
-        isDead1.clauses[0].toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
-    }
-}}
+            isDead1.clauses[0].toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+        }
+
+        "query" - {
+            "content after full stop" {
+                val result = parseQuery("some_goal(). other().")
+                result.item shouldNotBe null
+                result.isSuccess shouldBe true
+                result.item!! should beInstanceOf(PredicateInvocationQuery::class)
+                result.item!! as PredicateInvocationQuery
+                (result.item!! as PredicateInvocationQuery).goal shouldBe CompoundTerm("some_goal", emptyArray())
+
+                result.reportings should haveSize(1)
+                result.reportings.single().location.line shouldBe 1
+                result.reportings.single().location.column shouldBe 13
+            }
+        }
+    }}
