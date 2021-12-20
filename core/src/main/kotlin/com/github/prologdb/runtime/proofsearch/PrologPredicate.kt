@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PredicateNotDynamicException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.builtin.NativeCodeRule
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -70,7 +69,8 @@ interface DynamicPrologPredicate : PrologPredicate {
  */
 class ASTPrologPredicate(
     val indicator: ClauseIndicator,
-    private val declaringModule: Module
+    private val declaringModule: Module,
+    val isModuleTransparent: Boolean
 ) : DynamicPrologPredicate {
     private val _clauses: MutableList<Clause> = CopyOnWriteArrayList()
     override val clauses = _clauses
@@ -98,12 +98,14 @@ class ASTPrologPredicate(
     override val fulfill: PrologCallableFulfill = fulfill@{ initialArguments, invocationCtxt ->
         if (!tailCallInitialized) updateTailCall()
 
-        val ctxt = declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+        val ctxt = if (isModuleTransparent) invocationCtxt else {
+            declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+        }
 
         val lastClause = clauses.last()
         var arguments = initialArguments
-        tailCallLoop@while(true) {
-            clauses@for (clause in clauses) {
+        tailCallLoop@ while (true) {
+            clauses@ for (clause in clauses) {
                 if (clause is CompoundTerm) {
                     val randomizedClauseArgs = ctxt.randomVariableScope.withRandomVariables(
                         clause.arguments,
@@ -211,8 +213,6 @@ class ASTPrologPredicate(
      * and a separate reference onto that last, omitted goal.
      */
     private fun Rule.toTailCall(): Pair<Rule, CompoundTerm>? {
-        if (this is NativeCodeRule) return null
-
         fun Query.toTailCall(): Pair<Query, CompoundTerm>? = when(this) {
             is AndQuery,
             is OrQuery -> {

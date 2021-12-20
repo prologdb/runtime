@@ -50,17 +50,6 @@ test "apply/2 with compound" by [
     Y = def
 ].
 
-test "apply/2 with lambda" by [
-    apply(
-        (X :-
-            X = abc
-        ),
-        [Out]
-    ),
-    nonvar(Out),
-    Out = abc
-].
-
 test "term_variables/2 with no variables" by [
     term_variables(a(1), [])
 ].

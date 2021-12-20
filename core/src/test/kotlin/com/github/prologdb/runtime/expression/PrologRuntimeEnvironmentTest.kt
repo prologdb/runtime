@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.module.PredefinedModuleLoader
 import com.github.prologdb.runtime.moduleOfClauses
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -329,6 +329,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(ModuleImport.Full(moduleBRef)),
             emptyList(),
             emptySet(),
+            emptySet(),
             emptySet()
         )
 
@@ -336,6 +337,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             "B",
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
+            emptySet(),
             emptySet(),
             emptySet()
         )
@@ -345,10 +347,11 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
             emptySet(),
+            emptySet(),
             emptySet()
         )
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
         moduleLoader.registerModule("module", moduleB)
 

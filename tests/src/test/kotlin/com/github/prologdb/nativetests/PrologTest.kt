@@ -14,6 +14,7 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
@@ -72,7 +73,6 @@ class PrologTest : FreeSpec() { init {
             get() {
                 val classLoader = MethodHandles.lookup().javaClass.classLoader
                 val resolver = PathMatchingResourcePatternResolver(classLoader)
-
                 return resolver.getResources("classpath:**/*.test.pl")
                     .map { Paths.get(it.file.absolutePath) }
             }
@@ -128,7 +128,7 @@ class PrologTest : FreeSpec() { init {
                     override val name = testName
 
                     override fun runWith(callback: TestResultCallback) {
-                        val runtimeEnv = PrologRuntimeEnvironment(testModule)
+                        val runtimeEnv = PrologRuntimeEnvironment(testModule, TestingModuleLoader)
                         TestExecution(runtimeEnv, testName, goalList).run(callback)
                     }
                 })
@@ -252,6 +252,16 @@ private class TestExecution(private val runtime: PrologRuntimeEnvironment, priva
             }
         }
         catch (ex: Throwable) {
+            if (ex is PrologException) {
+                System.err.println(
+                    ex.prologStackTrace.joinToString(
+                        prefix = "Error in test $testName: ${ex.message}\n  at ",
+                        separator = "\n  at ",
+                        transform = { it.toString() },
+                        postfix = "\n"
+                    )
+                )
+            }
             callback.onTestError(testName, ex)
         }
         finally {

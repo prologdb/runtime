@@ -6,7 +6,7 @@ import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.NativeLibraryLoader
+import com.github.prologdb.runtime.module.PredefinedModuleLoader
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -53,7 +53,8 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseA01, clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
 
         PrologRuntimeEnvironment(module) shouldProve foo(R) suchThat {
@@ -70,11 +71,12 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseA01),
             exportedPredicateIndicators = setOf(clauseA01Indicator),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
         val moduleARef = ModuleReference("module", "A")
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
 
         val moduleB = ASTModule(
@@ -84,7 +86,8 @@ class ModuleIsolationTest : FreeSpec({
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
 
         val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
@@ -103,11 +106,12 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseA01),
             exportedPredicateIndicators = emptySet(), // a(a) is private
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
         val moduleARef = ModuleReference("module", "A")
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
 
         val moduleB = ASTModule(
@@ -117,7 +121,8 @@ class ModuleIsolationTest : FreeSpec({
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
 
         val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
@@ -136,11 +141,12 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseA01, clauseC01),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseA01), ClauseIndicator.of(clauseC01)),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
         val moduleARef = ModuleReference("module", "A")
 
-        val moduleLoader = NativeLibraryLoader()
+        val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
 
         val moduleB = ASTModule(
@@ -153,7 +159,8 @@ class ModuleIsolationTest : FreeSpec({
             ),
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
 
         val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
@@ -191,7 +198,8 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseFooA, clauseDelegateAToFoo),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseDelegateAToFoo)),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
         val moduleARef = ModuleReference("module", "A")
 
@@ -200,7 +208,8 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseFooB, clauseDelegateBToFoo),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseDelegateBToFoo)),
-            dynamicPredicates = emptySet()
+            dynamicPredicates = emptySet(),
+            moduleTransparents = emptySet()
         )
         val moduleBRef = ModuleReference("module", "B")
 
@@ -221,7 +230,7 @@ class ModuleIsolationTest : FreeSpec({
 
 
         "when loaded into same runtime" - {
-            val moduleLoader = NativeLibraryLoader().apply {
+            val moduleLoader = PredefinedModuleLoader().apply {
                 registerModule("module", moduleA)
                 registerModule("module", moduleB)
             }
@@ -233,7 +242,8 @@ class ModuleIsolationTest : FreeSpec({
                         imports = listOf(ModuleImport.Full(moduleARef), ModuleImport.Full(moduleBRef)),
                         givenClauses = emptyList(),
                         dynamicPredicates = emptySet(),
-                        exportedPredicateIndicators = emptySet()
+                        exportedPredicateIndicators = emptySet(),
+                        moduleTransparents = emptySet()
                     ),
                     moduleLoader
                 )
@@ -263,7 +273,8 @@ class ModuleIsolationTest : FreeSpec({
                         ),
                         givenClauses = emptyList(),
                         dynamicPredicates = emptySet(),
-                        exportedPredicateIndicators = emptySet()
+                        exportedPredicateIndicators = emptySet(),
+                        moduleTransparents = emptySet()
                     ),
                     moduleLoader
                 )
@@ -293,7 +304,8 @@ class ModuleIsolationTest : FreeSpec({
             imports = emptyList(),
             givenClauses = listOf(clauseFooA),
             dynamicPredicates = emptySet(),
-            exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseFooA))
+            exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseFooA)),
+            moduleTransparents = emptySet()
         )
 
         val moduleB = ASTModule(
@@ -306,10 +318,11 @@ class ModuleIsolationTest : FreeSpec({
             )),
             givenClauses = emptyList(),
             dynamicPredicates = emptySet(),
-            exportedPredicateIndicators = emptySet()
+            exportedPredicateIndicators = emptySet(),
+            moduleTransparents = emptySet()
         )
 
-        val loader = NativeLibraryLoader().apply {
+        val loader = PredefinedModuleLoader().apply {
             registerModule("module", moduleA)
             registerModule("module", moduleB)
         }
