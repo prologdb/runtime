@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
+import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PrologPermissionError
@@ -99,13 +100,8 @@ class ModuleScopeProofSearchContext(
 
     private fun findImport(indicator: ClauseIndicator): Pair<ModuleReference, PrologCallable>? = importLookupCache[indicator]
 
-    /**
-     * @return if goal is an instance of `:/2` and the referred predicate exists
-     * and is callable: first: the fqn of the referred callable, second: the callable
-     * third: the invocation arguments
-     */
-    private fun resolveModuleScopedCallable(goal: CompoundTerm): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>? {
-        if (goal.functor != ":" || goal.arity != 2) {
+    override fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>? {
+        if (goal.functor != ":" || goal.arity != 2 || goal !is CompoundTerm) {
             return null
         }
 
@@ -153,4 +149,6 @@ class ModuleScopeProofSearchContext(
 
         return null
     }
+
+    override fun toString() = "context of module ${module.name}"
 }
