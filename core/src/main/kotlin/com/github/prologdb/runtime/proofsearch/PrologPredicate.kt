@@ -96,6 +96,10 @@ class ASTPrologPredicate(
     }
 
     override val fulfill: PrologCallableFulfill = fulfill@{ initialArguments, invocationCtxt ->
+        if (clauses.isEmpty()) {
+            return@fulfill Unification.FALSE
+        }
+
         if (!tailCallInitialized) updateTailCall()
 
         val ctxt = if (isModuleTransparent) invocationCtxt else {
@@ -116,15 +120,14 @@ class ASTPrologPredicate(
                     if (lastClause === clause) return@fulfill unification else {
                         unification?.let { yield(it) }
                     }
-                }
-                else if (clause is Rule) {
+                } else if (clause is Rule) {
                     if (lastClause !== clause) {
                         clause.fulfill(this, arguments, ctxt)?.let { yield(it) }
                     } else {
                         val tailCall = tailCall
                         if (tailCall != null) {
                             val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
-                                                            ?: return@fulfill null
+                                ?: return@fulfill null
                             val lastClausePartialResults = buildLazySequence<Unification>(principal) {
                                 return@buildLazySequence lastClauseForTailCall!!.fulfillPreparedCall(
                                     this@buildLazySequence,
@@ -157,13 +160,11 @@ class ASTPrologPredicate(
                             }
                             val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
                             return@fulfill yieldAllFinal(untranslatedSolutions)
-                        }
-                        else {
+                        } else {
                             return@fulfill clause.fulfill(this, arguments, ctxt)
                         }
                     }
-                }
-                else {
+                } else {
                     throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
                 }
             }
@@ -248,7 +249,7 @@ class ASTPrologPredicate(
     }
 
     private fun updateTailCall() {
-        (clauses.last() as? Rule)?.toTailCall().let {
+        (clauses.lastOrNull() as? Rule)?.toTailCall().let {
             lastClauseForTailCall = it?.first
             tailCall = it?.second
         }

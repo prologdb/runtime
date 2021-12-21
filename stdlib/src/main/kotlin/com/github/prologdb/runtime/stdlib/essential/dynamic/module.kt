@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.stdlib.essential.dynamic
 
+import com.github.prologdb.parser.lexer.Operator
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.query.AndQuery
@@ -20,7 +21,7 @@ internal fun compoundToQuery(compoundTerm: CompoundTerm): Query {
         return PredicateInvocationQuery(compoundTerm, sourceInformation)
     }
 
-    if (compoundTerm.functor == "," || compoundTerm.functor == ";") {
+    if (compoundTerm.functor == Operator.COMMA.text || compoundTerm.functor == Operator.SEMICOLON.text) {
         val allArgumentsCompound = compoundTerm.arguments.all { it is CompoundTerm }
         if (!allArgumentsCompound) {
             return PredicateInvocationQuery(compoundTerm, sourceInformation)
@@ -28,8 +29,8 @@ internal fun compoundToQuery(compoundTerm: CompoundTerm): Query {
 
         val argumentsConverted = compoundTerm.arguments.map { compoundToQuery(it as CompoundTerm) }.toTypedArray()
         return when (compoundTerm.functor) {
-            "," -> AndQuery(argumentsConverted)
-            ";" -> OrQuery(argumentsConverted)
+            Operator.COMMA.text -> AndQuery(argumentsConverted)
+            Operator.SEMICOLON.text -> OrQuery(argumentsConverted)
             else -> throw IllegalStateException()
         }
     }
@@ -40,7 +41,7 @@ internal fun compoundToQuery(compoundTerm: CompoundTerm): Query {
 internal fun Term.commaCompoundToList(): List<Term> {
     val list = mutableListOf<Term>()
     var pivot = this
-    while (pivot is CompoundTerm && pivot.arity == 2 && pivot.functor == ",") {
+    while (pivot is CompoundTerm && pivot.arity == 2 && pivot.functor == Operator.COMMA.text) {
         list.add(pivot.arguments[0])
         pivot = pivot.arguments[1]
     }
