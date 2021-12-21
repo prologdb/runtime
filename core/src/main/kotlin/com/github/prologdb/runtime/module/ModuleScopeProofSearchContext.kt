@@ -42,21 +42,9 @@ class ModuleScopeProofSearchContext(
     override val operators = module.localOperators
 
     override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
-        val fqInvocation = resolveModuleScopedCallable(query.goal)
-        if (fqInvocation != null) {
-            val (fqIndicator, callable, arguments) = fqInvocation
-            if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
-
-            return callable.fulfill(this, arguments, this@ModuleScopeProofSearchContext)
-        }
-
-        val simpleIndicator = ClauseIndicator.of(query.goal)
-        val (fqIndicator, callable) = resolveCallable(simpleIndicator)
-            ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${module.name}")
-
+        val (fqIndicator, callable, invocableGoal) = resolveHead(query.goal)
         if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
-
-        return callable.fulfill(this, query.goal.arguments, this@ModuleScopeProofSearchContext)
+        return callable.fulfill(this, invocableGoal.arguments, this@ModuleScopeProofSearchContext)
     }
 
     override fun getStackTraceElementOf(query: PredicateInvocationQuery) = PrologStackTraceElement(

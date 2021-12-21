@@ -5,9 +5,11 @@ import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -56,4 +58,34 @@ interface ProofSearchContext {
      * third: the invocation arguments
      */
     fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>?
+
+
+    /**
+     * If `head` is an instance of `:/2` (module-qualified), the explicitly
+     * given module will be searched for the predicate. If not, this modules
+     * context will be searched, including import aliases.
+     * @return first: the fully qualified indicator, without any aliases,
+     * second: the predicate itself, third: the given `head` term but the functor
+     * is assured to be the actual name of the predicate (relevant for local lookups with aliases).
+     */
+    fun resolveHead(head: CompoundTerm): Triple<FullyQualifiedClauseIndicator, PrologCallable, CompoundTerm> {
+        resolveModuleScopedCallable(head)?.let { fqTerm ->
+            return Triple(fqTerm.first, fqTerm.second, CompoundTerm(fqTerm.second.functor, fqTerm.third))
+        }
+
+        val simpleIndicator = ClauseIndicator.of(head)
+
+        val resolved = resolveCallable(simpleIndicator)
+            ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in $this")
+        val fqIndicator = resolved.first
+
+        return Triple(
+            fqIndicator,
+            resolved.second,
+            if (fqIndicator.indicator.functor == head.functor) head else CompoundTerm(
+                fqIndicator.indicator.functor,
+                head.arguments
+            )
+        )
+    }
 }
