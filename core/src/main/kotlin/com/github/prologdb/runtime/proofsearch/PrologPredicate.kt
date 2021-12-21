@@ -51,7 +51,7 @@ interface DynamicPrologPredicate : PrologPredicate {
     /**
      * Retracts facts and rules matching the given [CompoundTerm].
      */
-    val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit
+    val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unification?
 
     /**
      * Prevents any further modification of this predicate through [assertz] or [retract].
@@ -124,12 +124,14 @@ class ASTPrologPredicate(
                     if (lastClause !== clause) {
                         clause.fulfill(this, arguments, ctxt)?.let { yield(it) }
                     } else {
-                        val tailCall = tailCall
+                        val lastClauseForTailCall = this@ASTPrologPredicate.lastClauseForTailCall
+                        val tailCall = this@ASTPrologPredicate.tailCall
+
                         if (tailCall != null) {
                             val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
                                 ?: return@fulfill null
                             val lastClausePartialResults = buildLazySequence<Unification>(principal) {
-                                return@buildLazySequence lastClauseForTailCall!!.fulfillPreparedCall(
+                                return@buildLazySequence lastClauseForTailCall.fulfillPreparedCall(
                                     this@buildLazySequence,
                                     lastClauseCallPreparation
                                 )
@@ -184,29 +186,30 @@ class ASTPrologPredicate(
 
         _clauses.add(clause)
 
-        updateTailCall()
+        invalidateTailCall()
     }
 
-    override val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unit = { matching, ctxt ->
-        if (isSealed) {
-            throw PredicateNotDynamicException(indicator)
-        }
-
-        while (clauses.isNotEmpty()) {
-            val clause = clauses.first()
-            val clauseId = clause as? CompoundTerm ?: (clause as Rule).head
-            val randomClauseIdMapping = VariableMapping()
-            val randomClauseId = ctxt.randomVariableScope.withRandomVariables(clauseId, randomClauseIdMapping)
-            val unification = matching.unify(randomClauseId, ctxt.randomVariableScope)
-            if (unification != null) {
-                clauses.remove(clause)
-
-                updateTailCall()
-
-                unification.variableValues.retainAll(matching.variables)
-                yield(unification)
+    override val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unification? =
+        retract@{ matching, ctxt ->
+            if (isSealed) {
+                throw PredicateNotDynamicException(indicator)
             }
-        }
+
+            while (true) {
+                val clause = clauses.firstOrNull() ?: break
+                val clauseId = clause as? CompoundTerm ?: (clause as Rule).head
+                val randomClauseIdMapping = VariableMapping()
+                val randomClauseId = ctxt.randomVariableScope.withRandomVariables(clauseId, randomClauseIdMapping)
+                val unification = matching.unify(randomClauseId, ctxt.randomVariableScope)
+                if (unification != null) {
+                    clauses.remove(clause)
+                    invalidateTailCall()
+                    unification.variableValues.retainAll(matching.variables)
+                    yield(unification)
+                }
+            }
+
+            return@retract Unification.FALSE
     }
 
     /**
@@ -255,5 +258,11 @@ class ASTPrologPredicate(
         }
 
         tailCallInitialized = true
+    }
+
+    private fun invalidateTailCall() {
+        tailCallInitialized = false
+        lastClauseForTailCall = null
+        tailCall = null
     }
 }

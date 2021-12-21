@@ -68,7 +68,13 @@ class PrologRuntimeEnvironment(
 
     @JvmOverloads
     fun fulfill(goal: Query, authorization: Authorization = ReadWriteAuthorization): LazySequence<Unification> {
-        val psc = newProofSearchContext()
+        val psc = rootModule.createProofSearchContext(
+            UUID.randomUUID(),
+            RandomVariableScope(),
+            authorization,
+            loadedModules
+        )
+
         return buildLazySequence(psc.principal) {
             psc.fulfillAttach(this, goal, VariableBucket())
         }
