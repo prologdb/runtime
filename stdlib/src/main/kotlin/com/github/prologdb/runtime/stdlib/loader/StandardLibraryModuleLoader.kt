@@ -35,7 +35,6 @@ import com.github.prologdb.runtime.stdlib.essential.BuiltinVar1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAbolish1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetract1
-import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetractAll1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinApply2
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCall1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinColon2
@@ -145,8 +144,7 @@ object StandardLibraryModuleLoader : ModuleLoader {
         "essential(\$clauses)" to listOf(
             BuiltinAbolish1,
             BuiltinAssert1,
-            BuiltinRetract1,
-            BuiltinRetractAll1
+            BuiltinRetract1
         ),
         "library(dicts)" to listOf(
             BuiltinGetDict3
