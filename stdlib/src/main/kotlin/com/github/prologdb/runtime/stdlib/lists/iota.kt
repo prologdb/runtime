@@ -25,9 +25,9 @@ private const val IOTA_BATCHSIZE = 100
  *     R = [8, 7, 6, 5, 4, 3] .
  */
 val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
-    val target  = args[0]
-    val start   = args[1] as? PrologInteger ?: throw PrologRuntimeException("Argument 2 to iota/3 must be an integer, got ${args[1].prologTypeName}")
-    val endExcl = args[2] as? PrologInteger ?: throw PrologRuntimeException("Argument 3 to iota/3 must be an integer, got ${args[2].prologTypeName}")
+    val target = args[0]
+    val start = args.getTyped<PrologInteger>(1)
+    val endExcl = args.getTyped<PrologInteger>(2)
 
     if (start == endExcl) {
         // empty range
@@ -95,10 +95,10 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
  *     false .
  */
 val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
-    val target  = args[0]
-    val start   = args[1] as? PrologNumber ?: throw PrologRuntimeException("Argument 2 to iota/4 must be an number, got ${args[1].prologTypeName}")
-    val endExcl = args[2] as? PrologNumber ?: throw PrologRuntimeException("Argument 3 to iota/4 must be an number, got ${args[2].prologTypeName}")
-    val step    = args[3] as? PrologNumber ?: throw PrologRuntimeException("Argument 4 to iota/4 must be an number, got ${args[3].prologTypeName}")
+    val target = args[0]
+    val start = args.getTyped<PrologNumber>(1)
+    val endExcl = args.getTyped<PrologNumber>(2)
+    val step = args.getTyped<PrologNumber>(3)
 
     if ((step.isInteger && step.toInteger() == 0L) || step.toDecimal() == 0.0) {
         throw PrologRuntimeException("Argument 4 to iota/4 must not be 0.")
@@ -111,13 +111,11 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
 
     if (target !is Variable) {
         // target is bound, this really is a range check
-        if (target is PrologNumber) {
-            if (target >= start && target < endExcl) {
-                yield(Unification.TRUE)
-            }
+        return@nativeRule if (target is PrologNumber && target >= start && target < endExcl) {
+            Unification.TRUE
+        } else {
+            Unification.FALSE
         }
-        // else: will not unify, ever
-        return@nativeRule null
     }
 
     // implicit: target as Variable

@@ -22,7 +22,7 @@ val BuiltinCurrentOp3 = nativeRule("current_op", 3) { args, ctxt ->
                 PrologInteger.createUsingStringOptimizerCache(opDef.precedence.toLong()),
                 Atom(opDef.type.name.toLowerCase()),
                 Atom(opDef.name)
-            ).unify(args, ctxt.randomVariableScope)
+            ).unify(args.raw, ctxt.randomVariableScope)
         }
     )
 }

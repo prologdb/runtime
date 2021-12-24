@@ -2,7 +2,7 @@ package com.github.prologdb.runtime.stdlib.dicts
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.mapRemainingNotNull
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
@@ -10,19 +10,11 @@ import com.github.prologdb.runtime.term.Variable
 
 val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
     val keyArg = args[0]
-    val dictArg = args[1]
+    val dictArg = args.getTyped<PrologDictionary>(1)
     val valueArg = args[2]
 
     if (keyArg !is Atom && keyArg !is Variable) {
-        throw PrologRuntimeException("Type error: argument 1 to get_dict/3 must be an atom or unbound")
-    }
-
-    if (dictArg !is PrologDictionary) {
-        if (dictArg is Variable) {
-            throw PrologRuntimeException("Argument 2 to get_dict/3 is not sufficiently instantiated")
-        } else {
-            throw PrologRuntimeException("Type error: argument 2 to get_dict/3 must be a dict, ${dictArg.prologTypeName} given")
-        }
+        throw ArgumentTypeError(args.indicator, 0, keyArg, Atom::class.java, Variable::class.java)
     }
 
     if (keyArg is Variable) {

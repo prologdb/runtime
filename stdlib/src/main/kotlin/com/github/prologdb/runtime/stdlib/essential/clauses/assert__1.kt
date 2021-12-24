@@ -12,7 +12,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinAssert1 = nativeRule("assert", 1) { args, ctxt ->
-    val clause = args[0] as? CompoundTerm ?: throw PrologRuntimeException("Argument 0 to assert/1 must be a compound term")
+    val clause = args.getTyped<CompoundTerm>(0)
 
     val fqIndicator: FullyQualifiedClauseIndicator
     val callable: PrologCallable

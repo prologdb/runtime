@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.stdlib.essential.string
 
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
@@ -22,13 +23,18 @@ internal val BuiltinAtomString2 = nativeRule("atom_string", 2) { args, context -
             is Atom -> inputForA.name
             is PrologInteger -> inputForA.value.toString()
             is PrologDecimal -> inputForA.value.toString()
-            else -> throw PrologRuntimeException("Type Error: first argument to atom_string/2 must be an atom or a number, ${inputForA.prologTypeName} given")
+            else -> throw ArgumentTypeError(args.indicator,
+                0,
+                inputForA,
+                Atom::class.java,
+                PrologDecimal::class.java,
+                PrologInteger::class.java)
         }
     }
 
     if (inputForB !is Variable) {
         if (inputForB !is PrologString) {
-            throw PrologRuntimeException("Type Error: second argument to atom_string/2 must be a string, ${inputForB.prologTypeName} given")
+            throw ArgumentTypeError(args.indicator, 1, inputForB, PrologString::class.java)
         }
 
         if (inputForA is Variable) {

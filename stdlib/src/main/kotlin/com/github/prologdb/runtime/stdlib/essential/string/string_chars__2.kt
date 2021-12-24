@@ -11,18 +11,15 @@ import com.github.prologdb.runtime.term.Variable
  * Implements `string_chars/2`, see http://www.swi-prolog.org/pldoc/doc_for?object=string_chars/2
  */
 internal val BuiltinStringChars2 = nativeRule("string_chars", 2) { args, ctxt ->
-    val inputA = args[0]
-    val inputB = args[1]
-
     fun convertInputAToListOfCharacters(): PrologList {
-        if (inputA !is PrologString) throw PrologRuntimeException("Type Error: expected string as first argument to string_chars/2, got ${inputA.prologTypeName}")
+        val inputA = args.getTyped<PrologString>(0)
         return PrologList(inputA.characters.map { Atom(it.toString()) })
     }
 
     fun convertInputBToPrologString(): PrologString {
+        val inputB = args.getTyped<PrologList>(1)
         // single-character atoms to string
-        if (inputB !is PrologList) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got ${inputB.prologTypeName}")
-        if (inputB.tail != null) throw PrologRuntimeException("Type Error: expected list as second argument to string_chars/2, got compound")
+        if (inputB.tail != null) throw PrologRuntimeException("Argument 2 to string_chars/2 must not have a tail.")
 
         val stringCharsTarget = CharArray(inputB.elements.size)
         inputB.elements.forEachIndexed { index, listElement ->
@@ -35,16 +32,15 @@ internal val BuiltinStringChars2 = nativeRule("string_chars", 2) { args, ctxt ->
         return PrologString(stringCharsTarget)
     }
 
-    if (inputA is Variable && inputB is Variable) {
+    if (args[0] is Variable && args[1] is Variable) {
         throw PrologRuntimeException("Arguments are not sufficiently instantiated")
     }
 
-    return@nativeRule if (inputA is PrologString) {
+    return@nativeRule if (args[0] is PrologString) {
         val referenceValueForB = convertInputAToListOfCharacters()
-        referenceValueForB.unify(inputB, ctxt.randomVariableScope)
-    }
-    else {
+        referenceValueForB.unify(args[1], ctxt.randomVariableScope)
+    } else {
         val referenceValueForA = convertInputBToPrologString()
-        referenceValueForA.unify(inputA, ctxt.randomVariableScope)
+        referenceValueForA.unify(args[0], ctxt.randomVariableScope)
     }
 }

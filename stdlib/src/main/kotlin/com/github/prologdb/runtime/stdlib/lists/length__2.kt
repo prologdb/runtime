@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.stdlib.lists
 
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.stdlib.nativeRule
@@ -29,14 +30,15 @@ internal val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                         var tailLength = 0
                         while (true) {
                             val result = arg0.tail!!.unify(listOfLength(tailLength, ctxt), ctxt.randomVariableScope)
-                            result.variableValues.instantiate(arg1, PrologInteger.createUsingStringOptimizerCache((baseLength + tailLength).toLong()))
+                            result.variableValues.instantiate(arg1,
+                                PrologInteger.createUsingStringOptimizerCache((baseLength + tailLength).toLong()))
                             yield(result)
                             tailLength++
                         }
                         @Suppress("UNREACHABLE_CODE")
                         null
                     }
-                    else -> throw PrologRuntimeException("Argument 2 to length/2 must an integer or a variable, got ${arg1.prologTypeName}")
+                    else -> throw ArgumentTypeError(args.indicator, 1, arg1, PrologInteger::class.java, Variable::class.java)
                 }
             } else {
                 val length = PrologInteger.createUsingStringOptimizerCache(arg0.elements.size.toLong())
@@ -64,7 +66,7 @@ internal val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                 }
             }
         }
-        else -> throw PrologRuntimeException("Argument 1 to length/2 must be a list or a variable, got ${arg0.prologTypeName}")
+        else -> throw ArgumentTypeError(args.indicator, 0, arg0, PrologList::class.java, Variable::class.java)
     }
 }
 

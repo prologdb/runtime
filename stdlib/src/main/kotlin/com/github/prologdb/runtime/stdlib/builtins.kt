@@ -1,16 +1,20 @@
 package com.github.prologdb.runtime.stdlib
 
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.proofsearch.PrologCallableFulfill
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
 
 internal val A = Variable("A")
 internal val B = Variable("B")
@@ -41,24 +45,28 @@ private val builtinArgumentVariables = arrayOf(
  */
 private val nativeCodeQuery = PredicateInvocationQuery(CompoundTerm("__nativeCode", emptyArray()))
 
-class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologCallableFulfill) : Rule(
+typealias NativePredicateFulfill = suspend LazySequenceBuilder<Unification>.(TypedPredicateArguments, ProofSearchContext) -> Unification?
+
+class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, code: NativePredicateFulfill) : Rule(
     CompoundTerm(name, builtinArgumentVariables.sliceArray(0 until arity)),
     nativeCodeQuery
 ) {
     private val invocationStackFrame = definedAt
-    private val stringRepresentation = """$head :- __nativeCode("${invocationStackFrame.fileName}:${invocationStackFrame.lineNumber}")"""
+    private val stringRepresentation = """$head :- __nativeCode("${definedAt.fileName}:${definedAt.lineNumber}")"""
+    private val indicator = ClauseIndicator.of(head)
 
     private val builtinStackFrame = PrologStackTraceElement(
         head,
         invocationStackFrame.prologSourceInformation,
         null,
-        "$name/$arity native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
+        "$indicator native implementation (${definedAt.fileName}:${definedAt.lineNumber})"
     )
 
     override val fulfill: PrologCallableFulfill = { arguments, context ->
         if (head.arity == arguments.size) {
+            val typeSafeArguments = TypedPredicateArguments(indicator, arguments)
             try {
-                code(this, arguments, context)
+                code(this, typeSafeArguments, context)
             } catch (ex: PrologException) {
                 ex.addPrologStackFrame(builtinStackFrame)
                 throw ex
@@ -74,11 +82,11 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
     override fun toString() = stringRepresentation
 }
 
-fun nativeRule(name: String, arity: Int, code: PrologCallableFulfill): NativeCodeRule {
+fun nativeRule(name: String, arity: Int, code: NativePredicateFulfill): NativeCodeRule {
     val definedAt = getInvocationStackFrame()
     return NativeCodeRule(name, arity, definedAt, code)
 }
 
-fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: PrologCallableFulfill): NativeCodeRule {
+fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: NativePredicateFulfill): NativeCodeRule {
     return NativeCodeRule(name, arity, definedAt, code)
 }

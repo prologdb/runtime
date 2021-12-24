@@ -14,8 +14,7 @@ private val Delta = Variable("Delta")
 
 internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
     val prologComparator = args[0]
-    val unsorted = args[1] as? PrologList
-        ?: throw PrologRuntimeException("Argument 2 to predsort/3 must be a list, got ${args[1].prologTypeName}")
+    val unsorted = args.getTyped<PrologList>(1)
     val sorted = args[2]
 
     if (unsorted.tail != null) {

@@ -18,23 +18,12 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
 internal val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
-    val arg0 = args[0]
-    val arg1 = args[1]
-
-    if (arg0 !is Variable) {
-        if (arg0 !is PrologList) throw PrologRuntimeException("Type error: argument 1 to set/1 must be of type list")
-        if (arg0.tail is Variable) throw PrologRuntimeException("Type error: tail of argument 1 to set/1 not sufficiently instantiated")
-        if (arg1 !is Variable) throw PrologRuntimeException("Type error: if argument 1 to set/1 is instantiated, argument 2 must be unbound")
-
-        val arg0asSet = arg0.elements.toSet()
-        val result = VariableBucket()
-        result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        return@nativeRule Unification(result)
-    }
-    else
-    {
-        if (arg1 !is PrologList) throw PrologRuntimeException("Type error: if argument 1 to set/2 is unbound, argument 2 must be of type list")
-        if (arg1.tail is Variable) throw PrologRuntimeException("Type error: tail of argument 2 to set/1 not sufficiently instantiated")
+    if (args[0] is Variable) {
+        val arg0 = args[0] as Variable
+        val arg1 = args.getTyped<PrologList>(1)
+        if (arg1.tail != null) {
+            throw PrologRuntimeException("Argument 2 to set/2 must not have a tail")
+        }
 
         val isSet = arg1.elements.size == arg1.elements.toSet().size
         return@nativeRule if (isSet) {
@@ -44,5 +33,16 @@ internal val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
         } else {
             null
         }
+    } else {
+        val arg0 = args.getTyped<PrologList>(0)
+        if (arg0.tail != null) {
+            throw PrologRuntimeException("Argument 1 to set/2 must not have a tail")
+        }
+        val arg1 = args.getTyped<Variable>(1)
+
+        val arg0asSet = arg0.elements.toSet()
+        val result = VariableBucket()
+        result.instantiate(arg1, PrologList(arg0asSet.toList()))
+        return@nativeRule Unification(result)
     }
 }

@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.stdlib.lists
 
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
@@ -27,6 +27,6 @@ internal val BuiltinMember2 = nativeRule("member", 2) { args, ctxt ->
             }
             @Suppress("UNREACHABLE_CODE") null
         }
-        else -> throw PrologRuntimeException("Argument 1 to member/2 must be a list, got ${list.prologTypeName}")
+        else -> throw ArgumentTypeError(args.indicator, 1, list, PrologList::class.java, Variable::class.java)
     }
 }

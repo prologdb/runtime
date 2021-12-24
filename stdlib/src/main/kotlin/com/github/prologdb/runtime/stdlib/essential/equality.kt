@@ -20,7 +20,7 @@ val BuiltinNot = nativeRule("not", 1) { args, context ->
 }
 
 val BuiltinNotOperator = nativeRule("\\+", 1) { args, context ->
-    BuiltinNot.fulfill(this, args, context)
+    BuiltinNot.fulfill(this, args.raw, context)
 }
 
 val BuiltinUnity = nativeRule("=", 2) { args, context ->

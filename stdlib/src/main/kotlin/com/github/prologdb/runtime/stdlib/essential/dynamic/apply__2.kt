@@ -9,8 +9,7 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinApply2 = nativeRule("apply", 2) { args, ctxt ->
-    val arguments = args[1] as? PrologList
-        ?: throw PrologRuntimeException("Argument 2 to apply/2 must be a list, got ${args[1].prologTypeName}")
+    val arguments = args.getTyped<PrologList>(1)
     if (arguments.tail != null) {
         throw PrologRuntimeException("Argument 2 to apply/2 must not have a tail.")
     }
