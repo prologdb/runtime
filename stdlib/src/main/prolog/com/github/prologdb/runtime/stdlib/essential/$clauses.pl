@@ -1,4 +1,5 @@
 :- module($clauses).
+:- use_module(essential($dynamic), [findall/3]).
 
 :- native assert/1.
 :- native retract/1.
@@ -11,5 +12,5 @@ true() :- 1 = 1.
 fail() :- 1 = 2.
 
 retractAll(Template) :-
-    findall(_, $clauses:retract(Template), _)
+    $dynamic:findall(_, $clauses:retract(Template), _)
     .
