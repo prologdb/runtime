@@ -1,3 +1,4 @@
+@file:JvmName("PrologExceptionUtils")
 package com.github.prologdb.runtime
 
 import com.github.prologdb.runtime.module.Module
@@ -52,8 +53,7 @@ data class PrologStackTraceElement @JvmOverloads constructor(
 inline fun <T> prologTry(crossinline onErrorStackTraceElement: () -> PrologStackTraceElement, code: () -> T): T {
     try {
         return code()
-    }
-    catch (ex: PrologException) {
+    } catch (ex: PrologException) {
         ex.addPrologStackFrame(onErrorStackTraceElement())
         throw ex
     }
