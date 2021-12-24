@@ -7,6 +7,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 
+@PrologTypeName("integer")
 class PrologInteger(
     val value: Long
 ) : PrologNumber {

@@ -7,6 +7,7 @@ import kotlin.math.min
 /**
  * An implementation of String (similar to Java) that is prolog affine.
  */
+@PrologTypeName("string")
 open class PrologString private constructor(
     /**
      * The unicode code points that make up the string
@@ -25,8 +26,6 @@ open class PrologString private constructor(
         }
         ar
     }())
-
-    override val prologTypeName = "string"
 
     init {
         if (data.any { it.value < 0 || it.value > 65535 }) throw IllegalArgumentException("Prolog strings must only contain unicode values in the range [0; 65535]")

@@ -8,6 +8,7 @@ import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
+@PrologTypeName("decimal")
 class PrologDecimal(
     val value: Double
 ) : PrologNumber {

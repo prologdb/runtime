@@ -18,6 +18,7 @@ import com.github.prologdb.runtime.util.OperatorType.YF
 import com.github.prologdb.runtime.util.OperatorType.YFX
 import sensibleHashCode
 
+@PrologTypeName("compound term")
 class CompoundTerm(
     override val functor: String,
     arguments: Array<out Term>
@@ -27,8 +28,6 @@ class CompoundTerm(
 
     override val arity = arguments.size
 
-    override val prologTypeName = "compound term"
-
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is CompoundTerm) {
             if (this.functor != rhs.functor) {
@@ -36,12 +35,9 @@ class CompoundTerm(
             }
 
             return arguments.unify(rhs.arguments, randomVarsScope)
-        }
-        else if (rhs is Variable) {
+        } else if (rhs is Variable) {
             return rhs.unify(this, randomVarsScope)
-        }
-        else
-        {
+        } else {
             return Unification.FALSE
         }
     }

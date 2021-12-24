@@ -1,5 +1,4 @@
 @file:JvmName("TermUtils")
-
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope

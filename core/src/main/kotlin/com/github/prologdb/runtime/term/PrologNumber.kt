@@ -10,6 +10,7 @@ package com.github.prologdb.runtime.term
  * a subtype of number to attach the source information to. So this class offers
  * a way to store the source information.
  */
+@PrologTypeName("number")
 interface PrologNumber : Term {
     operator fun plus(other: PrologNumber): PrologNumber
     operator fun minus(other: PrologNumber): PrologNumber
@@ -23,9 +24,6 @@ interface PrologNumber : Term {
     operator fun unaryMinus(): PrologNumber
 
     val isInteger: Boolean
-
-    override val prologTypeName
-        get() = "number"
 
     /**
      * If this is an integer, returns its value. Otherwise rounds

@@ -8,6 +8,7 @@ import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 import kotlin.math.min
 
+@PrologTypeName("list")
 open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term {
 
     val elements: List<Term>
@@ -17,20 +18,16 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
         if (givenTail is PrologList) {
             elements = givenElements + givenTail.elements
             tail = givenTail.tail
-        }
-        else {
+        } else {
             elements = givenElements
             tail = givenTail as Variable?
         }
     }
 
-    override val prologTypeName = "list"
-
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Variable) {
             return rhs.unify(this, randomVarsScope)
-        }
-        else if (rhs is PrologList) {
+        } else if (rhs is PrologList) {
             if (rhs.elements.size > this.elements.size) {
                 return rhs.unify(this, randomVarsScope)
             }
@@ -51,12 +48,10 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                     val rhsTail = rhs.tail!! // should be caught earlier
                     try {
                         return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope))
-                    }
-                    catch (ex: VariableDiscrepancyException) {
+                    } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
-                }
-                else {
+                } else {
                     val lhsElement = this.elements[index]
                     val rhsElement = rhs.elements[index]
                     iterationUnification = lhsElement.unify(rhsElement, randomVarsScope)
@@ -64,12 +59,10 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
                 if (iterationUnification == null) {
                     return Unification.FALSE
-                }
-                else {
+                } else {
                     try {
                         carryUnification = carryUnification.combinedWith(iterationUnification)
-                    }
-                    catch (ex: VariableDiscrepancyException) {
+                    } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
                 }
@@ -80,32 +73,28 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
                 if (this.tail != null && rhs.tail != null) {
                     tailUnification = this.tail.unify(rhs.tail, randomVarsScope)
-                }
-                else if (this.tail != null) {
+                } else if (this.tail != null) {
                     tailUnification = this.tail.unify(PrologList(emptyList()), randomVarsScope)
-                }
-                else {
+                } else {
                     tailUnification = rhs.tail!!.unify(PrologList(emptyList()), randomVarsScope)
                 }
 
                 try {
                     carryUnification = carryUnification.combinedWith(tailUnification)
-                }
-                catch (ex: VariableDiscrepancyException) {
+                } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }
             }
 
             return carryUnification
-        }
-        else {
+        } else {
             return Unification.FALSE
         }
     }
 
     override val variables: Set<Variable> by lazy {
         val variables = elements.flatMap(Term::variables).toMutableSet()
-        
+
         if (tail != null) {
             variables.add(tail)
         }
