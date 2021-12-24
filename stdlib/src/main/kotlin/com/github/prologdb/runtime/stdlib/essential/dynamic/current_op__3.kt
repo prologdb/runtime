@@ -5,7 +5,7 @@ import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologInteger
-import unify
+import com.github.prologdb.runtime.term.unify
 
 val BuiltinCurrentOp3 = nativeRule("current_op", 3) { args, ctxt ->
     val nameArg = args[2]

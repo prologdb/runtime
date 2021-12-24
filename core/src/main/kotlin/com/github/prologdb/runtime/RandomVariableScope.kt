@@ -39,6 +39,9 @@ class RandomVariableScope {
     }
 
     fun withRandomVariables(term: CompoundTerm, mapping: VariableMapping) = withRandomVariables(term as Term, mapping) as CompoundTerm
+    fun withRandomVariables(terms: Array<out Term>, mapping: VariableMapping): Array<out Term> = Array(terms.size) { index ->
+        this.withRandomVariables(terms[index], mapping)
+    }
 
     fun createNewRandomVariable(): Variable {
         val localCounter = ++counter

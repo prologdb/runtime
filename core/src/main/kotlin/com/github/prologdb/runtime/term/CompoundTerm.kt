@@ -17,7 +17,6 @@ import com.github.prologdb.runtime.util.OperatorType.XFY
 import com.github.prologdb.runtime.util.OperatorType.YF
 import com.github.prologdb.runtime.util.OperatorType.YFX
 import sensibleHashCode
-import unify
 
 class CompoundTerm(
     override val functor: String,

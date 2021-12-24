@@ -11,11 +11,10 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.unify
+import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import unify
-import variables
-import withRandomVariables
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor

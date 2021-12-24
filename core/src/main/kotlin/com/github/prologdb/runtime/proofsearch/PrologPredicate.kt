@@ -17,12 +17,11 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.unify
+import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import mapIndexedToArray
-import unify
-import variables
-import withRandomVariables
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**

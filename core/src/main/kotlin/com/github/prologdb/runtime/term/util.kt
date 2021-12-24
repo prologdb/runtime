@@ -1,9 +1,11 @@
+@file:JvmName("TermUtils")
+
+package com.github.prologdb.runtime.term
+
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.VariableMapping
-import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Unifies the two arrays of terms as if the arguments to predicates with equal functors.
@@ -38,8 +40,7 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
                         // instantiated to different value => no unification
                         return Unification.FALSE
                     }
-                }
-                else {
+                } else {
                     vars.instantiate(variable, substitutedValue)
                 }
             }
@@ -47,12 +48,6 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
     }
 
     return Unification(vars)
-}
-
-fun RandomVariableScope.withRandomVariables(terms: Array<out Term>, mapping: VariableMapping): Array<out Term> {
-    return Array(terms.size) { index ->
-        this.withRandomVariables(terms[index], mapping)
-    }
 }
 
 val Array<out Term>.variables: Iterable<Variable>
@@ -89,3 +84,9 @@ val Array<out Term>.variables: Iterable<Variable>
         }
     }
 
+private val prologTypeNameCache = ConcurrentHashMap<Class<out Term>, String>()
+val Class<out Term>.prologTypeName: String
+    get() = prologTypeNameCache.computeIfAbsent(this) { clazz ->
+        clazz.getAnnotation(PrologTypeName::class.java)?.value
+            ?: clazz.simpleName
+    }
