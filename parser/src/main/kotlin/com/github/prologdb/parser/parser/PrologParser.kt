@@ -271,7 +271,7 @@ class PrologParser {
             return ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Whitespace between functor and opening parenthesis not allowed", functorToken.location.end..parentOpenToken.location.start)))
         }
 
-        val functor = functorToken.textContent!!
+        val functor = functorToken.textContent
 
         // detect predicate/0 invocations
         if (!tokens.hasNext()) {
