@@ -64,12 +64,16 @@ import com.github.prologdb.runtime.stdlib.lists.BuiltinSort2
 import com.github.prologdb.runtime.stdlib.sort.BuiltinPredsort3
 
 object StandardLibraryModuleLoader : ModuleLoader {
+    private val classpathPrefix = "com/github/prologdb/runtime/stdlib"
     private val _parser = PrologParser()
 
     private val classPathLoader = ClasspathPrologSourceModuleLoader(
         sourceFileVisitorSupplier = { getSourceFileVisitor(it) },
         classLoader = StandardLibraryModuleLoader::class.java.classLoader,
-        parser = _parser
+        parser = _parser,
+        moduleReferenceToClasspathPath = { moduleRef ->
+            "$classpathPrefix/${moduleRef.pathAlias}/${moduleRef.moduleName}.pl"
+        }
     )
 
     override fun load(reference: ModuleReference): Module = classPathLoader.load(reference)
