@@ -78,7 +78,11 @@ class ModuleScopeProofSearchContext(
             ?: throw PrologRuntimeException("Module ${moduleNameTerm.name} not loaded")
 
         val callable = module.exportedPredicates[simpleIndicator]
-            ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in/exported by module ${module.name}")
+            ?: if (simpleIndicator in module.allDeclaredPredicates) {
+                throw PrologRuntimeException("Predicate $simpleIndicator not exported by module ${module.name}")
+            } else {
+                throw PrologRuntimeException("Predicate $simpleIndicator not defined in module ${module.name}")
+            }
 
         return Triple(
             FullyQualifiedClauseIndicator(module.name, simpleIndicator),
