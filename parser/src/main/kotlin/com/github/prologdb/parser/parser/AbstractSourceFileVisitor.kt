@@ -10,6 +10,7 @@ import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.MutableOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 
 /**
@@ -27,7 +28,7 @@ import com.github.prologdb.runtime.util.OperatorDefinition
  *     * `op/3`
  */
 abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Result> {
-    override val operators = DefaultOperatorRegistry().apply { include(ISOOpsOperatorRegistry) }
+    override val operators: MutableOperatorRegistry = DefaultOperatorRegistry().apply { include(ISOOpsOperatorRegistry) }
 
     override fun visitDirective(command: CompoundTerm): Collection<Reporting> {
         when(command.arity) {
