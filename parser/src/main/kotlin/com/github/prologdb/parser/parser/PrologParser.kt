@@ -1062,7 +1062,7 @@ class PrologParser {
     /**
      * Converts a term given as the second argument to `:-/2` into an instance of [Query].
      */
-    private fun transformQuery(query: Term): ParseResult<Query> {
+    fun transformQuery(query: Term): ParseResult<Query> {
         if (query is CompoundTerm) {
             if (query.arity == 2 && (query.functor == Operator.COMMA.text || query.functor == Operator.SEMICOLON.text)) {
                 val operator = query.functor
