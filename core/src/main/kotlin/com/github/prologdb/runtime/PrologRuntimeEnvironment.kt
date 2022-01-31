@@ -75,14 +75,14 @@ interface PrologRuntimeEnvironment {
  */
 open class DefaultPrologRuntimeEnvironment(
     override val rootModule: Module,
-    private val moduleLoader: ModuleLoader = NoopModuleLoader
+    protected val moduleLoader: ModuleLoader = NoopModuleLoader
 ) : PrologRuntimeEnvironment {
     /**
      * Maps module names to the loaded [Module]s.
      */
     private val _loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
     override val loadedModules: Map<String, Module> = Collections.unmodifiableMap(_loadedModules)
-    private val moduleLookupTables: MutableMap<String, Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>> = ConcurrentHashMap()
+    protected val moduleLookupTables: MutableMap<String, Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>> = ConcurrentHashMap()
     private val moduleLoadingMutex = Any()
 
     init {
@@ -91,7 +91,7 @@ open class DefaultPrologRuntimeEnvironment(
 
     // TODO: check for indicator collisions in module exports
 
-    private fun assureModuleLoaded(reference: ModuleReference, assureLookups: Boolean = true): Module {
+    protected fun assureModuleLoaded(reference: ModuleReference, assureLookups: Boolean = true): Module {
         synchronized(moduleLoadingMutex) {
             val existingModule = _loadedModules[reference.moduleName]
             if (existingModule != null) return existingModule
@@ -100,7 +100,7 @@ open class DefaultPrologRuntimeEnvironment(
         }
     }
 
-    private fun assureModuleLoaded(module: Module, assureLookups: Boolean = true): Module {
+    protected fun assureModuleLoaded(module: Module, assureLookups: Boolean = true): Module {
         synchronized(moduleLoadingMutex) {
             val existingModule = _loadedModules.putIfAbsent(module.name, module)
             if (existingModule != null) {
