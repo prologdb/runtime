@@ -9,7 +9,7 @@ import com.github.prologdb.parser.parser.DefaultModuleSourceFileVisitor;
 import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
-import com.github.prologdb.runtime.PrologRuntimeEnvironment;
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment;
 import com.github.prologdb.runtime.PrologRuntimeException;
 import com.github.prologdb.runtime.module.Module;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
@@ -42,7 +42,7 @@ public class PlaygroundPanel {
      */
     private boolean knowledgeBaseChangeIndicator = false;
 
-    private PrologRuntimeEnvironment runtimeEnvironment = null;
+    private DefaultPrologRuntimeEnvironment runtimeEnvironment = null;
 
     public PlaygroundPanel() {
         initComponents();
@@ -132,7 +132,7 @@ public class PlaygroundPanel {
         solutionExplorerPanel.setParseTime(System.currentTimeMillis() - parseStart);
 
         if (result.getReportings().isEmpty()) {
-            runtimeEnvironment = new PrologRuntimeEnvironment(requireNonNull(result.getItem()), StandardLibraryModuleLoader.INSTANCE);
+            runtimeEnvironment = new DefaultPrologRuntimeEnvironment(requireNonNull(result.getItem()), StandardLibraryModuleLoader.INSTANCE);
             knowledgeBaseChangeIndicator = false;
         } else {
             StringBuilder message = new StringBuilder("Failed to parse knowledge base:");

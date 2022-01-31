@@ -14,8 +14,8 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologException
-import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
@@ -128,7 +128,7 @@ class PrologTest : FreeSpec() { init {
                     override val name = testName
 
                     override fun runWith(callback: TestResultCallback) {
-                        val runtimeEnv = PrologRuntimeEnvironment(testModule, TestingModuleLoader)
+                        val runtimeEnv = DefaultPrologRuntimeEnvironment(testModule, TestingModuleLoader)
                         TestExecution(runtimeEnv, testName, goalList).run(callback)
                     }
                 })
@@ -167,7 +167,7 @@ private interface PrologTestCase {
     }
 }
 
-private class TestExecution(private val runtime: PrologRuntimeEnvironment, private val testName: String, private val allGoals: List<Query>) {
+private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment, private val testName: String, private val allGoals: List<Query>) {
     private var failedGoal: Query? = null
     private var stateBeforeFailedGoal: Unification? = null
 

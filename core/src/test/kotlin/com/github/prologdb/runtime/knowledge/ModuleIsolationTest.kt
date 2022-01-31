@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
@@ -57,7 +57,7 @@ class ModuleIsolationTest : FreeSpec({
             moduleTransparents = emptySet()
         )
 
-        PrologRuntimeEnvironment(module) shouldProve foo(R) suchThat {
+        DefaultPrologRuntimeEnvironment(module) shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
                 it.variableValues[R] == a
@@ -90,7 +90,7 @@ class ModuleIsolationTest : FreeSpec({
             moduleTransparents = emptySet()
         )
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleB, moduleLoader)
 
         runtimeEnv shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
@@ -125,7 +125,7 @@ class ModuleIsolationTest : FreeSpec({
             moduleTransparents = emptySet()
         )
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleB, moduleLoader)
 
         val ex = shouldThrow<PrologRuntimeException> {
             runtimeEnv.fulfill(PredicateInvocationQuery(foo(R))).consumeAll()
@@ -163,7 +163,7 @@ class ModuleIsolationTest : FreeSpec({
             moduleTransparents = emptySet()
         )
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleB, moduleLoader)
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleB, moduleLoader)
 
         runtimeEnv shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
@@ -236,7 +236,7 @@ class ModuleIsolationTest : FreeSpec({
             }
 
             "from within module" {
-                val runtimeEnv = PrologRuntimeEnvironment(
+                val runtimeEnv = DefaultPrologRuntimeEnvironment(
                     ASTModule(
                         name = "__root",
                         imports = listOf(ModuleImport.Full(moduleARef), ModuleImport.Full(moduleBRef)),
@@ -264,7 +264,7 @@ class ModuleIsolationTest : FreeSpec({
             }
 
             "from root module via exported delegate" {
-                val runtimeEnv = PrologRuntimeEnvironment(
+                val runtimeEnv = DefaultPrologRuntimeEnvironment(
                     ASTModule(
                         name = "__root",
                         imports = listOf(
@@ -327,7 +327,7 @@ class ModuleIsolationTest : FreeSpec({
             registerModule("module", moduleB)
         }
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleB, loader)
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleB, loader)
 
         runtimeEnv shouldProve bar(X) suchThat {
             itHasExactlyOneSolution()

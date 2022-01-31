@@ -2,6 +2,7 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.runtime.PrologRuntimeEnvironment.Companion.buildModuleLookupTable
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleLoader
@@ -20,18 +21,67 @@ import java.util.Collections
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
+interface PrologRuntimeEnvironment {
+    val rootModule: Module
+    val loadedModules: Map<String, Module>
+    fun newProofSearchContext(authorization: Authorization = ReadWriteAuthorization): ProofSearchContext
+    fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext
+
+    companion object {
+        /**
+         * @return a table that, considering all imports, maps unscoped predicates to the actual implementations
+         */
+        @JvmStatic
+        fun buildModuleLookupTable(allModules: Map<String, Module>, forModule: Module): Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> {
+            return mutableMapOf<ClauseIndicator, Pair<ModuleReference, PrologCallable>>().also { importLookupCache ->
+                forModule.imports.asSequence()
+                    .forEach { import ->
+                        val referencedModule = allModules[import.moduleReference.moduleName]
+                            ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
+
+                        val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {
+                            is ModuleImport.Full      -> referencedModule.exportedPredicates
+                                .mapValues { (_, callable) ->
+                                    Pair(import.moduleReference, callable)
+                                }
+                            is ModuleImport.Selective -> import.imports
+                                .map { (exportedIndicator, alias) ->
+                                    val callable = referencedModule.exportedPredicates[exportedIndicator]
+                                        ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
+                                    if (exportedIndicator.functor == alias) {
+                                        exportedIndicator to Pair(import.moduleReference, callable)
+                                    } else {
+                                        ClauseIndicator.of(alias, exportedIndicator.arity) to Pair(import.moduleReference, callable)
+                                    }
+                                }
+                                .toMap()
+
+                            is ModuleImport.Except    -> referencedModule.exportedPredicates
+                                .filterKeys { it !in import.excluded }
+                                .mapValues { (_, callable) ->
+                                    Pair(import.moduleReference, callable)
+                                }
+                        }
+
+                        importLookupCache.putAll(visiblePredicates)
+                    }
+            }
+        }
+    }
+}
+
 /**
  * The environment for one **instance** of a prolog program.
  */
-class PrologRuntimeEnvironment(
-    val rootModule: Module,
+open class DefaultPrologRuntimeEnvironment(
+    override val rootModule: Module,
     private val moduleLoader: ModuleLoader = NoopModuleLoader
-) {
+) : PrologRuntimeEnvironment {
     /**
      * Maps module names to the loaded [Module]s.
      */
     private val _loadedModules: MutableMap<String, Module> = ConcurrentHashMap()
-    val loadedModules: Map<String, Module> = Collections.unmodifiableMap(_loadedModules)
+    override val loadedModules: Map<String, Module> = Collections.unmodifiableMap(_loadedModules)
     private val moduleLookupTables: MutableMap<String, Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>> = ConcurrentHashMap()
     private val moduleLoadingMutex = Any()
 
@@ -61,7 +111,7 @@ class PrologRuntimeEnvironment(
             if (assureLookups) {
                 (transitiveLoads + module).forEach { loadedModule ->
                     moduleLookupTables.computeIfAbsent(loadedModule.name) { _ ->
-                        buildModuleLookupTable(loadedModule)
+                        buildModuleLookupTable(loadedModules, loadedModule)
                     }
                 }
             }
@@ -86,7 +136,7 @@ class PrologRuntimeEnvironment(
             .toSet()
     }
 
-    fun newProofSearchContext(authorization: Authorization = ReadWriteAuthorization): ProofSearchContext {
+    override fun newProofSearchContext(authorization: Authorization): ProofSearchContext {
         return ModuleScopeProofSearchContext(
             rootModule,
             this,
@@ -97,7 +147,7 @@ class PrologRuntimeEnvironment(
         )
     }
 
-    fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext {
+    override fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext {
         if (deriveFrom is ModuleScopeProofSearchContext && deriveFrom.module.name == moduleName) {
             return deriveFrom
         }
@@ -111,42 +161,6 @@ class PrologRuntimeEnvironment(
             deriveFrom.randomVariableScope,
             deriveFrom.authorization
         )
-    }
-
-    private fun buildModuleLookupTable(module: Module): Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> {
-        return mutableMapOf<ClauseIndicator, Pair<ModuleReference, PrologCallable>>().also { importLookupCache ->
-            module.imports.asSequence()
-                .forEach { import ->
-                    val referencedModule = _loadedModules[import.moduleReference.moduleName]
-                        ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
-
-                    val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {
-                        is ModuleImport.Full      -> referencedModule.exportedPredicates
-                            .mapValues { (_, callable) ->
-                                Pair(import.moduleReference, callable)
-                            }
-                        is ModuleImport.Selective -> import.imports
-                            .map { (exportedIndicator, alias) ->
-                                val callable = referencedModule.exportedPredicates[exportedIndicator]
-                                    ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
-                                if (exportedIndicator.functor == alias) {
-                                    exportedIndicator to Pair(import.moduleReference, callable)
-                                } else {
-                                    ClauseIndicator.of(alias, exportedIndicator.arity) to Pair(import.moduleReference, callable)
-                                }
-                            }
-                            .toMap()
-
-                        is ModuleImport.Except    -> referencedModule.exportedPredicates
-                            .filterKeys { it !in import.excluded }
-                            .mapValues { (_, callable) ->
-                                Pair(import.moduleReference, callable)
-                            }
-                    }
-
-                    importLookupCache.putAll(visiblePredicates)
-                }
-        }
     }
 
     @JvmOverloads

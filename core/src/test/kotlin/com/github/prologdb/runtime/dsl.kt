@@ -83,11 +83,11 @@ infix fun Term.shouldNotUnifyWith(rhs: Term) {
     }
 }
 
-infix fun PrologRuntimeEnvironment.shouldProve(compoundTerm: CompoundTerm): UnificationSequenceGenerator {
+infix fun DefaultPrologRuntimeEnvironment.shouldProve(compoundTerm: CompoundTerm): UnificationSequenceGenerator {
     return shouldProve(PredicateInvocationQuery(compoundTerm))
 }
 
-infix fun PrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenceGenerator {
+infix fun DefaultPrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenceGenerator {
     val sequence = this.fulfill(query)
     val firstSolution = sequence.tryAdvance()
     sequence.close()
@@ -97,7 +97,7 @@ infix fun PrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenc
     return { this.fulfill(query) }
 }
 
-fun PrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: String, query: CompoundTerm): UnificationSequenceGenerator {
+fun DefaultPrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: String, query: CompoundTerm): UnificationSequenceGenerator {
     val generator: UnificationSequenceGenerator = {
         val psc = this@shouldProveInContextOfModule.newProofSearchContext().deriveForModuleContext(moduleName)
         buildLazySequence(psc.principal) {
@@ -114,7 +114,7 @@ fun PrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: String, qu
     return generator
 }
 
-infix fun PrologRuntimeEnvironment.shouldNotProve(query: Query) {
+infix fun DefaultPrologRuntimeEnvironment.shouldNotProve(query: Query) {
     val solutions = this.fulfill(query)
     val firstSolution = solutions.tryAdvance()
     solutions.close()
@@ -124,7 +124,7 @@ infix fun PrologRuntimeEnvironment.shouldNotProve(query: Query) {
     }
 }
 
-infix fun PrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundTerm) {
+infix fun DefaultPrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundTerm) {
     shouldNotProve(PredicateInvocationQuery(compoundTerm))
 }
 

@@ -4,9 +4,9 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PrologPermissionError
-import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologStackTraceElement
 import com.github.prologdb.runtime.RandomVariableScope
@@ -29,7 +29,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  */
 class ModuleScopeProofSearchContext(
     val module: Module,
-    private val runtimeEnvironment: PrologRuntimeEnvironment,
+    private val runtimeEnvironment: DefaultPrologRuntimeEnvironment,
     private val lookupTable: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>,
     override val principal: Principal,
     override val randomVariableScope: RandomVariableScope,

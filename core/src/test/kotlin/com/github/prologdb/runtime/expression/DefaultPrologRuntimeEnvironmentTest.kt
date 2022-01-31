@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.expression
 
-import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
@@ -22,12 +22,12 @@ import io.kotlintest.matchers.should
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.specs.FreeSpec
 
-class PrologRuntimeEnvironmentTest : FreeSpec() {init {
+class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
     "f(a). f(b). ?- f(X)" {
         val f = CompoundBuilder("f")
         val a = Atom("a")
         val b = Atom("b")
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             f(a),
             f(b)
         ))
@@ -53,7 +53,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val X = Variable("X")
         val Y = Variable("Y")
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             f(a(X, Y), a(Y, X))
         ))
 
@@ -90,7 +90,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val Z = Variable("Z")
         val P = Variable("P")
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             vertical(line(point(X, Y), point(X, Z))),
             horizontal(line(point(X,Y),point(Z,Y)))
         ))
@@ -125,7 +125,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val A = Variable("A")
         val B = Variable("B")
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             g(X, X)
         ))
 
@@ -145,7 +145,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))),
             g(X, X)
         ))
@@ -172,7 +172,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val c = Atom("c")
         val d = Atom("d")
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             // append([],L,L).
             app(PrologList(emptyList()), L, L),
 
@@ -244,7 +244,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val u = Atom("u")
         val v = Atom("v")
 
-        val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
             a(PrologList(listOf(H), T), PrologList(listOf(H), T))
         ))
 
@@ -268,7 +268,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         val b = Atom("b")
 
         "case 1" {
-            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
                 f(_A)
             ))
 
@@ -281,7 +281,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 2" {
-            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
                 f(_A, _A)
             ))
 
@@ -294,7 +294,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 3" {
-            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
                 f(_A, b)
             ))
 
@@ -307,7 +307,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 4" {
-            val runtimeEnv = PrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
                 f(_A)
             ))
 
@@ -355,7 +355,7 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
         moduleLoader.registerModule("module", moduleA)
         moduleLoader.registerModule("module", moduleB)
 
-        val runtimeEnv = PrologRuntimeEnvironment(rootModule, moduleLoader)
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(rootModule, moduleLoader)
 
         runtimeEnv.loadedModules should haveKey("A")
         runtimeEnv.loadedModules should haveKey("B")
