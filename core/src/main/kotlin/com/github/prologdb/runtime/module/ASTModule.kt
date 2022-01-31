@@ -1,14 +1,10 @@
 package com.github.prologdb.runtime.module
 
-import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
-import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
-import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
@@ -25,7 +21,7 @@ class ASTModule(
     val exportedPredicateIndicators: Set<ClauseIndicator>,
     override val localOperators: OperatorRegistry = ISOOpsOperatorRegistry
 ) : Module {
-    private val allDeclaredPredicates: Map<ClauseIndicator, PrologCallable>
+    override val allDeclaredPredicates: Map<ClauseIndicator, PrologCallable>
 
     init {
         val _allDeclaredPredicates = givenClauses.asSequence()
@@ -62,24 +58,4 @@ class ASTModule(
 
     override val exportedPredicates: Map<ClauseIndicator, PrologCallable> = allDeclaredPredicates
         .filter { it.key in exportedPredicateIndicators }
-
-    override fun deriveScopedProofSearchContext(deriveFrom: ProofSearchContext): ProofSearchContext {
-        if (deriveFrom is ModuleScopeProofSearchContext && deriveFrom.module == this) {
-            return deriveFrom
-        }
-
-        return super.deriveScopedProofSearchContext(deriveFrom)
-    }
-
-    override fun createProofSearchContext(principal: Principal, randomVariableScope: RandomVariableScope,
-                                          authorization: Authorization, rootAvailableModules: Map<String, Module>): ProofSearchContext {
-        return ModuleScopeProofSearchContext(
-            this,
-            this.allDeclaredPredicates,
-            principal,
-            randomVariableScope,
-            authorization,
-            rootAvailableModules
-        )
-    }
 }

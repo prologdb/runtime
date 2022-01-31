@@ -7,7 +7,6 @@ import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -32,11 +31,6 @@ interface ProofSearchContext {
 
     val authorization: Authorization
 
-    /**
-     * The modules available in the root runtime environment.
-     */
-    val rootAvailableModules: Map<String, Module>
-
     val operators: OperatorRegistry
 
     /**
@@ -59,6 +53,11 @@ interface ProofSearchContext {
      */
     fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>?
 
+    /**
+     * @return a [ProofSearchContext] where [resolveCallable] and [resolveHead] work in the context of the
+     * module with the given name. The module must already have been loaded.
+     */
+    fun deriveForModuleContext(moduleName: String): ProofSearchContext
 
     /**
      * If `head` is an instance of `:/2` (module-qualified), the explicitly

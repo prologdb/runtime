@@ -97,9 +97,9 @@ infix fun PrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenc
     return { this.fulfill(query) }
 }
 
-fun Module.shouldProveWithinRuntime(runtime: PrologRuntimeEnvironment, query: CompoundTerm): UnificationSequenceGenerator {
+fun PrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: String, query: CompoundTerm): UnificationSequenceGenerator {
     val generator: UnificationSequenceGenerator = {
-        val psc = this@shouldProveWithinRuntime.deriveScopedProofSearchContext(runtime.newProofSearchContext())
+        val psc = this@shouldProveInContextOfModule.newProofSearchContext().deriveForModuleContext(moduleName)
         buildLazySequence(psc.principal) {
             psc.fulfillAttach(this, PredicateInvocationQuery(query), VariableBucket())
         }
@@ -109,7 +109,7 @@ fun Module.shouldProveWithinRuntime(runtime: PrologRuntimeEnvironment, query: Co
     val firstSolution = sequence.tryAdvance()
     sequence.close()
 
-    if (firstSolution == null) throw AssertionError("Module $this failed to prove $query within $runtime")
+    if (firstSolution == null) throw AssertionError("Module $this failed to prove $query within ${this@shouldProveInContextOfModule}")
 
     return generator
 }

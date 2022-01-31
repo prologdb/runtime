@@ -102,7 +102,7 @@ class ASTPrologPredicate(
         if (!tailCallInitialized) updateTailCall()
 
         val ctxt = if (isModuleTransparent) invocationCtxt else {
-            declaringModule.deriveScopedProofSearchContext(invocationCtxt)
+            invocationCtxt.deriveForModuleContext(declaringModule.name)
         }
 
         val lastClause = clauses.last()

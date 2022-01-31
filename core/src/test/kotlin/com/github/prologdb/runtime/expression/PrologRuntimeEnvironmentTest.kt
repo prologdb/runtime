@@ -357,11 +357,9 @@ class PrologRuntimeEnvironmentTest : FreeSpec() {init {
 
         val runtimeEnv = PrologRuntimeEnvironment(rootModule, moduleLoader)
 
-        val loadedModules = runtimeEnv.newProofSearchContext().rootAvailableModules
-
-        loadedModules should haveKey("A")
-        loadedModules should haveKey("B")
-        loadedModules["A"] shouldBe moduleA
-        loadedModules["B"] shouldBe moduleB
+        runtimeEnv.loadedModules should haveKey("A")
+        runtimeEnv.loadedModules should haveKey("B")
+        runtimeEnv.loadedModules["A"] shouldBe moduleA
+        runtimeEnv.loadedModules["B"] shouldBe moduleB
     }
 }}

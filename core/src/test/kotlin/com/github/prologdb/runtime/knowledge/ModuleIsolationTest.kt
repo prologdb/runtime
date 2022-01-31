@@ -11,7 +11,7 @@ import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.shouldProve
-import com.github.prologdb.runtime.shouldProveWithinRuntime
+import com.github.prologdb.runtime.shouldProveInContextOfModule
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
@@ -248,14 +248,14 @@ class ModuleIsolationTest : FreeSpec({
                     moduleLoader
                 )
 
-                moduleA.shouldProveWithinRuntime(runtimeEnv, foo(R)) suchThat {
+                runtimeEnv.shouldProveInContextOfModule(moduleA.name, foo(R)) suchThat {
                     itHasExactlyOneSolution()
                     itHasASolutionSuchThat("R = a") {
                         it.variableValues[R] == a
                     }
                 }
 
-                moduleB.shouldProveWithinRuntime(runtimeEnv, foo(R)) suchThat {
+                runtimeEnv.shouldProveInContextOfModule(moduleB.name, foo(R)) suchThat {
                     itHasExactlyOneSolution()
                     itHasASolutionSuchThat("R = b") {
                         it.variableValues[R] == b
