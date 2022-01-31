@@ -36,7 +36,6 @@ import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetract1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinApply2
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCall1
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinColon2
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCompoundNameArguments3
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCurrentModule1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCurrentOp3
@@ -124,7 +123,6 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinApply2,
             BuiltinTermVariables2,
             BuiltinCurrentOp3,
-            BuiltinColon2,
             BuiltinCurrentModule1
         ),
         "essential(\$math)" to listOf(

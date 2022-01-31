@@ -8,7 +8,6 @@
 :- native apply/2.
 :- native term_variables/2.
 :- native current_op/3.
-:- native ':'/2.
 :- native current_module/1.
 
 :- module_transparent(findall/3).
@@ -17,7 +16,6 @@
 :- module_transparent(call/1).
 :- module_transparent(apply/2).
 :- module_transparent(current_op/3).
-:- module_transparent(':'/2).
 :- module_transparent(current_module/1).
 
 once(Goal) :- findnsols(1, Goal, Goal, [Goal]).
