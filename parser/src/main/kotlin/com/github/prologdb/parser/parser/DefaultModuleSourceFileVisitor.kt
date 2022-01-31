@@ -15,7 +15,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
     /**
      * If not-null: makes the module declaration implicit, the source file need not declare a module.
-     * It becomes an error for the source file to contain a `:- module` directive.
+     * If the source file declares a module anyways, it is an error for the names to differ.
      */
     protected val implicitModule: ModuleDeclaration? = null,
 
@@ -85,10 +85,14 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
                     )
                 )
             } else {
-                return listOf(SemanticError(
-                    "Module is implicitly declared as ${implicitModule.moduleName}, cannot declare it explicitly",
-                    location
-                ))
+                if (implicitModule.moduleName != declaration.moduleName) {
+                    return listOf(
+                        SemanticError(
+                            "Module is implicitly declared as ${implicitModule.moduleName}, cannot declare with name ${declaration.moduleName}",
+                            location
+                        )
+                    )
+                }
             }
         }
 
