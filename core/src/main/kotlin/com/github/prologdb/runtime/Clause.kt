@@ -81,5 +81,5 @@ data class FullyQualifiedClauseIndicator(
 
     override fun toString() = "$moduleName:$indicator"
 
-    fun toIdiomatic() = CompoundTerm(":", arrayOf(indicator.toIdiomatic()))
+    fun toIdiomatic() = CompoundTerm(":", arrayOf(Atom(moduleName), indicator.toIdiomatic()))
 }
