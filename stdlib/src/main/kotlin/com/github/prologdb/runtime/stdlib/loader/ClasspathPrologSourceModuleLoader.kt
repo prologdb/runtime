@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.stdlib.loader
 
-import com.github.prologdb.parser.ReportingException
+import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.lexer.LineEndingNormalizer
@@ -42,11 +42,11 @@ class ClasspathPrologSourceModuleLoader(
             sourceFileVisitorSupplier(reference)
         )
 
-        ReportingException.failOnError(result.reportings, "Failed to load module $reference")
+        ParseException.failOnError(result.reportings, "Failed to load module $reference")
         val module = result.item!!
 
         if (module.name != reference.moduleName) {
-            throw ReportingException.ofSingle(SemanticError(
+            throw ParseException.ofSingle(SemanticError(
                 "Source for module $reference declares a different module name (${module.name}).",
                 SourceLocation(sourceUnit, 0, 0, 0)
             ))

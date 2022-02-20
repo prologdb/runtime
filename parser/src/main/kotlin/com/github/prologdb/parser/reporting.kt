@@ -3,6 +3,7 @@ package com.github.prologdb.parser
 import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
+import com.github.prologdb.runtime.PrologException
 
 sealed class Reporting(val level: Level, val message: String, val location: SourceLocation) {
     override fun toString() = "$message in $location"
@@ -34,9 +35,9 @@ class SemanticWarning(message: String, location: SourceLocation): Reporting(Leve
 
 class SemanticInfo(message: String, location: SourceLocation): Reporting(Level.INFO, message, location)
 
-open class ReportingException private constructor(val reporting: Reporting, message: String, cause: Throwable? = null) : Exception(message, cause) {
+open class ParseException private constructor(val reporting: Reporting, message: String, cause: Throwable? = null) : PrologException(message, cause) {
     companion object {
-        fun ofSingle(single: Reporting, extraMessage: String? = null, cause: Throwable? = null) = ReportingException(
+        fun ofSingle(single: Reporting, extraMessage: String? = null, cause: Throwable? = null) = ParseException(
             single,
             if (extraMessage != null) "$extraMessage: $single" else single.toString(),
             cause
@@ -54,7 +55,7 @@ open class ReportingException private constructor(val reporting: Reporting, mess
             }
 
             val message = if (extraMessage != null) "$extraMessage: $reportingMessage" else reportingMessage
-            throw ReportingException(mostSevere, message, cause)
+            throw ParseException(mostSevere, message, cause)
         }
     }
 }

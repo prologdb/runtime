@@ -5,8 +5,8 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.async.mapRemainingNotNull
+import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.Reporting
-import com.github.prologdb.parser.ReportingException
 import com.github.prologdb.parser.SyntaxError
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.ParseResult
@@ -312,7 +312,7 @@ private fun Term.asCompound(): CompoundTerm {
         1
     )
 
-    throw ReportingException.ofSingle(SyntaxError("Expected compound term, got $prologTypeName", location))
+    throw ParseException.ofSingle(SyntaxError("Expected compound term, got $prologTypeName", location))
 }
 
 private class ParseErrorException(val reportings: Collection<Reporting>) : Exception(reportings.firstOrNull()?.run { "$message in $location" })
