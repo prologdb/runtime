@@ -1,11 +1,12 @@
 package com.github.prologdb.parser.lexer
 
+import com.github.prologdb.parser.ReportingException
+import com.github.prologdb.parser.UnexpectedEOFError
 import com.github.prologdb.parser.sequence.IteratorBasedTransactionalSequence
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.parser.source.SourceUnit
-import com.github.prologdb.runtime.PrologException
 
 class Lexer(source: Iterator<Char>, initialSourceLocation: SourceLocation) : TransactionalSequence<Token>
 {
@@ -357,7 +358,9 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         var stringContent = ""
         source.mark() // A
         while (true) {
-            if (!source.hasNext()) throw PrologException("Unexpected EOF in string starting at ${startToken.location.start}")
+            if (!source.hasNext()) {
+                throw ReportingException(UnexpectedEOFError("Unexpected EOF in string starting at ${startToken.location.start}"))
+            }
 
             // look for escape sequence
             source.mark() // B
@@ -367,7 +370,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
                 if (!source.hasNext()) {
                     source.rollback() // B
                     source.rollback() // A
-                    throw PrologException("Unexpected EOF after escape character in ${possibleEscapeChar.second}")
+                    throw ReportingException(UnexpectedEOFError("Unexpected EOF after escape character in ${possibleEscapeChar.second}"))
                 }
 
                 // if this is a special escape sequence, do a replacement
@@ -388,7 +391,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
                 // not enough chars left for the ending delimiter => unexpected eof
                 source.rollback() // B
                 source.rollback() // A
-                throw PrologException("Failed to parse string starting at ${startToken.location.start}: unexpected EOF, expected ${startToken.operator}")
+                throw ReportingException(UnexpectedEOFError("Failed to parse string starting at ${startToken.location.start}: unexpected EOF, expected ${startToken.operator}"))
             }
 
             if (possibleEndingOperatorText.first == startToken.operator.text) {

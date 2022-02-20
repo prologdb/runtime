@@ -6,8 +6,9 @@ import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDefinedException
+import com.github.prologdb.runtime.PredicateNotExportedException
 import com.github.prologdb.runtime.PrologPermissionError
-import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
@@ -68,20 +69,20 @@ class ModuleScopeProofSearchContext(
 
         if (moduleNameTerm.name == this.module.name) {
             val callable = module.allDeclaredPredicates[simpleIndicator]
-                ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in context of module ${this.module.name}")
+                ?: throw PredicateNotDefinedException(simpleIndicator, module)
 
             val fqIndicator = FullyQualifiedClauseIndicator(this.module.name, simpleIndicator)
             return Triple(fqIndicator, callable, unscopedGoal.arguments)
         }
 
         val module = runtimeEnvironment.loadedModules[moduleNameTerm.name]
-            ?: throw PrologRuntimeException("Module ${moduleNameTerm.name} not loaded")
+            ?: throw ModuleNotLoadedException(moduleNameTerm.name)
 
         val callable = module.exportedPredicates[simpleIndicator]
             ?: if (simpleIndicator in module.allDeclaredPredicates) {
-                throw PrologRuntimeException("Predicate $simpleIndicator not exported by module ${module.name}")
+                throw PredicateNotExportedException(FullyQualifiedClauseIndicator(module.name, simpleIndicator), this.module)
             } else {
-                throw PrologRuntimeException("Predicate $simpleIndicator not defined in module ${module.name}")
+                throw PredicateNotDefinedException(simpleIndicator, module)
             }
 
         return Triple(
@@ -91,7 +92,7 @@ class ModuleScopeProofSearchContext(
         )
     }
 
-    override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>? {
+    override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable> {
         module.allDeclaredPredicates[simpleIndicator]?.let { callable ->
             val fqIndicator = FullyQualifiedClauseIndicator(module.name, simpleIndicator)
             return Pair(fqIndicator, callable)
@@ -103,7 +104,7 @@ class ModuleScopeProofSearchContext(
             return Pair(fqIndicator, callable)
         }
 
-        return null
+        throw PredicateNotDefinedException(simpleIndicator, module)
     }
 
     override fun deriveForModuleContext(moduleName: String): ProofSearchContext {

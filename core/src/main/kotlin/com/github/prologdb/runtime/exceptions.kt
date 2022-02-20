@@ -2,6 +2,7 @@
 package com.github.prologdb.runtime
 
 import com.github.prologdb.runtime.exception.PrologStackTraceElement
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.prologTypeName
@@ -9,7 +10,7 @@ import com.github.prologdb.runtime.term.prologTypeName
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
  */
-open class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message) {
+abstract class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message) {
     private val _prologStackTrace = mutableListOf<PrologStackTraceElement>()
 
     fun addPrologStackFrame(frameInfo: PrologStackTraceElement) {
@@ -19,23 +20,36 @@ open class PrologException(message: String, override val cause: Throwable? = nul
     val prologStackTrace: List<PrologStackTraceElement> = _prologStackTrace
 }
 
-/**
- * Thrown when errors or warnings occur during the interpretation of a prolog program.
- */
-abstract class PrologRuntimeException(message: String, cause: Throwable? = null) : PrologException(message, cause)
-
-open class PrologInternalError(message: String, cause: Throwable? = null) : PrologRuntimeException(message, cause)
+open class PrologInternalError(message: String, cause: Throwable? = null) : PrologException(message, cause)
 
 open class PredicateNotDynamicException(val indicator: FullyQualifiedClauseIndicator, cause: Throwable? = null) : PrologException("Predicate $indicator is not dynamic", cause)
 
 open class PrologPermissionError(message: String, cause: Throwable? = null) : PrologException(message, cause)
+
+open class TermNotAssertableException(message: String) : PrologException(message)
+
+open class PredicateNotDefinedException(
+    val indicator: ClauseIndicator,
+    val inContextOfModule: Module,
+    message: String? = null
+) : PrologException(
+    message ?: "Predicate $indicator not defined in context of module ${inContextOfModule.name}"
+)
+
+open class PredicateNotExportedException(val fqi: FullyQualifiedClauseIndicator, inContextOfModule: Module) : PredicateNotDefinedException(
+    fqi.indicator,
+    inContextOfModule,
+    "Predicate ${fqi.indicator} is not exported by module ${fqi.moduleName}"
+)
+
+open class ArgumentError(message: String, cause: Throwable? = null) : PrologException(message, cause)
 
 class ArgumentTypeError(
     val predicate: ClauseIndicator?,
     val argumentIndex: Int,
     val actual: Term,
     vararg val expectedTypes: Class<out Term>
-) : PrologRuntimeException(StringBuilder().also { msg ->
+) : ArgumentError(StringBuilder().also { msg ->
     msg.append("Argument ")
     msg.append(argumentIndex + 1)
 
@@ -55,6 +69,13 @@ class ArgumentTypeError(
         msg.append(actual.prologTypeName)
     }
 }.toString()) {
+    constructor(argumentIndex: Int, actual: Term, vararg expectedTypes: Class<out Term>) : this(
+        null,
+        argumentIndex,
+        actual,
+        *expectedTypes
+    )
+
     private companion object {
         val Class<out Term>.expectedPhrase: String
             get() = if (Variable::class.java.isAssignableFrom(this)) "unbound" else "a $prologTypeName"

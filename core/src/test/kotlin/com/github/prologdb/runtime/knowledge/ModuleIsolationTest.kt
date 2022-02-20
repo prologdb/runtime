@@ -2,7 +2,7 @@ package com.github.prologdb.runtime.knowledge
 
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PredicateNotDefinedException
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
@@ -127,7 +127,7 @@ class ModuleIsolationTest : FreeSpec({
 
         val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleB, moduleLoader)
 
-        val ex = shouldThrow<PrologRuntimeException> {
+        val ex = shouldThrow<PredicateNotDefinedException> {
             runtimeEnv.fulfill(PredicateInvocationQuery(foo(R))).consumeAll()
         }
         ex.message shouldBe "Predicate a/1 not defined in context of module B"
@@ -172,7 +172,7 @@ class ModuleIsolationTest : FreeSpec({
             }
         }
 
-        val ex = shouldThrow<PrologRuntimeException> {
+        val ex = shouldThrow<PredicateNotDefinedException> {
             runtimeEnv.fulfill(PredicateInvocationQuery(CompoundTerm("bar", arrayOf(R)))).consumeAll()
         }
         ex.message shouldBe "Predicate c/1 not defined in context of module B"

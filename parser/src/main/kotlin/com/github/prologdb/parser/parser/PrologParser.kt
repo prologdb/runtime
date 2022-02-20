@@ -31,8 +31,8 @@ import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
+import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.Rule
@@ -924,7 +924,7 @@ class PrologParser {
                 reportings
             )
         } else {
-            throw PrologRuntimeException("argument 1 to use_module/2 must be either a list or an instance of except/1, got ${selectionTerm.prologTypeName}")
+            throw ArgumentError("Argument 2 to use_module/2 must be either a list or an instance of except/1, got ${selectionTerm.prologTypeName}")
         }
     }
 
@@ -1258,7 +1258,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
         }
         .map { (index, tokenOrTerm) -> Pair(index, opRegistry.getOperatorDefinitionsFor(tokenOrTerm.textContent)) }
         .filter { it.second.isNotEmpty() }
-        .maxBy { it.second.maxBy(OperatorDefinition::precedence)!!.precedence }
+        .maxByOrNull { it.second.maxByOrNull(OperatorDefinition::precedence)!!.precedence }
         ?: throw ExpressionASTBuildingException(SyntaxError("Operator expected", elements[0].location.end))
 
     val index = leftmostOperatorWithMostPrecedence.first
