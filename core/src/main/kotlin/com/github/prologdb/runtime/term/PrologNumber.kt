@@ -11,7 +11,7 @@ package com.github.prologdb.runtime.term
  * a way to store the source information.
  */
 @PrologTypeName("number")
-interface PrologNumber : Term {
+sealed interface PrologNumber : Term {
     operator fun plus(other: PrologNumber): PrologNumber
     operator fun minus(other: PrologNumber): PrologNumber
     operator fun times(other: PrologNumber): PrologNumber

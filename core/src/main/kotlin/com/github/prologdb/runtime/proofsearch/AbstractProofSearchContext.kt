@@ -5,8 +5,8 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.async.mapRemainingNotNull
-import com.github.prologdb.runtime.PrologStackTraceElement
-import com.github.prologdb.runtime.prologTry
+import com.github.prologdb.runtime.exception.PrologStackTraceElement
+import com.github.prologdb.runtime.exception.prologTry
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery

@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.stdlib.lists
 
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologNumber
@@ -101,7 +101,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
     val step = args.getTyped<PrologNumber>(3)
 
     if ((step.isInteger && step.toInteger() == 0L) || step.toDecimal() == 0.0) {
-        throw PrologRuntimeException("Argument 4 to iota/4 must not be 0.")
+        throw ArgumentError(3, "must not be 0.")
     }
 
     if (start == endExcl) {
@@ -126,7 +126,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
         val next = carry + step
         if (next == carry) {
             // step is too small in comparison to range
-            throw PrologRuntimeException("iota/4: step is too small for the range (IEEE 754 inprecision)")
+            throw ArgumentError(3, "step is too small for the range (IEEE 754 inprecision)")
         }
         // break condition
         if (isForward && next >= endExcl) return@generateSequence null

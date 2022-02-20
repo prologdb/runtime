@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.stdlib.essential
 
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
 import com.github.prologdb.runtime.stdlib.nativeRule
@@ -23,7 +23,7 @@ val BuiltinTypeof2 = nativeRule("typeof", 2) { args, ctxt ->
         val actualValueArg1 = Atom(arg0.prologTypeName)
         return@nativeRule arg1.unify(actualValueArg1, ctxt.randomVariableScope)
     } else {
-        if (arg1 !is Atom) throw PrologRuntimeException("Type error: argument 2 to typeof/2 must be an atom or unbound")
+        if (arg1 !is Atom) throw ArgumentTypeError(1, arg1, Atom::class.java, Variable::class.java)
 
         // typecheck; "abc" typeof list should also be true
         val correct =

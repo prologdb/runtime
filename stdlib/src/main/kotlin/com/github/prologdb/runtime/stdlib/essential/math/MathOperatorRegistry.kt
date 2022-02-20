@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.stdlib.essential.math
 
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.util.ArityMap
@@ -46,20 +46,25 @@ object MathOperatorRegistry {
      * Evaluates the given compound term as an arithmetic expression.
      */
     fun evaluate(compoundTerm: CompoundTerm): PrologNumber {
-        val calculator = getCalculator(compoundTerm.functor, compoundTerm.arity) ?: throw PrologRuntimeException("Arithmetic operator ${compoundTerm.functor}/${compoundTerm.arity} is not defined")
+        val calculator = getCalculator(compoundTerm.functor, compoundTerm.arity)
+            ?: throw UndefinedMathOperatorException(ClauseIndicator.of(compoundTerm))
         return calculator(compoundTerm)
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {
         registerOperator(operatorName, 1..1) { termAST ->
-            if (termAST.arity != 1 || termAST.functor != operatorName) throw PrologRuntimeException("Calculator for $operatorName/1 cannot be invoked with an instance of ${termAST.functor}/${termAST.arity}")
+            if (termAST.arity != 1 || termAST.functor != operatorName) {
+                throw InvalidMathOperatorInvocationException(ClauseIndicator.of(operatorName, 1), ClauseIndicator.of(termAST))
+            }
             calculator(termAST.arguments[0].asPrologNumber)
         }
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber, PrologNumber) -> PrologNumber) {
         registerOperator(operatorName, 2..2) { compoundTerm ->
-            if (compoundTerm.arity != 2 || compoundTerm.functor != operatorName) throw PrologRuntimeException("Calculator for $operatorName/2 cannot be invoked with an instance of ${compoundTerm.functor}/${compoundTerm.arity}")
+            if (compoundTerm.arity != 2 || compoundTerm.functor != operatorName) {
+                throw InvalidMathOperatorInvocationException(ClauseIndicator.of(operatorName, 2), ClauseIndicator.of(compoundTerm))
+            }
             calculator(compoundTerm.arguments[0].asPrologNumber, compoundTerm.arguments[1].asPrologNumber)
         }
     }

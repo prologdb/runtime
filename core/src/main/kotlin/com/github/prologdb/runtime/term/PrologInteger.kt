@@ -1,7 +1,6 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.NullSourceInformation
-import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
@@ -18,42 +17,36 @@ class PrologInteger(
         when(other) {
             is PrologInteger -> createUsingStringOptimizerCache(this.value + other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() + other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun minus(other: PrologNumber) =
         when(other) {
             is PrologInteger -> createUsingStringOptimizerCache(this.value - other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() - other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun times(other: PrologNumber) =
         when(other) {
             is PrologInteger -> createUsingStringOptimizerCache(this.value * other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() * other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun div(other: PrologNumber) =
         when(other) {
             is PrologInteger -> createUsingStringOptimizerCache(this.value / other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() / other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun rem(other: PrologNumber) =
         when(other) {
             is PrologInteger -> createUsingStringOptimizerCache(this.value % other.value)
             is PrologDecimal -> PrologDecimal(this.value.toDouble() % other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
             is PrologInteger -> createUsingStringOptimizerCache(this.value.toDouble().pow(other.value.toDouble()).toLong())
             is PrologDecimal -> PrologDecimal(this.value.toDouble().pow(other.value))
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
     }
 
@@ -69,7 +62,6 @@ class PrologInteger(
         when(other) {
             is PrologInteger -> this.value.compareTo(other.value)
             is PrologDecimal -> this.value.compareTo(other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {

@@ -5,7 +5,7 @@ import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PredicateNotDefinedException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -44,7 +44,8 @@ interface ProofSearchContext {
      * Resolves the given, context-sensitive indicator against the contexts imports
      * to the [PrologPredicate] it currently refers to.
      */
-    fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>?
+    @Throws(PredicateNotDefinedException::class)
+    fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable>
 
     /**
      * @return if goal is an instance of `:/2` and the referred predicate exists
@@ -75,7 +76,6 @@ interface ProofSearchContext {
         val simpleIndicator = ClauseIndicator.of(head)
 
         val resolved = resolveCallable(simpleIndicator)
-            ?: throw PrologRuntimeException("Predicate $simpleIndicator not defined in $this")
         val fqIndicator = resolved.first
 
         return Triple(

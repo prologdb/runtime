@@ -1,7 +1,7 @@
 package com.github.prologdb.runtime.stdlib.essential.dynamic
 
 import com.github.prologdb.runtime.ArgumentTypeError
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -21,19 +21,19 @@ val BuiltinCompoundNameArguments3 = nativeRule("compound_name_arguments", 3) { a
     }
 
     if (compoundInput !is Variable) {
-        throw ArgumentTypeError(args.indicator, 0, compoundInput, Variable::class.java, CompoundTerm::class.java)
+        throw ArgumentTypeError(0, compoundInput, Variable::class.java, CompoundTerm::class.java)
     }
 
     val desiredFunctor = when (val desiredFunctorInput = args[1]) {
         is Atom -> desiredFunctorInput.name
         is PrologString -> desiredFunctorInput.toKotlinString()
-        else -> throw ArgumentTypeError(args.indicator, 1, desiredFunctorInput, Atom::class.java, PrologString::class.java)
+        else -> throw ArgumentTypeError(1, desiredFunctorInput, Atom::class.java, PrologString::class.java)
     }
 
     val desiredArgumentsInput = args.getTyped<PrologList>(2)
 
     if (desiredArgumentsInput.tail != null) {
-        throw PrologRuntimeException("If argument 1 to compound_name_arguments/3 is unbound, argument 3 must not have a tail")
+        throw PrologInvocationContractViolationException("If argument 1 is unbound, argument 3 must not have a tail")
     }
 
     return@nativeRule compoundInput.unify(CompoundTerm(desiredFunctor, desiredArgumentsInput.elements.toTypedArray()), ctxt.randomVariableScope)

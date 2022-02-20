@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.stdlib.lists
 
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
@@ -22,7 +22,7 @@ internal val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
         val arg0 = args[0] as Variable
         val arg1 = args.getTyped<PrologList>(1)
         if (arg1.tail != null) {
-            throw PrologRuntimeException("Argument 2 to set/2 must not have a tail")
+            throw ArgumentError(1, "must not have a tail")
         }
 
         val isSet = arg1.elements.size == arg1.elements.toSet().size
@@ -36,7 +36,7 @@ internal val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
     } else {
         val arg0 = args.getTyped<PrologList>(0)
         if (arg0.tail != null) {
-            throw PrologRuntimeException("Argument 1 to set/2 must not have a tail")
+            throw throw ArgumentError(0, "must not have a tail")
         }
         val arg1 = args.getTyped<Variable>(1)
 

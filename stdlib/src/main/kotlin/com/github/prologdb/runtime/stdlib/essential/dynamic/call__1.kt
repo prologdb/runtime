@@ -13,7 +13,7 @@ internal val BuiltinCall1 = nativeRule("call", 1) { args, ctxt ->
     val goal = when (goalInput) {
         is CompoundTerm -> goalInput
         is Atom -> CompoundTerm(goalInput.name, emptyArray())
-        else -> throw ArgumentTypeError(args.indicator, 0, goalInput, Atom::class.java, CompoundTerm::class.java)
+        else -> throw ArgumentTypeError(0, goalInput, Atom::class.java, CompoundTerm::class.java)
     }
 
     ctxt.fulfillAttach(

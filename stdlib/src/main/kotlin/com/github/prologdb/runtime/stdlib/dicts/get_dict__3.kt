@@ -14,7 +14,7 @@ val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
     val valueArg = args[2]
 
     if (keyArg !is Atom && keyArg !is Variable) {
-        throw ArgumentTypeError(args.indicator, 0, keyArg, Atom::class.java, Variable::class.java)
+        throw ArgumentTypeError(0, keyArg, Atom::class.java, Variable::class.java)
     }
 
     if (keyArg is Variable) {

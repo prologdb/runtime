@@ -17,7 +17,7 @@ internal val BuiltinFindAll3 = nativeRule("findall", 3) { args, context ->
     val solutionInput = args[2]
 
     if (solutionInput !is Variable && solutionInput !is PrologList) {
-        throw ArgumentTypeError(args.indicator, 2, solutionInput, PrologList::class.java, Variable::class.java)
+        throw ArgumentTypeError(2, solutionInput, PrologList::class.java, Variable::class.java)
     }
 
     val resultList = buildLazySequence<Unification>(principal) {

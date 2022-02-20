@@ -9,7 +9,7 @@ import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PredicateNotDynamicException
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologInternalError
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
@@ -166,7 +166,7 @@ class ASTPrologPredicate(
                         }
                     }
                 } else {
-                    throw PrologRuntimeException("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
+                    throw PrologInternalError("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
                 }
             }
         }
@@ -176,7 +176,7 @@ class ASTPrologPredicate(
 
     override fun assertz(clause: Clause) {
         if (ClauseIndicator.of(clause) != indicator) {
-            throw PrologRuntimeException("Cannot add clause $clause to predicate $indicator: different indicator")
+            throw PrologInternalError("Cannot add clause $clause to predicate $indicator: different indicator")
         }
 
         if (isSealed) {
@@ -191,7 +191,7 @@ class ASTPrologPredicate(
     override val retract: suspend LazySequenceBuilder<Unification>.(CompoundTerm, ProofSearchContext) -> Unification? =
         retract@{ matching, ctxt ->
             if (isSealed) {
-                throw PredicateNotDynamicException(indicator)
+                throw PredicateNotDynamicException(fqIndicator)
             }
 
             while (true) {

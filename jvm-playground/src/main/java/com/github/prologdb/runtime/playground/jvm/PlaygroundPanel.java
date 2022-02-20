@@ -10,7 +10,7 @@ import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment;
-import com.github.prologdb.runtime.PrologRuntimeException;
+import com.github.prologdb.runtime.PrologException;
 import com.github.prologdb.runtime.module.Module;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
@@ -110,7 +110,7 @@ public class PlaygroundPanel {
         queryPanel.addQueryFiredListener((panel, query) -> onQueryFired(query));
     }
 
-    private void assureKnowledgeBaseIsUpToDate() throws ParseException, PrologRuntimeException
+    private void assureKnowledgeBaseIsUpToDate() throws ParseException, PrologException
     {
         if (runtimeEnvironment != null && !knowledgeBaseChangeIndicator) {
             return;
@@ -153,7 +153,7 @@ public class PlaygroundPanel {
         catch (ParseException ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Error in knowledge base", JOptionPane.ERROR_MESSAGE);
             return;
-        } catch (PrologRuntimeException ex) {
+        } catch (PrologException ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Failed to load user knowledge base", JOptionPane.ERROR_MESSAGE);
             return;
         }
