@@ -33,6 +33,8 @@ open class InsufficientInstantiationException(val variable: Variable, message: S
     "$variable is not sufficiently instantiated"
 )
 
+open class CircularTermException(message: String) : PrologInternalError(message)
+
 open class PredicateNotDefinedException(
     val indicator: ClauseIndicator,
     val inContextOfModule: Module,
