@@ -27,7 +27,9 @@ open class PredicateNotDynamicException(val indicator: FullyQualifiedClauseIndic
 
 open class PrologPermissionError(message: String, cause: Throwable? = null) : PrologException(message, cause)
 
-open class TermNotAssertableException(message: String) : PrologException(message)
+open class PrologUnsupportedOperationException(message: String, cause: Throwable? = null) : PrologException(message, cause)
+
+open class TermNotAssertableException(message: String) : PrologUnsupportedOperationException(message)
 
 open class InsufficientInstantiationException(val variable: Variable, message: String? = null) : PrologException(
     "$variable is not sufficiently instantiated"
