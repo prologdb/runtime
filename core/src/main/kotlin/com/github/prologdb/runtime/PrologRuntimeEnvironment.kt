@@ -3,10 +3,12 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.PrologRuntimeEnvironment.Companion.buildModuleLookupTable
+import com.github.prologdb.runtime.module.InvalidImportException
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleNotFoundException
+import com.github.prologdb.runtime.module.ModuleNotLoadedException
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
 import com.github.prologdb.runtime.module.NoopModuleLoader
@@ -37,7 +39,7 @@ interface PrologRuntimeEnvironment {
                 forModule.imports.asSequence()
                     .forEach { import ->
                         val referencedModule = allModules[import.moduleReference.moduleName]
-                            ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
+                            ?: throw ModuleNotLoadedException("Imported module ${import.moduleReference} not loaded in proof search context")
 
                         val visiblePredicates: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>> = when (import) {
                             is ModuleImport.Full      -> referencedModule.exportedPredicates
@@ -47,7 +49,8 @@ interface PrologRuntimeEnvironment {
                             is ModuleImport.Selective -> import.imports
                                 .map { (exportedIndicator, alias) ->
                                     val callable = referencedModule.exportedPredicates[exportedIndicator]
-                                        ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
+                                        ?: throw InvalidImportException(forModule.name, import, "Predicate $exportedIndicator not exported by module ${import.moduleReference}")
+
                                     if (exportedIndicator.functor == alias) {
                                         exportedIndicator to Pair(import.moduleReference, callable)
                                     } else {
@@ -152,7 +155,7 @@ open class DefaultPrologRuntimeEnvironment(
             return deriveFrom
         }
 
-        val module = _loadedModules[moduleName] ?: throw PrologRuntimeException("Module $moduleName is not loaded.")
+        val module = _loadedModules[moduleName] ?: throw ModuleNotLoadedException(moduleName)
         return ModuleScopeProofSearchContext(
             module,
             this,

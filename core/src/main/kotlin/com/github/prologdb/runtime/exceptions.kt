@@ -1,8 +1,7 @@
 @file:JvmName("PrologExceptionUtils")
 package com.github.prologdb.runtime
 
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.prologTypeName
@@ -70,43 +69,5 @@ class ArgumentTypeError(
                     "$most or ${last().expectedPhrase}"
                 }
             }
-    }
-}
-
-open class ArgumentNotInstantiatedError(
-    predicate: FullyQualifiedClauseIndicator,
-    argumentIndex: Int,
-    vararg expected: String
-) : ArgumentTypeError(
-    predicate,
-    argumentIndex,
-    "variable",
-    expected,
-    "Type error: argument ${argumentIndex + 1} to $predicate is not sufficiently instantiated. Expected " +
-        (if (expected.size > 1) "either of " else "") + expected.joinToString()
-)
-
-data class PrologStackTraceElement @JvmOverloads constructor(
-    val goal: CompoundTerm,
-    val sourceInformation: PrologSourceInformation,
-    val module: Module? = null,
-    val toStringOverride: String? = null
-) {
-    override fun toString() = toStringOverride ?: run {
-        val modulePrefix = if (module == null) "" else "module ${module.name}, "
-        "$goal   $modulePrefix${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
-    }
-}
-
-/**
- * Runs the code; if it throws a [PrologException], amends the [PrologException.stackTrace] with
- * the given [PrologStackTraceElement].
- */
-inline fun <T> prologTry(crossinline onErrorStackTraceElement: () -> PrologStackTraceElement, code: () -> T): T {
-    try {
-        return code()
-    } catch (ex: PrologException) {
-        ex.addPrologStackFrame(onErrorStackTraceElement())
-        throw ex
     }
 }
