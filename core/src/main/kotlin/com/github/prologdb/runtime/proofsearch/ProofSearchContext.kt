@@ -52,6 +52,7 @@ interface ProofSearchContext {
      * and is callable: first: the fqn of the referred callable, second: the callable
      * third: the invocation arguments
      */
+    @Throws(PredicateNotDefinedException::class)
     fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>?
 
     /**
@@ -68,6 +69,7 @@ interface ProofSearchContext {
      * second: the predicate itself, third: the given `head` term but the functor
      * is assured to be the actual name of the predicate (relevant for local lookups with aliases).
      */
+    @Throws(PredicateNotDefinedException::class)
     fun resolveHead(head: CompoundTerm): Triple<FullyQualifiedClauseIndicator, PrologCallable, CompoundTerm> {
         resolveModuleScopedCallable(head)?.let { fqTerm ->
             return Triple(fqTerm.first, fqTerm.second, CompoundTerm(fqTerm.second.functor, fqTerm.third))
