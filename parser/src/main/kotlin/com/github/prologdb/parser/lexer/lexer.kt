@@ -359,7 +359,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
         source.mark() // A
         while (true) {
             if (!source.hasNext()) {
-                throw ReportingException(UnexpectedEOFError("Unexpected EOF in string starting at ${startToken.location.start}"))
+                throw ReportingException.ofSingle(UnexpectedEOFError("Unexpected EOF in string starting at ${startToken.location.start}"))
             }
 
             // look for escape sequence
@@ -370,7 +370,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
                 if (!source.hasNext()) {
                     source.rollback() // B
                     source.rollback() // A
-                    throw ReportingException(UnexpectedEOFError("Unexpected EOF after escape character in ${possibleEscapeChar.second}"))
+                    throw ReportingException.ofSingle(UnexpectedEOFError("Unexpected EOF after escape character in ${possibleEscapeChar.second}"))
                 }
 
                 // if this is a special escape sequence, do a replacement
@@ -391,7 +391,7 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
                 // not enough chars left for the ending delimiter => unexpected eof
                 source.rollback() // B
                 source.rollback() // A
-                throw ReportingException(UnexpectedEOFError("Failed to parse string starting at ${startToken.location.start}: unexpected EOF, expected ${startToken.operator}"))
+                throw ReportingException.ofSingle(UnexpectedEOFError("Failed to parse string starting at ${startToken.location.start}: unexpected EOF, expected ${startToken.operator}"))
             }
 
             if (possibleEndingOperatorText.first == startToken.operator.text) {

@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.stdlib.essential.dynamic
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
@@ -36,17 +36,15 @@ import com.github.prologdb.runtime.unification.VariableBucket
  */
 internal val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
     val templateInput = args[0]
-    val goalInput = args[1]
+    val goalInput = args.getTyped<CompoundTerm>(1)
     val solutionInput = args[2]
-
-    if (goalInput !is CompoundTerm) throw PrologRuntimeException("Type error: second argument to findall_o/3 must be a query.")
 
     if (solutionInput is Variable) {
         // no optimization possible, same behaviour as findall/3
         BuiltinFindAll3.fulfill(this, args.raw, context)
     }
     else {
-        solutionInput as? PrologList ?: throw PrologRuntimeException("Type error: third argument to findall_o/3 must be a list or not instantiated.")
+        solutionInput as? PrologList ?: throw ArgumentTypeError(2, solutionInput, PrologList::class.java, Variable::class.java)
 
         if (solutionInput.tail != null && solutionInput.tail != Variable.ANONYMOUS) {
             // this cannot be optimized, it requires all solutions for correct behaviour

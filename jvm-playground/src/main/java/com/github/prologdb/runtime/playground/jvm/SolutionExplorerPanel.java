@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.runtime.PrologException;
-import com.github.prologdb.runtime.PrologRuntimeException;
 import com.github.prologdb.runtime.unification.Unification;
 import com.github.prologdb.runtime.util.OperatorRegistry;
 
@@ -164,7 +163,7 @@ public class SolutionExplorerPanel {
             } catch (NoSuchElementException ex) {
                 addSolutionComponent(createFalseComponent());
                 setDepleted();
-            } catch (PrologRuntimeException e) {
+            } catch (PrologException e) {
                 addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
                 e.printStackTrace(System.err);
                 setDepleted();
@@ -200,7 +199,7 @@ public class SolutionExplorerPanel {
                         break;
                     }
                 }
-            } catch (PrologRuntimeException e) {
+            } catch (PrologException e) {
                 addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
                 e.printStackTrace(System.err);
                 setDepleted();

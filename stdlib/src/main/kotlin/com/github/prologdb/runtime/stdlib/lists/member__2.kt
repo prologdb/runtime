@@ -27,6 +27,6 @@ internal val BuiltinMember2 = nativeRule("member", 2) { args, ctxt ->
             }
             @Suppress("UNREACHABLE_CODE") null
         }
-        else -> throw ArgumentTypeError(args.indicator, 1, list, PrologList::class.java, Variable::class.java)
+        else -> throw ArgumentTypeError(1, list, PrologList::class.java, Variable::class.java)
     }
 }

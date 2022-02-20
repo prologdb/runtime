@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.stdlib.essential.dynamic
 
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentError
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
@@ -11,7 +12,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
 val BuiltinApply2 = nativeRule("apply", 2) { args, ctxt ->
     val arguments = args.getTyped<PrologList>(1)
     if (arguments.tail != null) {
-        throw PrologRuntimeException("Argument 2 to apply/2 must not have a tail.")
+        throw ArgumentError(1, "must not have a tail")
     }
 
     when (val targetInput = args[0]) {
@@ -23,6 +24,6 @@ val BuiltinApply2 = nativeRule("apply", 2) { args, ctxt ->
             val actualGoal = CompoundTerm(targetInput.name, arguments.elements.toTypedArray())
             ctxt.fulfillAttach(this, PredicateInvocationQuery(actualGoal, targetInput.sourceInformation), VariableBucket())
         }
-        else -> throw PrologRuntimeException("Argument 1 to apply/2 must be a compound term or an atom, got ${targetInput.prologTypeName}")
+        else -> throw ArgumentTypeError(0, args[0], CompoundTerm::class.java, Atom::class.java)
     }
 }

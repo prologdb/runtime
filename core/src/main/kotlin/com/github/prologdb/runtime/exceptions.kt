@@ -6,6 +6,7 @@ import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.prologTypeName
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
@@ -28,6 +29,10 @@ open class PrologPermissionError(message: String, cause: Throwable? = null) : Pr
 
 open class TermNotAssertableException(message: String) : PrologException(message)
 
+open class InsufficientInstantiationException(val variable: Variable, message: String? = null) : PrologException(
+    "$variable is not sufficiently instantiated"
+)
+
 open class PredicateNotDefinedException(
     val indicator: ClauseIndicator,
     val inContextOfModule: Module,
@@ -42,14 +47,26 @@ open class PredicateNotExportedException(val fqi: FullyQualifiedClauseIndicator,
     "Predicate ${fqi.indicator} is not exported by module ${fqi.moduleName}"
 )
 
-open class ArgumentError(message: String, cause: Throwable? = null) : PrologException(message, cause)
+open class PrologInvocationContractViolationException(private val initialIndicator: ClauseIndicator?, message: String, cause: Throwable? = null) : PrologException(message, cause) {
+    constructor(message: String, cause: Throwable? = null) : this(null, message, cause)
 
-class ArgumentTypeError(
-    val predicate: ClauseIndicator?,
+    private val actualIndicator = AtomicReference<ClauseIndicator>(initialIndicator)
+    val indicator: ClauseIndicator?
+        get() = actualIndicator.get()
+
+    fun fillIndicator(indicator: ClauseIndicator) {
+        if (!actualIndicator.compareAndSet(null, indicator)) {
+            throw IllegalStateException("The indicator can only be set once.")
+        }
+    }
+}
+
+open class ArgumentError(
+    predicate: ClauseIndicator?,
     val argumentIndex: Int,
-    val actual: Term,
-    vararg val expectedTypes: Class<out Term>
-) : ArgumentError(StringBuilder().also { msg ->
+    message: String,
+    cause: Throwable? = null
+) : PrologInvocationContractViolationException(predicate, StringBuilder().also { msg ->
     msg.append("Argument ")
     msg.append(argumentIndex + 1)
 
@@ -57,7 +74,18 @@ class ArgumentTypeError(
         msg.append(" to ")
         msg.append(predicate.toString())
     }
+    msg.append(' ')
+    msg.append(message)
+}.toString(), cause) {
+    constructor(argumentIndex: Int, message: String, cause: Throwable? = null) : this(null, argumentIndex, message, cause)
+}
 
+class ArgumentTypeError(
+    predicate: ClauseIndicator?,
+    argumentIndex: Int,
+    val actual: Term,
+    vararg val expectedTypes: Class<out Term>
+) : ArgumentError(predicate, argumentIndex, StringBuilder().also { msg ->
     if (actual is Variable) {
         msg.append(" not sufficiently instantiated (expected ")
         msg.append(expectedTypes.expectedPhrase)

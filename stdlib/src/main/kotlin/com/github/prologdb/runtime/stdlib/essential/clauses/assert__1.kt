@@ -4,7 +4,7 @@ import com.github.prologdb.parser.lexer.Operator
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.PredicateNotDynamicException
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.TermNotAssertableException
 import com.github.prologdb.runtime.proofsearch.DynamicPrologPredicate
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.stdlib.nativeRule
@@ -20,7 +20,7 @@ val BuiltinAssert1 = nativeRule("assert", 1) { args, ctxt ->
 
     if (clause.functor == Operator.HEAD_QUERY_SEPARATOR.text && clause.arity == 2) {
         if (clause.arguments[0] is CompoundTerm) {
-            throw PrologRuntimeException("Asserting rules is not supported.")
+            throw TermNotAssertableException("Asserting rules is not supported.")
         }
     }
 

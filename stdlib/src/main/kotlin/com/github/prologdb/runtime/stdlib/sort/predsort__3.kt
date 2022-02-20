@@ -1,7 +1,8 @@
 package com.github.prologdb.runtime.stdlib.sort
 
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.ArgumentError
+import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinApply2
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
@@ -18,7 +19,7 @@ internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
     val sorted = args[2]
 
     if (unsorted.tail != null) {
-        throw PrologRuntimeException("Argument 2 to predsort/3 must not have a tail")
+        throw ArgumentError(1, "must not have a tail")
     }
 
     val comparator = Comparator<Term> { termA, termB ->
@@ -30,21 +31,21 @@ internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
         comparatorResultSequence.close()
 
         if (firstResult == null) {
-            throw PrologRuntimeException("Comparator predicate did not yield a solution.")
+            throw PrologInvocationContractViolationException("Comparator predicate did not yield a solution.")
         }
 
         if (!firstResult.variableValues.isInstantiated(Delta)) {
-            throw PrologRuntimeException("Comparator predicate did not instantiate first argument")
+            throw PrologInvocationContractViolationException("Comparator predicate did not instantiate first argument")
         }
 
         val delta = firstResult.variableValues[Delta] as? Atom
-            ?: throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
+            ?: throw PrologInvocationContractViolationException("Comparator predicate must instantiate first argument to either <, = or >")
 
         when (delta.name) {
             "<" -> -1
             "=" -> 0
             ">" -> 1
-            else -> throw PrologRuntimeException("Comparator predicate must instantiate first argument to either <, = or >")
+            else -> throw PrologInvocationContractViolationException("Comparator predicate must instantiate first argument to either <, = or >")
         }
     }
 

@@ -1,18 +1,21 @@
 package com.github.prologdb.runtime.stdlib
 
 import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologException
-import com.github.prologdb.runtime.PrologRuntimeException
-import com.github.prologdb.runtime.PrologStackTraceElement
+import com.github.prologdb.runtime.PrologInternalError
+import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
+import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.proofsearch.PrologCallableFulfill
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
@@ -68,10 +71,13 @@ class NativeCodeRule(name: String, arity: Int, definedAt: StackTraceElement, cod
             try {
                 code(this, typeSafeArguments, context)
             } catch (ex: PrologException) {
+                if (ex is PrologInvocationContractViolationException && ex.indicator == null) {
+                    ex.fillIndicator(indicator)
+                }
                 ex.addPrologStackFrame(builtinStackFrame)
                 throw ex
             } catch (ex: Throwable) {
-                val newEx = PrologRuntimeException(ex.message ?: "", ex)
+                val newEx = PrologInternalError(ex.message ?: "", ex)
                 newEx.addPrologStackFrame(builtinStackFrame)
 
                 throw newEx
@@ -89,4 +95,29 @@ fun nativeRule(name: String, arity: Int, code: NativePredicateFulfill): NativeCo
 
 fun nativeRule(name: String, arity: Int, definedAt: StackTraceElement, code: NativePredicateFulfill): NativeCodeRule {
     return NativeCodeRule(name, arity, definedAt, code)
+}
+
+inline fun <reified From : Term, reified To : Term> nativeConversionRule(name: String, crossinline aToB: (From) -> To, crossinline bToA: (To) -> From) : NativeCodeRule = nativeRule(name, 2, getInvocationStackFrame()) { args, ctxt ->
+    val inputForA = args[0]
+    val inputForB = args[1]
+
+    if (inputForA !is Variable) {
+        if (inputForA !is From) {
+            throw ArgumentTypeError(0, inputForA, From::class.java)
+        }
+
+        val convertedB = aToB(inputForA)
+        return@nativeRule convertedB.unify(inputForB, ctxt.randomVariableScope)
+    }
+
+    if (inputForB !is Variable) {
+        if (inputForB !is To) {
+            throw ArgumentTypeError(1, inputForB, To::class.java)
+        }
+
+        val convertedA = bToA(inputForB)
+        return@nativeRule  inputForA.unify(convertedA, ctxt.randomVariableScope)
+    }
+
+    throw PrologInvocationContractViolationException("At least one argument to ${args.indicator} must be instantiated")
 }

@@ -1,7 +1,8 @@
 package com.github.prologdb.runtime.stdlib.lists
 
+import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.ArgumentTypeError
-import com.github.prologdb.runtime.PrologRuntimeException
+import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologInteger
@@ -21,7 +22,7 @@ internal val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                 when (arg1) {
                     is PrologInteger -> {
                         if (arg1.value < 0) {
-                            throw PrologRuntimeException("Argument 2 to length/2 must not be negative")
+                            throw ArgumentError(1, "must not be negative")
                         }
                         return@nativeRule arg0.tail!!.unify(listOfLength(arg1.value.toInt(), ctxt), ctxt.randomVariableScope)
                     }
@@ -38,7 +39,7 @@ internal val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                         @Suppress("UNREACHABLE_CODE")
                         null
                     }
-                    else -> throw ArgumentTypeError(args.indicator, 1, arg1, PrologInteger::class.java, Variable::class.java)
+                    else -> throw ArgumentTypeError(1, arg1, PrologInteger::class.java, Variable::class.java)
                 }
             } else {
                 val length = PrologInteger.createUsingStringOptimizerCache(arg0.elements.size.toLong())
@@ -62,11 +63,11 @@ internal val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                     return@nativeRule listOfLength(arg1.value.toInt(), ctxt).unify(arg0, ctxt.randomVariableScope)
                 }
                 else -> {
-                    throw PrologRuntimeException("If argument 1 to length/2 is a variable, argument 2 must be an integer or a variable (got ${arg1.prologTypeName})")
+                    throw PrologInvocationContractViolationException("If argument 1 is a variable, argument 2 must be an integer or a variable (got ${arg1.prologTypeName})")
                 }
             }
         }
-        else -> throw ArgumentTypeError(args.indicator, 0, arg0, PrologList::class.java, Variable::class.java)
+        else -> throw ArgumentTypeError(0, arg0, PrologList::class.java, Variable::class.java)
     }
 }
 

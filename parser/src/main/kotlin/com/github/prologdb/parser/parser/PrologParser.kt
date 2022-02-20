@@ -2,7 +2,6 @@ package com.github.prologdb.parser.parser
 
 import com.github.prologdb.parser.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
-import com.github.prologdb.parser.ReportingException
 import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.SemanticWarning
 import com.github.prologdb.parser.SyntaxError
@@ -924,7 +923,11 @@ class PrologParser {
                 reportings
             )
         } else {
-            throw ArgumentError("Argument 2 to use_module/2 must be either a list or an instance of except/1, got ${selectionTerm.prologTypeName}")
+            throw ArgumentError(
+                ClauseIndicator.of("use_module", 2),
+                1,
+                "must be either a list or an instance of except/1, got ${selectionTerm.prologTypeName}"
+            )
         }
     }
 
@@ -1233,7 +1236,7 @@ private fun TokenOrTerm.asTerm(): Term {
     throw InternalParserError()
 }
 
-private class ExpressionASTBuildingException(reporting: Reporting) : ReportingException(reporting)
+private class ExpressionASTBuildingException(val reporting: Reporting) : RuntimeException()
 
 /**
  * @return The parsed term and the [OperatorDefinition] of its operator; if the parsed term does not involve an

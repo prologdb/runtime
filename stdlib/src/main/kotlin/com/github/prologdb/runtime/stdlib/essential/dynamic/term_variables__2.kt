@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.term.Variable
 val BuiltinTermVariables2 = nativeRule("term_variables", 2) { args, ctxt ->
     val target = args[1]
     if (target !is Variable && target !is PrologList) {
-        throw ArgumentTypeError(args.indicator, 1, target, Variable::class.java, PrologList::class.java)
+        throw ArgumentTypeError(1, target, Variable::class.java, PrologList::class.java)
     }
 
     return@nativeRule PrologList(args[0].variables.toList()).unify(target, ctxt.randomVariableScope)

@@ -24,7 +24,7 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
     val solutionInput = args[3]
 
     if (solutionInput !is Variable && solutionInput !is PrologList) {
-        throw ArgumentTypeError(args.indicator, 3, solutionInput, Variable::class.java, PrologList::class.java)
+        throw ArgumentTypeError(3, solutionInput, Variable::class.java, PrologList::class.java)
     }
 
     val resultList = await(launchWorkableFuture(principal) {

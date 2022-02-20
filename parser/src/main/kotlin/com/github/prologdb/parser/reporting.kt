@@ -34,4 +34,27 @@ class SemanticWarning(message: String, location: SourceLocation): Reporting(Leve
 
 class SemanticInfo(message: String, location: SourceLocation): Reporting(Level.INFO, message, location)
 
-open class ReportingException(val reporting: Reporting, cause: Throwable? = null) : Exception(reporting.message, cause)
+open class ReportingException private constructor(val reporting: Reporting, message: String, cause: Throwable? = null) : Exception(message, cause) {
+    companion object {
+        fun ofSingle(single: Reporting, extraMessage: String? = null, cause: Throwable? = null) = ReportingException(
+            single,
+            if (extraMessage != null) "$extraMessage: $single" else single.toString(),
+            cause
+        )
+
+        fun failOnError(reportings: Collection<Reporting>, extraMessage: String? = null, cause: Throwable? = null) : Unit {
+            val mostSevere = reportings.maxByOrNull { it.level } ?: return
+            if (mostSevere.level < Reporting.Level.ERROR) {
+                return
+            }
+
+            var reportingMessage = mostSevere.toString()
+            if (reportings.size > 1) {
+                reportingMessage += " (and ${reportings.size - 1} more)"
+            }
+
+            val message = if (extraMessage != null) "$extraMessage: $reportingMessage" else reportingMessage
+            throw ReportingException(mostSevere, message, cause)
+        }
+    }
+}
