@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.VariableBucket
 
-internal val BuiltinCall1 = nativeRule("call", 1) { args, ctxt ->
+val BuiltinCall1 = nativeRule("call", 1) { args, ctxt ->
     val goalInput = args[0]
 
     val goal = when (goalInput) {

@@ -34,7 +34,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *   If the number of solutions found exactly matches the number of elements, unification can proceed
  *   as usual; exposing the same behaviour as `findall/3`.
  */
-internal val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
+val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args.getTyped<CompoundTerm>(1)
     val solutionInput = args[2]

@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 
-internal val BuiltinStringCodes2 = nativeConversionRule<PrologString, PrologList>(
+val BuiltinStringCodes2 = nativeConversionRule<PrologString, PrologList>(
     "string_codes",
     { str -> PrologList(str.characters.map { PrologInteger(it.code.toLong()) }) },
     { list ->

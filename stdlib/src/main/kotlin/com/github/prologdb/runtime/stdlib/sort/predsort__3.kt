@@ -13,7 +13,7 @@ import com.github.prologdb.runtime.unification.Unification
 
 private val Delta = Variable("Delta")
 
-internal val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
+val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
     val prologComparator = args[0]
     val unsorted = args.getTyped<PrologList>(1)
     val sorted = args[2]

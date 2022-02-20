@@ -11,7 +11,7 @@ import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-internal val BuiltinFindAll3 = nativeRule("findall", 3) { args, context ->
+val BuiltinFindAll3 = nativeRule("findall", 3) { args, context ->
     val templateInput = args[0]
     val goalInput = args.getTyped<CompoundTerm>(1)
     val solutionInput = args[2]

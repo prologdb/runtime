@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 
-internal val BuiltinAtomString2 = nativeConversionRule<Term, PrologString>(
+val BuiltinAtomString2 = nativeConversionRule<Term, PrologString>(
     "atom_string",
     { atom -> when(atom) {
         is PrologInteger -> PrologString(atom.value.toString())

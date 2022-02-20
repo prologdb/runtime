@@ -24,7 +24,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * is consulted; e.g. `set([1, 1, 2], X, ==)` would try to proof `==(1, 1)` to check
  * whether the two `1`s are equal.
  */
-internal val BuiltinSet3 = nativeRule("set", 3) { args, context ->
+val BuiltinSet3 = nativeRule("set", 3) { args, context ->
     val comparatorName = args.getTyped<Atom>(2)
 
     fun <T : Term> Collection<T>.toSetUsingComparator(comparatorName: Atom): List<T> {

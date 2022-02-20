@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 
-internal val BuiltinSort2 = nativeRule("sort", 2) { args, context ->
+val BuiltinSort2 = nativeRule("sort", 2) { args, context ->
     val inputUnsorted = args.getTyped<PrologList>(0)
     val inputSorted = args[1]
 

@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 
-internal val BuiltinStringChars2 = nativeConversionRule<PrologString, PrologList>(
+val BuiltinStringChars2 = nativeConversionRule<PrologString, PrologList>(
     "string_chars",
     { str -> PrologList(str.characters.map { Atom(it.toString()) }) },
     { list ->

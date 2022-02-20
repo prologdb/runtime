@@ -17,7 +17,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  *
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
-internal val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
+val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
     if (args[0] is Variable) {
         val arg0 = args[0] as Variable
         val arg1 = args.getTyped<PrologList>(1)
