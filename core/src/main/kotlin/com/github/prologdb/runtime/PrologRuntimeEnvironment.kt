@@ -94,16 +94,16 @@ open class DefaultPrologRuntimeEnvironment(
 
     // TODO: check for indicator collisions in module exports
 
-    protected fun assureModuleLoaded(reference: ModuleReference, assureLookups: Boolean = true): Module {
+    protected fun assureModuleLoaded(reference: ModuleReference): Module {
         synchronized(moduleLoadingMutex) {
             val existingModule = _loadedModules[reference.moduleName]
             if (existingModule != null) return existingModule
 
-            return assureModuleLoaded(moduleLoader.load(reference), assureLookups)
+            return assureModuleLoaded(moduleLoader.load(reference))
         }
     }
 
-    protected fun assureModuleLoaded(module: Module, assureLookups: Boolean = true): Module {
+    protected fun assureModuleLoaded(module: Module): Module {
         synchronized(moduleLoadingMutex) {
             val existingModule = _loadedModules.putIfAbsent(module.name, module)
             if (existingModule != null) {
@@ -111,11 +111,9 @@ open class DefaultPrologRuntimeEnvironment(
             }
 
             val transitiveLoads = loadImports(module)
-            if (assureLookups) {
-                (transitiveLoads + module).forEach { loadedModule ->
-                    moduleLookupTables.computeIfAbsent(loadedModule.name) { _ ->
-                        buildModuleLookupTable(loadedModules, loadedModule)
-                    }
+            (transitiveLoads + module).forEach { loadedModule ->
+                moduleLookupTables.computeIfAbsent(loadedModule.name) { _ ->
+                    buildModuleLookupTable(loadedModules, loadedModule)
                 }
             }
 
@@ -130,7 +128,7 @@ open class DefaultPrologRuntimeEnvironment(
         return module.imports
             .map { import ->
                 try {
-                    assureModuleLoaded(import.moduleReference, false)
+                    assureModuleLoaded(import.moduleReference)
                 } catch (ex: ModuleNotFoundException) {
                     ex.addLoadChainElement("imported by module ${module.name}")
                     throw ex
