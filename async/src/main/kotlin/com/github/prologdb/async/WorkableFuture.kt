@@ -31,6 +31,15 @@ interface WorkableFuture<T> : Future<T> {
      * @return whether the result is available after this call
      */
     fun step(): Boolean
+
+    /**
+     * Attempts to cancel this future
+     * @return true if cancellation was successful, false if the future is already completed.
+     * However, as opposed to a default [Future], this method will not return false if running
+     * but not cancellable. Instead, it will throw a [WorkableFutureNotCancellableException]
+     */
+    @Throws(WorkableFutureNotCancellableException::class)
+    override fun cancel(mayInterruptIfRunning: Boolean): Boolean
 }
 
 @RestrictsSuspension
@@ -91,3 +100,5 @@ interface WorkableFutureBuilder {
 }
 
 fun <T> launchWorkableFuture(principal: Any, code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(principal, code)
+
+class WorkableFutureNotCancellableException(message: String? = null, cause: Throwable? = null) : RuntimeException(message, cause)

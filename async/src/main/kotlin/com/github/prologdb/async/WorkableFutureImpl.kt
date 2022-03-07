@@ -1,6 +1,5 @@
 package com.github.prologdb.async
 
-import java.util.ArrayList
 import java.util.LinkedList
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
@@ -8,6 +7,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.createCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -61,6 +61,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
      * that most futures will not have teardown logic.
      */
     private var teardownLogic: LinkedList<() -> Any?>? = null
+    @Volatile
+    private var tornDown: Boolean = false
 
     override fun isDone(): Boolean = state == State.COMPLETED
 
@@ -167,13 +169,49 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     override fun cancel(mayInterruptIfRunning: Boolean): Boolean {
-        // workable futures cannot be cancelled. the associated RAII logic is too complex
-        // to be worth the hassle right now (no real usecase where cancelling improves efficiency
-        // noticeably).
-        return false
+        fun continueWithCancellationException() {
+            state = State.RUNNING
+            continuation.resumeWithException(CancellationException().apply {
+                fillInStackTrace()
+            })
+        }
+
+        synchronized(mutex) {
+            when (state) {
+                State.WAITING_ON_FUTURE,
+                State.FOLDING_SEQUENCE,
+                State.RUNNING -> {
+                    currentWaitingFuture?.let { future ->
+                        if (!future.isDone) {
+                            if (!future.cancel(mayInterruptIfRunning)) {
+                                throw WorkableFutureNotCancellableException("Waiting on nested future which is not done and cannot be cancelled.")
+                            }
+                        }
+                    }
+                    currentWaitingFuture = null
+
+                    currentFoldingSequence?.close()
+                    currentFoldingSequence = null
+
+                    continueWithCancellationException()
+                    if (state != State.COMPLETED || error == null || error!! !is CancellationException) {
+                        throw WorkableFutureNotCancellableException()
+                    }
+                    return true
+                }
+                State.COMPLETED -> {
+                    return false
+                }
+            }
+        }
     }
 
     private fun tearDown() {
+        if (tornDown) {
+            throw IllegalStateException("TearDown already executed.")
+        }
+        tornDown = true
+
         teardownLogic?.let {
             var errors: ArrayList<Throwable>? = null
 

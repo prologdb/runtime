@@ -290,6 +290,57 @@ class WorkableFutureTest : FreeSpec({
 
             finallyExecutions shouldBe listOf(3, 2, 1)
         }
+
+        "on cancel while waiting on future" {
+            val finallyExecutions = mutableListOf<Int>()
+
+            val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
+                val uncompletedFuture = CompletableFuture<Unit>()
+
+                finally {
+                    finallyExecutions.add(1)
+                }
+
+                awaitAndFinally(uncompletedFuture) {
+                    finallyExecutions.add(2)
+                }
+            }
+
+            workableFuture.step() shouldBe false
+            workableFuture.cancel(true) shouldBe true
+
+            finallyExecutions shouldBe listOf(2, 1)
+        }
+
+        "on cancel while folding sequence" {
+            val finallyExecutions = mutableListOf<Int>()
+
+            val uncompletedFuture = CompletableFuture<Unit>()
+            val neverEmits = buildLazySequence<Unit>(IrrelevantPrincipal) {
+                await(uncompletedFuture)
+            }
+
+            val workableFuture = launchWorkableFuture(UUID.randomUUID()) {
+                finally {
+                    finallyExecutions.add(1)
+                }
+
+                finally {
+                    finallyExecutions.add(2)
+                }
+
+                foldRemaining(neverEmits, Unit) { _, _ -> Unit }
+
+                finally {
+                    finallyExecutions.add(3)
+                }
+            }
+
+            workableFuture.step() shouldBe false
+            workableFuture.cancel(true) shouldBe true
+
+            finallyExecutions shouldBe listOf(2, 1)
+        }
     }
 
     "folding" {
