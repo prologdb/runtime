@@ -1,5 +1,6 @@
-package com.github.prologdb.runtime.stdlib
+package com.github.prologdb.runtime.stdlib.essential
 
+import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.unification.Unification
 
