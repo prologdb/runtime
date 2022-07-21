@@ -1189,6 +1189,8 @@ class PrologParser {
             }
         }
 
+        ParseException.failOnError(reportings)
+
         return object : PrimedStage {
             override val declaration = moduleDeclaration
             private var proceedCalled = false

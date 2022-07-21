@@ -98,7 +98,7 @@ class PrologTest : FreeSpec() { init {
         }
 
         fun getPrologTestCases(testModule: Module, runtime: DefaultPrologRuntimeEnvironment): Set<PrologTestCase> {
-            val by2 = testModule.exportedPredicates[ClauseIndicator.of("by", 2)]
+            val by2 = testModule.allDeclaredPredicates[ClauseIndicator.of("by", 2)]
                       ?: return emptySet()
 
             if (by2 !is ASTPrologPredicate) {
