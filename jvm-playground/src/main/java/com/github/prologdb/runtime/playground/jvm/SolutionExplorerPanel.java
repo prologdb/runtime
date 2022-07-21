@@ -10,6 +10,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ForkJoinPool;
 
@@ -242,8 +243,8 @@ public class SolutionExplorerPanel {
         currentSolutionIndex = -1;
     }
 
-    public void setParseTime(long millis) {
-        parseTimeOutput.setText(formatMillis(millis));
+    public void setParseTime(Duration parseTime) {
+        parseTimeOutput.setText(formatMillis(parseTime.toMillis()));
     }
 
     private static final BigDecimal THOUSAND = new BigDecimal("1000");

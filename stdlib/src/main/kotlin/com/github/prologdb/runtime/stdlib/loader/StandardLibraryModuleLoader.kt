@@ -4,6 +4,7 @@ import com.github.prologdb.parser.parser.DefaultModuleSourceFileVisitor
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.parser.SourceFileVisitor
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
@@ -48,6 +49,7 @@ import com.github.prologdb.runtime.stdlib.essential.math.BuiltinGreaterThanOrEqu
 import com.github.prologdb.runtime.stdlib.essential.math.BuiltinIs2
 import com.github.prologdb.runtime.stdlib.essential.math.BuiltinLessThan2
 import com.github.prologdb.runtime.stdlib.essential.math.BuiltinLessThanOrEqual2
+import com.github.prologdb.runtime.stdlib.essential.math.BuiltinNumericNotEqual2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinAtomString2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringChars2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringCodes2
@@ -65,7 +67,7 @@ object StandardLibraryModuleLoader : ModuleLoader {
     private val classpathPrefix = "com/github/prologdb/runtime/stdlib"
 
     private val classPathLoader = ClasspathPrologSourceModuleLoader(
-        sourceFileVisitorSupplier = { getSourceFileVisitor(it) },
+        sourceFileVisitorSupplier = this::getSourceFileVisitor,
         classLoader = StandardLibraryModuleLoader::class.java.classLoader,
         parser = _parser,
         moduleReferenceToClasspathPath = { moduleRef ->
@@ -73,12 +75,12 @@ object StandardLibraryModuleLoader : ModuleLoader {
         }
     )
 
-    override fun load(reference: ModuleReference): Module = classPathLoader.load(reference)
+    override fun initiateLoading(reference: ModuleReference, runtime: PrologRuntimeEnvironment): ModuleLoader.PrimedStage = classPathLoader.initiateLoading(reference, runtime)
 
-    private fun getSourceFileVisitor(moduleReference: ModuleReference): SourceFileVisitor<Module> {
+    private fun getSourceFileVisitor(moduleReference: ModuleReference, runtime: PrologRuntimeEnvironment): SourceFileVisitor<Module> {
         val nativeImplementations = nativeImplementationsByModuleRef[moduleReference.toString()] ?: emptyMap()
         return NativeCodeSourceFileVisitorDecorator(
-            DefaultModuleSourceFileVisitor(),
+            DefaultModuleSourceFileVisitor(runtime),
             nativeImplementations,
             _parser
         )
@@ -130,7 +132,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinLessThan2,
             BuiltinLessThanOrEqual2,
             BuiltinGreaterThan2,
-            BuiltinGreaterThanOrEqual2
+            BuiltinGreaterThanOrEqual2,
+            BuiltinNumericNotEqual2,
         ),
         "essential(\$strings)" to listOf(
             BuiltinAtomString2,

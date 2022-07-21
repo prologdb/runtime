@@ -26,6 +26,10 @@ interface OperatorRegistrationTarget {
      * the same [OperatorDefinition.name] if present).
      */
     fun defineOperator(definition: OperatorDefinition)
+
+    fun include(other: OperatorRegistry) {
+        other.allOperators.forEach(this::defineOperator)
+    }
 }
 
 interface MutableOperatorRegistry : OperatorRegistry, OperatorRegistrationTarget
@@ -97,6 +101,10 @@ class DefaultOperatorRegistry : MutableOperatorRegistry {
 
     private val operators: OperatorMap = mutableMapOf()
 
+    constructor(definitions: Set<OperatorDefinition> = emptySet()) {
+        definitions.forEach(this::defineOperator)
+    }
+
     override fun getOperatorDefinitionsFor(name: String): Set<OperatorDefinition> = operators[name] ?: emptySet()
 
     override fun defineOperator(definition: OperatorDefinition) {
@@ -110,10 +118,6 @@ class DefaultOperatorRegistry : MutableOperatorRegistry {
 
     override val allOperators: Iterable<OperatorDefinition>
         get() = operators.values.flatten()
-
-    fun include(other: OperatorRegistry) {
-        other.allOperators.forEach(this::defineOperator)
-    }
 }
 
 private typealias OperatorMap = MutableMap<String, MutableSet<OperatorDefinition>>

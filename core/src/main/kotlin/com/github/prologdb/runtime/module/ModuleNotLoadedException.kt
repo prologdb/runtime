@@ -7,6 +7,7 @@ import com.github.prologdb.runtime.PrologException
  * references a module that it didn't load (e.g. `ModuleName:goal()`), or that the interpreter failed
  * to load a module that it should have loaded.
  */
-class ModuleNotLoadedException(val moduleName: String) : PrologException("Module $moduleName is not loaded") {
-    constructor(reference: ModuleReference) : this(reference.moduleName)
-}
+class ModuleNotLoadedException @JvmOverloads constructor(val moduleName: String, cause: Throwable? = null) : PrologException(
+    if (cause != null) "Module $moduleName failed to load: ${cause.message}" else "Module $moduleName not loaded",
+    cause
+)

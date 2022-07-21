@@ -18,3 +18,7 @@ val BuiltinLessThan2 = nativeRule("<", 2) { args, _ ->
 val BuiltinLessThanOrEqual2 = nativeRule("=<", 2) { args, _ ->
     Unification.whether(args[0].asPrologNumber <= args[1].asPrologNumber)
 }
+
+val BuiltinNumericNotEqual2 = nativeRule("=\\=", 2) { args, _ ->
+    Unification.whether(args[0].asPrologNumber != args[1].asPrologNumber)
+}

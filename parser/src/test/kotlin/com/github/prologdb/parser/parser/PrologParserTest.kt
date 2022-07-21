@@ -9,7 +9,6 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.parser.withMockSourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -44,7 +43,6 @@ class PrologParserTest : FreeSpec() {
     init{
 
     val operators = DefaultOperatorRegistry()
-    operators.include(ISOOpsOperatorRegistry)
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "prefixOpFX200"))

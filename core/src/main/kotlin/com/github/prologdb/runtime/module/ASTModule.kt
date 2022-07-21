@@ -2,9 +2,10 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.EmptyOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
@@ -13,13 +14,13 @@ import com.github.prologdb.runtime.util.OperatorRegistry
  * for compiled versions of themselves.
  */
 class ASTModule(
-    override val name: String,
+    override val declaration: ModuleDeclaration,
     override val imports: List<ModuleImport>,
     val givenClauses: Iterable<Clause>,
     val dynamicPredicates: Set<ClauseIndicator>,
     val moduleTransparents: Set<ClauseIndicator>,
     val exportedPredicateIndicators: Set<ClauseIndicator>,
-    override val localOperators: OperatorRegistry = ISOOpsOperatorRegistry
+    override val localOperators: OperatorRegistry = EmptyOperatorRegistry,
 ) : Module {
     override val allDeclaredPredicates: Map<ClauseIndicator, PrologCallable>
 

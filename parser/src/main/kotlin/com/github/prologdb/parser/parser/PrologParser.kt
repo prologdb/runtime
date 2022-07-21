@@ -1,6 +1,7 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ModuleDeclaration
+import com.github.prologdb.parser.ParseException
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.SemanticWarning
@@ -32,7 +33,10 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.parser.Either
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
@@ -50,6 +54,8 @@ import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.util.DefaultOperatorRegistry
+import com.github.prologdb.runtime.util.EmptyOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
@@ -710,7 +716,7 @@ class PrologParser {
         val reportings = mutableSetOf<Reporting>()
 
         var precedenceAsLong = precedenceArgument.toInteger()
-        if (precedenceAsLong < 0 || precedenceAsLong > 1200) {
+        if (precedenceAsLong !in 0..1200) {
             reportings.add(SemanticError("operator precedence must be between 0 and 1200 (inclusive)", opDefinitionAST.arguments[0].sourceInformation as SourceLocation))
             precedenceAsLong = min(max(0, precedenceAsLong), 1200)
         }
@@ -754,7 +760,7 @@ class PrologParser {
      *         [_, Exports] = Args,
      *         list(Exports),
      *         member(Export, Exports),
-     *         valid_clause_indicator(Export)
+     *         (valid_clause_indicator(Export); valid_operator_definition(Export))
      *     ).
      *
      * @param moduleDeclarationAST The instance of `module/1` or `module/2`
@@ -771,16 +777,16 @@ class PrologParser {
         }
 
         val name = (args[0] as Atom).name
-        var exportSelection: Set<ClauseIndicator>? = null
+        var exportSelection: Set<Either<ClauseIndicator, OperatorDefinition>>? = null
 
         val reportings = mutableSetOf<Reporting>()
         if (args.size == 2) {
             if (args[1] is PrologList) {
                 exportSelection = (args[1] as PrologList).elements
                     .mapNotNull {
-                        val indicatorResult = parseIdiomaticClauseIndicator(it)
-                        reportings.addAll(indicatorResult.reportings)
-                        indicatorResult.item
+                        val exportElementResult = parseModuleExportElement(it)
+                        reportings.addAll(exportElementResult.reportings)
+                        exportElementResult.item
                     }
                     .toSet()
             } else {
@@ -793,11 +799,175 @@ class PrologParser {
             }
         }
 
+        val exportedPredicates = exportSelection
+            ?.filterIsInstance<Either.A<ClauseIndicator, *>>()
+            ?.map { it.value }
+            ?.toSet()
+
+        val exportedOperators = (exportSelection ?: emptySet())
+            .filterIsInstance<Either.B<*, OperatorDefinition>>()
+            .map { it.value }
+            .takeIf { it.isNotEmpty() }
+            ?.toSet()
+            ?.let(::DefaultOperatorRegistry)
+            ?: EmptyOperatorRegistry
+
         return ParseResult(
-            ModuleDeclaration(name, exportSelection),
+            ModuleDeclaration(name, exportedPredicates, exportedOperators),
             MATCHED,
             reportings
         )
+    }
+
+    private fun parseModuleExportElement(term: Term): ParseResult<Either<ClauseIndicator, OperatorDefinition>> {
+        if (term !is CompoundTerm) {
+            return ParseResult(null, MATCHED, setOf(
+                SemanticError("Expected a compound term, got ${term.prologTypeName}", term.location)
+            ))
+        }
+
+        return when(term.functor) {
+            "/" -> parseIdiomaticClauseIndicator(term).map { Either.A(it) }
+            "op" -> parseOperatorDefinition(term).map { Either.B(it) }
+            else -> return ParseResult(null, MATCHED, setOf(
+                SemanticError("An export element must be an intsance of `/`/2 or op/3, got ${ClauseIndicator.of(term)}", term.location)
+            ))
+        }
+    }
+
+    /**
+     * @return A: a clause indicator and an optional alias for the importing module; B: an operator import
+     */
+    private fun parseModuleImportElement(importTerm: Term): ParseResult<Either<Pair<ClauseIndicator, Atom?>, ModuleImport.OperatorImport>> {
+        if (importTerm !is CompoundTerm) {
+            return ParseResult(null, MATCHED, setOf(
+                SyntaxError(
+                    "References to single predicates in argument 1 to use_module/2 must be compounds, got ${importTerm.prologTypeName}",
+                    importTerm.location
+                )
+            ))
+        }
+
+        when (importTerm.functor) {
+            "/"  -> {
+                return parseIdiomaticClauseIndicator(importTerm).map { indicator -> Either.A(Pair(indicator, null)) }
+            }
+            "as" -> {
+                val indicatorResult = parseIdiomaticClauseIndicator(importTerm.arguments[0])
+                if (indicatorResult.item == null) {
+                    return ParseResult(null, indicatorResult.certainty, indicatorResult.reportings)
+                }
+                val aliasTerm = importTerm.arguments[1]
+                if (aliasTerm !is Atom) {
+                    return ParseResult(
+                        null, MATCHED, setOf(
+                            SyntaxError(
+                                "Predicate aliases in argument 1 to use_module/2 must be atoms, got ${aliasTerm.prologTypeName}",
+                                aliasTerm.location
+                            )
+                        )
+                    )
+                }
+
+                return ParseResult(Either.A(Pair(indicatorResult.item, aliasTerm)), MATCHED, emptySet())
+            }
+            "op" -> {
+                if (importTerm.arity != 3) {
+                    return ParseResult(null, MATCHED, setOf(
+                        SyntaxError(
+                            "Operator imports must be instances of op/3, got ${ClauseIndicator.of(importTerm)}",
+                            importTerm.location
+                        )
+                    ))
+                }
+
+                val reportings = mutableSetOf<Reporting>()
+                val precedenceTerm = importTerm.arguments[0]
+                val typeTerm = importTerm.arguments[1]
+                val nameTerm = importTerm.arguments[2]
+                val precedence: Short?
+                val type: OperatorType?
+                val name: String?
+
+                when (precedenceTerm) {
+                    is PrologInteger -> {
+                        if (precedenceTerm.value !in 0..1200) {
+                            reportings.add(
+                                SemanticError(
+                                    "Operator precedences must be between 0 and 1200, got ${precedenceTerm.value}",
+                                    precedenceTerm.location
+                                )
+                            )
+                        }
+                        precedence = min(max(precedenceTerm.value, 1200L), 0L).toShort()
+                    }
+                    is Variable -> {
+                        precedence = null
+                    }
+                    else -> {
+                        reportings.add(SemanticError(
+                            "Operator precedences in imports must be integers or unbound, got ${precedenceTerm.prologTypeName}",
+                            precedenceTerm.location
+                        ))
+                        precedence = null
+                    }
+                }
+
+                when (typeTerm) {
+                    is Atom -> {
+                        type = try {
+                            OperatorType.valueOf(typeTerm.name.uppercase())
+                        } catch (ex: NoSuchElementException) {
+                            reportings.add(SemanticError(
+                                "Unknown operator associativity",
+                                typeTerm.location
+                            ))
+                            null
+                        }
+                    }
+                    is Variable -> {
+                        type = null
+                    }
+                    else -> {
+                        reportings.add(SemanticError(
+                            "Operator associativity in imports must be atoms or unbound, got ${typeTerm.prologTypeName}",
+                            typeTerm.location
+                        ))
+                        type = null
+                    }
+                }
+
+                when (nameTerm) {
+                    is Atom -> {
+                        name = nameTerm.name
+                    }
+                    is Variable -> {
+                        name = null
+                    }
+                    else -> {
+                        reportings.add(SemanticError(
+                            "Operator names in imports must be atoms or unbound, got ${nameTerm.prologTypeName}",
+                            nameTerm.location
+                        ))
+                        name = null
+                    }
+                }
+
+                return ParseResult(
+                    Either.B(ModuleImport.OperatorImport(precedence, type, name)),
+                    MATCHED,
+                    reportings
+                )
+            }
+            else -> {
+                return ParseResult(null, MATCHED, setOf(
+                    SyntaxError(
+                        "References to single predicates in argument 1 to use_module/2 must unify with either _/_ or _/_ as _",
+                        importTerm.sourceInformation as SourceLocation
+                    )
+                ))
+            }
+        }
     }
 
     /**
@@ -815,12 +985,12 @@ class PrologParser {
      *         (
      *             is_list(Selection),
      *             member(SelectionE, Selection),
-     *             valid_clause_indicator(SelectionE)
+     *             (valid_clause_indicator(SelectionE) ; SelectionE = op(_, _, _))
      *         ) ; (
      *             except(Exclusions) = Selection,
      *             is_list(Exclusions),
      *             member(ExclusionE, Exclusions),
-     *             valid_clause_indicator(ExclusionE)
+     *             (valid_clause_indicator(ExclusionE), ExclusionE = op(_, _, _))
      *         )
      *     )
      *
@@ -852,50 +1022,22 @@ class PrologParser {
         val selectionTerm = args[1]
 
         if (selectionTerm is PrologList) {
-            val imports = mutableMapOf<ClauseIndicator, String>()
+            val importedPredicates = mutableMapOf<ClauseIndicator, String>()
+            val importedOperators = mutableSetOf<ModuleImport.OperatorImport>()
             val reportings = mutableSetOf<Reporting>()
             importTerms@for (importTerm in selectionTerm.elements) {
-                if (importTerm !is CompoundTerm) {
-                    reportings.add(SyntaxError(
-                        "References to single predicates in argument 1 to use_module/2 must be compounds, got ${importTerm.prologTypeName}",
-                        importTerm.sourceInformation as SourceLocation
-                    ))
-                    continue@importTerms
+                val importElementResult = parseModuleImportElement(importTerm)
+                importElementResult.item?.ifA {
+                    importedPredicates[it.first] = it.second?.name ?: it.first.functor
                 }
-
-                when (importTerm.functor) {
-                    "/"  -> {
-                        val indicatorResult = parseIdiomaticClauseIndicator(importTerm)
-                        reportings.addAll(indicatorResult.reportings)
-                        indicatorResult.item?.let { imports[it] = it.functor }
-                    }
-                    "as" -> {
-                        val indicatorResult = parseIdiomaticClauseIndicator(importTerm.arguments[0])
-                        reportings.addAll(indicatorResult.reportings)
-                        if (indicatorResult.item == null) {
-                            continue@importTerms
-                        }
-                        val aliasTerm = importTerm.arguments[1]
-                        if (aliasTerm is Atom) {
-                            imports[indicatorResult.item] = aliasTerm.name
-                        } else {
-                            reportings.add(SyntaxError(
-                                "Predicate aliases in argument 1 to use_module/2 must be atoms, got ${aliasTerm.prologTypeName}",
-                                aliasTerm.sourceInformation as SourceLocation
-                            ))
-                        }
-                    }
-                    else -> {
-                        reportings.add(SyntaxError(
-                            "References to single predicates in argument 1 to use_module/2 must unify with either _/_ or _/_ as _",
-                            importTerm.sourceInformation as SourceLocation
-                        ))
-                    }
+                importElementResult.item?.ifB {
+                    importedOperators.add(it)
                 }
+                reportings.addAll(importElementResult.reportings)
             }
 
             return ParseResult(
-                ModuleImport.Selective(moduleReference, imports),
+                ModuleImport.Selective(moduleReference, importedPredicates, importedOperators),
                 MATCHED,
                 reportings
             )
@@ -909,16 +1051,22 @@ class PrologParser {
             }
 
             val reportings = mutableSetOf<Reporting>()
-            val except = mutableSetOf<ClauseIndicator>()
+            val exceptPredicates = mutableSetOf<ClauseIndicator>()
+            val exceptOperators = mutableSetOf<ModuleImport.OperatorImport>()
 
             for (exceptTerm in listTerm.elements) {
-                val indicatorResult = parseIdiomaticClauseIndicator(exceptTerm)
-                reportings.addAll(indicatorResult.reportings)
-                indicatorResult.item?.let { except.add(it) }
+                val exceptElementResult = parseModuleImportElement(exceptTerm)
+                exceptElementResult.item?.ifA {
+                    exceptPredicates.add(it.first)
+                }
+                exceptElementResult.item?.ifB {
+                    exceptOperators.add(it)
+                }
+                reportings.addAll(exceptElementResult.reportings)
             }
 
             return ParseResult(
-                ModuleImport.Except(moduleReference, except),
+                ModuleImport.Except(moduleReference, exceptPredicates, exceptOperators),
                 MATCHED,
                 reportings
             )
@@ -984,61 +1132,125 @@ class PrologParser {
         return ParseResult.of(ClauseIndicator.of(functorTerm.name, arityTerm.toInteger().toInt()))
     }
 
-    fun <Result : Any> parseSourceFile(
+    fun parseSourceFile(
         tokens: TransactionalSequence<Token>,
-        visitor: SourceFileVisitor<Result>
-    ): ParseResult<Result> {
+        visitor: SourceFileVisitor<com.github.prologdb.runtime.module.Module>,
+        implicitModuleDeclaration: ModuleDeclaration? = null
+    ): PrimedStage {
         val reportings = mutableListOf<Reporting>()
 
-        while (tokens.hasNext()) {
-            val parseResult = parseTerm(tokens, visitor.operators, stopAtOperator(FULL_STOP))
-            reportings += parseResult.reportings
+        val moduleDeclarationResult: ParseResult<ModuleDeclaration>?
+        val moduleDeclaredAt: SourceLocation
 
-            if (parseResult.isSuccess) {
-                val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
-                if (item is CompoundTerm) {
-                    if (item.isDirectiveInvocation) {
-                        reportings += visitor.visitDirective(item.arguments[0] as CompoundTerm)
-                    }
-                    else if (item.isRuleDefinition) {
-                        val head = item.arguments[0] as? CompoundTerm ?: throw InternalParserError("Rule heads must be compound term")
-                        val queryTerm = item.arguments[1] as? CompoundTerm ?: throw InternalParserError("Queries must be compound term")
-                        val transformResult = transformQuery(queryTerm)
-                        reportings += transformResult.reportings
+        tokens.mark()
+        if (tokens.hasNext()) {
+            val firstTermResult = parseTerm(tokens, visitor.operators, stopAtOperator(FULL_STOP))
+            ParseException.failOnError(firstTermResult.reportings)
+            check(firstTermResult.item != null)
+            // consume the FULL_STOP
+            tokens.next()
 
-                        if (transformResult.item != null) {
-                            val location = head.location..queryTerm.location
-                            val rule = Rule(head, transformResult.item).apply {
-                                sourceInformation = location
-                            }
-                            reportings += visitor.visitClause(rule, location)
-                        }
-                    }
-                    else {
-                        reportings += visitor.visitClause(item, item.location)
-                    }
-                } else {
-                    reportings += visitor.visitNonClause(item)
-                }
+            reportings.addAll(firstTermResult.reportings)
+
+            moduleDeclarationResult = visitor.tryParseModuleDeclaration(firstTermResult.item)
+            moduleDeclaredAt = firstTermResult.item.location
+        } else {
+            moduleDeclarationResult = null
+            moduleDeclaredAt = SourceLocation.EOF
+        }
+
+        val moduleDeclaration: ModuleDeclaration
+        if (moduleDeclarationResult == null) {
+            tokens.rollback()
+            moduleDeclaration = implicitModuleDeclaration
+                ?: throw ParseException.ofSingle(
+                    SemanticError(
+                        "Source code does not declare a module and no implicit module declaration is given",
+                        moduleDeclaredAt,
+                    )
+                )
+        } else {
+            tokens.commit()
+            reportings.addAll(moduleDeclarationResult.reportings)
+
+            if (moduleDeclarationResult.item == null) {
+                ParseException.failOnError(moduleDeclarationResult.reportings)
+                throw RuntimeException("${SourceFileVisitor<*>::tryParseModuleDeclaration} returned a result with no items and no errors.")
             }
-            else {
-                // continue at the next declaration
-                tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
-            }
 
-            if (tokens.hasNext()) {
-                // that next token MUST be a FULL_STOP, so just skip it and complain
-                tokens.next()
+            moduleDeclaration = moduleDeclarationResult.item
+            if (implicitModuleDeclaration != null && implicitModuleDeclaration.moduleName != moduleDeclaration.moduleName) {
+                throw ParseException.ofSingle(
+                    SemanticError(
+                        "Module is implicitly declared as ${implicitModuleDeclaration.moduleName}, cannot declare with name ${moduleDeclaration.moduleName}",
+                        moduleDeclaredAt
+                    )
+                )
             }
         }
 
-        val result = visitor.buildResult()
-        return if (reportings.isEmpty()) result else {
-            ParseResult(
-                result.item,
-                result.certainty,
-                (reportings + result.reportings).toSet()
-            )
+        return object : PrimedStage {
+            override val declaration = moduleDeclaration
+            private var proceedCalled = false
+            override fun proceed() : ParsedStage {
+                if (proceedCalled) {
+                    throw IllegalStateException("proceed has already been called on this stage")
+                }
+                proceedCalled = true
+
+                visitor.visitModuleDeclaration(moduleDeclaration, moduleDeclaredAt)
+
+                while (tokens.hasNext()) {
+                    val parseResult = parseTerm(tokens, visitor.operators, stopAtOperator(FULL_STOP))
+                    reportings += parseResult.reportings
+
+                    if (parseResult.isSuccess) {
+                        val item = parseResult.item ?: throw InternalParserError("Result item should not be null")
+                        if (item is CompoundTerm) {
+                            if (item.isDirectiveInvocation) {
+                                reportings += visitor.visitDirective(item.arguments[0] as CompoundTerm)
+                            } else if (item.isRuleDefinition) {
+                                val head = item.arguments[0] as? CompoundTerm
+                                    ?: throw InternalParserError("Rule heads must be compound term")
+                                val queryTerm = item.arguments[1] as? CompoundTerm
+                                    ?: throw InternalParserError("Queries must be compound term")
+                                val transformResult = transformQuery(queryTerm)
+                                reportings += transformResult.reportings
+
+                                if (transformResult.item != null) {
+                                    val location = head.location..queryTerm.location
+                                    val rule = Rule(head, transformResult.item).apply {
+                                        sourceInformation = location
+                                    }
+                                    reportings += visitor.visitClause(rule, location)
+                                }
+                            } else {
+                                reportings += visitor.visitClause(item, item.location)
+                            }
+                        } else {
+                            reportings += visitor.visitNonClause(item)
+                        }
+                    } else {
+                        // continue at the next declaration
+                        tokens.takeWhile({ it !is OperatorToken || it.operator != FULL_STOP })
+                    }
+
+                    if (tokens.hasNext()) {
+                        // that next token MUST be a FULL_STOP, so just skip it and complain
+                        tokens.next()
+                    }
+                }
+
+                val result = visitor.buildResult()
+                reportings.addAll(result.reportings)
+                ParseException.failOnError(reportings)
+                check(result.item != null) { "" }
+
+                return object : ParsedStage {
+                    override val module: Module = result.item
+                    override val reportings = reportings
+                }
+            }
         }
     }
 
@@ -1102,6 +1314,14 @@ class PrologParser {
         } else {
             return ParseResult(null, NOT_RECOGNIZED, setOf(SemanticError("$query is not a valid query component", query.location)))
         }
+    }
+
+    interface PrimedStage : ModuleLoader.PrimedStage {
+        override fun proceed(): PrologParser.ParsedStage
+    }
+
+    interface ParsedStage : ModuleLoader.ParsedStage {
+        val reportings: Collection<Reporting>
     }
 
     companion object {

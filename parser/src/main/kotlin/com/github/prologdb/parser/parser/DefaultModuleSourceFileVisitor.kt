@@ -1,48 +1,47 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ModuleDeclaration
+import com.github.prologdb.parser.ParseException
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.SemanticInfo
+import com.github.prologdb.parser.SemanticWarning
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.term.CompoundTerm
 
 open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
-    /**
-     * If not-null: makes the module declaration implicit, the source file need not declare a module.
-     * If the source file declares a module anyways, it is an error for the names to differ.
-     */
-    protected val implicitModule: ModuleDeclaration? = null,
-
+    forRuntime: PrologRuntimeEnvironment,
     /**
      * These modules will be imported by default (no explicit import necessary)
      */
     defaultImports: Set<ModuleImport.Full> = DEFAULT_IMPORTS
-) : AbstractSourceFileVisitor<ASTModule>() {
+) : AbstractSourceFileVisitor<ASTModule>(forRuntime) {
     private val clauses = mutableListOf<Clause>()
     private val dynamics = mutableSetOf<ClauseIndicator>()
     private val moduleTransparents = mutableSetOf<ClauseIndicator>()
-    private var visitedModuleDeclaration: ModuleDeclaration? = null
     private val imports = mutableListOf<ModuleImport>()
     private val defaultImports: MutableSet<ModuleImport> = defaultImports.toMutableSet()
 
-    private val moduleDeclared: Boolean get() = implicitModule != null || visitedModuleDeclaration != null
+    override fun visitModuleDeclaration(declaration: ModuleDeclaration, location: SourceLocation) {
+        super.visitModuleDeclaration(declaration, location)
 
-    override fun visitDirective(command: CompoundTerm): Collection<Reporting> {
-        val superResult = super.visitDirective(command)
-
-        if (!moduleDeclared) {
-            if (command.functor != "module" || command.arity !in 1..2) {
-                return superResult + listOf(moduleNotFirstStatementInFileError(command.sourceInformation as SourceLocation))
+        // this has to wait until here to prevent a stack overflow on cyclic imports
+        for (import in defaultImports) {
+            val importedModuleDeclaration = forRuntime.assureModulePrimed(import.moduleReference)
+            if (importedModuleDeclaration.exportedOperators.allOperators.any()) {
+                throw ParseException.ofSingle(
+                    SemanticError(
+                        "Module ${import.moduleReference} imported by default exports operators. This is not allowed because it would make for fuzzy and unintuitive semantics around these operators.",
+                        SourceLocation.EOF
+                    ),
+                )
             }
         }
-
-        return superResult
     }
 
     override fun visitDynamicDeclaration(
@@ -72,67 +71,63 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
         return emptyList()
     }
 
-    override fun visitModuleDeclaration(
-        declaration: ModuleDeclaration,
-        location: SourceLocation
-    ): Collection<Reporting> {
-        if (moduleDeclared) {
-            if (implicitModule == null) {
-                return listOf(
-                    SemanticError(
-                        "Module already declared as ${visitedModuleDeclaration!!.moduleName}",
-                        location
-                    )
-                )
-            } else {
-                if (implicitModule.moduleName != declaration.moduleName) {
-                    return listOf(
-                        SemanticError(
-                            "Module is implicitly declared as ${implicitModule.moduleName}, cannot declare with name ${declaration.moduleName}",
-                            location
-                        )
-                    )
+    override fun visitImport(import: ModuleImport, location: SourceLocation): Collection<Reporting> {
+        val wasDefault = defaultImports.removeIf { it.moduleReference == import.moduleReference }
+        imports.add(import)
+
+        if (wasDefault) {
+            // cannot have operators, so no need to handle
+            return emptyList()
+        }
+
+        val reportings = mutableListOf<Reporting>()
+        val importedDeclaration = forRuntime.assureModulePrimed(import.moduleReference)
+        when (import) {
+            is ModuleImport.Full -> {
+                operators.include(importedDeclaration.exportedOperators)
+            }
+            is ModuleImport.Selective -> {
+                for (operatorImport in import.operators) {
+                    val operatorsToImport = importedDeclaration.exportedOperators.allOperators.filter { operatorImport.matches(it) }
+                    if (operatorsToImport.isEmpty()) {
+                        reportings.add(SemanticWarning(
+                            "No exported operator of module ${importedDeclaration.moduleName} matches the import $operatorImport",
+                            location,
+                        ))
+                    }
+                    operatorsToImport.forEach(operators::defineOperator)
                 }
+            }
+            is ModuleImport.Except -> {
+                val operatorsToImport = importedDeclaration.exportedOperators.allOperators.toMutableList()
+                for (operatorExclusion in import.excludedOperators) {
+                    val anyRemoved = operatorsToImport.removeIf { operatorExclusion.matches(it) }
+                    if (!anyRemoved) {
+                        reportings.add(SemanticWarning(
+                            "No exported operator of module ${importedDeclaration.moduleName} matches the exclusion $operatorExclusion",
+                            location,
+                        ))
+                    }
+                }
+                operatorsToImport.forEach(operators::defineOperator)
             }
         }
 
-        visitedModuleDeclaration = declaration
-        return emptyList()
-    }
-
-    override fun visitImport(import: ModuleImport, location: SourceLocation): Collection<Reporting> {
-        if (import !in defaultImports) {
-            defaultImports.removeIf { it.moduleReference == import.moduleReference }
-            imports.add(import)
-        }
-
-        return if (!moduleDeclared) {
-            listOf(moduleNotFirstStatementInFileError(location))
-        } else {
-            emptyList()
-        }
+        return reportings
     }
 
     override fun visitClause(clause: Clause, location: SourceLocation): Collection<Reporting> {
         clauses.add(clause)
-
-        return if (!moduleDeclared) {
-            listOf(moduleNotFirstStatementInFileError(location))
-        } else {
-            emptyList()
-        }
+        return emptyList()
     }
 
     override fun buildResult(): ParseResult<ASTModule> {
-        val moduleDeclaration = this.visitedModuleDeclaration ?: this.implicitModule ?: return ParseResult(
-            null,
-            ParseResultCertainty.MATCHED,
-            setOf(SemanticError("Missing module declaration", SourceLocation.EOF))
-        )
+        val moduleDeclaration = this.moduleDeclaration
+        check(moduleDeclaration != null) { "No module declaration given from parser" }
 
         return ParseResult(
             ASTModule(
-                moduleDeclaration.moduleName,
+                moduleDeclaration,
                 defaultImports.toList() + imports,
                 clauses,
                 dynamics,
@@ -145,11 +140,6 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
             emptySet()
         )
     }
-
-    private fun moduleNotFirstStatementInFileError(location: SourceLocation) = SemanticError(
-        "The module/1 directive must be the first statement in the file",
-        location
-    )
 
     companion object {
         /**

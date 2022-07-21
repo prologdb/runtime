@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.module
 
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -20,7 +21,16 @@ class PredefinedModuleLoader : ModuleLoader {
         }
     }
 
-    override fun load(reference: ModuleReference): Module {
-        return modules[reference] ?: throw ModuleNotFoundException(reference)
+    override fun initiateLoading(reference: ModuleReference, runtime: PrologRuntimeEnvironment): ModuleLoader.PrimedStage {
+        val module = modules[reference] ?: throw ModuleNotFoundException(reference)
+        val parsedStage = object : ModuleLoader.ParsedStage {
+            override val module = module
+        }
+
+        return object : ModuleLoader.PrimedStage {
+            override val declaration = module.declaration
+
+            override fun proceed() = parsedStage
+        }
     }
 }

@@ -21,6 +21,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.util.OperatorRegistry
 
 /**
  * All code declared inside a module only has access to predicates declared in the same module and

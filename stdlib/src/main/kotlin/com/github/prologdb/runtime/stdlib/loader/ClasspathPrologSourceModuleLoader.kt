@@ -9,21 +9,23 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.parser.SourceFileVisitor
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleNotFoundException
 import com.github.prologdb.runtime.module.ModuleReference
 import java.util.MissingResourceException
 
 class ClasspathPrologSourceModuleLoader(
-    private val sourceFileVisitorSupplier: (ModuleReference) -> SourceFileVisitor<Module> = { _ -> DefaultModuleSourceFileVisitor() },
+    private val sourceFileVisitorSupplier: (ModuleReference, PrologRuntimeEnvironment) -> SourceFileVisitor<Module> = { _, runtime -> DefaultModuleSourceFileVisitor(runtime) },
     private val parser: PrologParser = PrologParser(),
     private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     private val moduleReferenceToClasspathPath: (ModuleReference) -> String = { reference ->
         "${reference.pathAlias}/${reference.moduleName}.pl"
     }
 ) : ModuleLoader {
-    override fun load(reference: ModuleReference): Module {
+    override fun initiateLoading(reference: ModuleReference, runtime: PrologRuntimeEnvironment): PrologParser.PrimedStage {
         val classpathPath = moduleReferenceToClasspathPath(reference)
         val sourceFileUrl = classLoader.getResource(classpathPath)
             ?: throw ModuleNotFoundException(
@@ -37,21 +39,10 @@ class ClasspathPrologSourceModuleLoader(
 
         val sourceText = sourceFileUrl.readText(Charsets.UTF_8)
         val sourceUnit = SourceUnit(sourceFileUrl.toString())
-        val result = parser.parseSourceFile(
+        return parser.parseSourceFile(
             Lexer(sourceUnit, LineEndingNormalizer(sourceText.iterator())),
-            sourceFileVisitorSupplier(reference)
+            sourceFileVisitorSupplier(reference, runtime),
+            ModuleDeclaration(reference.moduleName),
         )
-
-        ParseException.failOnError(result.reportings, "Failed to load module $reference")
-        val module = result.item!!
-
-        if (module.name != reference.moduleName) {
-            throw ParseException.ofSingle(SemanticError(
-                "Source for module $reference declares a different module name (${module.name}).",
-                SourceLocation(sourceUnit, 0, 0, 0)
-            ))
-        }
-
-        return module
     }
 }

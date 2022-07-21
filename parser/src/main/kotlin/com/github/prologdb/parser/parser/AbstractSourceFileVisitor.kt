@@ -1,10 +1,12 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ModuleDeclaration
+import com.github.prologdb.parser.ParseException
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -17,8 +19,7 @@ import com.github.prologdb.runtime.util.OperatorDefinition
  * Contains some code for handling very common things in source files
  * that most implementations of [SourceFileVisitor] will likely benefit from:
  *
- * * all the operators in [ISOOpsOperatorRegistry] are defined by default
- * * handles the `op/3`` directive entirely
+ * * handles the `op/3` directive entirely
  * * provides convenience methods for these directives (e.g. [visitImport]):
  *     * `dynamic/1`
  *     * `module/1`
@@ -27,21 +28,41 @@ import com.github.prologdb.runtime.util.OperatorDefinition
  *     * `use_module/2`
  *     * `op/3`
  */
-abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Result> {
-    override val operators: MutableOperatorRegistry = DefaultOperatorRegistry().apply { include(ISOOpsOperatorRegistry) }
+abstract class AbstractSourceFileVisitor<Result : Any>(
+    val forRuntime: PrologRuntimeEnvironment,
+) : SourceFileVisitor<Result> {
+    protected var moduleDeclaration: ModuleDeclaration? = null
+
+    override val operators: MutableOperatorRegistry = DefaultOperatorRegistry().apply {
+        include(ISOOpsOperatorRegistry)
+    }
+
+    override fun visitModuleDeclaration(declaration: ModuleDeclaration, location: SourceLocation) {
+        check(this.moduleDeclaration == null) { "There can only be a single module declarations in a source file." }
+
+        this.moduleDeclaration = declaration
+
+        operators.include(declaration.exportedOperators)
+    }
 
     override fun visitDirective(command: CompoundTerm): Collection<Reporting> {
         when(command.arity) {
             1 -> when (command.functor) {
                 "dynamic" -> return convertAndVisit(command.arguments[0], parser::parseIdiomaticClauseIndicator, this::visitDynamicDeclaration)
-                "module" -> return convertAndVisit(command, this::convertModuleDeclaration, this::visitModuleDeclaration)
+                "module" -> return setOf(SemanticError(
+                    "Cannot redeclare the module",
+                    command.sourceInformation as SourceLocation
+                ))
                 "use_module" -> return convertAndVisit(command, this::convertModuleImport, this::visitImport)
                 "module_transparent" -> return convertAndVisit(command.arguments[0],
                     parser::parseIdiomaticClauseIndicator,
                     this::visitModuleTransparentDeclaration)
             }
             2 -> when (command.functor) {
-                "module" -> return convertAndVisit(command, this::convertModuleDeclaration, this::visitModuleDeclaration)
+                "module" -> return setOf(SemanticError(
+                    "Cannot redeclare the module",
+                    command.sourceInformation as SourceLocation
+                ))
                 "use_module" -> return convertAndVisit(command, this::convertModuleImport, this::visitImport)
             }
             3 -> when(command.functor) {
@@ -53,6 +74,21 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
             "Directive ${ClauseIndicator.of(command)} is not defined.",
             command.sourceInformation as SourceLocation
         ))
+    }
+
+    override fun tryParseModuleDeclaration(firstTermOfFile: Term): ParseResult<ModuleDeclaration>? {
+        if (firstTermOfFile !is CompoundTerm || firstTermOfFile.functor != ":-" || firstTermOfFile.arity != 1) {
+            // not a directive
+            return null
+        }
+
+        val directive = firstTermOfFile.arguments.single()
+
+        if (directive !is CompoundTerm || directive.functor != "module") {
+            return null
+        }
+
+        return parser.parseModuleDeclaration(directive)
     }
 
     /**
@@ -70,8 +106,6 @@ abstract class AbstractSourceFileVisitor<Result : Any> : SourceFileVisitor<Resul
         clauseIndicator: ClauseIndicator,
         location: SourceLocation
     ): Collection<Reporting>
-
-    protected abstract fun visitModuleDeclaration(declaration: ModuleDeclaration, location: SourceLocation): Collection<Reporting>
 
     protected abstract fun visitImport(import: ModuleImport, location: SourceLocation): Collection<Reporting>
 

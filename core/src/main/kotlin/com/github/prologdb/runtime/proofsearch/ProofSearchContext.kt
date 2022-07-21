@@ -1,7 +1,9 @@
 package com.github.prologdb.runtime.proofsearch
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
+import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
@@ -88,5 +90,17 @@ interface ProofSearchContext {
                 head.arguments
             )
         )
+    }
+
+    companion object {
+        /**
+         * Convenience method for Java to do a proof search with the [fulfillAttach] coroutine
+         */
+        @JvmStatic
+        fun fulfill(psc: ProofSearchContext, query: Query, initialVariables: VariableBucket): LazySequence<Unification> {
+            return buildLazySequence(psc.principal) {
+                psc.fulfillAttach(this, query, initialVariables)
+            }
+        }
     }
 }
