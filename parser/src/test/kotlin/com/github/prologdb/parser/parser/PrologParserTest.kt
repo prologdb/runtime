@@ -9,6 +9,9 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.parser.withMockSourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -42,7 +45,9 @@ class PrologParserTest : FreeSpec() {
 
     init{
 
-    val operators = DefaultOperatorRegistry()
+    val operators = DefaultOperatorRegistry().apply {
+        include(ISOOpsOperatorRegistry)
+    }
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "prefixOpFX200"))
@@ -776,7 +781,7 @@ class PrologParserTest : FreeSpec() {
             val declaration = CompoundTerm("module", arrayOf(Atom("name"), PrologList(listOf(Atom("predname"))))).withMockSourceLocation()
             val result = PrologParser().parseModuleDeclaration(declaration)
             result.reportings.size shouldBe 1
-            result.reportings.first().message shouldBe "Predicate indicators must be instances of `/`/2"
+            result.reportings.first().message shouldBe "Module exports must be instances of '/'/2 or op/3, got atom"
             result.item shouldNotBe null
             result.item!!.moduleName shouldBe "name"
             result.item!!.exportedPredicates shouldNotBe null
@@ -845,7 +850,16 @@ class PrologParserTest : FreeSpec() {
         }
 
         "module" {
-            fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseSourceFile(tokens, DefaultModuleSourceFileVisitor())
+            fun parseModule(tokens: TransactionalSequence<Token>): ParseResult<com.github.prologdb.runtime.module.Module> {
+                val runtime = DefaultPrologRuntimeEnvironment()
+                val primedStage = PrologParser().parseSourceFile(
+                    tokens,
+                    DefaultModuleSourceFileVisitor(runtime, emptySet()),
+                )
+                val parsedStage = primedStage.proceed()
+
+                return ParseResult(parsedStage.module, MATCHED, parsedStage.reportings)
+            }
             fun parseModule(code: String) = parseModule(tokensOf(code))
 
             val result = parseModule("""

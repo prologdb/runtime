@@ -822,7 +822,7 @@ class PrologParser {
     private fun parseModuleExportElement(term: Term): ParseResult<Either<ClauseIndicator, OperatorDefinition>> {
         if (term !is CompoundTerm) {
             return ParseResult(null, MATCHED, setOf(
-                SemanticError("Expected a compound term, got ${term.prologTypeName}", term.location)
+                SemanticError("Module exports must be instances of '/'/2 or op/3, got ${term.prologTypeName}", term.location)
             ))
         }
 

@@ -51,6 +51,30 @@ interface PrologRuntimeEnvironment {
      */
     fun getFullyLoadedModule(name: String): Module
 
+    /**
+     * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
+     */
+    fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket, authorization: Authorization): LazySequence<Unification> {
+        val psc = newProofSearchContext(inModule, authorization)
+        return buildLazySequence(psc.principal) {
+            psc.fulfillAttach(this, query, initialVariables)
+        }
+    }
+
+    /**
+     * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
+     */
+    fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket): LazySequence<Unification> {
+        return fulfill(inModule, query, initialVariables, ReadWriteAuthorization)
+    }
+
+    /**
+     * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
+     */
+    fun fulfill(inModule: String, query: Query): LazySequence<Unification> {
+        return fulfill(inModule, query, VariableBucket(), ReadWriteAuthorization)
+    }
+
     companion object {
         /**
          * @return a table that, considering all imports, maps unscoped predicates to the actual implementations

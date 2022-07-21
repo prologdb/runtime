@@ -2,10 +2,11 @@ package com.github.prologdb.runtime.expression
 
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.module.PredefinedModuleLoader
-import com.github.prologdb.runtime.moduleOfClauses
+import com.github.prologdb.runtime.runtimeWithUserClauses
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.shouldNotProve
@@ -27,10 +28,10 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val f = CompoundBuilder("f")
         val a = Atom("a")
         val b = Atom("b")
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             f(a),
             f(b)
-        ))
+        )
 
         val X = Variable("X")
 
@@ -53,9 +54,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val X = Variable("X")
         val Y = Variable("Y")
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             f(a(X, Y), a(Y, X))
-        ))
+        )
 
         runtimeEnv shouldProve f(a(m, n), X) suchThat {
             itHasExactlyOneSolution()
@@ -90,10 +91,10 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val Z = Variable("Z")
         val P = Variable("P")
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             vertical(line(point(X, Y), point(X, Z))),
             horizontal(line(point(X,Y),point(Z,Y)))
-        ))
+        )
 
         // ASSERT
         runtimeEnv shouldProve vertical(line(point(a, a), point(a, c))) suchThat {
@@ -125,9 +126,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val A = Variable("A")
         val B = Variable("B")
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             g(X, X)
-        ))
+        )
 
         runtimeEnv shouldProve g(A, B) suchThat {
             itHasExactlyOneSolution()
@@ -145,10 +146,10 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val a = Atom("a")
         val V = Variable("V")
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             Rule(f(X, Y), PredicateInvocationQuery(g(X, Y))),
             g(X, X)
-        ))
+        )
 
         runtimeEnv shouldProve f(a, V) suchThat {
             itHasExactlyOneSolution()
@@ -172,13 +173,13 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val c = Atom("c")
         val d = Atom("d")
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             // append([],L,L).
             app(PrologList(emptyList()), L, L),
 
             // append([H|T],L2,[H|L3]) :- append(T,L2,L3).)
             Rule(app(PrologList(listOf(H), T), L2, PrologList(listOf(H), L3)), PredicateInvocationQuery(app(T, L2, L3)))
-        ))
+        )
 
         "simple append" {
             runtimeEnv shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c, d)), R) suchThat {
@@ -244,9 +245,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val u = Atom("u")
         val v = Atom("v")
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+        val runtimeEnv = runtimeWithUserClauses(
             a(PrologList(listOf(H), T), PrologList(listOf(H), T))
-        ))
+        )
 
         runtimeEnv shouldProve a(X, PrologList(listOf(u, v))) suchThat {
             itHasExactlyOneSolution()
@@ -268,9 +269,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val b = Atom("b")
 
         "case 1" {
-            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = runtimeWithUserClauses(
                 f(_A)
-            ))
+            )
 
             runtimeEnv shouldProve f(a) suchThat {
                 itHasExactlyOneSolution()
@@ -281,9 +282,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 2" {
-            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = runtimeWithUserClauses(
                 f(_A, _A)
-            ))
+            )
 
             runtimeEnv shouldProve f(a, b) suchThat {
                 itHasExactlyOneSolution()
@@ -294,9 +295,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 3" {
-            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = runtimeWithUserClauses(
                 f(_A, b)
-            ))
+            )
 
             runtimeEnv shouldProve f(a, X) suchThat {
                 itHasExactlyOneSolution()
@@ -307,9 +308,9 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         }
 
         "case 4" {
-            val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleOfClauses(
+            val runtimeEnv = runtimeWithUserClauses(
                 f(_A)
-            ))
+            )
 
             runtimeEnv shouldProve f(X) suchThat {
                 itHasExactlyOneSolution()
@@ -325,7 +326,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val moduleBRef = ModuleReference("module", "B")
 
         val moduleA = ASTModule(
-            "A",
+            ModuleDeclaration("A"),
             listOf(ModuleImport.Full(moduleBRef)),
             emptyList(),
             emptySet(),
@@ -334,7 +335,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         )
 
         val moduleB = ASTModule(
-            "B",
+            ModuleDeclaration("B"),
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
             emptySet(),
@@ -343,7 +344,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         )
 
         val rootModule = ASTModule(
-            "__root",
+            ModuleDeclaration("__root"),
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
             emptySet(),
@@ -354,12 +355,14 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         val moduleLoader = PredefinedModuleLoader()
         moduleLoader.registerModule("module", moduleA)
         moduleLoader.registerModule("module", moduleB)
+        moduleLoader.registerModule("module", rootModule)
 
-        val runtimeEnv = DefaultPrologRuntimeEnvironment(rootModule, moduleLoader)
+        val runtimeEnv = DefaultPrologRuntimeEnvironment(moduleLoader)
+        runtimeEnv.assureModulePrimed(ModuleReference("module", moduleA.declaration.moduleName))
+        runtimeEnv.assureModulePrimed(ModuleReference("module", moduleB.declaration.moduleName))
+        runtimeEnv.assureModulePrimed(ModuleReference("module", rootModule.declaration.moduleName))
 
-        runtimeEnv.loadedModules should haveKey("A")
-        runtimeEnv.loadedModules should haveKey("B")
-        runtimeEnv.loadedModules["A"] shouldBe moduleA
-        runtimeEnv.loadedModules["B"] shouldBe moduleB
+        runtimeEnv.getFullyLoadedModule("A") shouldBe moduleA
+        runtimeEnv.getFullyLoadedModule("B") shouldBe moduleB
     }
 }}

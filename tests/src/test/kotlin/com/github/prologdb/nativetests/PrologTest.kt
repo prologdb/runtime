@@ -10,13 +10,18 @@ import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SyntaxError
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.parser.ParseResult
+import com.github.prologdb.parser.parser.ParseResultCertainty
 import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologException
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleNotLoadedException
+import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.AndQuery
@@ -77,29 +82,22 @@ class PrologTest : FreeSpec() { init {
                     .map { Paths.get(it.file.absolutePath) }
             }
 
-        fun parseFile(path: Path): ParseResult<Module> {
-            val fileContent = String(Files.readAllBytes(path), Charset.forName("UTF-8"))
-            val sourceUnit = SourceUnit(path.toString())
-            val lexer = Lexer(fileContent.iterator(), SourceLocation(sourceUnit, 1, 0, 0))
-
-            return PrologParser().parseSourceFile(
-                lexer,
-                TestSourceFileVisitor(path)
-            )
-        }
-
         fun getPrologTestCases(path: Path): Set<PrologTestCase> {
-            val parseResult = parseFile(path)
+            val moduleRef = TestingModuleLoader.moduleReference(path)
+            val runtime = DefaultPrologRuntimeEnvironment(TestingModuleLoader)
 
-            if (!parseResult.isSuccess || parseResult.reportings.isNotEmpty()) {
-                return setOf(PrologTestCase.erroring("_", ParseErrorException(parseResult.reportings)))
+            val testModule = try {
+                runtime.assureModulePrimed(moduleRef)
+                runtime.getFullyLoadedModule(moduleRef.moduleName)
+            }
+            catch (ex: Exception) {
+                return setOf(PrologTestCase.erroring(moduleRef.moduleName, ex))
             }
 
-            val testModule = parseResult.item ?: throw RuntimeException("Invalid return value from parser: is success but item is null")
-            return getPrologTestCases(testModule)
+            return getPrologTestCases(testModule, runtime)
         }
 
-        fun getPrologTestCases(testModule: Module): Set<PrologTestCase> {
+        fun getPrologTestCases(testModule: Module, runtime: DefaultPrologRuntimeEnvironment): Set<PrologTestCase> {
             val by2 = testModule.exportedPredicates[ClauseIndicator.of("by", 2)]
                       ?: return emptySet()
 
@@ -128,8 +126,7 @@ class PrologTest : FreeSpec() { init {
                     override val name = testName
 
                     override fun runWith(callback: TestResultCallback) {
-                        val runtimeEnv = DefaultPrologRuntimeEnvironment(testModule, TestingModuleLoader)
-                        TestExecution(runtimeEnv, testName, goalList).run(callback)
+                        TestExecution(runtime, testModule.declaration.moduleName, testName, goalList).run(callback)
                     }
                 })
             }
@@ -167,7 +164,7 @@ private interface PrologTestCase {
     }
 }
 
-private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment, private val testName: String, private val allGoals: List<Query>) {
+private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment, val moduleName: String, private val testName: String, private val allGoals: List<Query>) {
     private var failedGoal: Query? = null
     private var stateBeforeFailedGoal: Unification? = null
 
@@ -227,7 +224,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
         val substitutedGoals = allGoals
             .map { it.substituteVariables(VariableBucket()) }
 
-        val psc = runtime.newProofSearchContext()
+        val psc = runtime.newProofSearchContext(moduleName)
         val results = buildLazySequence<Unification>(UUID.randomUUID()) {
             fulfillAllGoals(substitutedGoals, psc, VariableBucket())
         }
@@ -243,11 +240,11 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                     } else {
                         CompoundTerm("var", arrayOf(variable))
                     }
-                    goalStr += entryTerm.toStringUsingOperatorNotations(runtime.rootModule.localOperators)
+                    goalStr += entryTerm.toStringUsingOperatorNotations(runtime.getFullyLoadedModule(moduleName).localOperators)
                     goalStr += ",\n"
                 }
                 goalStr += "\n"
-                goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.rootModule.localOperators)
+                goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.getFullyLoadedModule(moduleName).localOperators)
                 callback.onTestFailure(testName, "This goal failed (did not yield a solution):\n$goalStr.")
             }
         }

@@ -91,16 +91,4 @@ interface ProofSearchContext {
             )
         )
     }
-
-    companion object {
-        /**
-         * Convenience method for Java to do a proof search with the [fulfillAttach] coroutine
-         */
-        @JvmStatic
-        fun fulfill(psc: ProofSearchContext, query: Query, initialVariables: VariableBucket): LazySequence<Unification> {
-            return buildLazySequence(psc.principal) {
-                psc.fulfillAttach(this, query, initialVariables)
-            }
-        }
-    }
 }

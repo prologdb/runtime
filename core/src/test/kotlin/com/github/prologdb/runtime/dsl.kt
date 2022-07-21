@@ -5,6 +5,9 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.PredefinedModuleLoader
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -88,18 +91,18 @@ infix fun DefaultPrologRuntimeEnvironment.shouldProve(compoundTerm: CompoundTerm
 }
 
 infix fun DefaultPrologRuntimeEnvironment.shouldProve(query: Query): UnificationSequenceGenerator {
-    val sequence = this.fulfill(query)
+    val sequence = this.fulfill("user", query)
     val firstSolution = sequence.tryAdvance()
     sequence.close()
 
-    if (firstSolution == null) throw AssertionError("$query does not hold in module ${this.rootModule.name}")
+    if (firstSolution == null) throw AssertionError("$query does not hold in module user")
 
-    return { this.fulfill(query) }
+    return { this.fulfill("user", query) }
 }
 
 fun DefaultPrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: String, query: CompoundTerm): UnificationSequenceGenerator {
     val generator: UnificationSequenceGenerator = {
-        val psc = this@shouldProveInContextOfModule.newProofSearchContext().deriveForModuleContext(moduleName)
+        val psc = this@shouldProveInContextOfModule.newProofSearchContext(moduleName)
         buildLazySequence(psc.principal) {
             psc.fulfillAttach(this, PredicateInvocationQuery(query), VariableBucket())
         }
@@ -115,7 +118,7 @@ fun DefaultPrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: Str
 }
 
 infix fun DefaultPrologRuntimeEnvironment.shouldNotProve(query: Query) {
-    val solutions = this.fulfill(query)
+    val solutions = this.fulfill("user", query)
     val firstSolution = solutions.tryAdvance()
     solutions.close()
 
@@ -131,17 +134,41 @@ infix fun DefaultPrologRuntimeEnvironment.shouldNotProve(compoundTerm: CompoundT
 private fun <T : Any> LazySequence<T>.any(predicate: (T) -> Boolean): Boolean
     = find(predicate) != null
 
-fun moduleOfClauses(vararg clauses: Clause): Module {
+fun runtimeWithUserClauses(vararg clauses: Clause): DefaultPrologRuntimeEnvironment {
     val indicators = clauses
         .map(ClauseIndicator.Companion::of)
         .toSet()
 
-    return ASTModule(
-        "__root",
+    val userModule = ASTModule(
+        ModuleDeclaration("user"),
         emptyList(),
         clauses.asIterable(),
         indicators,
         emptySet(),
         indicators
     )
+
+    val moduleLoader = PredefinedModuleLoader().apply {
+        registerModule("toplevel", userModule)
+    }
+
+    return DefaultPrologRuntimeEnvironment(moduleLoader).apply {
+        assureModulePrimed(ModuleReference("toplevel", "user"))
+        getFullyLoadedModule("user")
+    }
+}
+
+fun runtimeWithLoadedModules(vararg modules: Module): DefaultPrologRuntimeEnvironment {
+    val loader = PredefinedModuleLoader().apply {
+        modules.forEach {
+            registerModule("module", it)
+        }
+    }
+
+    return DefaultPrologRuntimeEnvironment(loader).apply {
+        modules.forEach {
+            assureModulePrimed(ModuleReference("module", it.declaration.moduleName))
+            getFullyLoadedModule(it.declaration.moduleName)
+        }
+    }
 }

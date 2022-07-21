@@ -1,16 +1,16 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.parser.ModuleDeclaration
 import com.github.prologdb.parser.parser.DefaultModuleSourceFileVisitor
+import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
 import java.nio.file.Path
 
 class TestSourceFileVisitor(
-    private val filePath: Path
+    forRuntime: PrologRuntimeEnvironment,
 ) : DefaultModuleSourceFileVisitor(
-    implicitModule = ModuleDeclaration(filePath.toString(), null),
-    defaultImports = emptySet() // tests must import explicitly
+    defaultImports = emptySet(), // tests must import explicitly
+    forRuntime = forRuntime,
 ) {
     init {
         operators.defineOperator(OperatorDefinition(100, OperatorType.FX, "test"))
