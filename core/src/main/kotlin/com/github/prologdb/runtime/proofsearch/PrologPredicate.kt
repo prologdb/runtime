@@ -1,16 +1,7 @@
 package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.async.LazySequence
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.flatMapRemaining
-import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
-import com.github.prologdb.runtime.PredicateNotDynamicException
-import com.github.prologdb.runtime.PrologInternalError
-import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.async.*
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -77,7 +68,7 @@ class ASTPrologPredicate(
     override val functor = indicator.functor
     override val arity   = indicator.arity
 
-    override val fqIndicator = FullyQualifiedClauseIndicator(declaringModule.name, indicator)
+    override val fqIndicator = FullyQualifiedClauseIndicator(declaringModule.declaration.moduleName, indicator)
 
     private var lastClauseForTailCall: Rule? = null
     private var tailCall: CompoundTerm? = null
@@ -102,7 +93,7 @@ class ASTPrologPredicate(
         if (!tailCallInitialized) updateTailCall()
 
         val ctxt = if (isModuleTransparent) invocationCtxt else {
-            invocationCtxt.deriveForModuleContext(declaringModule.name)
+            invocationCtxt.deriveForModuleContext(declaringModule.declaration.moduleName)
         }
 
         val lastClause = clauses.last()

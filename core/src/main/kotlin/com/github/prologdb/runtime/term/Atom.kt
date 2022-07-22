@@ -34,7 +34,7 @@ class Atom(val name: String) : Term {
 
     override fun toString(): String {
         val firstChar = name[0]
-        return if (firstChar !in '0' .. '9' && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
+        return if (firstChar !in '0' .. '9' && (firstChar.uppercaseChar() == firstChar || name.contains(Regex("\\s")))) {
             "'$name'"
         } else {
             name

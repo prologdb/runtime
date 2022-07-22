@@ -1,17 +1,11 @@
 package com.github.prologdb.async
 
-import java.util.LinkedList
+import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.coroutines.*
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.coroutines.createCoroutine
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
@@ -281,11 +275,15 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
 
                 currentFoldingSequence = sequence
                 currentFoldingCarry = initial
+                @Suppress("UNCHECKED_CAST")
                 currentFoldingAccumulator = accumulator as (Any, Any) -> Any
                 state = State.FOLDING_SEQUENCE
             }
 
-            return suspendCoroutine { continuation = it as Continuation<Any> }
+            return suspendCoroutine {
+                @Suppress("UNCHECKED_CAST")
+                continuation = it as Continuation<Any>
+            }
         }
 
         override fun finally(code: () -> Any?) {
@@ -297,7 +295,10 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     @Volatile
-    private var continuation: Continuation<Any> = code.createCoroutine(Builder, onComplete) as Continuation<Any>
+    private var continuation: Continuation<Any> = run {
+        @Suppress("UNCHECKED_CAST")
+        code.createCoroutine(Builder, onComplete) as Continuation<Any>
+    }
 
     private enum class State {
         RUNNING,

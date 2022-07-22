@@ -7,7 +7,7 @@ package com.github.prologdb.async
  *
  * If ever needed, could be extended to `throwMultipleNotNull(vararg exs: Throwable?)`.
  */
-inline fun throwMultipleNotNull(ex1: Throwable?, ex2: Throwable?) {
+fun throwMultipleNotNull(ex1: Throwable?, ex2: Throwable?) {
     if (ex1 != null && ex2 != null) {
         ex1.addSuppressed(ex2)
         throw ex1

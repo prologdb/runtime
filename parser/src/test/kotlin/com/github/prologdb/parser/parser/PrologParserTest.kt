@@ -11,33 +11,16 @@ import com.github.prologdb.parser.withMockSourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
-import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologDictionary
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologString
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.forAll
 import io.kotlintest.forOne
-import io.kotlintest.matchers.beEmpty
-import io.kotlintest.matchers.beInstanceOf
-import io.kotlintest.matchers.haveKey
-import io.kotlintest.matchers.haveSize
-import io.kotlintest.matchers.instanceOf
-import io.kotlintest.matchers.should
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldEqual
-import io.kotlintest.matchers.shouldNot
-import io.kotlintest.matchers.shouldNotBe
-import io.kotlintest.matchers.shouldThrow
+import io.kotlintest.matchers.*
 import io.kotlintest.specs.FreeSpec
 
 class PrologParserTest : FreeSpec() {
@@ -877,7 +860,7 @@ class PrologParserTest : FreeSpec() {
         result.reportings should beEmpty()
 
         val module = result.item!!
-        module.name shouldBe "test"
+        module.declaration.moduleName shouldBe "test"
 
         module.exportedPredicates.size shouldBe 2
         module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))

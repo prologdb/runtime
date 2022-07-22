@@ -2,16 +2,7 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.module.InvalidImportException
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.module.ModuleLoader
-import com.github.prologdb.runtime.module.ModuleNotFoundException
-import com.github.prologdb.runtime.module.ModuleNotLoadedException
-import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
-import com.github.prologdb.runtime.module.NoopModuleLoader
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
@@ -19,9 +10,7 @@ import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorRegistry
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 interface PrologRuntimeEnvironment {
@@ -93,7 +82,11 @@ interface PrologRuntimeEnvironment {
                     is ModuleImport.Selective -> import.predicates
                         .map { (exportedIndicator, alias) ->
                             val callable = referencedModule.exportedPredicates[exportedIndicator]
-                                ?: throw InvalidImportException(forModule.name, import, "Predicate $exportedIndicator is imported by module ${forModule.declaration.moduleName} but is not exported by module ${import.moduleReference}")
+                                ?: throw InvalidImportException(
+                                    forModule.declaration.moduleName,
+                                    import,
+                                    "Predicate $exportedIndicator is imported by module ${forModule.declaration.moduleName} but is not exported by module ${import.moduleReference}"
+                                )
 
                             if (exportedIndicator.functor == alias) {
                                 exportedIndicator to Pair(import.moduleReference, callable)

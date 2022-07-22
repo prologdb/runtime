@@ -31,9 +31,7 @@ open class PrologUnsupportedOperationException(message: String, cause: Throwable
 
 open class TermNotAssertableException(message: String) : PrologUnsupportedOperationException(message)
 
-open class InsufficientInstantiationException(val variable: Variable, message: String? = null) : PrologException(
-    "$variable is not sufficiently instantiated"
-)
+open class InsufficientInstantiationException(val variable: Variable, message: String = "$variable is not sufficiently instantiated") : PrologException(message)
 
 open class CircularTermException(message: String) : PrologInternalError(message)
 
@@ -42,7 +40,7 @@ open class PredicateNotDefinedException(
     val inContextOfModule: Module,
     message: String? = null
 ) : PrologException(
-    message ?: "Predicate $indicator not defined in context of module ${inContextOfModule.name}"
+    message ?: "Predicate $indicator not defined in context of module ${inContextOfModule.declaration.moduleName}"
 )
 
 open class PredicateNotExportedException(val fqi: FullyQualifiedClauseIndicator, inContextOfModule: Module) : PredicateNotDefinedException(

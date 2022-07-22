@@ -88,15 +88,15 @@ class PredicateInvocationQuery(
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateInvocationQuery(
-            randomVarsScope.withRandomVariables(goal, mapping) as CompoundTerm,
-            sourceInformation
+            randomVarsScope.withRandomVariables(goal, mapping),
+            sourceInformation,
         )
     }
 
     override fun substituteVariables(variableValues: VariableBucket): Query {
         return PredicateInvocationQuery(
             goal.substituteVariables(variableValues.asSubstitutionMapper()),
-            sourceInformation
+            sourceInformation,
         )
     }
 

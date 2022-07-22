@@ -11,7 +11,7 @@ data class PrologStackTraceElement @JvmOverloads constructor(
     val toStringOverride: String? = null
 ) {
     override fun toString() = toStringOverride ?: run {
-        val modulePrefix = if (module == null) "" else "module ${module.name}, "
+        val modulePrefix = if (module == null) "" else "module ${module.declaration.moduleName}, "
         "$goal   $modulePrefix${sourceInformation.sourceFileName}:${sourceInformation.sourceFileLine}"
     }
 }

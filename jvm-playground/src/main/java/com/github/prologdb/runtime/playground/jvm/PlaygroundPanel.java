@@ -2,8 +2,6 @@ package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.parser.ParseException;
-import com.github.prologdb.runtime.PrologRuntimeEnvironment;
-import com.github.prologdb.runtime.module.*;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
 import com.github.prologdb.parser.lexer.LineEndingNormalizer;
@@ -13,15 +11,14 @@ import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment;
 import com.github.prologdb.runtime.PrologException;
+import com.github.prologdb.runtime.PrologRuntimeEnvironment;
 import com.github.prologdb.runtime.module.Module;
+import com.github.prologdb.runtime.module.*;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
-import com.github.prologdb.runtime.proofsearch.ProofSearchContext;
-import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization;
 import com.github.prologdb.runtime.query.Query;
 import com.github.prologdb.runtime.stdlib.loader.StandardLibraryModuleLoader;
 import com.github.prologdb.runtime.unification.Unification;
-import com.github.prologdb.runtime.unification.VariableBucket;
 import com.github.prologdb.runtime.util.EmptyOperatorRegistry;
 import org.jetbrains.annotations.NotNull;
 
@@ -56,16 +53,6 @@ public class PlaygroundPanel {
 
     public PlaygroundPanel() {
         initComponents();
-    }
-
-    public PrologParser getParser() {
-        return parser;
-    }
-
-    public PlaygroundPanel setParser(PrologParser parser) {
-        this.parser = parser;
-        this.queryPanel.setParser(parser);
-        return this;
     }
 
     public JPanel asJPanel() {
@@ -130,7 +117,7 @@ public class PlaygroundPanel {
         DefaultPrologRuntimeEnvironment newRuntime = new DefaultPrologRuntimeEnvironment(moduleLoader);
         newRuntime.assureModulePrimed(USER_MODULE_REFERENCE);
         newRuntime.getFullyLoadedModule(USER_MODULE_REFERENCE.getModuleName());
-        solutionExplorerPanel.setParseTime(Duration.ofNanos(System.nanoTime() - loadStart));
+        solutionExplorerPanel.setLoadTime(Duration.ofNanos(System.nanoTime() - loadStart));
         runtimeEnvironment = newRuntime;
         knowledgeBaseChangeIndicator = false;
     }
@@ -167,8 +154,7 @@ public class PlaygroundPanel {
             return;
         }
 
-        ProofSearchContext psc = runtimeEnvironment.newProofSearchContext(userModule.getDeclaration().getModuleName(), ReadWriteAuthorization.INSTANCE);
-        LazySequence<Unification> solutions = ProofSearchContext.fulfill(psc, queryParseResult.getItem(), new VariableBucket());
+        LazySequence<Unification> solutions = runtimeEnvironment.fulfill(userModule.getDeclaration().getModuleName(), queryParseResult.getItem());
 
         solutionExplorerPanel.setSolutions(solutions, userModule.getLocalOperators());
         solutionExplorerPanel.showNextSolution();

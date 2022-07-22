@@ -1,9 +1,6 @@
 package com.github.prologdb.async
 
-import com.github.prologdb.async.LazySequence.State.DEPLETED
-import com.github.prologdb.async.LazySequence.State.FAILED
-import com.github.prologdb.async.LazySequence.State.PENDING
-import com.github.prologdb.async.LazySequence.State.RESULTS_AVAILABLE
+import com.github.prologdb.async.LazySequence.State.*
 
 class FlatMapLazySequence<T : Any, M : Any>(
     private val nested: LazySequence<T>,
@@ -54,6 +51,7 @@ class FlatMapLazySequence<T : Any, M : Any>(
                             nested.tryAdvance(); null
                         } catch (ex: Throwable) { ex }!!
                     }
+                    PENDING, RESULTS_AVAILABLE, DEPLETED -> {}
                 }
                 return nestedState
             }

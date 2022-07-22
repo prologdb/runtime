@@ -1,31 +1,9 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ParseException
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.parser.Reporting
-import com.github.prologdb.parser.SemanticError
-import com.github.prologdb.parser.SemanticWarning
-import com.github.prologdb.parser.SyntaxError
-import com.github.prologdb.parser.UnexpectedEOFError
-import com.github.prologdb.parser.UnexpectedTokenError
-import com.github.prologdb.parser.lexer.AtomLiteralToken
-import com.github.prologdb.parser.lexer.IdentifierToken
-import com.github.prologdb.parser.lexer.NumericLiteralToken
-import com.github.prologdb.parser.lexer.Operator
-import com.github.prologdb.parser.lexer.Operator.BRACKET_CLOSE
-import com.github.prologdb.parser.lexer.Operator.BRACKET_OPEN
-import com.github.prologdb.parser.lexer.Operator.CURLY_CLOSE
-import com.github.prologdb.parser.lexer.Operator.CURLY_OPEN
-import com.github.prologdb.parser.lexer.Operator.FULL_STOP
-import com.github.prologdb.parser.lexer.Operator.HEAD_TAIL_SEPARATOR
-import com.github.prologdb.parser.lexer.Operator.PARENT_CLOSE
-import com.github.prologdb.parser.lexer.Operator.PARENT_OPEN
-import com.github.prologdb.parser.lexer.OperatorToken
-import com.github.prologdb.parser.lexer.StringLiteralToken
-import com.github.prologdb.parser.lexer.Token
-import com.github.prologdb.parser.lexer.TokenType.IDENTIFIER
-import com.github.prologdb.parser.lexer.TokenType.NUMERIC_LITERAL
-import com.github.prologdb.parser.lexer.TokenType.OPERATOR
+import com.github.prologdb.parser.*
+import com.github.prologdb.parser.lexer.*
+import com.github.prologdb.parser.lexer.Operator.*
+import com.github.prologdb.parser.lexer.TokenType.*
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
 import com.github.prologdb.parser.sequence.TransactionalSequence
@@ -33,36 +11,15 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.parser.Either
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.module.ModuleLoader
-import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.AnonymousVariable
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologDecimal
-import com.github.prologdb.runtime.term.PrologDictionary
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologNumber
-import com.github.prologdb.runtime.term.PrologString
-import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.EmptyOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorDefinition
-import com.github.prologdb.runtime.util.OperatorRegistry
-import com.github.prologdb.runtime.util.OperatorType
-import com.github.prologdb.runtime.util.OperatorType.FX
-import com.github.prologdb.runtime.util.OperatorType.XFX
-import com.github.prologdb.runtime.util.OperatorType.YF
-import com.github.prologdb.runtime.util.OperatorType.YFX
+import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.util.*
+import com.github.prologdb.runtime.util.OperatorType.*
 import kotlin.math.max
 import kotlin.math.min
 
@@ -101,6 +58,7 @@ class PrologParser {
     fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Query> {
         val termResult = parseTerm(tokens, opRegistry, shouldStop)
 
+        @Suppress("UNCHECKED_CAST")
         if (termResult.item == null) return termResult as ParseResult<Query>
 
         val transformResult = transformQuery(termResult.item)
@@ -727,12 +685,12 @@ class PrologParser {
             return ParseResult(null, MATCHED, reportings)
         }
 
-        val typeAsUCString = (opDefinitionAST.arguments[1] as Atom).name.toUpperCase()
+        val typeAsUCString = (opDefinitionAST.arguments[1] as Atom).name.uppercase()
         val operatorType = try {
             OperatorType.valueOf(typeAsUCString)
         }
         catch (ex: IllegalArgumentException) {
-            reportings.add(SemanticError("${typeAsUCString.toLowerCase()} is not a known operator type", opDefinitionAST.arguments[1].sourceInformation as SourceLocation))
+            reportings.add(SemanticError("${typeAsUCString.lowercase()} is not a known operator type", opDefinitionAST.arguments[1].sourceInformation as SourceLocation))
             return ParseResult(null, MATCHED, reportings)
         }
 

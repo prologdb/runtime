@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray
  * reserving O(n) memory for the index where n is the number of different arities in the map will
  * be efficient. As a result, a [Array]<T> is used for its performance advantages.
  */
-open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
+open class ArityMap<T : Any>(givenItems: Collection<T> = emptySet()) {
 
     private var items: AtomicReferenceArray<T?> = run {
         val initialCapacity = if (givenItems.isEmpty()) 6 else givenItems.size
@@ -29,7 +29,8 @@ open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
 
             synchronized(itemsResizeMutex) {
                 val oldSize = items.length()
-                val newItems = Array<Any?>(value + 1, { index -> if (index < oldSize) items[index] else null }) as Array<T?>
+                @Suppress("UNCHECKED_CAST")
+                val newItems = Array<Any?>(value + 1) { index -> if (index < oldSize) items[index] else null } as Array<T?>
                 items = AtomicReferenceArray(newItems)
             }
         }
@@ -86,7 +87,10 @@ open class ArityMap<T>(givenItems: Collection<T> = emptySet()) {
         }
     }
 
-    fun values(): Iterable<T> = (0 until items.length())
-        .map(items::get)
-        .filterNot { it == null } as Iterable<T>
+    fun values(): Iterable<T> {
+        @Suppress("UNCHECKED_CAST")
+        return (0 until items.length())
+            .map(items::get)
+            .filterNot { it == null } as Iterable<T>
+    }
 }

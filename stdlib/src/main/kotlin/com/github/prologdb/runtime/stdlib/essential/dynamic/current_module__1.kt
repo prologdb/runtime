@@ -10,5 +10,5 @@ val BuiltinCurrentModule1 = nativeRule("current_module", 1) { args, ctxt ->
         throw PrologInternalError("Cannot determine current module: context is not a ${ModuleScopeProofSearchContext::class.qualifiedName}")
     }
 
-    args[0].unify(Atom(ctxt.module.name), ctxt.randomVariableScope)
+    args[0].unify(Atom(ctxt.module.declaration.moduleName), ctxt.randomVariableScope)
 }

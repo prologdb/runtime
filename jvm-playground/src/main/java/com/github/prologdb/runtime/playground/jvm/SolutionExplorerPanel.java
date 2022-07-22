@@ -22,7 +22,7 @@ public class SolutionExplorerPanel {
     private JButton showNextBT;
     private JButton showAllRemainingBT;
 
-    private JLabel parseTimeOutput = new JLabel("-");
+    private JLabel loadTimeOutput = new JLabel("-");
     private JLabel solutionTimeOutput = new JLabel("-");
 
     private LazySequence<Unification> currentSolutions = null;
@@ -45,8 +45,8 @@ public class SolutionExplorerPanel {
 
         JPanel actionsToolbarLeft = new JPanel();
         actionsToolbarLeft.setLayout(new BoxLayout(actionsToolbarLeft, BoxLayout.X_AXIS));
-        actionsToolbarLeft.add(new JLabel("  parse time: "));
-        actionsToolbarLeft.add(parseTimeOutput);
+        actionsToolbarLeft.add(new JLabel("  load time: "));
+        actionsToolbarLeft.add(loadTimeOutput);
         actionsToolbarLeft.add(new JLabel("   solution time: "));
         actionsToolbarLeft.add(solutionTimeOutput);
 
@@ -243,8 +243,8 @@ public class SolutionExplorerPanel {
         currentSolutionIndex = -1;
     }
 
-    public void setParseTime(Duration parseTime) {
-        parseTimeOutput.setText(formatMillis(parseTime.toMillis()));
+    public void setLoadTime(Duration parseTime) {
+        loadTimeOutput.setText(formatMillis(parseTime.toMillis()));
     }
 
     private static final BigDecimal THOUSAND = new BigDecimal("1000");

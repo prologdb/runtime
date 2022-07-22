@@ -14,7 +14,7 @@ class PredefinedModuleLoader : ModuleLoader {
     private val modules: MutableMap<ModuleReference, Module> = ConcurrentHashMap()
 
     fun registerModule(pathAlias: String, module: Module) {
-        val reference = ModuleReference(pathAlias, module.name)
+        val reference = ModuleReference(pathAlias, module.declaration.moduleName)
 
         if (modules.putIfAbsent(reference, module) != null) {
             throw IllegalStateException("Module ${reference.moduleName} already registered")
