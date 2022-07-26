@@ -60,7 +60,7 @@ data class OperatorDefinition (
         assert(name.none { it.isWhitespace() })
     }
 
-    override fun toString() = "op($precedence, ${type.name.toLowerCase()}, $name)"
+    override fun toString() = "op($precedence, ${type.name.lowercase()}, $name)"
 }
 
 enum class OperatorType {

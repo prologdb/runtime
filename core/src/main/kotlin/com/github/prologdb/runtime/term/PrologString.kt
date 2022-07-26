@@ -31,7 +31,7 @@ open class PrologString private constructor(
      * @return The character at the given index (0-based)
      * @throws ArrayIndexOutOfBoundsException If the given index is negative or exceeds this strings length
      */
-    fun charAt(index: Int): Char = data[index].value.toChar()
+    fun charAt(index: Int): Char = data[index].value.toInt().toChar()
 
     /**
      * Returns a string that is a substring of this string. The

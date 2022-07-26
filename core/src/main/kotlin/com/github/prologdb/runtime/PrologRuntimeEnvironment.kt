@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 interface PrologRuntimeEnvironment {
@@ -88,21 +88,15 @@ interface PrologRuntimeEnvironment {
                     is ModuleImport.Selective -> import.predicates
                         .map { (exportedIndicator, alias) ->
                             val callable = referencedModule.exportedPredicates[exportedIndicator]
-                            if (callable == null) {
-                                if (exportedIndicator in referencedModule.allDeclaredPredicates) {
-                                    throw InvalidImportException(
-                                        forModule.declaration.moduleName,
-                                        import,
-                                        "$exportedIndicator is private in module ${import.moduleReference}",
-                                    )
-                                } else {
-                                    throw InvalidImportException(
-                                        forModule.declaration.moduleName,
-                                        import,
+                                ?: throw InvalidImportException(
+                                    forModule.declaration.moduleName,
+                                    import,
+                                    if (exportedIndicator in referencedModule.allDeclaredPredicates) {
+                                        "$exportedIndicator is private in module ${import.moduleReference}"
+                                    } else {
                                         "$exportedIndicator is not defined by module ${import.moduleReference}"
-                                    )
-                                }
-                            }
+                                    },
+                                )
 
                             if (exportedIndicator.functor == alias) {
                                 exportedIndicator to Pair(import.moduleReference, callable)
