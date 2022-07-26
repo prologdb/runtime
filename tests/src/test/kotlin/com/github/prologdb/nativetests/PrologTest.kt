@@ -1,27 +1,15 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.LazySequence
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.flatMapRemaining
-import com.github.prologdb.async.mapRemainingNotNull
+import com.github.prologdb.async.*
 import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SyntaxError
-import com.github.prologdb.parser.lexer.Lexer
-import com.github.prologdb.parser.parser.ParseResult
-import com.github.prologdb.parser.parser.ParseResultCertainty
-import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.PrologException
-import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.module.ModuleNotLoadedException
-import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.AndQuery
@@ -38,11 +26,9 @@ import io.kotlintest.matchers.fail
 import io.kotlintest.specs.FreeSpec
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import java.lang.invoke.MethodHandles
-import java.nio.charset.Charset
-import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.UUID
+import java.util.*
 
 /** runs the tests found in the *.test.pl files in the prolog tests directory */
 class PrologTest : FreeSpec() { init {
@@ -87,8 +73,7 @@ class PrologTest : FreeSpec() { init {
             val runtime = DefaultPrologRuntimeEnvironment(TestingModuleLoader)
 
             val testModule = try {
-                runtime.assureModulePrimed(moduleRef)
-                runtime.getFullyLoadedModule(moduleRef.moduleName)
+                runtime.assureModuleLoaded(moduleRef)
             }
             catch (ex: Exception) {
                 return setOf(PrologTestCase.erroring(moduleRef.moduleName, ex))
@@ -240,11 +225,11 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                     } else {
                         CompoundTerm("var", arrayOf(variable))
                     }
-                    goalStr += entryTerm.toStringUsingOperatorNotations(runtime.getFullyLoadedModule(moduleName).localOperators)
+                    goalStr += entryTerm.toStringUsingOperatorNotations(runtime.getLoadedModule(moduleName).localOperators)
                     goalStr += ",\n"
                 }
                 goalStr += "\n"
-                goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.getFullyLoadedModule(moduleName).localOperators)
+                goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.getLoadedModule(moduleName).localOperators)
                 callback.onTestFailure(testName, "This goal failed (did not yield a solution):\n$goalStr.")
             }
         }

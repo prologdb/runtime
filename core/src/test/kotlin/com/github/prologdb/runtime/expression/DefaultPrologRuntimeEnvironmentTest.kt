@@ -1,25 +1,10 @@
 package com.github.prologdb.runtime.expression
 
-import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
-import com.github.prologdb.runtime.module.ASTModule
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.PredefinedModuleLoader
-import com.github.prologdb.runtime.runtimeWithUserClauses
+import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.shouldNotProve
-import com.github.prologdb.runtime.shouldProve
-import com.github.prologdb.runtime.suchThat
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundBuilder
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.RandomVariable
-import com.github.prologdb.runtime.term.Variable
-import io.kotlintest.matchers.haveKey
-import io.kotlintest.matchers.should
+import com.github.prologdb.runtime.term.*
 import io.kotlintest.matchers.shouldBe
 import io.kotlintest.specs.FreeSpec
 
@@ -362,7 +347,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv.assureModulePrimed(ModuleReference("module", moduleB.declaration.moduleName))
         runtimeEnv.assureModulePrimed(ModuleReference("module", rootModule.declaration.moduleName))
 
-        runtimeEnv.getFullyLoadedModule("A") shouldBe moduleA
-        runtimeEnv.getFullyLoadedModule("B") shouldBe moduleB
+        runtimeEnv.getLoadedModule("A") shouldBe moduleA
+        runtimeEnv.getLoadedModule("B") shouldBe moduleB
     }
 }}

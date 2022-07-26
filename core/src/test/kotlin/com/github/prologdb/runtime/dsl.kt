@@ -3,11 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
-import com.github.prologdb.runtime.module.ASTModule
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.PredefinedModuleLoader
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -154,7 +150,7 @@ fun runtimeWithUserClauses(vararg clauses: Clause): DefaultPrologRuntimeEnvironm
 
     return DefaultPrologRuntimeEnvironment(moduleLoader).apply {
         assureModulePrimed(ModuleReference("toplevel", "user"))
-        getFullyLoadedModule("user")
+        getLoadedModule("user")
     }
 }
 
@@ -168,7 +164,7 @@ fun runtimeWithLoadedModules(vararg modules: Module): DefaultPrologRuntimeEnviro
     return DefaultPrologRuntimeEnvironment(loader).apply {
         modules.forEach {
             assureModulePrimed(ModuleReference("module", it.declaration.moduleName))
-            getFullyLoadedModule(it.declaration.moduleName)
+            getLoadedModule(it.declaration.moduleName)
         }
     }
 }

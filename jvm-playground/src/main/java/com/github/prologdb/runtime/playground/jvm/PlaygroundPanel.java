@@ -116,7 +116,7 @@ public class PlaygroundPanel {
         long loadStart = System.nanoTime();
         DefaultPrologRuntimeEnvironment newRuntime = new DefaultPrologRuntimeEnvironment(moduleLoader);
         newRuntime.assureModulePrimed(USER_MODULE_REFERENCE);
-        newRuntime.getFullyLoadedModule(USER_MODULE_REFERENCE.getModuleName());
+        newRuntime.getLoadedModule(USER_MODULE_REFERENCE.getModuleName());
         solutionExplorerPanel.setLoadTime(Duration.ofNanos(System.nanoTime() - loadStart));
         runtimeEnvironment = newRuntime;
         knowledgeBaseChangeIndicator = false;
@@ -136,7 +136,7 @@ public class PlaygroundPanel {
             return;
         }
 
-        Module userModule = runtimeEnvironment.getFullyLoadedModule(USER_MODULE_REFERENCE.getModuleName());
+        Module userModule = runtimeEnvironment.getLoadedModule(USER_MODULE_REFERENCE.getModuleName());
         Lexer queryLexer = new Lexer(
             new SourceUnit("query"),
             new LineEndingNormalizer(

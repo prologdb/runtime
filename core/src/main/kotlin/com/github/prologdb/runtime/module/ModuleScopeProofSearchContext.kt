@@ -68,7 +68,7 @@ class ModuleScopeProofSearchContext(
             return Triple(fqIndicator, callable, unscopedGoal.arguments)
         }
 
-        val module = runtimeEnvironment.getFullyLoadedModule(moduleNameTerm.name)
+        val module = runtimeEnvironment.getLoadedModule(moduleNameTerm.name)
 
         val callable = module.exportedPredicates[simpleIndicator]
             ?: if (simpleIndicator in module.allDeclaredPredicates) {

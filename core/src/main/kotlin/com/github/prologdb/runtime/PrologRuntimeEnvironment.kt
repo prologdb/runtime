@@ -14,8 +14,6 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 interface PrologRuntimeEnvironment {
-    @Deprecated(message = "Use getFullyLoadedModule instead", level = DeprecationLevel.WARNING)
-    val loadedModules: Map<String, Module>
     fun newProofSearchContext(moduleName: String, authorization: Authorization = ReadWriteAuthorization): ProofSearchContext
     fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext
 
@@ -34,11 +32,19 @@ interface PrologRuntimeEnvironment {
     fun assureModuleParsed(moduleReference: ModuleReference): Module
 
     /**
-     * Completes the loading process of a module. [assureModulePrimed] has to be called first.
-     * TODO: can the signature be changed to (ModuleReference) as to avoid the call-in-order smell?
-     * TODO: what about the implicit-side effect smell?
+     * Completely loads the given module, if not loaded already.
      */
-    fun getFullyLoadedModule(name: String): Module
+    fun assureModuleLoaded(moduleReference: ModuleReference): Module {
+        assureModulePrimed(moduleReference)
+        return getLoadedModule(moduleReference.moduleName)
+    }
+
+    /**
+     * If a module of the given name is loaded or primed (see [assureModulePrimed], [assureModuleLoaded]),
+     * returns that module.
+     * @throws ModuleNotLoadedException
+     */
+    fun getLoadedModule(name: String): Module
 
     /**
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
@@ -82,11 +88,21 @@ interface PrologRuntimeEnvironment {
                     is ModuleImport.Selective -> import.predicates
                         .map { (exportedIndicator, alias) ->
                             val callable = referencedModule.exportedPredicates[exportedIndicator]
-                                ?: throw InvalidImportException(
-                                    forModule.declaration.moduleName,
-                                    import,
-                                    "Predicate $exportedIndicator is imported by module ${forModule.declaration.moduleName} but is not exported by module ${import.moduleReference}"
-                                )
+                            if (callable == null) {
+                                if (exportedIndicator in referencedModule.allDeclaredPredicates) {
+                                    throw InvalidImportException(
+                                        forModule.declaration.moduleName,
+                                        import,
+                                        "$exportedIndicator is private in module ${import.moduleReference}",
+                                    )
+                                } else {
+                                    throw InvalidImportException(
+                                        forModule.declaration.moduleName,
+                                        import,
+                                        "$exportedIndicator is not defined by module ${import.moduleReference}"
+                                    )
+                                }
+                            }
 
                             if (exportedIndicator.functor == alias) {
                                 exportedIndicator to Pair(import.moduleReference, callable)
@@ -111,9 +127,6 @@ interface PrologRuntimeEnvironment {
     }
 }
 
-/**
- * The environment for one **instance** of a prolog program.
- */
 open class DefaultPrologRuntimeEnvironment(
     protected val moduleLoader: ModuleLoader = NoopModuleLoader
 ) : PrologRuntimeEnvironment {
@@ -127,11 +140,6 @@ open class DefaultPrologRuntimeEnvironment(
      * * [Exception] (in case of an error)
      */
     private val moduleLoadingStages: MutableMap<String, Any> = ConcurrentHashMap()
-    override val loadedModules: Map<String, Module>
-        get() = moduleLoadingStages.values
-            .filterIsInstance<ModuleLoader.ParsedStage>()
-            .map { it.module }
-            .associateBy { it.declaration.moduleName }
 
     protected val moduleLookupTables: MutableMap<String, Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>> = ConcurrentHashMap()
     private val moduleLoadingMutex = Any()
@@ -283,7 +291,7 @@ open class DefaultPrologRuntimeEnvironment(
         return collectTo
     }
 
-    override fun getFullyLoadedModule(name: String): Module {
+    override fun getLoadedModule(name: String): Module {
         if (name !in moduleLoadingStages) {
             throw ModuleNotLoadedException(name)
         }
@@ -297,7 +305,7 @@ open class DefaultPrologRuntimeEnvironment(
     }
 
     override fun newProofSearchContext(moduleName: String, authorization: Authorization): ProofSearchContext {
-        val module = getFullyLoadedModule(moduleName)
+        val module = getLoadedModule(moduleName)
 
         return ModuleScopeProofSearchContext(
             module,
@@ -314,7 +322,7 @@ open class DefaultPrologRuntimeEnvironment(
             return deriveFrom
         }
 
-        val module = getFullyLoadedModule(moduleName)
+        val module = getLoadedModule(moduleName)
         return ModuleScopeProofSearchContext(
             module,
             this,
