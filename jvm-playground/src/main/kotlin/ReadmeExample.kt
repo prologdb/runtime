@@ -17,7 +17,6 @@ import com.github.prologdb.runtime.unification.Unification
 
 fun main() {
     val moduleSourceCode = """
-        :- use_module(library(equality)).
         loves(vincent, mia).
         loves(marcellus, mia).
         loves(pumpkin, honey_bunny).

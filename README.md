@@ -29,7 +29,6 @@ You can find the following working code in [ReadmeExample.kt](jvm-playground/src
 
 ```kotlin
 val moduleSourceCode = """
-        :- use_module(library(equality)).
         loves(vincent, mia).
         loves(marcellus, mia).
         loves(pumpkin, honey_bunny).
