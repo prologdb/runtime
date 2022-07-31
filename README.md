@@ -25,35 +25,27 @@ To use this interpreter in other projects, import it via Maven Central:
 
 You can find the following working code in [ReadmeExample.kt](jvm-playground/src/main/kotlin/ReadmeExample.kt).
 
-1\. Parse module sources:
+1\. Declare module source:
 
 ```kotlin
-val moduleSourceCode: String = """
-:- use_module(library(equality)).
-loves(vincent, mia).
-loves(marcellus, mia).
-loves(pumpkin, honey_bunny).
-loves(honey_bunny, pumpkin).
-
-jealous(X, Y) :-
-    loves(X, Z),
-    loves(Y, Z),
-    X \= Y
-    .
-"""
-val lexer = Lexer(
-    SourceUnit("root module"),
-    LineEndingNormalizer(
-        CharacterIterable(moduleSourceCode).iterator()
-    )
-)
-
-val moduleParseResult = PrologParser().parseModule(lexer, ISOOpsOperatorRegistry, ModuleDeclaration("_root", null))
-if (moduleParseResult.reportings.isNotEmpty()) {
-    // parsing not successful
+val moduleSourceCode = """
+        :- use_module(library(equality)).
+        loves(vincent, mia).
+        loves(marcellus, mia).
+        loves(pumpkin, honey_bunny).
+        loves(honey_bunny, pumpkin).
+        
+        jealous(X, Y) :-
+            loves(X, Z),
+            loves(Y, Z),
+            X \= Y
+            .
+    """
+// this allows the runtime to load our custom source code
+val userModuleReference = ModuleReference("prog", "user")
+val userModuleLoader = PredefinedSourceModuleLoader().apply {
+  registerModule(userModuleReference, moduleSourceCode)
 }
-
-val module = moduleParseResult.item!!
 ```
 
 Make sure to import all modules you need; have a look at the playground.
@@ -61,41 +53,30 @@ Make sure to import all modules you need; have a look at the playground.
 2\. Initialize a new Runtime:
 
 ```kotlin
-val runtime = PrologRuntimeEnvironment(module)
+// this adds the standard library to the runtime
+val moduleLoader = CascadingModuleLoader(userModuleLoader, StandardLibraryModuleLoader)
+
+// this initializes the runtime
+val runtime = DefaultPrologRuntimeEnvironment(moduleLoader)
+val loadedUserModule = runtime.assureModuleLoaded(userModuleReference)
 ```
 
-To add your own modules (loaded form source code or programmed in Kotlin):
-
-```kotlin
-class CustomModule : com.github.prologdb.runtime.module.Module {
-    override val name = "custom"
-    // ...
-}
-val runtime = PrologRuntimeEnvironment(module, NativeLibraryLoader.withCoreLibraries().apply {
-    registerModule("myapp", CustomModule())
-})
-```
-
-The custom module can then be loaded into other modules (including the root module)
-via the `use_module` directive:
-```prolog
-:- use_module(myapp(custom)).
-```
+You can load module source code from the classpath with `ClasspathPrologSourceModuleLoader`,
+and Kotlin-only modules with `PredefinedModuleLoader`. For a combination, look at [how the
+[standard library does it](stdlib/src/main/kotlin/com/github/prologdb/runtime/stdlib/loader/StandardLibraryModuleLoader.kt)
 
 3\. Run a query
 
-Parsing the query is similar to parsing the module. Be sure to pass on the
-modules operator definitions to the parser:
 
 ```kotlin
 val queryCode = """jealous(marcellus, Person)."""
 val queryLexer = Lexer(
-    SourceUnit("query"),
-    LineEndingNormalizer(CharacterIterable(queryCode).iterator())
+  SourceUnit("query"),
+  LineEndingNormalizer(CharacterIterable(queryCode).iterator())
 )
-val queryParseResult = PrologParser().parseQuery(queryLexer, module.localOperators)
+val queryParseResult = PrologParser().parseQuery(queryLexer, loadedUserModule.localOperators)
 if (queryParseResult.reportings.isNotEmpty()) {
-    // parsing not successful
+  // parsing not successful
 }
 val queryAST = queryParseResult.item!!
 ```
@@ -103,11 +84,11 @@ val queryAST = queryParseResult.item!!
 Once you have the query AST, you can run it:
 
 ```kotlin
-val solutions: LazySequence<Unification> = runtime.fulfill(queryAST, ReadWriteAuthorization)
-val personsJealousOfMarcellus: Set<String> = solutions
-    .mapRemaining { it.variableValues[PrologVariable("Person")] }
-    .mapRemaining { (it as Atom).name }
-    .remainingTo(::mutableSetOf)
+val solutions: LazySequence<Unification> = runtime.fulfill(userModuleReference.moduleName, queryAST)
+val personsJealousOfMarcellus = solutions
+  .mapRemaining { it.variableValues[Variable("Person")] }
+  .mapRemaining { (it as Atom).name }
+  .remainingTo(::mutableSetOf)
 ```
 
 # Modules
