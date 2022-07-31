@@ -1,5 +1,5 @@
-:- use_module(library(equality)).
-:- use_module(library(strings)).
+:- use_module(essential($equality)).
+:- use_module(essential($strings)).
 
 test "string_chars/2 conversion from string to list" by [
     string_chars("foobar", X),

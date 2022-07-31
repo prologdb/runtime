@@ -1,11 +1,13 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.util.ImmutableSubList
+import com.github.prologdb.runtime.util.OperatorRegistry
 import kotlin.math.min
 
 /**
  * An implementation of String (similar to Java) that is prolog affine.
  */
+@PrologTypeName("string")
 open class PrologString private constructor(
     /**
      * The unicode code points that make up the string
@@ -14,18 +16,10 @@ open class PrologString private constructor(
 ) : PrologList(data) {
 
     constructor(chars: CharArray, beginIndex: Int = 0, length: Int = chars.size) : this(
-        ImmutableSubList(chars.toList().map { PrologInteger(it.toLong()) }, beginIndex, length)
+        ImmutableSubList(chars.toList().map { PrologInteger(it.code.toLong()) }, beginIndex, length)
     )
 
-    constructor(str: String) : this({
-        val ar = CharArray(str.length)
-        for (i in 0..str.lastIndex) {
-            ar[i] = str[i]
-        }
-        ar
-    }())
-
-    override val prologTypeName = "string"
+    constructor(str: String) : this(CharArray(str.length) { str[it] })
 
     init {
         if (data.any { it.value < 0 || it.value > 65535 }) throw IllegalArgumentException("Prolog strings must only contain unicode values in the range [0; 65535]")
@@ -37,7 +31,7 @@ open class PrologString private constructor(
      * @return The character at the given index (0-based)
      * @throws ArrayIndexOutOfBoundsException If the given index is negative or exceeds this strings length
      */
-    fun charAt(index: Int): Char = data[index].value.toChar()
+    fun charAt(index: Int): Char = data[index].value.toInt().toChar()
 
     /**
      * Returns a string that is a substring of this string. The
@@ -90,13 +84,19 @@ open class PrologString private constructor(
 
     override val variables: Set<Variable> = emptySet()
 
-    override fun substituteVariables(mapper: (Variable) -> Term): PrologList = this
+    override fun substituteVariables(mapper: (Variable) -> Term): PrologString = this
 
     override fun equals(other: Any?): Boolean {
         if (other is PrologString) {
             return this.data == other.data
         }
         else return super.equals(other)
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + data.hashCode()
+        return result
     }
 
     override fun compareTo(other: Term): Int {
@@ -135,11 +135,17 @@ open class PrologString private constructor(
      * result in an equal string).
      */
     fun toKotlinString(): String {
-        return kotlinString ?: {
+        if (kotlinString == null) {
             val sb = StringBuilder(length)
             characters.forEach { sb.append(it) }
-            sb.toString()
-        }()
+            kotlinString = sb.toString()
+        }
+
+        return kotlinString!!
+    }
+
+    override fun toStringUsingOperatorNotations(operators: OperatorRegistry): String {
+        return toString()
     }
 
     override fun toString(): String {

@@ -1,10 +1,12 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 
-open class Atom(val name: String) : Term {
-
+@PrologTypeName("atom")
+class Atom(val name: String) : Term {
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         when (rhs) {
             this        -> return Unification.TRUE
@@ -12,8 +14,6 @@ open class Atom(val name: String) : Term {
             else        -> return Unification.FALSE
         }
     }
-
-    override val prologTypeName = "atom"
 
     override val variables: Set<Variable> = emptySet()
 
@@ -34,10 +34,9 @@ open class Atom(val name: String) : Term {
 
     override fun toString(): String {
         val firstChar = name[0]
-        return if (firstChar !in '0' .. '9' && (firstChar.toUpperCase() == firstChar || name.contains(Regex("\\s")))) {
+        return if (firstChar !in '0' .. '9' && (firstChar.uppercaseChar() == firstChar || name.contains(Regex("\\s")))) {
             "'$name'"
-        }
-        else {
+        } else {
             name
         }
     }
@@ -54,4 +53,9 @@ open class Atom(val name: String) : Term {
     override fun hashCode(): Int {
         return name.hashCode()
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
+
+    /** Whether this atom appeared in quotes. Important for the parser mostly. */
+    var quoted: Boolean = false
 }

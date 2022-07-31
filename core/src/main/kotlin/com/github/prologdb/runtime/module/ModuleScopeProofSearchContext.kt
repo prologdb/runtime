@@ -3,17 +3,17 @@ package com.github.prologdb.runtime.module
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
 import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 
 /**
  * All code declared inside a module only has access to predicates declared in the same module and
@@ -22,105 +22,86 @@ import com.github.prologdb.runtime.unification.Unification
  * module within the proper [ModuleScopeProofSearchContext] achieves that behaviour.
  */
 class ModuleScopeProofSearchContext(
-    internal val module: Module,
-    /**
-     * Predicates declared in [module], including private ones.
-     */
-    private val modulePredicates: Map<ClauseIndicator, PrologCallable>,
-
+    val module: Module,
+    private val runtimeEnvironment: DefaultPrologRuntimeEnvironment,
+    private val lookupTable: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>,
     override val principal: Principal,
     override val randomVariableScope: RandomVariableScope,
-    override val authorization: Authorization,
-    override val rootAvailableModules: Map<String, Module>
+    override val authorization: Authorization
 ) : ProofSearchContext, AbstractProofSearchContext() {
 
-    override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator) {
-        // attempt core builtin
-        when (goal.functor) {
-            "assert", "assertz" -> {
-                assertz(goal.arguments)
-                return
-            }
-            "abolish" -> {
-                abolish(goal.arguments)
-                return
-            }
-            "retract", "retractAll" -> {
-                throw PrologRuntimeException("${ClauseIndicator.of(goal)} is not fully implemented yet.")
-            }
-        }
+    override val operators = module.localOperators
 
-        // attempt modules own scope
-        modulePredicates[indicator]?.let {
-            it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
-            return
-        }
-
-        // attempt imported predicate
-        findImport(indicator)?.let {
-            it.fulfill(this, goal, this@ModuleScopeProofSearchContext)
-            return
-        }
+    override suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
+        val (fqIndicator, callable, invocableGoal) = resolveHead(query.goal)
+        if (!authorization.mayRead(fqIndicator)) throw PrologPermissionError("Not allowed to read/invoke $fqIndicator")
+        return callable.fulfill(this, invocableGoal.arguments, this@ModuleScopeProofSearchContext)
     }
 
-    override fun getStackTraceElementOf(goal: CompoundTerm) = PrologStackTraceElement(
-        goal,
-        if (goal is HasPrologSource) goal.sourceInformation else NullSourceInformation,
+    override fun getStackTraceElementOf(query: PredicateInvocationQuery) = PrologStackTraceElement(
+        query.goal,
+        query.goal.sourceInformation.orElse(query.sourceInformation),
         module
     )
 
-    private val importLookupCache: Map<ClauseIndicator, PrologCallable> = mutableMapOf<ClauseIndicator, PrologCallable>().also { importLookupCache ->
-        module.imports.asSequence()
-            .forEach { import ->
-                val referencedModule = rootAvailableModules[import.moduleReference.moduleName]
-                    ?: throw PrologRuntimeException("Imported module ${import.moduleReference} not loaded in proof search context")
+    private fun findImport(indicator: ClauseIndicator): Pair<ModuleReference, PrologCallable>? = lookupTable[indicator]
 
-                val visiblePredicates: Map<ClauseIndicator, PrologCallable> = when (import) {
-                    is FullModuleImport -> referencedModule.exportedPredicates
-                    is SelectiveModuleImport -> import.imports
-                        .map { (exportedIndicator, alias) ->
-                            val callable = referencedModule.exportedPredicates[exportedIndicator]
-                                ?: throw PrologRuntimeException("Predicate $exportedIndicator not exported by module ${import.moduleReference}")
-                            if (exportedIndicator.functor == alias) {
-                                exportedIndicator to callable
-                            } else {
-                                ClauseIndicator.of(alias, exportedIndicator.arity) to callable
-                            }
-                        }
-                        .toMap()
-                    is ExceptModuleImport -> referencedModule.exportedPredicates
-                        .filterKeys { it !in import.excluded }
-                }
+    override fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>? {
+        if (goal.functor != ":" || goal.arity != 2 || goal !is CompoundTerm) {
+            return null
+        }
 
-                importLookupCache.putAll(visiblePredicates)
+        val moduleNameTerm = goal.arguments[0]
+        val unscopedGoal = goal.arguments[1]
+
+        if (moduleNameTerm !is Atom || unscopedGoal !is CompoundTerm) {
+            return null
+        }
+
+        val simpleIndicator = ClauseIndicator.of(unscopedGoal)
+
+        if (moduleNameTerm.name == this.module.declaration.moduleName) {
+            val callable = module.allDeclaredPredicates[simpleIndicator]
+                ?: throw PredicateNotDefinedException(simpleIndicator, module)
+
+            val fqIndicator = FullyQualifiedClauseIndicator(this.module.declaration.moduleName, simpleIndicator)
+            return Triple(fqIndicator, callable, unscopedGoal.arguments)
+        }
+
+        val module = runtimeEnvironment.getLoadedModule(moduleNameTerm.name)
+
+        val callable = module.exportedPredicates[simpleIndicator]
+            ?: if (simpleIndicator in module.allDeclaredPredicates) {
+                throw PredicateNotExportedException(FullyQualifiedClauseIndicator(module.declaration.moduleName, simpleIndicator), this.module)
+            } else {
+                throw PredicateNotDefinedException(simpleIndicator, module)
             }
+
+        return Triple(
+            FullyQualifiedClauseIndicator(module.declaration.moduleName, simpleIndicator),
+            callable,
+            unscopedGoal.arguments
+        )
     }
 
-    private fun findImport(indicator: ClauseIndicator): PrologCallable? = importLookupCache[indicator]
+    override fun resolveCallable(simpleIndicator: ClauseIndicator): Pair<FullyQualifiedClauseIndicator, PrologCallable> {
+        module.allDeclaredPredicates[simpleIndicator]?.let { callable ->
+            val fqIndicator = FullyQualifiedClauseIndicator(module.declaration.moduleName, simpleIndicator)
+            return Pair(fqIndicator, callable)
+        }
 
-    private fun assertz(args: Array<out Term>) {
-        if (args.size != 1) throw PrologRuntimeException("assertz/${args.size} is not defined")
+        findImport(simpleIndicator)?.let { (sourceModule, callable) ->
+            val fqIndicator = FullyQualifiedClauseIndicator(sourceModule.moduleName, ClauseIndicator.of(callable))
 
-        val clause = args[0] as? Clause ?: throw PrologRuntimeException("Argument 0 to assertz/1 must be a clause")
+            return Pair(fqIndicator, callable)
+        }
 
-        val indicator = ClauseIndicator.of(clause)
-        if (!authorization.mayWrite(indicator)) throw PrologPermissionError("Not allowed to assert $indicator")
-
-        throw PrologRuntimeException("assertz/1 is not fully implemented yet.")
+        throw PredicateNotDefinedException(simpleIndicator, module)
     }
 
-    private fun abolish(args: Array<out Term>) {
-        if (args.size != 1) throw PrologRuntimeException("abolish/${args.size} is not defined")
-        val arg0 = args[0]
-        if (arg0 !is CompoundTerm || arg0.arity != 2 || arg0.functor != "/") throw PrologRuntimeException("Argument 0 to abolish/1 must be an instance of `/`/2")
-        if (arg0.arguments[0] !is Atom || arg0.arguments[1] !is PrologInteger) throw PrologRuntimeException("Argument 0 to abolish/1 must be an indicator")
-
-        val name = (arg0.arguments[0] as Atom).name
-        val arity = (arg0.arguments[1] as PrologInteger).value.toInt()
-
-        val indicator = ClauseIndicator.of(name, arity)
-        if (!authorization.mayWrite(indicator)) throw PrologPermissionError("Not allowed to write $indicator")
-
-        throw PrologRuntimeException("abolish/1 is not fully implemented yet.")
+    override fun deriveForModuleContext(moduleName: String): ProofSearchContext {
+        return runtimeEnvironment.deriveProofSearchContextForModule(this, moduleName)
     }
+
+    override fun toString() = "context of module ${module.declaration.moduleName}"
 }

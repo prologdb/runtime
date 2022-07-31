@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.github.prologdb</groupId>
         <artifactId>runtime</artifactId>
-        <version>1.0.0-RC2</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -24,6 +24,10 @@
         <dependency>
             <groupId>com.github.prologdb</groupId>
             <artifactId>runtime-parser</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.prologdb</groupId>
+            <artifactId>runtime-stdlib</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kotlintest</groupId>
@@ -57,8 +61,7 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <configuration>
-                    <experimentalCoroutines>enable</experimentalCoroutines>
-                    <jvmTarget>1.8</jvmTarget>
+                    <jvmTarget>11</jvmTarget>
                 </configuration>
                 <executions>
                     <execution>

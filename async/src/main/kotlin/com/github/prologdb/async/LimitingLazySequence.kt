@@ -1,13 +1,11 @@
 package com.github.prologdb.async
 
-class LimitingLazySequence<T>(
+class LimitingLazySequence<T : Any>(
     private val nested: LazySequence<T>,
     private val limit: Long
 ) : LazySequence<T> {
     init {
-        if (limit < 0) {
-            throw IllegalArgumentException()
-        }
+        require(limit >= 0)
     }
 
     var counter = 0L
@@ -15,6 +13,12 @@ class LimitingLazySequence<T>(
     var closedState: LazySequence.State = LazySequence.State.DEPLETED
 
     override val principal = nested.principal
+
+    init {
+        if (limit == 0L) {
+            close()
+        }
+    }
 
     override fun step() = if (closed) closedState else nested.step()
 

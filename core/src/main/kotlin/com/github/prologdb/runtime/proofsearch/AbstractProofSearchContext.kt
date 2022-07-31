@@ -1,15 +1,15 @@
 package com.github.prologdb.runtime.proofsearch
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.forEachRemaining
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.async.mapRemainingNotNull
+import com.github.prologdb.runtime.exception.PrologStackTraceElement
+import com.github.prologdb.runtime.exception.prologTry
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -18,78 +18,79 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * for every predicate invocation.
  */
 abstract class AbstractProofSearchContext : ProofSearchContext {
-    override val fulfillAttach: suspend LazySequenceBuilder<Unification>.(Query, VariableBucket) -> Unit = { q, variables ->
+    override val fulfillAttach: ProofSearch = { q, variables ->
         when (q) {
             is AndQuery -> fulfillAndQuery(q, variables)
-            is OrQuery -> for (goal in q.goals) fulfillOrQuery(q, variables)
+            is OrQuery -> fulfillOrQuery(q, variables)
             is PredicateInvocationQuery -> invokePredicate(q, variables)
         }
     }
 
-    protected suspend fun LazySequenceBuilder<Unification>.fulfillAndQuery(query: AndQuery, initialVariables: VariableBucket) {
-        val substitutedGoals = query.goals
-            .map { it.substituteVariables(initialVariables) }
-
-        fulfillAllGoals(substitutedGoals, this@AbstractProofSearchContext, initialVariables.copy())
-    }
-
-    protected suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                           vars: VariableBucket = VariableBucket()) {
-        val goal = goals[0].substituteVariables(vars)
-
-        buildLazySequence<Unification>(context.principal) {
-            context.fulfillAttach(this, goal, VariableBucket())
+    protected suspend fun LazySequenceBuilder<Unification>.fulfillAndQuery(query: AndQuery, initialVariables: VariableBucket): Unification? {
+        if (query.goals.isEmpty()) {
+            return Unification(initialVariables)
         }
-            .forEachRemaining { goalUnification ->
-                val goalVars = vars.copy()
-                for ((variable, value) in goalUnification.variableValues.values) {
-                    if (value != null) {
-                        // substitute all instantiated variables for simplicity and performance
-                        val substitutedValue = value.substituteVariables(goalVars.asSubstitutionMapper())
-                        if (goalVars.isInstantiated(variable)) {
-                            if (goalVars[variable] != substitutedValue && goalVars[variable] != value) {
-                                // instantiated to different value => no unification
-                                return@forEachRemaining
+        if (query.goals.size == 1) {
+            return fulfillAttach(query.goals.first(), initialVariables)
+        }
+
+        var sequence = LazySequence.singleton(Unification(initialVariables.copy()))
+
+        for (goalIndex in query.goals.indices) {
+            sequence = sequence.flatMapRemaining { stateBefore ->
+                val goalSequence = buildLazySequence<Unification>(principal) {
+                    fulfillAttach(
+                        query.goals[goalIndex].substituteVariables(stateBefore.variableValues),
+                        stateBefore.variableValues.copy()
+                    )
+                }
+                return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
+                    val stateCombined = stateBefore.variableValues.copy()
+                    for ((variable, value) in goalUnification.variableValues.values) {
+                        if (value != null) {
+                            // substitute all instantiated variables for simplicity and performance
+                            val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
+                            if (stateCombined.isInstantiated(variable)) {
+                                if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
+                                    // instantiated to different value => no unification
+                                    return@mapRemainingNotNull null
+                                }
+                            }
+                            else {
+                                stateCombined.instantiate(variable, substitutedValue)
                             }
                         }
-                        else {
-                            goalVars.instantiate(variable, substitutedValue)
-                        }
                     }
-                }
-
-                if (goals.size == 1) {
-                    // this was the last goal in the list and it is fulfilled
-                    // the variable bucket now holds all necessary instantiations
-                    yield(Unification(goalVars))
-                }
-                else {
-                    fulfillAllGoals(goals.subList(1, goals.size), context, goalVars)
-                }
+                    Unification(stateCombined)
+                })
             }
+        }
+
+        return yieldAllFinal(sequence)
     }
 
-    protected suspend fun LazySequenceBuilder<Unification>.fulfillOrQuery(query: OrQuery, initialVariables: VariableBucket) {
-        for (goal in query.goals) {
-            fulfillAttach(goal, initialVariables)
+    protected suspend inline fun LazySequenceBuilder<Unification>.fulfillOrQuery(query: OrQuery, initialVariables: VariableBucket): Unification? {
+        if (query.goals.size == 1) {
+            return fulfillAttach(this, query.goals[0], initialVariables)
+        }
+
+        for (goalIndex in 0..query.goals.size - 2) {
+            fulfillAttach(query.goals[goalIndex], initialVariables)?.let { yield(it) }
+        }
+
+        return fulfillAttach(query.goals.last(), initialVariables)
+    }
+
+    private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
+        return prologTry({ getStackTraceElementOf(query) }) {
+            doInvokePredicate(query, variables)
         }
     }
 
-    private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket) {
-        val goal = query.goal
+    protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification?
 
-        val indicator = ClauseIndicator.of(goal)
-        if (!authorization.mayRead(indicator)) throw PrologPermissionError("Not allowed to read $indicator")
-
-        prologTry({ getStackTraceElementOf(goal) }) {
-            doInvokePredicate(goal.substituteVariables(variables.asSubstitutionMapper()), indicator)
-        }
-    }
-
-    protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(goal: CompoundTerm, indicator: ClauseIndicator)
-
-    protected open fun getStackTraceElementOf(goal: CompoundTerm): PrologStackTraceElement = PrologStackTraceElement(
-        goal,
-        if (this is HasPrologSource) sourceInformation else NullSourceInformation
+    protected open fun getStackTraceElementOf(query: PredicateInvocationQuery): PrologStackTraceElement = PrologStackTraceElement(
+        query.goal,
+        query.goal.sourceInformation.orElse(query.sourceInformation)
     )
 }

@@ -1,6 +1,6 @@
-:- use_module(library(equality)).
-:- use_module(library(typesafety)).
-:- use_module(library(comparison)).
+:- use_module(essential($equality)).
+:- use_module(essential($typesafety)).
+:- use_module(essential($comparison)).
 
 test "variable is less than number" by [
     var(Z),
@@ -82,4 +82,34 @@ test "integer compared to decimal: compared as decimal" by [
     % to the larger float in binary representation
     % in case of equality, the float is always considered less
     10000000000000004.0 @< 10000000000000003
+].
+
+% ------------------------------
+
+test "compare integers" by [
+    2 @> 1
+].
+
+test "compare floats" by [
+    3.2 @> 2.9
+].
+
+test "compare atom" by [
+    x @> t
+].
+
+test "empty list is less than with content" by [
+    [] @< [z]
+].
+
+test "lists are compared by elements" by [
+    [1, 3, 90, 1000] @> [1, 3, 90, 500]
+].
+
+test "compare lists: tail doesnt matter if elements can decide" by [
+    [1, 1 | T] @< [1, 1000 | Z]
+].
+
+test "compare lists: tail decides in case of elements tie" by [
+    [1, 1 | T] @< [1, 1 | Z]
 ].

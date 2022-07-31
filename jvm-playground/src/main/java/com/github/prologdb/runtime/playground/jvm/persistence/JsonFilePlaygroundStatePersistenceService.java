@@ -13,13 +13,19 @@ import java.util.Optional;
  * JSON to a file specified when the service is constructed
  */
 public class JsonFilePlaygroundStatePersistenceService implements PlaygroundStatePersistenceService {
-    /** The file to persist to */
+    /**
+     * The file to persist to
+     */
     private Path filePath;
+
+    private Path backupPath;
 
     private ObjectMapper objectMapper;
 
-    public JsonFilePlaygroundStatePersistenceService(Path filePath, ObjectMapper om) {
+    public JsonFilePlaygroundStatePersistenceService(Path filePath, ObjectMapper om)
+    {
         this.filePath = Objects.requireNonNull(filePath);
+        this.backupPath = filePath.resolveSibling(filePath.getFileName().toString() + ".bak");
         this.objectMapper = Objects.requireNonNull(om);
     }
 
@@ -28,7 +34,12 @@ public class JsonFilePlaygroundStatePersistenceService implements PlaygroundStat
     }
 
     @Override
-    public Optional<PlaygroundState> read() throws IOException {
+    public Optional<PlaygroundState> read() throws IOException
+    {
+        if (Files.exists(backupPath)) {
+            return Optional.of(objectMapper.readValue(backupPath.toFile(), PlaygroundState.class));
+        }
+
         if (Files.exists(filePath)) {
             if (Files.isRegularFile(filePath)) {
                 return Optional.of(objectMapper.readValue(filePath.toFile(), PlaygroundState.class));
@@ -41,15 +52,21 @@ public class JsonFilePlaygroundStatePersistenceService implements PlaygroundStat
     }
 
     @Override
-    public void write(PlaygroundState state) throws IOException {
-        if (!Files.exists(filePath)) {
-            Files.createFile(filePath);
-        }
-
-        if (!Files.isRegularFile(filePath)) {
+    public void write(PlaygroundState state) throws IOException
+    {
+        if (Files.exists(filePath) && !Files.isRegularFile(filePath)) {
             throw new IOException(filePath.toString() + " is a directory, expected file");
         }
 
+        if (Files.exists(backupPath) && !Files.isRegularFile(backupPath)) {
+            throw new IOException(backupPath.toString() + " is a directory, expected file");
+        }
+
+        Files.deleteIfExists(backupPath);
+        if (Files.exists(filePath)) {
+            Files.move(filePath, backupPath);
+        }
         objectMapper.writeValue(filePath.toFile(), state);
+        Files.deleteIfExists(backupPath);
     }
 }

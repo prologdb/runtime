@@ -1,23 +1,25 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.*
+import com.github.prologdb.parser.SemanticWarning
+import com.github.prologdb.parser.SyntaxError
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.parser.withMockSourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
 import io.kotlintest.forAll
+import io.kotlintest.forOne
 import io.kotlintest.matchers.*
 import io.kotlintest.specs.FreeSpec
 
@@ -26,8 +28,9 @@ class PrologParserTest : FreeSpec() {
 
     init{
 
-    val operators = DefaultOperatorRegistry()
-    operators.include(ISOOpsOperatorRegistry)
+    val operators = DefaultOperatorRegistry().apply {
+        include(ISOOpsOperatorRegistry)
+    }
     operators.defineOperator(OperatorDefinition(500, OperatorType.XFX, "infixOpXFX500"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FY, "prefixOpFY200"))
     operators.defineOperator(OperatorDefinition(200, OperatorType.FX, "prefixOpFX200"))
@@ -35,30 +38,33 @@ class PrologParserTest : FreeSpec() {
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
-    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
-    fun parseTerm(code: String) = parseTerm(tokensOf(code))
+        fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
+        fun parseTerm(code: String) = parseTerm(tokensOf(code))
 
-    fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
-    fun parseList(code: String) = parseList(tokensOf(code))
+        fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
+        fun parseList(code: String) = parseList(tokensOf(code))
 
-    fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
-    fun parseDict(code: String) = parseDict(tokensOf(code))
+        fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
+        fun parseDict(code: String) = parseDict(tokensOf(code))
 
-    "atom" - {
-        "a" {
-            val result = parseTerm("a")
-            result.certainty shouldEqual MATCHED
-            result.reportings.should(beEmpty())
-            assert(result.item is ParsedAtom)
-            (result.item!! as ParsedAtom).name shouldEqual "a"
-        }
+        fun parseQuery(tokens: TransactionalSequence<Token>) = PrologParser().parseQuery(tokens, operators)
+        fun parseQuery(code: String) = parseQuery(tokensOf(code))
+
+        "atom" - {
+            "a" {
+                val result = parseTerm("a")
+                result.certainty shouldEqual MATCHED
+                result.reportings.should(beEmpty())
+                assert(result.item is Atom)
+                (result.item!! as Atom).name shouldEqual "a"
+            }
 
         "someAtom" {
             val result = parseTerm("someAtom")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedAtom)
-            (result.item!! as ParsedAtom).name shouldEqual "someAtom"
+            assert(result.item is Atom)
+            (result.item!! as Atom).name shouldEqual "someAtom"
         }
     }
 
@@ -93,7 +99,7 @@ class PrologParserTest : FreeSpec() {
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
 
-        val string = result.item!! as ParsedPrologString
+        val string = result.item!! as PrologString
         string.toKotlinString() shouldEqual "this is a string \" with escaped stuff"
     }
 
@@ -102,18 +108,18 @@ class PrologParserTest : FreeSpec() {
         result.certainty shouldEqual MATCHED
         result.reportings should beEmpty()
 
-        var term = result.item!! as ParsedCompoundTerm
+        var term = result.item!! as CompoundTerm
         term.functor shouldEqual ","
         term.arity shouldEqual 2
 
-        (term.arguments[0] as ParsedAtom).name shouldEqual "a"
+        (term.arguments[0] as Atom).name shouldEqual "a"
 
-        term = term.arguments[1] as ParsedCompoundTerm
+        term = term.arguments[1] as CompoundTerm
         term.functor shouldEqual ","
         term.arity shouldEqual  2
 
-        (term.arguments[0] as ParsedAtom).name shouldEqual "b"
-        (term.arguments[1] as ParsedAtom).name shouldEqual "c"
+        (term.arguments[0] as Atom).name shouldEqual "b"
+        (term.arguments[1] as Atom).name shouldEqual "c"
     }
     
     "compound term" - {
@@ -161,7 +167,7 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
-            val compound = result.item!! as ParsedCompoundTerm
+            val compound = result.item!! as CompoundTerm
             compound.functor shouldEqual "infixOpXFX500"
             compound.arguments.size shouldEqual 2
         }
@@ -171,11 +177,11 @@ class PrologParserTest : FreeSpec() {
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 0
 
-            val compound = result.item!! as ParsedCompoundTerm
+            val compound = result.item!! as CompoundTerm
             compound.functor shouldEqual "a"
             compound.arity shouldEqual 1
 
-            val soleArg = compound.arguments[0] as ParsedCompoundTerm
+            val soleArg = compound.arguments[0] as CompoundTerm
             soleArg.functor shouldEqual "infixOpXFX500"
             soleArg.arity shouldEqual 2
             soleArg.arguments[0].toString() shouldEqual "b"
@@ -252,7 +258,7 @@ class PrologParserTest : FreeSpec() {
             val result = parseList(tokens)
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 0
             result.item!!.tail shouldBe null
 
@@ -265,7 +271,7 @@ class PrologParserTest : FreeSpec() {
             val result = parseList(tokensOf("[1,2]"))
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 2
             result.item!!.tail shouldBe null
         }
@@ -274,20 +280,20 @@ class PrologParserTest : FreeSpec() {
             val result = parseList("[1|T]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 1
-            assert(result.item!!.tail is ParsedVariable)
-            (result.item!!.tail as ParsedVariable).name shouldEqual "T"
+            assert(result.item!!.tail is Variable)
+            (result.item!!.tail as Variable).name shouldEqual "T"
         }
 
         "[1,2|T]" {
             val result = parseList("[1,2|T]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 2
-            assert(result.item!!.tail is ParsedVariable)
-            (result.item!!.tail as ParsedVariable).name shouldEqual "T"
+            assert(result.item!!.tail is Variable)
+            (result.item!!.tail as Variable).name shouldEqual "T"
         }
 
         "invalid: [1," {
@@ -299,7 +305,7 @@ class PrologParserTest : FreeSpec() {
             val result = parseList("[1,]")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 1
             result.item!!.tail shouldBe null
         }
@@ -308,7 +314,7 @@ class PrologParserTest : FreeSpec() {
             val result = parseList("[1|]")
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldEqual 1
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 1
             result.item!!.tail shouldBe null
         }
@@ -317,7 +323,7 @@ class PrologParserTest : FreeSpec() {
             val result = parseList("[1,2|[3,4]]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 4
             result.item!!.tail shouldBe null
         }
@@ -326,10 +332,10 @@ class PrologParserTest : FreeSpec() {
             val result = parseList("[1,2|[3|T]]")
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedList)
+            assert(result.item is PrologList)
             result.item!!.elements.size shouldEqual 3
-            assert(result.item!!.tail is ParsedVariable)
-            (result.item!!.tail as ParsedVariable).name shouldEqual "T"
+            assert(result.item!!.tail is Variable)
+            (result.item!!.tail as Variable).name shouldEqual "T"
         }
     }
 
@@ -339,7 +345,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.entries should beEmpty()
             result.item!!.tail shouldBe null
         }
@@ -349,7 +355,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.size shouldEqual 1
             result.item!!.tail shouldBe null
 
@@ -363,7 +369,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.size shouldEqual 2
             result.item!!.tail shouldBe null
 
@@ -376,7 +382,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldEqual MATCHED
             result.reportings should beEmpty()
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.size shouldEqual 2
             result.item!!.tail shouldEqual Variable("T")
 
@@ -389,7 +395,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldBe 1
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.entries should beEmpty()
             result.item!!.tail shouldBe null
 
@@ -401,7 +407,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldEqual MATCHED
             result.reportings.size shouldBe 1
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.entries should beEmpty()
             result.item!!.tail shouldBe null
 
@@ -413,7 +419,7 @@ class PrologParserTest : FreeSpec() {
 
             result.certainty shouldBe MATCHED
             result.reportings.size shouldEqual 2
-            assert(result.item is ParsedDictionary)
+            assert(result.item is PrologDictionary)
             result.item!!.pairs.size shouldEqual 2
             result.item!!.tail shouldBe null
 
@@ -486,13 +492,13 @@ class PrologParserTest : FreeSpec() {
                 result.certainty shouldEqual MATCHED
                 result.reportings should beEmpty()
 
-                result.item shouldBe instanceOf(ParsedCompoundTerm::class)
-                val outer = result.item as ParsedCompoundTerm
+                result.item shouldBe instanceOf(CompoundTerm::class)
+                val outer = result.item as CompoundTerm
                 outer.functor shouldEqual "postfixOpYF200"
                 outer.arity shouldEqual 1
-                outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
+                outer.arguments[0] shouldBe instanceOf(CompoundTerm::class)
 
-                val inner = outer.arguments[0] as ParsedCompoundTerm
+                val inner = outer.arguments[0] as CompoundTerm
                 inner.functor shouldEqual "infixOpXFX200"
                 inner.arity shouldEqual 2
                 inner.arguments[0] shouldEqual Atom("a")
@@ -505,13 +511,13 @@ class PrologParserTest : FreeSpec() {
                 result.certainty shouldEqual MATCHED
                 result.reportings should beEmpty()
 
-                result.item shouldBe instanceOf(ParsedCompoundTerm::class)
-                val outer = result.item as ParsedCompoundTerm
+                result.item shouldBe instanceOf(CompoundTerm::class)
+                val outer = result.item as CompoundTerm
                 outer.functor shouldEqual "prefixOpFY200"
                 outer.arity shouldEqual 1
-                outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
+                outer.arguments[0] shouldBe instanceOf(CompoundTerm::class)
 
-                val inner = outer.arguments[0] as ParsedCompoundTerm
+                val inner = outer.arguments[0] as CompoundTerm
                 inner.functor shouldEqual "infixOpXFX200"
                 inner.arity shouldEqual 2
                 inner.arguments[0] shouldEqual Atom("a")
@@ -524,14 +530,14 @@ class PrologParserTest : FreeSpec() {
                 result.certainty shouldEqual MATCHED
                 result.reportings should beEmpty()
 
-                result.item shouldBe instanceOf(ParsedCompoundTerm::class)
-                val outer = result.item as ParsedCompoundTerm
+                result.item shouldBe instanceOf(CompoundTerm::class)
+                val outer = result.item as CompoundTerm
                 outer.functor shouldEqual "infixOpYFX200"
                 outer.arity shouldEqual 2
-                outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
+                outer.arguments[0] shouldBe instanceOf(CompoundTerm::class)
                 outer.arguments[1] shouldEqual Atom("b")
 
-                val inner = outer.arguments[0] as ParsedCompoundTerm
+                val inner = outer.arguments[0] as CompoundTerm
                 inner.functor shouldEqual "prefixOpFX200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
@@ -543,13 +549,13 @@ class PrologParserTest : FreeSpec() {
                 result.certainty shouldEqual MATCHED
                 result.reportings should beEmpty()
 
-                result.item shouldBe instanceOf(ParsedCompoundTerm::class)
-                val outer = result.item as ParsedCompoundTerm
+                result.item shouldBe instanceOf(CompoundTerm::class)
+                val outer = result.item as CompoundTerm
                 outer.functor shouldEqual "prefixOpFY200"
                 outer.arity shouldEqual 1
-                outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
+                outer.arguments[0] shouldBe instanceOf(CompoundTerm::class)
 
-                val inner = outer.arguments[0] as ParsedCompoundTerm
+                val inner = outer.arguments[0] as CompoundTerm
                 inner.functor shouldEqual "postfixOpXF200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
@@ -561,16 +567,36 @@ class PrologParserTest : FreeSpec() {
                 result.certainty shouldEqual MATCHED
                 result.reportings should beEmpty()
 
-                result.item shouldBe instanceOf(ParsedCompoundTerm::class)
-                val outer = result.item as ParsedCompoundTerm
+                result.item shouldBe instanceOf(CompoundTerm::class)
+                val outer = result.item as CompoundTerm
                 outer.functor shouldEqual "postfixOpYF200"
                 outer.arity shouldEqual 1
-                outer.arguments[0] shouldBe instanceOf(ParsedCompoundTerm::class)
+                outer.arguments[0] shouldBe instanceOf(CompoundTerm::class)
 
-                val inner = outer.arguments[0] as ParsedCompoundTerm
+                val inner = outer.arguments[0] as CompoundTerm
                 inner.functor shouldEqual "prefixOpFX200"
                 inner.arity shouldEqual 1
                 inner.arguments[0] shouldEqual Atom("a")
+            }
+
+            "associativity test 06 correction" {
+                val result = parseTerm("dynamic append/3")
+
+                result.certainty shouldEqual MATCHED
+                result.reportings should beEmpty()
+
+                result.item shouldBe instanceOf(CompoundTerm::class)
+
+                val outerDynamic = result.item as CompoundTerm
+                outerDynamic.functor shouldEqual "dynamic"
+                outerDynamic.arity shouldEqual 1
+                outerDynamic.arguments[0] should beInstanceOf(CompoundTerm::class)
+
+                val indicator = outerDynamic.arguments[0] as CompoundTerm
+                indicator.functor shouldEqual "/"
+                indicator.arity shouldEqual 2
+                indicator.arguments[0] shouldEqual Atom("append")
+                indicator.arguments[1] shouldEqual PrologInteger(3)
             }
         }
 
@@ -645,6 +671,131 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
+    "invalid :-op/3" - {
+        "non-numeric precedence" {
+            val declaration = CompoundTerm("op", arrayOf(Atom("invalid"), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.item shouldBe null
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator precedence must be an integer"
+        }
+
+        "precedence out of range below" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(-10), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator precedence must be between 0 and 1200 (inclusive)"
+            result.item shouldNotBe null
+            result.item!!.precedence shouldBe 0.toShort()
+        }
+
+        "precedence out of range above" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(1201), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator precedence must be between 0 and 1200 (inclusive)"
+            result.item shouldNotBe null
+            result.item!!.precedence shouldBe 1200.toShort()
+        }
+
+        "type argument not atom" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), PrologList(emptyList()), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator type: expected atom but got list"
+            result.item shouldBe null
+        }
+
+        "undefined type" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), Atom("yfy"), Atom("opname"))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "yfy is not a known operator type"
+            result.item shouldBe null
+        }
+
+        "name argument not atom" {
+            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), Atom("xfx"), PrologList(emptyList()))).withMockSourceLocation()
+            val result = PrologParser().parseOperatorDefinition(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "operator name: expected atom but got list"
+            result.item shouldBe null
+        }
+    }
+
+    "valid :-op/3" {
+        val declaration = CompoundTerm("op", arrayOf(PrologInteger(800), Atom("xfx"), Atom("myop"))).withMockSourceLocation()
+        val result = PrologParser().parseOperatorDefinition(declaration)
+        result.reportings should beEmpty()
+        result.item shouldNotBe null
+        result.item!!.precedence shouldBe 800.toShort()
+        result.item!!.type shouldBe OperatorType.XFX
+        result.item!!.name shouldBe "myop"
+    }
+
+    "invalid :-module/1" {
+        val declaration = CompoundTerm("module", arrayOf(PrologList(emptyList()))).withMockSourceLocation()
+        val result = PrologParser().parseModuleDeclaration(declaration)
+        result.reportings.size shouldBe 1
+        result.reportings.first().message shouldBe "Argument 0 to module/1 must be an atom, got list"
+        result.item shouldBe null
+    }
+
+    "valid :-module/1" {
+        val declaration = CompoundTerm("module", arrayOf(Atom("mymodule"))).withMockSourceLocation()
+        val result = PrologParser().parseModuleDeclaration(declaration)
+        result.reportings should beEmpty()
+        result.item shouldNotBe null
+        result.item!!.moduleName shouldBe "mymodule"
+        result.item!!.exportedPredicates shouldBe null
+    }
+
+    "invalid :-module/2" - {
+        "second argument not a list" {
+            val declaration = CompoundTerm("module", arrayOf(Atom("name"), Atom("bla"))).withMockSourceLocation()
+            val result = PrologParser().parseModuleDeclaration(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "Argument 1 to module/2 must be a list, got atom"
+            result.item shouldNotBe null
+            result.item!!.moduleName shouldBe "name"
+            result.item!!.exportedPredicates shouldBe null
+        }
+        "export list with invalid clause indicator" {
+            val declaration = CompoundTerm("module", arrayOf(Atom("name"), PrologList(listOf(Atom("predname"))))).withMockSourceLocation()
+            val result = PrologParser().parseModuleDeclaration(declaration)
+            result.reportings.size shouldBe 1
+            result.reportings.first().message shouldBe "Module exports must be instances of '/'/2 or op/3, got atom"
+            result.item shouldNotBe null
+            result.item!!.moduleName shouldBe "name"
+            result.item!!.exportedPredicates shouldNotBe null
+            result.item!!.exportedPredicates!! should beEmpty()
+        }
+    }
+
+    "valid :-module/2" {
+        val exports = listOf(
+            CompoundTerm("/", arrayOf(Atom("predname"), PrologInteger(2))),
+            CompoundTerm("/", arrayOf(Atom("otherpred"), PrologInteger(4)))
+        )
+        val declaration = CompoundTerm("module", arrayOf(Atom("name"), PrologList(exports))).withMockSourceLocation()
+        val result = PrologParser().parseModuleDeclaration(declaration)
+        result.reportings should beEmpty()
+        result.item shouldNotBe null
+        result.item!!.moduleName shouldBe "name"
+        result.item!!.exportedPredicates shouldNotBe null
+        result.item!!.exportedPredicates!!.size shouldBe 2
+
+        forOne(result.item!!.exportedPredicates!!) {
+            it.functor shouldBe "predname"
+            it.arity shouldBe 2
+        }
+
+        forOne(result.item!!.exportedPredicates!!) {
+            it.functor shouldBe "otherpred"
+            it.arity shouldBe 4
+        }
+    }
+
     "parenthesis protection" {
         val tokens = tokensOf("a((b(1), c(1)))")
         val result = parseTerm(tokens)
@@ -661,11 +812,40 @@ class PrologParserTest : FreeSpec() {
         }
     }
 
-    "module" {
-        fun parseModule(tokens: TransactionalSequence<Token>) = PrologParser().parseModule(tokens, ISOOpsOperatorRegistry)
-        fun parseModule(code: String) = parseModule(tokensOf(code))
+    "module qualified goal" {
+        val tokens = tokensOf("lists:(append()).")
+        val result = parseQuery(tokens)
+        result.certainty shouldEqual MATCHED
+        result.reportings should beEmpty()
 
-        val result = parseModule("""
+        result.item!! should beInstanceOf(PredicateInvocationQuery::class)
+
+        val outerColon = (result.item!! as PredicateInvocationQuery).goal
+        outerColon.functor shouldEqual ":"
+        outerColon.arity shouldEqual 2
+            outerColon.arguments[0] should beInstanceOf(Atom::class)
+            (outerColon.arguments[0] as Atom).name shouldEqual "lists"
+            outerColon.arguments[1] should beInstanceOf(CompoundTerm::class)
+
+            val innerGoal = outerColon.arguments[1] as CompoundTerm
+            innerGoal.functor shouldEqual "append"
+            innerGoal.arity shouldEqual 0
+        }
+
+        "module" {
+            fun parseModule(tokens: TransactionalSequence<Token>): ParseResult<com.github.prologdb.runtime.module.Module> {
+                val runtime = DefaultPrologRuntimeEnvironment()
+                val primedStage = PrologParser().parseSourceFile(
+                    tokens,
+                    DefaultModuleSourceFileVisitor(runtime, emptySet()),
+                )
+                val parsedStage = primedStage.proceed()
+
+                return ParseResult(parsedStage.module, MATCHED, parsedStage.reportings)
+            }
+            fun parseModule(code: String) = parseModule(tokensOf(code))
+
+            val result = parseModule("""
             :- module(test).
 
             :- op(200,xf,isDead).
@@ -680,20 +860,35 @@ class PrologParserTest : FreeSpec() {
         result.reportings should beEmpty()
 
         val module = result.item!!
-        module.name shouldBe "test"
+        module.declaration.moduleName shouldBe "test"
 
         module.exportedPredicates.size shouldBe 2
         module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
         module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
 
-        val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
-        isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
-        isDead1 as ASTPrologPredicate
-        isDead1.functor shouldBe "isDead"
-        isDead1.arity shouldBe 1
-        isDead1.clauses should haveSize(1)
-        isDead1.clauses[0] shouldBe instanceOf(Rule::class)
+            val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
+            isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
+            isDead1 as ASTPrologPredicate
+            isDead1.functor shouldBe "isDead"
+            isDead1.arity shouldBe 1
+            isDead1.clauses should haveSize(1)
+            isDead1.clauses[0] shouldBe instanceOf(Rule::class)
 
-        isDead1.clauses[0].toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
-    }
-}}
+            isDead1.clauses[0].toString() shouldEqual "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+        }
+
+        "query" - {
+            "content after full stop" {
+                val result = parseQuery("some_goal(). other().")
+                result.item shouldNotBe null
+                result.isSuccess shouldBe true
+                result.item!! should beInstanceOf(PredicateInvocationQuery::class)
+                result.item!! as PredicateInvocationQuery
+                (result.item!! as PredicateInvocationQuery).goal shouldBe CompoundTerm("some_goal", emptyArray())
+
+                result.reportings should haveSize(1)
+                result.reportings.single().location.line shouldBe 1
+                result.reportings.single().location.column shouldBe 13
+            }
+        }
+    }}

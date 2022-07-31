@@ -1,20 +1,13 @@
 package com.github.prologdb.runtime
 
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.runtime.proofsearch.ProofSearchContext
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.util.ArityMap
-import java.util.*
+import java.util.WeakHashMap
 
-interface Clause : HasFunctorAndArity {
-    /**
-     * Unifies the given compound (`other`) with this entry; if this is a fact (a [CompoundTerm]), unifies with
-     * the given compound and ignores the given [ProofSearchContext]. If this is a rule, uses the [ProofSearchContext]
-     * to run the query (in case the head and the given [CompoundTerm] unify).
-     */
-    val unifyWithKnowledge: suspend LazySequenceBuilder<Unification>.(other: CompoundTerm, context: ProofSearchContext) -> Unit
-}
+interface Clause : PrologCallable
 
 /**
  * A indicator of a clause, e.g. `likes/2`.
@@ -23,7 +16,14 @@ data class ClauseIndicator internal constructor(
     val functor: String,
     val arity: Int
 ) {
+    init {
+        require(functor.isNotBlank())
+        require(arity >= 0)
+    }
+
     override fun toString() = "$functor/$arity"
+
+    fun toIdiomatic(): CompoundTerm = CompoundTerm("/", arrayOf(Atom(functor), PrologInteger.createUsingStringOptimizerCache(arity.toLong())))
 
     companion object {
         /**
@@ -66,4 +66,20 @@ data class ClauseIndicator internal constructor(
 
         fun of(clause: HasFunctorAndArity): ClauseIndicator = of(clause.functor, clause.arity)
     }
+}
+
+/**
+ * Like [ClauseIndicator], including a module name: `module:functor/arity`. A [FullyQualifiedClauseIndicator]
+ */
+data class FullyQualifiedClauseIndicator(
+    val moduleName: String,
+    val indicator: ClauseIndicator
+) {
+    init {
+        require(moduleName.isNotBlank())
+    }
+
+    override fun toString() = "$moduleName:$indicator"
+
+    fun toIdiomatic() = CompoundTerm(":", arrayOf(Atom(moduleName), indicator.toIdiomatic()))
 }

@@ -1,8 +1,12 @@
 package com.github.prologdb.runtime
 
+import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.RandomVariable
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import java.lang.ref.WeakReference
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Handles the remapping of user-specified variables to random variables (that avoids name collisions).
@@ -12,14 +16,7 @@ class RandomVariableScope {
      * This is essentially the most simple PRNG possible: this int will just be incremented until it hits Long.MAX_VALUE
      * and will then throw an exception. That number is then used to generate variable names.
      */
-    private var randomCounter: Long = 0
-
-    /**
-     * Stores created instances of [RandomVariable] for reuse. Index within the list equals the counter values
-     * used to create the variable; thus, this holds only the random variables created for random counter
-     * values up to [Integer.MAX_VALUE]
-     */
-    private val variables: MutableList<RandomVariable> = ArrayList(30)
+    private var counter: Long = 0
 
     /**
      * Replaces all the variables in the given term with random instances; the mapping gets stored
@@ -41,18 +38,54 @@ class RandomVariableScope {
         }
     }
 
+    fun withRandomVariables(term: CompoundTerm, mapping: VariableMapping) = withRandomVariables(term as Term, mapping) as CompoundTerm
+    fun withRandomVariables(terms: Array<out Term>, mapping: VariableMapping): Array<out Term> = Array(terms.size) { index ->
+        this.withRandomVariables(terms[index], mapping)
+    }
+
     fun createNewRandomVariable(): Variable {
-        if (randomCounter == Long.MAX_VALUE) {
-            throw PrologRuntimeException("Out of random variables")
+        val localCounter = ++counter
+        if (localCounter == Long.MAX_VALUE) {
+            throw PrologInternalError("Out of random variables (reached $localCounter random variables in one proof search).")
         }
 
-        if (variables.size > randomCounter) {
-            return variables[(randomCounter++).toInt()]
+        if (localCounter >= Integer.MAX_VALUE.toLong()) {
+            return RandomVariable(localCounter)
         }
-        else {
-            val rvar = RandomVariable(randomCounter++)
-            variables.add(rvar)
-            return rvar
+
+        val localCounterInt = localCounter.toInt()
+
+        val localPool = pool
+        if (localCounterInt < localPool.size) {
+            var variable = localPool[localCounterInt]?.get()
+            if (variable == null) {
+                variable = RandomVariable(localCounter)
+                localPool[localCounterInt] = WeakReference(variable)
+            }
+            return variable
         }
+
+        val newPool = localPool.copyOf(
+            newSize = min(
+                max(
+                    localCounter + 1L, localPool.size.toLong() * 2L
+                ),
+                Integer.MAX_VALUE.toLong()
+            ).toInt()
+        )
+        val variable = RandomVariable(localCounter)
+        newPool[localCounterInt] = WeakReference(variable)
+        pool = newPool
+
+        return variable
+    }
+
+    companion object {
+        /**
+         * Shared cache for random variables. The index corresponds to [RandomVariableScope.counter]
+         */
+        @JvmStatic
+        @Volatile
+        private var pool: Array<WeakReference<RandomVariable>?> = Array(100) { counter -> WeakReference(RandomVariable(counter.toLong())) }
     }
 }

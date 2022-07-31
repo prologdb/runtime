@@ -1,5 +1,5 @@
-:- use_module(library(equality)).
-:- use_module(library(typesafety)).
+:- use_module(essential($equality)).
+:- use_module(essential($typesafety)).
 
 test "atom/1 with atom" by [
     atom(a)

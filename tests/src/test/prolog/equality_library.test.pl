@@ -1,4 +1,6 @@
-:- use_module(library(equality)).
+:- use_module(essential($equality)).
+
+fact(_) :- 1 = 0.
 
 test "negation - argument is false" by [
     not(fact(arg))

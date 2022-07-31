@@ -19,6 +19,7 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     }
 
     override fun equals(other: Any?): Boolean {
+        if (other === null) return false
         if (this === other) return true
 
         other as Unification
@@ -37,5 +38,7 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
         val FALSE: Unification? = null
         val TRUE: Unification = Unification()
         val NONE: LazySequence<Unification> = LazySequence.empty()
+
+        fun whether(condition: Boolean): Unification? = if(condition) TRUE else FALSE
     }
 }

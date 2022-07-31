@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
-object AnonymousVariable : Variable("_") {
+class AnonymousVariable : Variable("_") {
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification {
         val randomVar = randomVarsScope.createNewRandomVariable()
         val bucket = VariableBucket()

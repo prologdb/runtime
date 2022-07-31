@@ -1,33 +1,33 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
+import kotlin.math.min
 
+@PrologTypeName("list")
 open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term {
 
-    open val elements: List<Term>
+    val elements: List<Term>
     val tail: Variable?
 
     init {
         if (givenTail is PrologList) {
             elements = givenElements + givenTail.elements
             tail = givenTail.tail
-        }
-        else {
+        } else {
             elements = givenElements
             tail = givenTail as Variable?
         }
     }
 
-    override val prologTypeName = "list"
-
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         if (rhs is Variable) {
             return rhs.unify(this, randomVarsScope)
-        }
-        else if (rhs is PrologList) {
+        } else if (rhs is PrologList) {
             if (rhs.elements.size > this.elements.size) {
                 return rhs.unify(this, randomVarsScope)
             }
@@ -48,12 +48,10 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                     val rhsTail = rhs.tail!! // should be caught earlier
                     try {
                         return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope))
-                    }
-                    catch (ex: VariableDiscrepancyException) {
+                    } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
-                }
-                else {
+                } else {
                     val lhsElement = this.elements[index]
                     val rhsElement = rhs.elements[index]
                     iterationUnification = lhsElement.unify(rhsElement, randomVarsScope)
@@ -61,12 +59,10 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
                 if (iterationUnification == null) {
                     return Unification.FALSE
-                }
-                else {
+                } else {
                     try {
                         carryUnification = carryUnification.combinedWith(iterationUnification)
-                    }
-                    catch (ex: VariableDiscrepancyException) {
+                    } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
                 }
@@ -77,32 +73,28 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
                 if (this.tail != null && rhs.tail != null) {
                     tailUnification = this.tail.unify(rhs.tail, randomVarsScope)
-                }
-                else if (this.tail != null) {
+                } else if (this.tail != null) {
                     tailUnification = this.tail.unify(PrologList(emptyList()), randomVarsScope)
-                }
-                else {
+                } else {
                     tailUnification = rhs.tail!!.unify(PrologList(emptyList()), randomVarsScope)
                 }
 
                 try {
                     carryUnification = carryUnification.combinedWith(tailUnification)
-                }
-                catch (ex: VariableDiscrepancyException) {
+                } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }
             }
 
             return carryUnification
-        }
-        else {
+        } else {
             return Unification.FALSE
         }
     }
 
     override val variables: Set<Variable> by lazy {
         val variables = elements.flatMap(Term::variables).toMutableSet()
-        
+
         if (tail != null) {
             variables.add(tail)
         }
@@ -111,7 +103,9 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
     }
 
     override fun substituteVariables(mapper: (Variable) -> Term): PrologList {
-        return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
+        return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {
+            it.sourceInformation = this.sourceInformation
+        }
     }
 
     override fun toString(): String {
@@ -141,20 +135,31 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
         if (other is PrologList) {
             // arity equal and functor name are equal, sort by elements
-            if (this.elements.isEmpty() && other.elements.isEmpty()) {
-                return 0
+            if (this.elements.isEmpty()) {
+                return if (other.elements.isEmpty()) 0 else -1
             }
 
-            // empty lists are lesser than non-empty lists
-            if (this.elements.isEmpty() && other.elements.isNotEmpty()) {
-                return -1
-            }
-            else if (this.elements.isNotEmpty() && other.elements.isEmpty()) {
-                return 1
+            // in ISO prolog, lists are trees of ./2 and now compared by elements
+            // which means that in case of an element tie the tails are compared
+
+            val comparableElementCount = min(this.elements.size, other.elements.size)
+
+            for (i in 0 until comparableElementCount) {
+                val elementResult = this.elements[i].compareTo(other.elements[i])
+                if (elementResult != 0) {
+                    return elementResult
+                }
             }
 
-            // both lists have at least one element at this point
-            return this.elements[0].compareTo(other.elements[1])
+            if (this.tail != null && other.tail != null) {
+                return this.tail.compareTo(other.tail)
+            }
+
+            // variables are always less than lists
+            val thisTailValue = if (this.tail == null) 1 else 0 // no tail => empty list, which is more than given tail (variable)
+            val otherTailValue = if (other.tail == null) 1 else 0
+
+            return thisTailValue - otherTailValue
         }
 
         if (other !is CompoundTerm && other !is PrologDictionary) throw IllegalArgumentException("Given argument is not a known prolog term type (expected variable, number, string, atom, list, compound term or dict)")
@@ -178,4 +183,6 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
         result = 31 * result + (tail?.hashCode() ?: 0)
         return result
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 }

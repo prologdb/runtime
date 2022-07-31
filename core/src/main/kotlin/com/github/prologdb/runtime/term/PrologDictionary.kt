@@ -1,15 +1,18 @@
 package com.github.prologdb.runtime.term
 
+import com.github.prologdb.runtime.NullSourceInformation
+import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 
-open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : Term {
+@PrologTypeName("dict")
+class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : Term {
 
     val tail: Variable?
 
-    open val pairs: Map<Atom, Term>
+    val pairs: Map<Atom, Term>
 
     init {
         if (givenTail !is Variable? && givenTail !is PrologDictionary?) {
@@ -18,16 +21,15 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
 
         if (givenTail is PrologDictionary) {
             val combinedPairs = givenPairs as? MutableMap ?: givenPairs.toMutableMap()
-            var pivot: Variable? = givenTail as Variable?
+            var pivot: Term? = givenTail
             while (pivot is PrologDictionary) {
-                pivot.pairs.forEach { combinedPairs[it.key] = it.value }
+                pivot.pairs.forEach { combinedPairs.putIfAbsent(it.key, it.value) }
                 pivot = pivot.tail
             }
 
             pairs = combinedPairs
-            tail = pivot
-        }
-        else {
+            tail = pivot as Variable?
+        } else {
             pairs = givenPairs
             tail = givenTail as Variable?
         }
@@ -46,15 +48,13 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
             if (rhs.tail == null) {
                 // impossible => no unification
                 return Unification.FALSE
-            }
-            else {
+            } else {
                 val subDict = PrologDictionary(pairs.filterKeys { it !in commonKeys })
                 try {
                     carryUnification.variableValues.incorporate(
                         rhs.tail.unify(subDict, randomVarsScope).variableValues
                     )
-                }
-                catch (ex: VariableDiscrepancyException) {
+                } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }
             }
@@ -63,8 +63,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
                 carryUnification.variableValues.incorporate(
                     rhs.tail.unify(EMPTY, randomVarsScope).variableValues
                 )
-            }
-            catch (ex: VariableDiscrepancyException) {
+            } catch (ex: VariableDiscrepancyException) {
                 return Unification.FALSE
             }
         }
@@ -74,15 +73,13 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
             if (this.tail == null) {
                 // impossible => no unification
                 return Unification.FALSE
-            }
-            else {
+            } else {
                 val subDict = PrologDictionary(rhs.pairs.filterKeys { it !in commonKeys })
                 try {
                     carryUnification.variableValues.incorporate(
                         this.tail.unify(subDict, randomVarsScope).variableValues
                     )
-                }
-                catch (ex: VariableDiscrepancyException) {
+                } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }
             }
@@ -91,8 +88,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
                 carryUnification.variableValues.incorporate(
                     this.tail.unify(EMPTY, randomVarsScope).variableValues
                 )
-            }
-            catch (ex: VariableDiscrepancyException) {
+            } catch (ex: VariableDiscrepancyException) {
                 return Unification.FALSE
             }
         }
@@ -107,8 +103,7 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
                 return Unification.FALSE
             }
 
-            try
-            {
+            try {
                 carryUnification.variableValues.incorporate(keyUnification.variableValues)
             } catch (ex: VariableDiscrepancyException) {
                 return Unification.FALSE
@@ -119,20 +114,21 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
     }
 
     override val variables: Set<Variable> by lazy {
-            var variables = pairs.values.flatMap { it.variables }
-            val tail = this.tail // invoke override getter only once
-            if (tail != null) {
-                if (variables !is MutableList) variables = variables.toMutableList()
-                variables.add(tail)
-            }
-
-            variables.toSet()
+        var variables = pairs.values.flatMap { it.variables }
+        val tail = this.tail // invoke override getter only once
+        if (tail != null) {
+            if (variables !is MutableList) variables = variables.toMutableList()
+            variables.add(tail)
         }
 
-    override fun substituteVariables(mapper: (Variable) -> Term): Term
-        = PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper))
+        variables.toSet()
+    }
 
-    override val prologTypeName = "dict"
+    override fun substituteVariables(mapper: (Variable) -> Term): PrologDictionary {
+        return PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {
+            it.sourceInformation = this.sourceInformation
+        }
+    }
 
     override fun compareTo(other: Term): Int {
         if (other is Variable || other is PrologNumber || other is PrologString || other is Atom || other is PrologList) {
@@ -164,11 +160,11 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
                 separator = ", ",
                 transform = { it.key.toStringUsingOperatorNotations(operators) + ": " + it.value.toStringUsingOperatorNotations(operators) }
             )
-        
+
         if (tail != null) {
             str += "|${tail.toStringUsingOperatorNotations(operators)}"
         }
-        
+
         return "{$str}"
     }
 
@@ -191,4 +187,6 @@ open class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null
     companion object {
         val EMPTY = PrologDictionary(emptyMap())
     }
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 }

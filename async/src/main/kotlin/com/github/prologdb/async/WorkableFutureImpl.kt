@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.*
+import kotlin.coroutines.cancellation.CancellationException
 
 class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableFutureBuilder.() -> T) : WorkableFuture<T> {
 
@@ -16,15 +17,12 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 synchronized(mutex) {
                     if (result.isSuccess) {
                         this@WorkableFutureImpl.result = result.getOrNull()
-                        state = State.COMPLETED
                     } else {
-                        synchronized(mutex) {
-                            error = result.exceptionOrNull()!!
-                            state = State.COMPLETED
-                        }
+                        error = result.exceptionOrNull()!!
                     }
                 }
             } finally {
+                state = State.COMPLETED
                 tearDown()
             }
         }
@@ -57,6 +55,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
      * that most futures will not have teardown logic.
      */
     private var teardownLogic: LinkedList<() -> Any?>? = null
+    @Volatile
+    private var tornDown: Boolean = false
 
     override fun isDone(): Boolean = state == State.COMPLETED
 
@@ -135,8 +135,11 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
         do {
             step()
             when(state) {
+                State.RUNNING -> { /* do nothing, keep looping */
+                }
+                State.FOLDING_SEQUENCE -> { /* do nothing, keep looping */
+                }
                 State.COMPLETED -> return result ?: throw error!!
-                State.RUNNING -> { /* do nothing, keep looping */ }
                 State.WAITING_ON_FUTURE -> {
                     try {
                         currentWaitingFuture!!.get()
@@ -146,15 +149,10 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                          * the next iteration will call step()
                          * step() will detect that the future is
                          * completed and update the state accordingly
-                         * the CANCELLED branch of this when() will
+                         * the COMPLETED branch of this when() will
                          * pick that up
                          */
                     }
-                }
-                State.FOLDING_SEQUENCE -> {
-                    // the suspend fun will call tryAdvance() and thus do
-                    // all work necessary.
-                    continuation.resume(Unit)
                 }
             }
         } while (true)
@@ -165,13 +163,49 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     override fun cancel(mayInterruptIfRunning: Boolean): Boolean {
-        // workable futures cannot be cancelled. the associated RAII logic is too complex
-        // to be worth the hassle right now (no real usecase where cancelling improves efficiency
-        // noticeably).
-        return false
+        fun continueWithCancellationException() {
+            state = State.RUNNING
+            continuation.resumeWithException(CancellationException().apply {
+                fillInStackTrace()
+            })
+        }
+
+        synchronized(mutex) {
+            when (state) {
+                State.WAITING_ON_FUTURE,
+                State.FOLDING_SEQUENCE,
+                State.RUNNING -> {
+                    currentWaitingFuture?.let { future ->
+                        if (!future.isDone) {
+                            if (!future.cancel(mayInterruptIfRunning)) {
+                                throw WorkableFutureNotCancellableException("Waiting on nested future which is not done and cannot be cancelled.")
+                            }
+                        }
+                    }
+                    currentWaitingFuture = null
+
+                    currentFoldingSequence?.close()
+                    currentFoldingSequence = null
+
+                    continueWithCancellationException()
+                    if (state != State.COMPLETED || error == null || error!! !is CancellationException) {
+                        throw WorkableFutureNotCancellableException()
+                    }
+                    return true
+                }
+                State.COMPLETED -> {
+                    return false
+                }
+            }
+        }
     }
 
     private fun tearDown() {
+        if (tornDown) {
+            throw IllegalStateException("TearDown already executed.")
+        }
+        tornDown = true
+
         teardownLogic?.let {
             var errors: ArrayList<Throwable>? = null
 
@@ -200,8 +234,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
         override val principal = this@WorkableFutureImpl.principal
 
         override suspend fun <E> await(future: Future<E>): E {
-            if (future is WorkableFuture && future.principal != principal && future.principal != IrrelevantPrincipal) {
-                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = future.principal)
+            if (future is WorkableFuture) {
+                PrincipalConflictException.requireCompatible(principal, future.principal)
             }
 
             synchronized(mutex) {
@@ -231,10 +265,8 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
             }
         }
 
-        override suspend fun <E, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
-            if (sequence.principal != principal && sequence.principal != IrrelevantPrincipal) {
-                throw PrincipalConflictException(principalInError = principal, violatedPrincipal = sequence.principal)
-            }
+        override suspend fun <E : Any, C> foldRemaining(sequence: LazySequence<E>, initial: C, accumulator: (C, E) -> C): C {
+            PrincipalConflictException.requireCompatible(principal, sequence.principal)
 
             synchronized(mutex) {
                 if (state != State.RUNNING) {
@@ -243,11 +275,15 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
 
                 currentFoldingSequence = sequence
                 currentFoldingCarry = initial
+                @Suppress("UNCHECKED_CAST")
                 currentFoldingAccumulator = accumulator as (Any, Any) -> Any
                 state = State.FOLDING_SEQUENCE
             }
 
-            return suspendCoroutine { continuation = it as Continuation<Any> }
+            return suspendCoroutine {
+                @Suppress("UNCHECKED_CAST")
+                continuation = it as Continuation<Any>
+            }
         }
 
         override fun finally(code: () -> Any?) {
@@ -259,7 +295,10 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     @Volatile
-    private var continuation: Continuation<Any> = code.createCoroutine(Builder, onComplete) as Continuation<Any>
+    private var continuation: Continuation<Any> = run {
+        @Suppress("UNCHECKED_CAST")
+        code.createCoroutine(Builder, onComplete) as Continuation<Any>
+    }
 
     private enum class State {
         RUNNING,

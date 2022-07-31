@@ -2,9 +2,9 @@ package com.github.prologdb.async
 
 import com.github.prologdb.async.LazySequence.State.*
 
-class FlatMapLazySequence<T, M>(
+class FlatMapLazySequence<T : Any, M : Any>(
     private val nested: LazySequence<T>,
-    private val mapper: suspend LazySequenceBuilder<M>.(T) -> Unit
+    private val mapper: suspend LazySequenceBuilder<M>.(T) -> M?
 ) : LazySequence<M> {
     override val principal = nested.principal
 
@@ -51,12 +51,13 @@ class FlatMapLazySequence<T, M>(
                             nested.tryAdvance(); null
                         } catch (ex: Throwable) { ex }!!
                     }
+                    PENDING, RESULTS_AVAILABLE, DEPLETED -> {}
                 }
                 return nestedState
             }
 
             val element: T = nested.tryAdvance()!!
-            currentMapperSequence = buildLazySequence(principal) { mapper(element) }
+            currentMapperSequence = buildLazySequence<M>(principal) { mapper(element) }
             inMapper = true
             return step()
         }
@@ -87,10 +88,23 @@ class FlatMapLazySequence<T, M>(
     }
 
     override fun close() {
-        currentMapperSequence?.close()
+        val mapperSequenceEx = try {
+            currentMapperSequence?.close()
+            null
+        } catch (ex: Throwable) {
+            ex
+        }
         currentMapperSequence = null
+
         inMapper = false
         state = DEPLETED
-        nested.close()
+        val nestedEx = try {
+            nested.close()
+            null
+        } catch (ex: Throwable) {
+            ex
+        }
+
+        throwMultipleNotNull(nestedEx, mapperSequenceEx)
     }
 }

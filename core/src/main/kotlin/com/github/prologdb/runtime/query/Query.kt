@@ -1,6 +1,6 @@
 package com.github.prologdb.runtime.query
 
-import com.github.prologdb.runtime.HasPrologSource
+import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
@@ -9,6 +9,7 @@ import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.util.OperatorRegistry
 import mapToArray
 
 sealed class Query {
@@ -18,9 +19,14 @@ sealed class Query {
     abstract fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query
 
     abstract fun substituteVariables(variableValues: VariableBucket): Query
+
+    /** From where this term was parsed. Set to [com.github.prologdb.runtime.NullSourceInformation] if unavailable. */
+    var sourceInformation: PrologSourceInformation = NullSourceInformation
+
+    abstract fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String = ""): String
 }
 
-open class AndQuery(val goals: Array<out Query>) : Query() {
+class AndQuery(val goals: Array<out Query>) : Query() {
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return AndQuery(
             goals.mapToArray { it.withRandomVariables(randomVarsScope, mapping) }
@@ -38,9 +44,14 @@ open class AndQuery(val goals: Array<out Query>) : Query() {
     }
 
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
+
+    override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = goals.joinToString(
+            transform = { it.toStringUsingOperatorNotation(operators, "$indent  ") },
+            separator = "\n$indent,\n"
+        )
 }
 
-open class OrQuery(val goals: Array<out Query>) : Query() {
+class OrQuery(val goals: Array<out Query>) : Query() {
     override fun toString(): String {
         return goals.mapToArray { it.toString() }.joinToString(" ; ")
     }
@@ -58,26 +69,34 @@ open class OrQuery(val goals: Array<out Query>) : Query() {
     }
 
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
+
+    override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = goals.joinToString(
+        transform = { it.toStringUsingOperatorNotation(operators, "$indent  ") },
+        separator = "\n$indent;\n"
+    )
 }
 
-open class PredicateInvocationQuery(
+class PredicateInvocationQuery(
     val goal: CompoundTerm,
-    override val sourceInformation: PrologSourceInformation
-) : Query(), HasPrologSource
-{
+    sourceInformation: PrologSourceInformation
+) : Query() {
     constructor(goal: CompoundTerm) : this(goal, getInvocationStackFrame().prologSourceInformation)
+
+    init {
+        this.sourceInformation = sourceInformation
+    }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
         return PredicateInvocationQuery(
-            randomVarsScope.withRandomVariables(goal, mapping) as CompoundTerm,
-            sourceInformation
+            randomVarsScope.withRandomVariables(goal, mapping),
+            sourceInformation,
         )
     }
 
     override fun substituteVariables(variableValues: VariableBucket): Query {
         return PredicateInvocationQuery(
             goal.substituteVariables(variableValues.asSubstitutionMapper()),
-            sourceInformation
+            sourceInformation,
         )
     }
 
@@ -87,4 +106,6 @@ open class PredicateInvocationQuery(
 
     override val variables: Set<Variable>
         get() = goal.variables
+
+    override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = indent + goal.toStringUsingOperatorNotations(operators)
 }

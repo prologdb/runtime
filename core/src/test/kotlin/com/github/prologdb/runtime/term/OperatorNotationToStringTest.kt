@@ -398,7 +398,6 @@ class OperatorNotationToStringTest : FreeSpec({
     "infix nesting" - {
         val a = Atom("a")
         val b = Atom("b")
-        val c = Atom("c")
         val lhsPrefix = CompoundBuilder("lhsPrefix")
         val rhsPostfix = CompoundBuilder("rhsPostfix")
         val infix = CompoundBuilder("infix")

@@ -1,34 +1,39 @@
 package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.async.LazySequence;
-import com.github.prologdb.parser.ModuleDeclaration;
+import com.github.prologdb.parser.ParseException;
 import com.github.prologdb.parser.Reporting;
 import com.github.prologdb.parser.lexer.Lexer;
 import com.github.prologdb.parser.lexer.LineEndingNormalizer;
+import com.github.prologdb.parser.parser.DefaultModuleSourceFileVisitor;
 import com.github.prologdb.parser.parser.ParseResult;
 import com.github.prologdb.parser.parser.PrologParser;
 import com.github.prologdb.parser.source.SourceUnit;
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment;
+import com.github.prologdb.runtime.PrologException;
 import com.github.prologdb.runtime.PrologRuntimeEnvironment;
-import com.github.prologdb.runtime.PrologRuntimeException;
-import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry;
 import com.github.prologdb.runtime.module.Module;
-import com.github.prologdb.runtime.module.NativeLibraryLoader;
+import com.github.prologdb.runtime.module.*;
 import com.github.prologdb.runtime.playground.jvm.editor.PrologEditorPanel;
 import com.github.prologdb.runtime.playground.jvm.persistence.PlaygroundState;
-import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization;
 import com.github.prologdb.runtime.query.Query;
+import com.github.prologdb.runtime.stdlib.loader.StandardLibraryModuleLoader;
 import com.github.prologdb.runtime.unification.Unification;
+import com.github.prologdb.runtime.util.EmptyOperatorRegistry;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.text.ParseException;
+import java.time.Duration;
+import java.util.Collections;
 
-import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
 
 public class PlaygroundPanel {
+
+    private static final ModuleReference USER_MODULE_REFERENCE = new ModuleReference("playground", "user");
 
     private JPanel panel = new JPanel(new BorderLayout());
     private PrologEditorPanel knowledgeBaseEditorPanel;
@@ -42,20 +47,12 @@ public class PlaygroundPanel {
      */
     private boolean knowledgeBaseChangeIndicator = false;
 
-    private PrologRuntimeEnvironment runtimeEnvironment = null;
+    private final ModuleLoader moduleLoader = new CascadingModuleLoader(new PlaygroundModuleLoader(), StandardLibraryModuleLoader.INSTANCE);
+
+    private DefaultPrologRuntimeEnvironment runtimeEnvironment = null;
 
     public PlaygroundPanel() {
         initComponents();
-    }
-
-    public PrologParser getParser() {
-        return parser;
-    }
-
-    public PlaygroundPanel setParser(PrologParser parser) {
-        this.parser = parser;
-        this.queryPanel.setParser(parser);
-        return this;
     }
 
     public JPanel asJPanel() {
@@ -110,37 +107,19 @@ public class PlaygroundPanel {
         queryPanel.addQueryFiredListener((panel, query) -> onQueryFired(query));
     }
 
-    private void assureKnowledgeBaseIsUpToDate() throws ParseException, PrologRuntimeException
+    private void assureKnowledgeBaseIsUpToDate() throws ParseException, PrologException
     {
         if (runtimeEnvironment != null && !knowledgeBaseChangeIndicator) {
             return;
         }
-        Lexer lexer = new Lexer(
-            new SourceUnit("root module"),
-            new LineEndingNormalizer(
-                new CharacterIterable(
-                    knowledgeBaseEditorPanel.getCodeAsString()
-                ).iterator()
-            )
-        );
 
-        long parseStart = System.currentTimeMillis();
-        ParseResult<Module> result = parser.parseModule(lexer, ISOOpsOperatorRegistry.getInstance(), new ModuleDeclaration("_root", null));
-        solutionExplorerPanel.setParseTime(System.currentTimeMillis() - parseStart);
-
-        if (result.getReportings().isEmpty()) {
-            runtimeEnvironment = new PrologRuntimeEnvironment(requireNonNull(result.getItem()), NativeLibraryLoader.withCoreLibraries());
-            knowledgeBaseChangeIndicator = false;
-        } else {
-            StringBuilder message = new StringBuilder("Failed to parse knowledge base:");
-            result.getReportings().forEach(r -> {
-                message.append("\n");
-                message.append(r.getMessage());
-                message.append(" in ");
-                message.append(r.getLocation());
-            });
-            throw new ParseException(message.toString(), 0);
-        }
+        long loadStart = System.nanoTime();
+        DefaultPrologRuntimeEnvironment newRuntime = new DefaultPrologRuntimeEnvironment(moduleLoader);
+        newRuntime.assureModulePrimed(USER_MODULE_REFERENCE);
+        newRuntime.getLoadedModule(USER_MODULE_REFERENCE.getModuleName());
+        solutionExplorerPanel.setLoadTime(Duration.ofNanos(System.nanoTime() - loadStart));
+        runtimeEnvironment = newRuntime;
+        knowledgeBaseChangeIndicator = false;
     }
 
     private void onQueryFired(String queryCode) {
@@ -149,19 +128,22 @@ public class PlaygroundPanel {
         }
         catch (ParseException ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Error in knowledge base", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
             return;
-        } catch (PrologRuntimeException ex) {
+        } catch (PrologException ex) {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Failed to load user knowledge base", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
             return;
         }
 
+        Module userModule = runtimeEnvironment.getLoadedModule(USER_MODULE_REFERENCE.getModuleName());
         Lexer queryLexer = new Lexer(
             new SourceUnit("query"),
             new LineEndingNormalizer(
                 new CharacterIterable(queryCode).iterator()
             )
         );
-        ParseResult<Query> queryParseResult = parser.parseQuery(queryLexer, runtimeEnvironment.getRootModule().getLocalOperators());
+        ParseResult<Query> queryParseResult = parser.parseQuery(queryLexer, userModule.getLocalOperators());
         if (!queryParseResult.getReportings().isEmpty() || queryParseResult.getItem() == null) {
             JOptionPane.showMessageDialog(
                 null,
@@ -172,11 +154,36 @@ public class PlaygroundPanel {
             return;
         }
 
-        LazySequence<Unification> solutions = runtimeEnvironment.fulfill(queryParseResult.getItem(), ReadWriteAuthorization.INSTANCE);
+        LazySequence<Unification> solutions = runtimeEnvironment.fulfill(userModule.getDeclaration().getModuleName(), queryParseResult.getItem());
 
-        solutionExplorerPanel.setSolutions(solutions, runtimeEnvironment.getRootModule().getLocalOperators());
+        solutionExplorerPanel.setSolutions(solutions, userModule.getLocalOperators());
         solutionExplorerPanel.showNextSolution();
         this.panel.revalidate();
         this.panel.repaint();
+    }
+
+    private class PlaygroundModuleLoader implements ModuleLoader {
+        @NotNull
+        @Override
+        public PrimedStage initiateLoading(@NotNull ModuleReference reference, @NotNull PrologRuntimeEnvironment runtime) {
+            if (!USER_MODULE_REFERENCE.equals(reference)) {
+                throw new ModuleNotFoundException(reference, null);
+            }
+
+            Lexer lexer = new Lexer(
+                new SourceUnit("knowledge_base"),
+                new LineEndingNormalizer(
+                    new CharacterIterable(
+                        knowledgeBaseEditorPanel.getCodeAsString()
+                    ).iterator()
+                )
+            );
+
+            return parser.parseSourceFile(
+                lexer,
+                new DefaultModuleSourceFileVisitor(runtime),
+                new ModuleDeclaration("user", Collections.emptySet(), EmptyOperatorRegistry.INSTANCE)
+            );
+        }
     }
 }

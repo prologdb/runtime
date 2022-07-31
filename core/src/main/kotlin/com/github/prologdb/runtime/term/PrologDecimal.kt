@@ -1,60 +1,52 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.NullSourceInformation
-import com.github.prologdb.runtime.PrologRuntimeException
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-open class PrologDecimal(
-    val value: Double,
-    override val sourceInformation: PrologSourceInformation = NullSourceInformation
+@PrologTypeName("decimal")
+class PrologDecimal(
+    val value: Double
 ) : PrologNumber {
-
     override val isInteger = false
 
     override fun plus(other: PrologNumber) =
         when(other) {
             is PrologDecimal -> PrologDecimal(value + other.value)
             is PrologInteger -> PrologDecimal(value + other.value.toDouble())
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun minus(other: PrologNumber) =
         when(other) {
             is PrologDecimal -> PrologDecimal(value - other.value)
             is PrologInteger -> PrologDecimal(value - other.value.toDouble())
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun times(other: PrologNumber) =
         when(other) {
             is PrologDecimal -> PrologDecimal(value * other.value)
             is PrologInteger -> PrologDecimal(value * other.value.toDouble())
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun div(other: PrologNumber) =
         when(other) {
             is PrologDecimal -> PrologDecimal(value / other.value)
             is PrologInteger -> PrologDecimal(value / other.value.toDouble())
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun rem(other: PrologNumber) =
         when(other) {
             is PrologDecimal -> PrologDecimal(value % other.value)
             is PrologInteger -> PrologDecimal(value % other.value.toDouble())
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
             is PrologDecimal -> PrologDecimal(this.value.pow(other.value))
             is PrologInteger -> PrologDecimal(this.value.pow(other.value.toDouble()))
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
     }
 
@@ -70,7 +62,6 @@ open class PrologDecimal(
         when(other) {
             is PrologInteger -> this.value.compareTo(other.value)
             is PrologDecimal -> this.value.compareTo(other.value)
-            else -> throw PrologRuntimeException("Unsupported type of number")
         }
 
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
@@ -133,4 +124,6 @@ open class PrologDecimal(
     }
 
     override fun toString() = value.toString()
+
+    override var sourceInformation: PrologSourceInformation = NullSourceInformation
 }
