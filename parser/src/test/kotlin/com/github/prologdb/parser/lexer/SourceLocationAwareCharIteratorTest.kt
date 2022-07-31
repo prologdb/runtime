@@ -2,8 +2,8 @@ package com.github.prologdb.parser.lexer
 
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
-import io.kotlintest.matchers.shouldEqual
-import io.kotlintest.specs.FreeSpec
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 
 class SourceLocationAwareCharIteratorTest : FreeSpec() {init{
     "test" {
@@ -14,58 +14,58 @@ class SourceLocationAwareCharIteratorTest : FreeSpec() {init{
         var next: Pair<Char, SourceLocation>
 
         next = iterator.next()
-        next.first shouldEqual 'a'
-        next.second.line shouldEqual 1
-        next.second.column shouldEqual 1
+        next.first shouldBe 'a'
+        next.second.line shouldBe 1
+        next.second.column shouldBe 1
 
         next = iterator.next()
-        next.first shouldEqual '\n'
-        next.second.line shouldEqual 1
-        next.second.column shouldEqual 2
+        next.first shouldBe '\n'
+        next.second.line shouldBe 1
+        next.second.column shouldBe 2
 
         next = iterator.next()
-        next.first shouldEqual 'a'
-        next.second.line shouldEqual 2
-        next.second.column shouldEqual 1
+        next.first shouldBe 'a'
+        next.second.line shouldBe 2
+        next.second.column shouldBe 1
 
         next = iterator.next()
-        next.first shouldEqual 'b'
-        next.second.line shouldEqual 2
-        next.second.column shouldEqual 2
+        next.first shouldBe 'b'
+        next.second.line shouldBe 2
+        next.second.column shouldBe 2
 
         next = iterator.next()
-        next.first shouldEqual 'c'
-        next.second.line shouldEqual 2
-        next.second.column shouldEqual 3
+        next.first shouldBe 'c'
+        next.second.line shouldBe 2
+        next.second.column shouldBe 3
 
         next = iterator.next()
-        next.first shouldEqual '\n'
-        next.second.line shouldEqual 2
-        next.second.column shouldEqual 4
+        next.first shouldBe '\n'
+        next.second.line shouldBe 2
+        next.second.column shouldBe 4
 
         next = iterator.next()
-        next.first shouldEqual 'd'
-        next.second.line shouldEqual 3
-        next.second.column shouldEqual 1
+        next.first shouldBe 'd'
+        next.second.line shouldBe 3
+        next.second.column shouldBe 1
 
         next = iterator.next()
-        next.first shouldEqual '\n'
-        next.second.line shouldEqual 3
-        next.second.column shouldEqual 2
+        next.first shouldBe '\n'
+        next.second.line shouldBe 3
+        next.second.column shouldBe 2
 
         next = iterator.next()
-        next.first shouldEqual 'e'
-        next.second.line shouldEqual 4
-        next.second.column shouldEqual 1
+        next.first shouldBe 'e'
+        next.second.line shouldBe 4
+        next.second.column shouldBe 1
 
         next = iterator.next()
-        next.first shouldEqual 'f'
-        next.second.line shouldEqual 4
-        next.second.column shouldEqual 2
+        next.first shouldBe 'f'
+        next.second.line shouldBe 4
+        next.second.column shouldBe 2
 
         next = iterator.next()
-        next.first shouldEqual '\n'
-        next.second.line shouldEqual 4
-        next.second.column shouldEqual 3
+        next.first shouldBe '\n'
+        next.second.line shouldBe 4
+        next.second.column shouldBe 3
     }
 }}

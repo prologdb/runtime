@@ -146,11 +146,13 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <executions><execution><phase>none</phase></execution></executions>
                 <configuration><skip>true</skip></configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <executions><execution><phase>none</phase></execution></executions>
                 <configuration><skip>true</skip></configuration>

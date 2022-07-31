@@ -1,7 +1,7 @@
 package com.github.prologdb.async
 
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.FreeSpec
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 
 class FlatMapLazySequenceTest : FreeSpec({
     "1:1" {

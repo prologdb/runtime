@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
-import io.kotlintest.specs.FreeSpec
+import io.kotest.core.spec.style.FreeSpec
 
 class StringUnificationTest : FreeSpec() { init {
     "equality" {

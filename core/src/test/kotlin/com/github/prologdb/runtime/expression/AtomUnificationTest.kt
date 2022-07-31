@@ -4,7 +4,7 @@ import com.github.prologdb.runtime.shouldUnifyWith
 import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Variable
-import io.kotlintest.specs.FreeSpec
+import io.kotest.core.spec.style.FreeSpec
 
 class AtomUnificationTest : FreeSpec() {init {
     "same object" {

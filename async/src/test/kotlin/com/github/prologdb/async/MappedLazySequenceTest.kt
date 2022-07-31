@@ -1,9 +1,9 @@
 package com.github.prologdb.async
 
 import com.github.prologdb.async.LazySequence.State.*
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldThrow
-import io.kotlintest.specs.BehaviorSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.shouldBe
 
 class MappedLazySequenceTest : BehaviorSpec() { init {
     Given("a fixed source") {

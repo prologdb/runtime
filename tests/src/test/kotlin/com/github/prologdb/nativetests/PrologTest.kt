@@ -22,13 +22,14 @@ import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
-import io.kotlintest.matchers.fail
-import io.kotlintest.specs.FreeSpec
+import io.kotest.assertions.fail
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FreeSpec
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import java.lang.invoke.MethodHandles
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
+import java.util.UUID
 
 /** runs the tests found in the *.test.pl files in the prolog tests directory */
 class PrologTest : FreeSpec() { init {
@@ -59,6 +60,8 @@ class PrologTest : FreeSpec() { init {
         }
     }
 }
+    override fun isolationMode() = IsolationMode.InstancePerTest
+
     private companion object {
         val prologTestFiles: List<Path>
             get() {
@@ -119,9 +122,6 @@ class PrologTest : FreeSpec() { init {
             return testCases
         }
     }
-
-    override val oneInstancePerTest: Boolean
-        get() = super.oneInstancePerTest
 }
 
 private interface TestResultCallback {

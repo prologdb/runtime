@@ -1,10 +1,10 @@
 package com.github.prologdb.async
 
-import io.kotlintest.matchers.beGreaterThanOrEqualTo
-import io.kotlintest.matchers.should
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldThrow
-import io.kotlintest.specs.FreeSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.longs.beGreaterThanOrEqualTo
+import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import kotlin.concurrent.thread

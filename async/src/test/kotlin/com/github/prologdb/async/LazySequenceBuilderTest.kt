@@ -1,9 +1,8 @@
 package com.github.prologdb.async
 
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldEqual
-import io.kotlintest.matchers.shouldThrow
-import io.kotlintest.specs.FreeSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 import java.util.concurrent.CompletableFuture
 
 class LazySequenceBuilderTest : FreeSpec() { init {
@@ -13,8 +12,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "foobar"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "foobar"
+        seq.tryAdvance() shouldBe null
     }
 
     "yield - multiple elements" {
@@ -24,9 +23,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "foo"
-        seq.tryAdvance() shouldEqual "bar"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "foo"
+        seq.tryAdvance() shouldBe "bar"
+        seq.tryAdvance() shouldBe null
     }
 
     "yieldAll - single element" {
@@ -38,8 +37,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "foobar"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "foobar"
+        seq.tryAdvance() shouldBe null
     }
 
     "yieldAll - multiple elements" {
@@ -52,9 +51,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "foo"
-        seq.tryAdvance() shouldEqual "bar"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "foo"
+        seq.tryAdvance() shouldBe "bar"
+        seq.tryAdvance() shouldBe null
     }
 
     "yield then yieldAll" {
@@ -69,10 +68,10 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "baz"
-        seq.tryAdvance() shouldEqual "foo"
-        seq.tryAdvance() shouldEqual "bar"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "baz"
+        seq.tryAdvance() shouldBe "foo"
+        seq.tryAdvance() shouldBe "bar"
+        seq.tryAdvance() shouldBe null
     }
 
     "yieldAll then yield" {
@@ -86,10 +85,10 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "foo"
-        seq.tryAdvance() shouldEqual "bar"
-        seq.tryAdvance() shouldEqual "baz"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "foo"
+        seq.tryAdvance() shouldBe "bar"
+        seq.tryAdvance() shouldBe "baz"
+        seq.tryAdvance() shouldBe null
     }
 
     "yield then yieldAll then yield" {
@@ -104,11 +103,11 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             null
         }
 
-        seq.tryAdvance() shouldEqual "beep"
-        seq.tryAdvance() shouldEqual "foo"
-        seq.tryAdvance() shouldEqual "bar"
-        seq.tryAdvance() shouldEqual "baz"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "beep"
+        seq.tryAdvance() shouldBe "foo"
+        seq.tryAdvance() shouldBe "bar"
+        seq.tryAdvance() shouldBe "baz"
+        seq.tryAdvance() shouldBe null
     }
 
     "failing await" {
@@ -247,8 +246,8 @@ class LazySequenceBuilderTest : FreeSpec() { init {
     "LazySequence of" {
         val seq = LazySequence.of("foobar")
 
-        seq.tryAdvance() shouldEqual "foobar"
-        seq.tryAdvance() shouldEqual null
+        seq.tryAdvance() shouldBe "foobar"
+        seq.tryAdvance() shouldBe null
     }
 
     "final result" {

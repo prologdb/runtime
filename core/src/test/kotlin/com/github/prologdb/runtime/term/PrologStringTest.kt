@@ -1,18 +1,18 @@
 package com.github.prologdb.runtime.term
 
-import io.kotlintest.matchers.shouldEqual
-import io.kotlintest.specs.FreeSpec
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 
 class PrologStringTest : FreeSpec() { init {
     val pstr = PrologString(charArrayOf('H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!'))
 
     "toKotlinString" {
-        pstr.toKotlinString() shouldEqual "Hello, World!"
+        pstr.toKotlinString() shouldBe "Hello, World!"
     }
 
     "toString" - {
         "simple" {
-            pstr.toString() shouldEqual """"Hello, World!""""
+            pstr.toString() shouldBe """"Hello, World!""""
         }
 
         "with escape sequences" {
@@ -20,55 +20,55 @@ class PrologStringTest : FreeSpec() { init {
 
             val result = pstrWithEscapes.toString()
 
-            result shouldEqual """"Hello \v\n\t""""
+            result shouldBe """"Hello \v\n\t""""
         }
     }
 
     "charAt" {
-        pstr.charAt(0) shouldEqual 'H'
-        pstr.charAt(1) shouldEqual 'e'
-        pstr.charAt(2) shouldEqual 'l'
-        pstr.charAt(3) shouldEqual 'l'
-        pstr.charAt(4) shouldEqual 'o'
-        pstr.charAt(5) shouldEqual ','
+        pstr.charAt(0) shouldBe 'H'
+        pstr.charAt(1) shouldBe 'e'
+        pstr.charAt(2) shouldBe 'l'
+        pstr.charAt(3) shouldBe 'l'
+        pstr.charAt(4) shouldBe 'o'
+        pstr.charAt(5) shouldBe ','
 
-        pstr.charAt(6) shouldEqual ' '
+        pstr.charAt(6) shouldBe ' '
 
-        pstr.charAt(7) shouldEqual 'W'
-        pstr.charAt(8) shouldEqual 'o'
-        pstr.charAt(9) shouldEqual 'r'
-        pstr.charAt(10) shouldEqual 'l'
-        pstr.charAt(11) shouldEqual 'd'
-        pstr.charAt(12) shouldEqual '!'
+        pstr.charAt(7) shouldBe 'W'
+        pstr.charAt(8) shouldBe 'o'
+        pstr.charAt(9) shouldBe 'r'
+        pstr.charAt(10) shouldBe 'l'
+        pstr.charAt(11) shouldBe 'd'
+        pstr.charAt(12) shouldBe '!'
     }
 
     "length" {
-        pstr.length shouldEqual 13
+        pstr.length shouldBe 13
     }
 
     "characters" {
         val it = pstr.characters.iterator()
 
-        it.next() shouldEqual 'H'
-        it.next() shouldEqual 'e'
-        it.next() shouldEqual 'l'
-        it.next() shouldEqual 'l'
-        it.next() shouldEqual 'o'
-        it.next() shouldEqual ','
-        it.next() shouldEqual ' '
-        it.next() shouldEqual 'W'
-        it.next() shouldEqual 'o'
-        it.next() shouldEqual 'r'
-        it.next() shouldEqual 'l'
-        it.next() shouldEqual 'd'
-        it.next() shouldEqual '!'
+        it.next() shouldBe 'H'
+        it.next() shouldBe 'e'
+        it.next() shouldBe 'l'
+        it.next() shouldBe 'l'
+        it.next() shouldBe 'o'
+        it.next() shouldBe ','
+        it.next() shouldBe ' '
+        it.next() shouldBe 'W'
+        it.next() shouldBe 'o'
+        it.next() shouldBe 'r'
+        it.next() shouldBe 'l'
+        it.next() shouldBe 'd'
+        it.next() shouldBe '!'
     }
 
     "substring from index" {
-        pstr.substring(5) shouldEqual PrologString(", World!")
+        pstr.substring(5) shouldBe PrologString(", World!")
     }
 
     "substring from index to index" {
-        pstr.substring(5, 10) shouldEqual PrologString(", Wor")
+        pstr.substring(5, 10) shouldBe PrologString(", Wor")
     }
 }}

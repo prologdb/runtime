@@ -1,7 +1,6 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.PredicateNotDefinedException
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.module.ModuleImport
@@ -9,17 +8,14 @@ import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.runtimeWithLoadedModules
-import com.github.prologdb.runtime.shouldProve
-import com.github.prologdb.runtime.shouldProveInContextOfModule
-import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldThrow
-import io.kotlintest.specs.FreeSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.IsolationMode
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 
 class ModuleIsolationTest : FreeSpec({
     val a = Atom("a")
@@ -317,5 +313,5 @@ class ModuleIsolationTest : FreeSpec({
         }
     }
 }) {
-    override val oneInstancePerTest = true
+    override fun isolationMode() = IsolationMode.InstancePerTest
 }

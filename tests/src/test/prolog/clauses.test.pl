@@ -18,6 +18,7 @@ test "retract/1 returns data" by [
 ].
 
 test "retract/1 removes data" by [
+    \+ findall(_, foo(_, _), []),
     findall(_, retract(foo(_, _)), _),
     \+ foo(_, _)
 ].

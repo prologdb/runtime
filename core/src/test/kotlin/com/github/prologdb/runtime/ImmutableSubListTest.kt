@@ -1,10 +1,9 @@
 package com.github.prologdb.runtime
 
 import com.github.prologdb.runtime.util.ImmutableSubList
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldEqual
-import io.kotlintest.matchers.shouldThrow
-import io.kotlintest.specs.FreeSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 
 class ImmutableSubListTest : FreeSpec() { init {
     val list = listOf(1, 2, 3, 4, 5, 6, 7, 8)
@@ -47,11 +46,11 @@ class ImmutableSubListTest : FreeSpec() { init {
 
     "method get(index)" - {
         "should return all elements in sub-list" {
-            subList[0] shouldEqual 2
-            subList[1] shouldEqual 3
-            subList[2] shouldEqual 4
-            subList[3] shouldEqual 5
-            subList[4] shouldEqual 6
+            subList[0] shouldBe 2
+            subList[1] shouldBe 3
+            subList[2] shouldBe 4
+            subList[3] shouldBe 5
+            subList[4] shouldBe 6
         }
 
         "should not return elements beyond length" {
@@ -63,48 +62,48 @@ class ImmutableSubListTest : FreeSpec() { init {
 
     "method indexOf" - {
         "should find elements in sub-range" {
-            subList.indexOf(2) shouldEqual 0
-            subList.indexOf(3) shouldEqual 1
-            subList.indexOf(4) shouldEqual 2
-            subList.indexOf(5) shouldEqual 3
-            subList.indexOf(6) shouldEqual 4
+            subList.indexOf(2) shouldBe 0
+            subList.indexOf(3) shouldBe 1
+            subList.indexOf(4) shouldBe 2
+            subList.indexOf(5) shouldBe 3
+            subList.indexOf(6) shouldBe 4
         }
 
         "should not find elements outside of sub-range" {
-            subList.indexOf(1) shouldEqual -1
-            subList.indexOf(7) shouldEqual -1
-            subList.indexOf(8) shouldEqual -1
+            subList.indexOf(1) shouldBe -1
+            subList.indexOf(7) shouldBe -1
+            subList.indexOf(8) shouldBe -1
         }
 
         "should not find elements not in the original list" {
-            subList.indexOf(10) shouldEqual -1
+            subList.indexOf(10) shouldBe -1
         }
     }
 
     "method lastIndexOf" - {
         "should find elements in sub-range" {
-            subList.indexOf(2) shouldEqual 0
-            subList.indexOf(3) shouldEqual 1
-            subList.indexOf(4) shouldEqual 2
-            subList.indexOf(5) shouldEqual 3
-            subList.indexOf(6) shouldEqual 4
+            subList.indexOf(2) shouldBe 0
+            subList.indexOf(3) shouldBe 1
+            subList.indexOf(4) shouldBe 2
+            subList.indexOf(5) shouldBe 3
+            subList.indexOf(6) shouldBe 4
         }
 
         "should not find elements outside of sub-range" {
-            subList.indexOf(1) shouldEqual -1
-            subList.indexOf(7) shouldEqual -1
-            subList.indexOf(8) shouldEqual -1
+            subList.indexOf(1) shouldBe -1
+            subList.indexOf(7) shouldBe -1
+            subList.indexOf(8) shouldBe -1
         }
 
         "should not find elements not in the original list" {
-            subList.indexOf(10) shouldEqual -1
+            subList.indexOf(10) shouldBe -1
         }
 
         "should return the last index" {
             val orig = listOf(1, 2, 2, 3, 4, 1, 5, 1)
             val sub = orig.subList(0, 6)
 
-            sub.lastIndexOf(1) shouldEqual 5
+            sub.lastIndexOf(1) shouldBe 5
         }
     }
 
@@ -126,7 +125,7 @@ class ImmutableSubListTest : FreeSpec() { init {
 
         subList.iterator().forEachRemaining { copy.add(it) }
 
-        copy.size shouldEqual 5
+        copy.size shouldBe 5
         copy.contains(2) shouldBe true
         copy.contains(3) shouldBe true
         copy.contains(4) shouldBe true
@@ -151,7 +150,7 @@ class ImmutableSubListTest : FreeSpec() { init {
         val stdLibList = listOf(2, 3, 4, 5)
         val immutableSubList = ImmutableSubList(listOf(1, 2, 3, 4, 5, 6), 1, 4)
 
-        stdLibList shouldEqual immutableSubList
-        immutableSubList shouldEqual stdLibList
+        stdLibList shouldBe immutableSubList
+        immutableSubList shouldBe stdLibList
     }
 }}

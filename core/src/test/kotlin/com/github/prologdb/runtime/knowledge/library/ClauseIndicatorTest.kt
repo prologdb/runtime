@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.knowledge.library
 
 import com.github.prologdb.runtime.ClauseIndicator
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldThrow
-import io.kotlintest.specs.FreeSpec
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.shouldBe
 
 class ClauseIndicatorTest : FreeSpec({
     "parse" - {

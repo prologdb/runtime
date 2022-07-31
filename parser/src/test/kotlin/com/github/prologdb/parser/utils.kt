@@ -8,6 +8,7 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 
 fun <T : Term> T.withMockSourceLocation(): T {
+    @Suppress("UNCHECKED_CAST")
     val nestedMapped : T = when(this) {
         is CompoundTerm     -> CompoundTerm(functor, arguments.map { it.withMockSourceLocation() }.toTypedArray()) as T
         is PrologList       -> PrologList(elements.map { it.withMockSourceLocation() }, tail) as T

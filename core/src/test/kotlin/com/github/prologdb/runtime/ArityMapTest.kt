@@ -1,11 +1,10 @@
 package com.github.prologdb.runtime
 
 import com.github.prologdb.runtime.util.ArityMap
-import io.kotlintest.matchers.beGreaterThanOrEqualTo
-import io.kotlintest.matchers.should
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.matchers.shouldEqual
-import io.kotlintest.specs.FreeSpec
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.ints.beGreaterThanOrEqualTo
+import io.kotest.matchers.should
+import io.kotest.matchers.shouldBe
 
 class ArityMapTest : FreeSpec() {init {
     "arities set through set() should be containes" {
@@ -22,8 +21,8 @@ class ArityMapTest : FreeSpec() {init {
         map[0] = "foobar"
         map[2] = "barfoo"
 
-        map[0] shouldEqual "foobar"
-        map[2] shouldEqual "barfoo"
+        map[0] shouldBe "foobar"
+        map[2] shouldBe "barfoo"
     }
 
     "capacity should increase as necessary" {
