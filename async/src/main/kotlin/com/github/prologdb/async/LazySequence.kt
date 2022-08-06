@@ -197,8 +197,8 @@ interface LazySequence<T : Any> {
      * @return The actual number of elements skipped. Is less than [n] if the sequence had fewer than [n] elements
      *         at the time of invocation.
      */
-    fun skip(n: Int): Int {
-        var skipped = 0
+    fun skip(n: Long): Long {
+        var skipped = 0L
         for (i in 1..n) {
             if (tryAdvance() == null) break
             skipped++

@@ -20,6 +20,7 @@ import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringChars2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringCodes2
 import com.github.prologdb.runtime.stdlib.lists.*
 import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinLimit2
+import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinOffset2
 import com.github.prologdb.runtime.stdlib.sort.BuiltinPredsort3
 
 object StandardLibraryModuleLoader : ModuleLoader {
@@ -120,7 +121,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinPredsort3
         ),
         "library(solution_sequences)" to listOf(
-            BuiltinLimit2
+            BuiltinLimit2,
+            BuiltinOffset2,
         )
     ).mapValues { (_, nativeCodes) ->
         nativeCodes.associateBy(ClauseIndicator.Companion::of)
