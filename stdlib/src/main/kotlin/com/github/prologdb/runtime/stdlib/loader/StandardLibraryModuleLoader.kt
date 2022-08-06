@@ -8,58 +8,18 @@ import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.stdlib.essential.BuiltinCompare3
-import com.github.prologdb.runtime.stdlib.essential.BuiltinIdentity
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNegatedIdentityOperator
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNegatedUnity
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNot
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNotOperator
-import com.github.prologdb.runtime.stdlib.essential.BuiltinTermGreaterThan2
-import com.github.prologdb.runtime.stdlib.essential.BuiltinTermGreaterThanOrEqual2
-import com.github.prologdb.runtime.stdlib.essential.BuiltinTermLessThan2
-import com.github.prologdb.runtime.stdlib.essential.BuiltinTermLessThanOrEqual2
-import com.github.prologdb.runtime.stdlib.essential.BuiltinUnity
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
 import com.github.prologdb.runtime.stdlib.dicts.BuiltinGetDict3
-import com.github.prologdb.runtime.stdlib.essential.BuiltinAtom1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinDecimal1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinGround1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinInteger1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinIsDict1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinIsList1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNonGround1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNonVar1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinNumber1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinString1
-import com.github.prologdb.runtime.stdlib.essential.BuiltinTypeof2
-import com.github.prologdb.runtime.stdlib.essential.BuiltinVar1
+import com.github.prologdb.runtime.stdlib.essential.*
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetract1
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinApply2
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCall1
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCompoundNameArguments3
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCurrentModule1
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinCurrentOp3
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinFindAll3
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinFindAllOptimized3
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinFindNSols4
-import com.github.prologdb.runtime.stdlib.essential.dynamic.BuiltinTermVariables2
-import com.github.prologdb.runtime.stdlib.essential.math.BuiltinGreaterThan2
-import com.github.prologdb.runtime.stdlib.essential.math.BuiltinGreaterThanOrEqual2
-import com.github.prologdb.runtime.stdlib.essential.math.BuiltinIs2
-import com.github.prologdb.runtime.stdlib.essential.math.BuiltinLessThan2
-import com.github.prologdb.runtime.stdlib.essential.math.BuiltinLessThanOrEqual2
-import com.github.prologdb.runtime.stdlib.essential.math.BuiltinNumericNotEqual2
+import com.github.prologdb.runtime.stdlib.essential.dynamic.*
+import com.github.prologdb.runtime.stdlib.essential.math.*
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinAtomString2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringChars2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringCodes2
-import com.github.prologdb.runtime.stdlib.lists.BuiltinIota3
-import com.github.prologdb.runtime.stdlib.lists.BuiltinIota4
-import com.github.prologdb.runtime.stdlib.lists.BuiltinLength2
-import com.github.prologdb.runtime.stdlib.lists.BuiltinMember2
-import com.github.prologdb.runtime.stdlib.lists.BuiltinSet2
-import com.github.prologdb.runtime.stdlib.lists.BuiltinSet3
-import com.github.prologdb.runtime.stdlib.lists.BuiltinSort2
+import com.github.prologdb.runtime.stdlib.lists.*
+import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinLimit2
 import com.github.prologdb.runtime.stdlib.sort.BuiltinPredsort3
 
 object StandardLibraryModuleLoader : ModuleLoader {
@@ -158,6 +118,9 @@ object StandardLibraryModuleLoader : ModuleLoader {
         ),
         "library(sort)" to listOf(
             BuiltinPredsort3
+        ),
+        "library(solution_sequences)" to listOf(
+            BuiltinLimit2
         )
     ).mapValues { (_, nativeCodes) ->
         nativeCodes.associateBy(ClauseIndicator.Companion::of)

@@ -5,7 +5,6 @@ import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -36,7 +35,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  */
 val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
     val templateInput = args[0]
-    val goalInput = args.getTyped<CompoundTerm>(1)
+    val goalInput = args.getQuery(1)
     val solutionInput = args[2]
 
     if (solutionInput is Variable) {
@@ -61,7 +60,7 @@ val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
 
             val resultList = await(launchWorkableFuture(principal) {
                 val resultSequence = buildLazySequence<Unification>(principal) {
-                    context.fulfillAttach(this, compoundToQuery(goalInput), VariableBucket())
+                    context.fulfillAttach(this, goalInput, VariableBucket())
                 }
                     .limitRemaining(nResultsToCalculate.toLong())
                     .mapRemaining { solution ->
