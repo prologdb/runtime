@@ -48,7 +48,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
         }
             .flatMapRemaining { element ->
                 for (reduction in reductions) {
-                    reduction.reduction.add(element.variableValues)
+                    await(reduction.reduction.add(element.variableValues))
                 }
                 // its mandatory not to yield anything. This allows the step() calls on the parent
                 // sequence to trickle down to the reduction properly but not have the side-effect of yielding

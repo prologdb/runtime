@@ -13,13 +13,14 @@ import java.util.ServiceLoader
 
 object ReductionFactory {
     private val reductors = ServiceLoader.load(Reductor::class.java)
+    private val predicateReductor = PredicateReductor()
 
     fun reloadReductors() {
         reductors.reload()
     }
 
     fun initializeReduction(proofSearchContext: ProofSearchContext, specification: Term): WorkableFuture<ParseResult<Reduction>> {
-        for (reductor in reductors) {
+        for (reductor in reductors + listOf(predicateReductor)) {
             val parseResult = reductor.parseSpecification(specification)
 
             if (parseResult.certainty == ParseResultCertainty.NOT_RECOGNIZED) {
@@ -28,7 +29,7 @@ object ReductionFactory {
 
             @Suppress("UNCHECKED_CAST")
             val reduction = parseResult.item
-                ?.let { parsedSpecification -> DefaultReduction.initialize<Any, Any, Any>(
+                ?.let { parsedSpecification -> DefaultReduction.initialize(
                     proofSearchContext,
                     reductor as Reductor<Any, Any, Any>,
                     parsedSpecification,
@@ -37,8 +38,6 @@ object ReductionFactory {
 
             return reduction.map { ParseResult(it, parseResult.certainty, parseResult.reportings) }
         }
-
-        // TODO: implement reduction implemented as prolog
 
         return WorkableFuture.completed(ParseResult(null, ParseResultCertainty.MATCHED, setOf(
             SemanticError(
