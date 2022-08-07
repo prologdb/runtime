@@ -2,6 +2,8 @@ package com.github.prologdb.async
 
 import java.util.concurrent.CancellationException
 import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.RestrictsSuspension
 
 /**
@@ -40,6 +42,18 @@ interface WorkableFuture<T> : Future<T> {
      */
     @Throws(WorkableFutureNotCancellableException::class)
     override fun cancel(mayInterruptIfRunning: Boolean): Boolean
+
+    companion object {
+        fun <T> completed(value: T): WorkableFuture<T> = object : WorkableFuture<T> {
+            override val principal = IrrelevantPrincipal
+            override fun step() = true
+            override fun cancel(mayInterruptIfRunning: Boolean) = false
+            override fun isCancelled() = false
+            override fun isDone() = true
+            override fun get(): T = value
+            override fun get(timeout: Long, unit: TimeUnit): T = value
+        }
+    }
 }
 
 @RestrictsSuspension
@@ -102,3 +116,24 @@ interface WorkableFutureBuilder {
 fun <T> launchWorkableFuture(principal: Any, code: suspend WorkableFutureBuilder.() -> T): WorkableFuture<T> = WorkableFutureImpl(principal, code)
 
 class WorkableFutureNotCancellableException(message: String? = null, cause: Throwable? = null) : RuntimeException(message, cause)
+
+fun <T, R> WorkableFuture<T>.map(mapper: (T) -> R): WorkableFuture<R> = object : WorkableFuture<R> {
+    private val mapped = AtomicReference<R>(null)
+
+    override val principal = this@map.principal
+    override fun step() = this@map.step()
+    override fun cancel(mayInterruptIfRunning: Boolean): Boolean = this@map.cancel(mayInterruptIfRunning)
+    override fun isCancelled() = this@map.isCancelled
+    override fun isDone() = this@map.isDone
+    override fun get(): R {
+        mapped.get()?.let { return it }
+        val mappedValue = mapper(this@map.get())
+        return mapped.compareAndExchange(null, mappedValue) ?: mappedValue
+    }
+
+    override fun get(timeout: Long, unit: TimeUnit): R {
+        mapped.get()?.let { return it }
+        val mappedValue = mapper(this@map.get(timeout, unit))
+        return mapped.compareAndExchange(null, mappedValue) ?: mappedValue
+    }
+}
