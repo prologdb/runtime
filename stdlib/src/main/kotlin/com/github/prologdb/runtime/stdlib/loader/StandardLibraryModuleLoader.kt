@@ -9,6 +9,7 @@ import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
+import com.github.prologdb.runtime.stdlib.aggregate.BuiltinReduce2
 import com.github.prologdb.runtime.stdlib.dicts.BuiltinGetDict3
 import com.github.prologdb.runtime.stdlib.essential.*
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
@@ -124,6 +125,9 @@ object StandardLibraryModuleLoader : ModuleLoader {
         "library(solution_sequences)" to listOf(
             BuiltinLimit2,
             BuiltinOffset2,
+        ),
+        "library(aggregate)" to listOf(
+            BuiltinReduce2,
         )
     ).mapValues { (_, nativeCodes) ->
         nativeCodes.associateBy(ClauseIndicator.Companion::of)
