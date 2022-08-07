@@ -13,10 +13,7 @@ object TestingModuleLoader : ModuleLoader {
         StandardLibraryModuleLoader,
         ClasspathPrologSourceModuleLoader(
             classLoader = PrologTest::class.java.classLoader,
-            moduleReferenceToClasspathPath = { ref ->
-                require(ref.pathAlias == "test")
-                ref.moduleName
-            },
+            moduleReferenceToClasspathPath = { ref -> ref.moduleName },
             sourceFileVisitorSupplier = { _, runtime -> TestSourceFileVisitor(runtime) }
         )
     )
