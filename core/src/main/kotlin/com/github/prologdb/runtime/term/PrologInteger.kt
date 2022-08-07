@@ -54,6 +54,8 @@ class PrologInteger(
 
     override fun unaryMinus(): PrologNumber = createUsingStringOptimizerCache(-this.value)
 
+    override fun asPrologDecimal(): PrologDecimal = PrologDecimal(this.toDecimal())
+
     override fun toInteger(): Long = value
 
     override fun toDecimal(): Double = value.toDouble()

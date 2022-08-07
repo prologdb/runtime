@@ -21,3 +21,18 @@ test "min" by [
     reduce([min(V) as Min], pred(V)),
     Min == 1
 ].
+
+test "max" by [
+    reduce([max(V) as Max], pred(V)),
+    Max == 6
+].
+
+test "avg" by [
+    reduce([avg(V) as Avg], pred(V)),
+    Avg == 3.5
+].
+
+test "sum" by [
+    reduce([sum(V) as Avg], pred(V)),
+    Avg == 21
+].

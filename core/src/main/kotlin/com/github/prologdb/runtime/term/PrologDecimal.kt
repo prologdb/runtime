@@ -54,6 +54,8 @@ class PrologDecimal(
 
     override fun unaryMinus(): PrologNumber = PrologDecimal(-this.value)
 
+    override fun asPrologDecimal(): PrologDecimal = this
+
     override fun toInteger(): Long = value.roundToLong()
 
     override fun toDecimal(): Double = value

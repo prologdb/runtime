@@ -35,4 +35,6 @@ sealed interface PrologNumber : Term {
      * Converts this number to a [Double] and returns it.
      */
     fun toDecimal(): Double
+
+    fun asPrologDecimal(): PrologDecimal
 }
