@@ -86,7 +86,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinApply2,
             BuiltinTermVariables2,
             BuiltinCurrentOp3,
-            BuiltinCurrentModule1
+            BuiltinCurrentModule1,
+            BuiltinQualifyCallable3,
         ),
         "essential(\$math)" to listOf(
             BuiltinIs2,

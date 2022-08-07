@@ -56,3 +56,20 @@ test "term_variables/2 with no variables" by [
 test "term_variables/2" by [
     term_variables(a(Z, 2, [Y, 1|X], {f:W}), [Z, Y, X, W])
 ].
+
+test "qualify_callable/3 with qualified atom" by [
+    qualify_callable(other:foo, some_module, Q),
+    Q = other:foo
+].
+test "qualify_callable/3 with unqualified atom" by [
+    qualify_callable(foo, some_module, Q),
+    Q = some_module:foo
+].
+test "qualify_callable/3 with qualified compound" by [
+    qualify_callable(other:foo(1), some_module, Q),
+    Q = other:foo(1)
+].
+test "qualify_callable/3 with unqualified compound" by [
+    qualify_callable(foo(1), some_module, Q),
+    Q = some_module:foo(1)
+].
