@@ -1,5 +1,6 @@
 :- use_module(essential($equality)).
 :- use_module(library(aggregate)).
+:- use_module(library(lists), [member/2, sort/2]).
 
 pred(1).
 pred(2).
@@ -35,4 +36,10 @@ test "avg" by [
 test "sum" by [
     reduce([sum(V) as Avg], pred(V)),
     Avg == 21
+].
+
+test "set" by [
+    reduce([set(V) as Set], member(V, [a, b, a, c, b, c, a, 2])),
+    sort(Set, Sorted),
+    Sorted == [2, a, b, c]
 ].
