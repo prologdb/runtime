@@ -22,8 +22,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
 
     val goalVariables = goal.variables
     val backReferences = reductionSpecifications.asSequence()
-        .map { it.resultTerm }
-        .filterIsInstance<Variable>()
+        .flatMap { it.resultTerm.variables }
         .filterNot { it is AnonymousVariable }
         .filter { it in goalVariables }
         .toList()
