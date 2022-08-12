@@ -97,7 +97,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
             try {
                 await(initialize(ctxt, parsedSpecification))
             }
-            catch (ex: PrologReductorDefinitionException) {
+            catch (ex: PredicateNotDefinedException) {
                 return@launchWorkableFuture ParseResult(null, ParseResultCertainty.NOT_RECOGNIZED, emptySet())
             }
             catch (ex: Exception) {
