@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
  */
-abstract class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message) {
+abstract class PrologException(message: String, cause: Throwable? = null) : RuntimeException(message, cause) {
     private val _prologStackTrace = mutableListOf<PrologStackTraceElement>()
 
     fun addPrologStackFrame(frameInfo: PrologStackTraceElement) {
