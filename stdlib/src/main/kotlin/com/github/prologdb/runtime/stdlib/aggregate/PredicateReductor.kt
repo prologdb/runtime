@@ -5,9 +5,9 @@ import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.ParseResultCertainty
 import com.github.prologdb.parser.source.SourceLocation
+import com.github.prologdb.runtime.PredicateNotDefinedException
 import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologInternalError
-import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
@@ -56,68 +56,92 @@ import java.util.concurrent.atomic.AtomicReference
  * ```
  */
 class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateReductor.Accumulator, Term> {
-    override fun parseSpecification(specification: Term): ParseResult<Specification> {
-        val moduleName: String?
+    override fun parseSpecification(ctxt: ProofSearchContext, specification: Term): WorkableFuture<ParseResult<Specification>> {
+        var reductorModule: String?
         val unqualifiedSpecification: Term
 
         if (specification is CompoundTerm && specification.functor == ":" && specification.arity == 2) {
-            val moduleTerm = specification.arguments[0] as? Atom ?: return ParseResult(null, ParseResultCertainty.MATCHED, setOf(
-                SemanticError(
-                    "Prolog reductors must be qualified by an instance of `:`/2 with an atom as the module name.",
-                    specification.arguments[0].sourceInformation as? SourceLocation ?: SourceLocation.EOF
-                )
-            ))
-            moduleName = moduleTerm.name
+            val moduleTerm = specification.arguments[0]
+            if (moduleTerm !is Atom) {
+                return WorkableFuture.completed(ParseResult(null, ParseResultCertainty.MATCHED, setOf(
+                    SemanticError(
+                        "Prolog reductors must be qualified by an instance of `:`/2 with an atom as the module name.",
+                        specification.arguments[0].sourceInformation as? SourceLocation ?: SourceLocation.EOF
+                    )
+                )))
+            }
+            reductorModule = moduleTerm.name
             unqualifiedSpecification = specification.arguments[1]
         } else {
-            moduleName = null
+            reductorModule = null
             unqualifiedSpecification = specification
         }
 
-        val reductorName = when(specification) {
-            is Atom -> specification.name
-            is CompoundTerm -> specification.functor
-            else -> return ParseResult(null, ParseResultCertainty.MATCHED, setOf(
+        val reductorName = when(unqualifiedSpecification) {
+            is Atom -> unqualifiedSpecification.name
+            is CompoundTerm -> unqualifiedSpecification.functor
+            else -> return WorkableFuture.completed(ParseResult(null, ParseResultCertainty.MATCHED, setOf(
                 SemanticError(
                     "Prolog reductors must have an atom or a compound term as the specifier, got ${specification.prologTypeName}",
-                    specification.sourceInformation as? SourceLocation ?: SourceLocation.EOF,
+                    unqualifiedSpecification.sourceInformation as? SourceLocation ?: SourceLocation.EOF,
                 )
-            ))
+            )))
         }
 
-        return ParseResult.of(Specification(moduleName, unqualifiedSpecification, reductorName))
+        reductorModule = reductorModule
+            ?: (ctxt as? ModuleScopeProofSearchContext)?.module?.declaration?.moduleName
+            ?: throw PrologInternalError("Cannot find implicit module for reductor $reductorName")
+
+        val parsedSpecification = Specification(reductorModule, unqualifiedSpecification, reductorName)
+        return launchWorkableFuture(ctxt.principal) {
+            try {
+                await(initialize(ctxt, parsedSpecification))
+            }
+            catch (ex: PrologReductorDefinitionException) {
+                return@launchWorkableFuture ParseResult(null, ParseResultCertainty.NOT_RECOGNIZED, emptySet())
+            }
+            catch (ex: Exception) {
+                throw ex
+            }
+
+            ParseResult.of(parsedSpecification)
+        }
     }
 
     override fun initialize(ctxt: ProofSearchContext, specification: Specification): WorkableFuture<Accumulator> {
-        val reductorModule = specification.module
-            ?: (ctxt as? ModuleScopeProofSearchContext)?.module?.declaration?.moduleName
-            ?: throw PrologInternalError("Cannot find implicit module for reductor ${specification.reductorName}")
-
-        val initialAccumulatorVar = ctxt.randomVariableScope.createNewRandomVariable()
-        return ctxt.solveDeterministic(
-            {
-                ctxt.fulfillAttach(
-                    this,
-                    specification.buildInvocation(
-                        ATOM_REDUCTOR,
-                        ATOM_INITIALIZE,
-                        specification.specificationTerm,
-                        initialAccumulatorVar,
-                    ),
-                    VariableBucket(),
+        return launchWorkableFuture(ctxt.principal) {
+            val initialAccumulatorVar = ctxt.randomVariableScope.createNewRandomVariable()
+            try {
+                await(ctxt.solveDeterministic(
+                    {
+                        ctxt.fulfillAttach(
+                            this,
+                            specification.buildInvocation(
+                                ATOM_REDUCTOR,
+                                ATOM_INITIALIZE,
+                                specification.specificationTerm,
+                                initialAccumulatorVar,
+                            ),
+                            VariableBucket(),
+                        )
+                    },
+                    { PrologReductorDefinitionException(specification, "initialization yielded no solutions.") },
+                    { PrologReductorDefinitionException(specification, "initialization yielded more than one solution") }
                 )
-            },
-            { PrologInvocationContractViolationException("Initialization of reductor failed: $reductorModule:${specification.reductorName} yielded no solutions.") },
-            { PrologInvocationContractViolationException("Initialization of reductor failed: $reductorModule:${specification.reductorName} yielded more than one solution") }
-        )
-            .map {
-                val initialAccumulatorTerm = it.variableValues[initialAccumulatorVar].substituteVariables(it.variableValues.asSubstitutionMapper())
-                Accumulator(
-                    specification,
-                    reductorModule,
-                    initialAccumulatorTerm
+                    .map {
+                        val initialAccumulatorTerm = it.variableValues[initialAccumulatorVar].substituteVariables(it.variableValues.asSubstitutionMapper())
+                        Accumulator(specification, initialAccumulatorTerm)
+                    }
                 )
             }
+            catch (ex: PredicateNotDefinedException) {
+                if (ex.indicator.functor == specification.reductorName && ex.indicator.arity == 4 && ex.inContextOfModule.declaration.moduleName == specification.module) {
+                    throw PrologReductorDefinitionException(specification, "Reductor ${specification.reductorName} is not defined", ex)
+                }
+
+                throw ex
+            }
+        }
     }
 
     override fun accumulate(
@@ -134,19 +158,17 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
 
     override fun resultToTerm(ctxt: ProofSearchContext, result: Term): Term = result
 
-    class Specification(val module: String?, val specificationTerm: Term, val reductorName: String) {
+    class Specification(val module: String, val specificationTerm: Term, val reductorName: String) {
         fun buildInvocation(vararg args: Term): PredicateInvocationQuery {
-            var goal = CompoundTerm(reductorName, args)
-            if (module != null) {
-                goal = CompoundTerm(":", arrayOf(Atom(module), goal))
-            }
-
-            return PredicateInvocationQuery(goal)
+            return PredicateInvocationQuery(
+                CompoundTerm(":", arrayOf(Atom(module), CompoundTerm(reductorName, args)))
+            )
         }
+
+        override fun toString() = "$module:$specificationTerm"
     }
     class Accumulator(
         val specification: Specification,
-        val reductorModule: String,
 
         /**
          * The result of calling the initialization goal of the reductor.
@@ -175,8 +197,8 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
                             VariableBucket(),
                         )
                     },
-                    { PrologInvocationContractViolationException("Reductor $reductorModule:${specification.reductorName} yielded zero solutions on accumulate.") },
-                    { PrologInvocationContractViolationException("Reductor $reductorModule:${specification.reductorName} yielded more than one solution on accumulate.") },
+                    { PrologReductorDefinitionException(specification, "accumulate yielded zero solutions") },
+                    { PrologReductorDefinitionException(specification, "accumulate yielded more than one solution") },
                 )
                 .map {
                     val newAccumulatorTerm = it.variableValues[accumulatorTermOutVariable].substituteVariables(it.variableValues.asSubstitutionMapper())
@@ -204,8 +226,8 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
                             VariableBucket(),
                         )
                     },
-                    { PrologInvocationContractViolationException("Reductor $reductorModule:${specification.reductorName} yielded zero solutions on finalize.") },
-                    { PrologInvocationContractViolationException("Reductor $reductorModule:${specification.reductorName} yielded more than one solution on finalize.") },
+                    { PrologReductorDefinitionException(specification, "finalize yielded zero solutions") },
+                    { PrologReductorDefinitionException(specification, "finalize yielded more than one solution") },
                 )
                 .map {
                     it.variableValues[resultTermOutVariable].substituteVariables(it.variableValues.asSubstitutionMapper())

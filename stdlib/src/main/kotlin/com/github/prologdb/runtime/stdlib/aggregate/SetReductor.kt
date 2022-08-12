@@ -15,27 +15,27 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 class SetReductor : Reductor<Term, SetReductor.Accumulator, PrologList> {
-    override fun parseSpecification(specification: Term): ParseResult<Term> {
+    override fun parseSpecification(ctxt: ProofSearchContext, specification: Term): WorkableFuture<ParseResult<Term>> {
         if (specification !is CompoundTerm || specification.functor != NAME) {
-            return ParseResult(null, ParseResultCertainty.NOT_RECOGNIZED, emptySet())
+            return WorkableFuture.completed(ParseResult(null, ParseResultCertainty.NOT_RECOGNIZED, emptySet()))
         }
 
         if (specification.arity != 1) {
-            return ParseResult(null, ParseResultCertainty.MATCHED, setOf(SemanticError(
+            return WorkableFuture.completed(ParseResult(null, ParseResultCertainty.MATCHED, setOf(SemanticError(
                 "The $NAME reductor takes exactly one argument, got ${specification.arity}",
                 specification.sourceInformation as? SourceLocation ?: SourceLocation.EOF
-            )))
+            ))))
         }
 
         val template = specification.arguments[0]
         if (template.variables.isEmpty()) {
-            return ParseResult(template, ParseResultCertainty.MATCHED, setOf(SemanticError(
+            return WorkableFuture.completed(ParseResult(template, ParseResultCertainty.MATCHED, setOf(SemanticError(
                 "the term doesn't have free variables, so reduction won't do any meaningful work",
                 template.sourceInformation as? SourceLocation ?: SourceLocation.EOF,
-            )))
+            ))))
         }
 
-        return ParseResult.of(template)
+        return WorkableFuture.completed(ParseResult.of(template))
     }
 
     override fun initialize(ctxt: ProofSearchContext, specification: Term): WorkableFuture<Accumulator> {

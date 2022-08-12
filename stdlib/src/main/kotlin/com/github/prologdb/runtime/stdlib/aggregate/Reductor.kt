@@ -23,7 +23,7 @@ interface Reductor<Specification, Accumulator, Result> {
      * any item with [ParseResultCertainty.MATCHED] if the specification matches this reductor. If there are any errors
      * in the [ParseResult.reportings] those will be reported back to the user.
      */
-    fun parseSpecification(specification: Term): ParseResult<Specification>
+    fun parseSpecification(ctxt: ProofSearchContext, specification: Term): WorkableFuture<ParseResult<Specification>>
 
     /**
      * Called once before aggregating. The carry is passed to all

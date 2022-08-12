@@ -38,7 +38,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
             if (error != null || !initResult.isSuccess) {
                 throw ArgumentError(0, "Failed to create reductor ${spec.reductorSpecification.toStringUsingOperatorNotations(ctxt.operators)}: $error")
             }
-            ReductionWithResultTerm(initResult.item!!, spec.resultTerm)
+            ReductionWithResultTerm(await(initResult.item!!.create(ctxt)), spec.resultTerm)
         }
 
     yieldAll(
