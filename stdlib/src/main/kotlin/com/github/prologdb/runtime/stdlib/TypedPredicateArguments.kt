@@ -12,6 +12,7 @@ import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 
 class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out Term>) {
     val size = raw.size
@@ -31,6 +32,30 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
 
     fun getQuery(index: Int): Query {
         return compoundToQuery(getTyped(index), index)
+    }
+
+    /**
+     * Parses a goal of the form `Var1^Var2^Goal`, where there can be an arbitrary number
+     * of variables (including none) prepended by instances of `^/2`. If the first argument to a `^/2` instance
+     * is not a [Variable], that term is ignored.
+     */
+    fun getQueryWithExistentialVariables(index: Int): Pair<Query, Set<Variable>> {
+        val variables = mutableSetOf<Variable>()
+        var pivot = get(index)
+        while (pivot is CompoundTerm && pivot.functor == "^" && pivot.arity == 2) {
+            val variable = pivot.arguments[0]
+            if (variable is Variable) {
+                variables.add(variable)
+            }
+
+            pivot = pivot.arguments[1]
+        }
+
+        if (pivot !is CompoundTerm) {
+            throw ArgumentTypeError(index, pivot, CompoundTerm::class.java)
+        }
+
+        return Pair(compoundToQuery(pivot, index), variables)
     }
 
     private fun compoundToQuery(compoundTerm: CompoundTerm, argumentIndex: Int): Query {

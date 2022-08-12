@@ -5,12 +5,15 @@ import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.ArgumentError
+import com.github.prologdb.runtime.stdlib.ReductionFactory
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.UnificationGrouping
 import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
-    val goal = args.getQuery(1)
+    val (goal, existentialVariables) = args.getQueryWithExistentialVariables(1)
     val reductionSpecifications = args.getTyped<PrologList>(0)
         .also {
             if (it.tail != null) {
@@ -31,24 +34,41 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
         throw ArgumentError(1, "The source goal uses results of the reductors (${backReferences.joinToString(", ")}); this is not supported.")
     }
 
-    val reductions = reductionSpecifications
+    val reductionFactories = reductionSpecifications
         .map { spec ->
-            val initResult = await(ReductionFactory.initializeReduction(ctxt, spec.reductorSpecification))
+            val initResult = await(Reductors.initializeReduction(ctxt, spec.reductorSpecification))
             val error = initResult.reportings.find { it.level >= Reporting.Level.ERROR }
             if (error != null || !initResult.isSuccess) {
                 throw ArgumentError(0, "Failed to create reductor ${spec.reductorSpecification.toStringUsingOperatorNotations(ctxt.operators)}: $error")
             }
-            ReductionWithResultTerm(await(initResult.item!!.create(ctxt)), spec.resultTerm)
+            ReductionFactoryWithResultTerm(initResult.item!!, spec.resultTerm)
         }
+
+    val specificationVariables = reductionSpecifications
+        .flatMap { it.reductorSpecification.variables }
+        .toSet()
+    val groupByVariables = goalVariables - existentialVariables - specificationVariables
+    val grouping = UnificationGrouping<List<Reduction>>(ctxt.randomVariableScope)
 
     yieldAll(
         buildLazySequence(ctxt.principal) {
             ctxt.fulfillAttach(this, goal, VariableBucket())
         }
             .flatMapRemaining { element ->
-                for (reduction in reductions) {
-                    await(reduction.reduction.add(element.variableValues))
+                val groupKey = element.getGroupKey(groupByVariables)
+                var reductions = grouping[groupKey]
+                if (reductions == null) {
+                    reductions = ArrayList<Reduction>(reductionFactories.size)
+                    for (factory in reductionFactories) {
+                        reductions.add(await(factory.reductionFactory.create(ctxt)))
+                    }
+                    grouping[groupKey] = reductions
                 }
+
+                for (reduction in reductions) {
+                    await(reduction.add(element.variableValues))
+                }
+
                 // its mandatory not to yield anything. This allows the step() calls on the parent
                 // sequence to trickle down to the reduction properly but not have the side-effect of yielding
                 // unwanted solutions to reduce/2
@@ -57,10 +77,17 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
             }
     )
 
-    val resultOutTerms = reductions.map { it.resultTerm }.toTypedArray()
-    val actualResultTerms = reductions.map { await(it.reduction.finalize()) }.toTypedArray()
+    val resultOutTerms = reductionFactories.map { it.resultTerm }.toTypedArray()
 
-    return@nativeRule resultOutTerms.unify(actualResultTerms, ctxt.randomVariableScope)
+    for ((groupKey, reductions) in grouping) {
+        val actualResultTerms = reductions.map { await(it.finalize()) }.toTypedArray()
+        val resultUnification = resultOutTerms.unify(actualResultTerms, ctxt.randomVariableScope)
+        resultUnification
+            ?.combinedWith(Unification(groupKey), ctxt.randomVariableScope)
+            ?.let { yield(it) }
+    }
+
+    return@nativeRule Unification.FALSE
 }
 
 private fun parseSpecification(specification: Term, listArgumentIndex: Int, indexInList: Int): ReductionSpecification {
@@ -100,4 +127,14 @@ private fun parseSpecification(specification: Term, listArgumentIndex: Int, inde
 }
 
 private class ReductionSpecification(val reductorSpecification: Term, val resultTerm: Term)
-private class ReductionWithResultTerm(val reduction: Reduction, val resultTerm: Term)
+private class ReductionFactoryWithResultTerm(val reductionFactory: ReductionFactory, val resultTerm: Term)
+
+private fun Unification.getGroupKey(keys: Set<Variable>): VariableBucket {
+    if (keys.isEmpty()) {
+        return VariableBucket()
+    }
+
+    return variableValues.copy().apply {
+        retainAll(keys)
+    }
+}

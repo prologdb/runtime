@@ -1,4 +1,5 @@
 :- use_module(essential($equality)).
+:- use_module(essential($dynamic)).
 :- use_module(library(aggregate)).
 :- use_module(library(lists), [member/2, sort/2]).
 
@@ -42,4 +43,29 @@ test "set" by [
     reduce([set(V) as Set], member(V, [a, b, a, c, b, c, a, 2])),
     sort(Set, Sorted),
     Sorted == [2, a, b, c]
+].
+
+pred(a, g(a), 1).
+pred(a, g(a), 2).
+pred(a, g(b), 3).
+pred(b, g(b), 4).
+pred(b, g(c), 5).
+pred(b, g(c), 6).
+
+test "grouping by default" by [
+    findall([Group1, Group2, VMax], reduce([max(V) as VMax], pred(Group1, Group2, V)), Results),
+    Results = [
+        [a, g(a), 2],
+        [a, g(b), 3],
+        [b, g(b), 4],
+        [b, g(c), 6]
+    ]
+].
+
+test "grouping with existential" by [
+    findall([Group1, VMax], reduce([max(V) as VMax], Group2^pred(Group1, Group2, V)), Results),
+    Results = [
+        [a, 3],
+        [b, 6]
+    ]
 ].

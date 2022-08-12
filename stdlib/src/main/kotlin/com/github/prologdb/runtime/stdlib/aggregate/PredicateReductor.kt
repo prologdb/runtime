@@ -112,9 +112,9 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
         return launchWorkableFuture(ctxt.principal) {
             val initialAccumulatorVar = ctxt.randomVariableScope.createNewRandomVariable()
             try {
-                await(ctxt.solveDeterministic(
+                await(ctxt.deriveForModuleContext(specification.module).solveDeterministic(
                     {
-                        ctxt.fulfillAttach(
+                        ctxt.deriveForModuleContext(specification.module).fulfillAttach(
                             this,
                             specification.buildInvocation(
                                 ATOM_REDUCTOR,
@@ -160,9 +160,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
 
     class Specification(val module: String, val specificationTerm: Term, val reductorName: String) {
         fun buildInvocation(vararg args: Term): PredicateInvocationQuery {
-            return PredicateInvocationQuery(
-                CompoundTerm(":", arrayOf(Atom(module), CompoundTerm(reductorName, args)))
-            )
+            return PredicateInvocationQuery(CompoundTerm(reductorName, args))
         }
 
         override fun toString() = "$module:$specificationTerm"
@@ -185,7 +183,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
             return ctxt
                 .solveDeterministic(
                     {
-                        ctxt.fulfillAttach(
+                        ctxt.deriveForModuleContext(specification.module).fulfillAttach(
                             this,
                             specification.buildInvocation(
                                 ATOM_REDUCTOR,
