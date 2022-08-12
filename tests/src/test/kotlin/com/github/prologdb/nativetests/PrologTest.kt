@@ -181,19 +181,17 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                     .mapRemainingNotNull { goalUnification ->
                         val stateCombined = stateBefore.variableValues.copy()
                         for ((variable, value) in goalUnification.variableValues.values) {
-                            if (value != null) {
-                                // substitute all instantiated variables for simplicity and performance
-                                val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
-                                if (stateCombined.isInstantiated(variable)) {
-                                    if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
-                                        // instantiated to different value => no unification
-                                        failedGoal = goals[goalIndex]
-                                        return@mapRemainingNotNull null
-                                    }
+                            // substitute all instantiated variables for simplicity and performance
+                            val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
+                            if (stateCombined.isInstantiated(variable)) {
+                                if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
+                                    // instantiated to different value => no unification
+                                    failedGoal = goals[goalIndex]
+                                    return@mapRemainingNotNull null
                                 }
-                                else {
-                                    stateCombined.instantiate(variable, substitutedValue)
-                                }
+                            }
+                            else {
+                                stateCombined.instantiate(variable, substitutedValue)
                             }
                         }
                         Unification(stateCombined)
@@ -220,11 +218,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
             } else {
                 var goalStr = ""
                 for ((variable, value) in stateBeforeFailedGoal!!.variableValues.values) {
-                    val entryTerm = if (value != null) {
-                        CompoundTerm("=", arrayOf(variable, value))
-                    } else {
-                        CompoundTerm("var", arrayOf(variable))
-                    }
+                    val entryTerm = CompoundTerm("=", arrayOf(variable, value))
                     goalStr += entryTerm.toStringUsingOperatorNotations(runtime.getLoadedModule(moduleName).localOperators)
                     goalStr += ",\n"
                 }

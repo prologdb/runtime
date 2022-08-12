@@ -2,11 +2,16 @@ package com.github.prologdb.runtime.unification
 
 
 import com.github.prologdb.runtime.CircularTermException
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
+import io.kotest.inspectors.forOne
+import io.kotest.matchers.collections.haveSize
+import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
@@ -43,6 +48,34 @@ class VariableBucketTest : FreeSpec({
             // ACT & ASSERT
             shouldThrow<CircularTermException> {
                 bucket.sortForSubstitution()
+            }
+        }
+    }
+
+    "incorporate" - {
+        "should unify" {
+            val bucketA = VariableBucket().apply {
+                instantiate(Variable("A"), PrologList(listOf(Variable("NestedA"))))
+                instantiate(Variable("B"), Atom("ground"))
+            }
+            val bucketB = VariableBucket().apply {
+                instantiate(Variable("A"), PrologList(listOf(Variable("NestedB"))))
+                instantiate(Variable("B"), Atom("ground"))
+            }
+
+            val result = bucketA.combinedWith(bucketB, RandomVariableScope())
+            result.variables should haveSize(3)
+            result.values.toList().forOne { (variable, value) ->
+                variable shouldBe Variable("A")
+                value shouldBe PrologList(listOf(Variable("NestedA")))
+            }
+            result.values.toList().forOne { (variable, value) ->
+                variable shouldBe Variable("B")
+                value shouldBe Atom("ground")
+            }
+            result.values.toList().forOne { (variable, value) ->
+                variable shouldBe Variable("NestedA")
+                value shouldBe Variable("NestedB")
             }
         }
     }

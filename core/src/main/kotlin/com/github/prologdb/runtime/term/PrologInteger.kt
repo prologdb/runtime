@@ -11,6 +11,8 @@ class PrologInteger(
     val value: Long
 ) : PrologNumber {
 
+    override val variables = emptySet<Variable>()
+    override val isGround = true
     override val isInteger = true
 
     override fun plus(other: PrologNumber) =

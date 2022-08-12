@@ -52,7 +52,8 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
                 val subDict = PrologDictionary(pairs.filterKeys { it !in commonKeys })
                 try {
                     carryUnification.variableValues.incorporate(
-                        rhs.tail.unify(subDict, randomVarsScope).variableValues
+                        rhs.tail.unify(subDict, randomVarsScope).variableValues,
+                        randomVarsScope,
                     )
                 } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
@@ -61,7 +62,8 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
         } else if (rhs.tail != null) {
             try {
                 carryUnification.variableValues.incorporate(
-                    rhs.tail.unify(EMPTY, randomVarsScope).variableValues
+                    rhs.tail.unify(EMPTY, randomVarsScope).variableValues,
+                    randomVarsScope,
                 )
             } catch (ex: VariableDiscrepancyException) {
                 return Unification.FALSE
@@ -77,7 +79,8 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
                 val subDict = PrologDictionary(rhs.pairs.filterKeys { it !in commonKeys })
                 try {
                     carryUnification.variableValues.incorporate(
-                        this.tail.unify(subDict, randomVarsScope).variableValues
+                        this.tail.unify(subDict, randomVarsScope).variableValues,
+                        randomVarsScope,
                     )
                 } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
@@ -86,7 +89,8 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
         } else if (this.tail != null) {
             try {
                 carryUnification.variableValues.incorporate(
-                    this.tail.unify(EMPTY, randomVarsScope).variableValues
+                    this.tail.unify(EMPTY, randomVarsScope).variableValues,
+                    randomVarsScope,
                 )
             } catch (ex: VariableDiscrepancyException) {
                 return Unification.FALSE
@@ -104,7 +108,7 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
             }
 
             try {
-                carryUnification.variableValues.incorporate(keyUnification.variableValues)
+                carryUnification.variableValues.incorporate(keyUnification.variableValues, randomVarsScope)
             } catch (ex: VariableDiscrepancyException) {
                 return Unification.FALSE
             }

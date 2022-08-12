@@ -1,18 +1,19 @@
 package com.github.prologdb.runtime.unification
 
 import com.github.prologdb.runtime.CircularTermException
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
 class VariableBucket private constructor(
-        /**
-         * Each known variable gets a key in this map; The value however is not present if the variable
-         * has not been instantiated yet.
-         */
-        private val variableMap: MutableMap<Variable, Term?>
+    /**
+     * Each known variable gets a key in this map; The value however is not present if the variable
+     * has not been instantiated yet.
+     */
+    private val variableMap: MutableMap<Variable, Term>
 ) {
-    constructor() : this(mutableMapOf<Variable, Term?>())
+    constructor() : this(mutableMapOf<Variable, Term>())
 
     val isEmpty
         get() = variableMap.isEmpty()
@@ -58,29 +59,34 @@ class VariableBucket private constructor(
      * @throws VariableDiscrepancyException if the same variable is instantiated to different values in `this` and
      *                                      in `variables`
      */
-    fun incorporate(variables: VariableBucket) {
-        for ((variable, value) in variables.values) {
-            if (variable in variableMap) {
-                val thisValue = variableMap[variable]
-                if (thisValue != null && thisValue != value) {
-                    throw VariableDiscrepancyException("Cannot combine: variable $variable is instantiated to unequal values: $value and $thisValue")
-                }
+    fun incorporate(variables: VariableBucket, randomVariableScope: RandomVariableScope) {
+        if (variables === this) {
+            return
+        }
+
+        for ((variable, otherValue) in variables.values) {
+            val thisValue = variableMap[variable]
+            if (thisValue == null) {
+                instantiate(variable, otherValue)
+                continue
             }
-            else if (value != null) {
-                instantiate(variable, value)
-            }
+
+            val unificationResult = thisValue.unify(otherValue, randomVariableScope)
+                ?: throw VariableDiscrepancyException("Cannot incorporate: variable $variable is instantiated to non-unify values: $otherValue and $thisValue")
+
+            incorporate(unificationResult.variableValues, randomVariableScope)
         }
     }
 
-    fun combinedWith(other: VariableBucket): VariableBucket {
+    fun combinedWith(other: VariableBucket, randomVariableScope: RandomVariableScope): VariableBucket {
         val copy = copy()
-        copy.incorporate(other)
+        copy.incorporate(other, randomVariableScope)
 
         return copy
     }
 
     fun copy(): VariableBucket {
-        val mapCopy = mutableMapOf<Variable,Term?>()
+        val mapCopy = mutableMapOf<Variable,Term>()
         mapCopy.putAll(variableMap)
         return VariableBucket(mapCopy)
     }
@@ -102,9 +108,7 @@ class VariableBucket private constructor(
         }
 
         for ((key, value) in variableMap) {
-            if (value != null) {
-                variableMap[key] = value.substituteVariables({ variable -> removedToSubstitute[variable] ?: variable })
-            }
+            variableMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
         }
     }
 
@@ -120,10 +124,8 @@ class VariableBucket private constructor(
         val newBucket = VariableBucket()
         for ((variable, value) in values) {
             val resolved = resolve(variable)
-            if (value != null) {
-                val resolvedValue = value.substituteVariables(::resolve)
-                newBucket.instantiate(resolved, resolvedValue)
-            }
+            val resolvedValue = value.substituteVariables(::resolve)
+            newBucket.instantiate(resolved, resolvedValue)
         }
 
         return newBucket
@@ -198,7 +200,7 @@ class VariableBucket private constructor(
         return variableMap.hashCode()
     }
 
-    val values: Iterable<Pair<Variable,Term?>>
+    val values: Iterable<Pair<Variable,Term>>
         get() = variableMap.map { it.key to it.value }
 
 
