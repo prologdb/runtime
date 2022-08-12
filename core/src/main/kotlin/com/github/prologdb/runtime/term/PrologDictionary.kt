@@ -124,6 +124,8 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
         variables.toSet()
     }
 
+    override val isGround: Boolean by lazy { pairs.values.all { it.isGround } }
+
     override fun substituteVariables(mapper: (Variable) -> Term): PrologDictionary {
         return PrologDictionary(pairs.mapValues { it.value.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {
             it.sourceInformation = this.sourceInformation

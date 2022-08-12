@@ -102,6 +102,8 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
         variables
     }
 
+    override val isGround: Boolean by lazy { tail != null && elements.all { it.isGround } }
+
     override fun substituteVariables(mapper: (Variable) -> Term): PrologList {
         return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {
             it.sourceInformation = this.sourceInformation

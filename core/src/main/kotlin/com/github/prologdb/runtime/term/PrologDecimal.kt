@@ -85,6 +85,7 @@ class PrologDecimal(
     }
 
     override val variables: Set<Variable> = emptySet()
+    override val isGround = true
 
     override fun substituteVariables(mapper: (Variable) -> Term) = this
 

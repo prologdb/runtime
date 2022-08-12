@@ -39,6 +39,8 @@ class CompoundTerm(
         arguments.flatMap(Term::variables).toSet()
     }
 
+    override val isGround by lazy { arguments.all { it.isGround } }
+
     override fun substituteVariables(mapper: (Variable) -> Term): CompoundTerm {
         return CompoundTerm(functor, arguments.map { it.substituteVariables(mapper) }.toTypedArray()).also {
             it.sourceInformation = this.sourceInformation

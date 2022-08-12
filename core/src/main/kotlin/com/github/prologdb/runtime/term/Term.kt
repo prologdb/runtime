@@ -15,6 +15,11 @@ interface Term : Comparable<Term> {
 
     val variables: Set<Variable>
 
+    /**
+     * True if there are no [Variable]s in this term
+     */
+    val isGround: Boolean get() = variables.isEmpty()
+
     fun substituteVariables(mapper: (Variable) -> Term): Term
 
     val prologTypeName: String

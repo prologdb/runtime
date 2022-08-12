@@ -78,8 +78,6 @@ class PrologInteger(
         }
     }
 
-    override val variables = emptySet<Variable>()
-
     override fun substituteVariables(mapper: (Variable) -> Term) = this
 
     override fun equals(other: Any?): Boolean {
