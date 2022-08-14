@@ -27,12 +27,26 @@ min(reductor, accumulate, min(Of), {acc: Acc}, {acc: Of}) :- Of < Acc.
 min(reductor, finalize, min(_), {initial: true}, _).
 min(reductor, finalize, min(_), {acc: Min}, Min).
 
+min(reductor, initialize, min(_, _), {initial: true}).
+min(reductor, accumulate, min(Of, Witness), {initial: true}, {acc: Of, witness: Witness}).
+min(reductor, accumulate, min(Of, NewWitness), {acc: Acc, witness: OldWitness}, {acc: Acc, witness: OldWitness}) :- Of >= Acc.
+min(reductor, accumulate, min(Of, NewWitness), {acc: Acc, witness: OldWitness}, {acc: Of, witness: NewWitness}) :- Of < Acc.
+min(reductor, finalize, min(_, _), {initial: true}, _).
+min(reductor, finalize, min(_, _), {acc: Acc, witness: Witness}, {acc: Acc, witness: Witness}).
+
 max(reductor, initialize, max(_), {initial: true}).
 max(reductor, accumulate, max(Of), {initial: true}, {acc: Of}).
 max(reductor, accumulate, max(Of), {acc: Acc}, {acc: Acc}) :- Of =< Acc.
 max(reductor, accumulate, max(Of), {acc: Acc}, {acc: Of}) :- Of > Acc.
 max(reductor, finalize, max(_), {initial: true}, _).
 max(reductor, finalize, max(_), {acc: Max}, Max).
+
+min(reductor, initialize, max(_, _), {initial: true}).
+min(reductor, accumulate, max(Of, Witness), {initial: true}, {acc: Of, witness: Witness}).
+min(reductor, accumulate, max(Of, NewWitness), {acc: Acc, witness: OldWitness}, {acc: Acc, witness: OldWitness}) :- Of =< Acc.
+min(reductor, accumulate, max(Of, NewWitness), {acc: Acc, witness: OldWitness}, {acc: Of, witness: NewWitness}) :- Of > Acc.
+min(reductor, finalize, max(_, _), {initial: true}, _).
+min(reductor, finalize, max(_, _), {acc: Acc, witness: Witness}, {acc: Acc, witness: Witness}).
 
 avg(reductor, initialize, avg(_), {initial: true}).
 avg(reductor, accumulate, avg(Of), {initial: true}, {sum: Of, count: 1}).
