@@ -216,15 +216,15 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
             if (results.tryAdvance() != null) {
                 callback.onTestSuccess(testName)
             } else {
-                var goalStr = ""
+                var stateStr = ""
                 for ((variable, value) in stateBeforeFailedGoal!!.variableValues.values) {
                     val entryTerm = CompoundTerm("=", arrayOf(variable, value))
-                    goalStr += entryTerm.toStringUsingOperatorNotations(runtime.getLoadedModule(moduleName).localOperators)
-                    goalStr += ",\n"
+                    stateStr += entryTerm.toStringUsingOperatorNotations(runtime.getLoadedModule(moduleName).localOperators)
+                    stateStr += ",\n"
                 }
-                goalStr += "\n"
-                goalStr += failedGoal!!.toStringUsingOperatorNotation(runtime.getLoadedModule(moduleName).localOperators)
-                callback.onTestFailure(testName, "This goal failed (did not yield a solution):\n$goalStr.")
+                stateStr += "\n"
+                val goalStr = failedGoal!!.toStringUsingOperatorNotation(runtime.getLoadedModule(moduleName).localOperators)
+                callback.onTestFailure(testName, "This goal failed (did not yield a solution):\n$goalStr\n\nState before the goal:\n$stateStr")
             }
         }
         catch (ex: Throwable) {
