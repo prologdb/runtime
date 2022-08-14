@@ -5,6 +5,7 @@
 
 :- native length/2.
 :- native member/2.
+:- native reverse/2.
 
 :- native set/2.
 :- native set/3.

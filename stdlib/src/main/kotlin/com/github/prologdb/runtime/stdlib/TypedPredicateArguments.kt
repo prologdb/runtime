@@ -23,12 +23,26 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
         if (type.isInstance(untyped)) {
             @Suppress("unchecked_cast")
             return untyped as T
-        } else {
-            throw ArgumentTypeError(indicator, index, untyped, type)
         }
+
+        throw ArgumentTypeError(indicator, index, untyped, type)
     }
 
     inline fun <reified T : Term> getTyped(index: Int) = getTyped(index, T::class.java)
+
+    fun <T : Term> getTypedOrUnbound(index: Int, type: Class<T>): Term {
+        val term = this[index]
+        if (term is Variable) {
+            return term
+        }
+        if (type.isInstance(term)) {
+            return term
+        }
+
+        throw ArgumentTypeError(indicator, index, term, type, Variable::class.java)
+    }
+
+    inline fun <reified T: Term> getTypedOrUnbound(index: Int): Term = getTypedOrUnbound(index, T::class.java)
 
     fun getQuery(index: Int): Query {
         return compoundToQuery(getTyped(index), index)

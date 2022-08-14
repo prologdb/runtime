@@ -117,7 +117,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinMember2,
             BuiltinSet2,
             BuiltinSet3,
-            BuiltinSort2
+            BuiltinSort2,
+            BuiltinReverse2,
         ),
         "library(sort)" to listOf(
             BuiltinPredsort3
@@ -128,7 +129,7 @@ object StandardLibraryModuleLoader : ModuleLoader {
         ),
         "library(aggregate)" to listOf(
             BuiltinReduce2,
-        )
+        ),
     ).mapValues { (_, nativeCodes) ->
         nativeCodes.associateBy(ClauseIndicator.Companion::of)
     }
