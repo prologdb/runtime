@@ -18,3 +18,6 @@
 :- native nonground/1.
 
 :- native 'typeof'/2.
+
+:- native require/2.
+:- module_transparent(require/2).

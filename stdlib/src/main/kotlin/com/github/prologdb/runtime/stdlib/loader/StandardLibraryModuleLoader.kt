@@ -69,7 +69,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinNonVar1,
             BuiltinGround1,
             BuiltinNonGround1,
-            BuiltinTypeof2
+            BuiltinTypeof2,
+            BuiltinRequire2,
         ),
         "essential(\$comparison)" to listOf(
             BuiltinTermLessThan2,

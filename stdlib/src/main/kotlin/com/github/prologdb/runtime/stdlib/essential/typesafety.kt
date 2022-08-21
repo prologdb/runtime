@@ -1,19 +1,15 @@
 package com.github.prologdb.runtime.stdlib.essential
 
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.runtime.ArgumentTypeError
+import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.PrologDecimal
-import com.github.prologdb.runtime.term.PrologDictionary
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologNumber
-import com.github.prologdb.runtime.term.PrologString
-import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinTypeof2 = nativeRule("typeof", 2) { args, ctxt ->
     val arg0 = args[0]
@@ -60,4 +56,25 @@ val BuiltinNonGround1 = typeCheckBuiltin("nonground") { it.variables.isNotEmpty(
  */
 private fun typeCheckBuiltin(name: String, test: (Term) -> Boolean): NativeCodeRule {
     return nativeRule(name, 1, getInvocationStackFrame()) { args, _ -> Unification.whether(test(args[0])) }
+}
+
+val BuiltinRequire2 = nativeRule("require", 2) { args, ctxt ->
+    val goal = args.getQuery(0)
+    val errorMessage = args.getTyped<PrologString>(1)
+
+    val hadResults = await(launchWorkableFuture(ctxt.principal) {
+        return@launchWorkableFuture foldRemaining(
+            buildLazySequence(ctxt.principal) {
+                ctxt.fulfillAttach(this, goal, VariableBucket())
+            }
+                .limitRemaining(1),
+            false,
+        ) { _, _ -> true }
+    })
+
+    if (!hadResults) {
+        throw PrologInvocationContractViolationException(errorMessage.toKotlinString())
+    }
+
+    return@nativeRule Unification.TRUE
 }
