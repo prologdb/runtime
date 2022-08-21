@@ -120,6 +120,7 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinSet3,
             BuiltinSort2,
             BuiltinReverse2,
+            BuiltinMSort2,
         ),
         "library(sort)" to listOf(
             BuiltinPredsort3
