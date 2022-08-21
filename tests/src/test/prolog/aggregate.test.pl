@@ -1,7 +1,7 @@
 :- use_module(essential($equality)).
 :- use_module(essential($dynamic)).
 :- use_module(library(aggregate)).
-:- use_module(library(lists), [member/2, sort/2]).
+:- use_module(library(lists), [member/2, sort/2, msort/2]).
 
 pred(1).
 pred(2).
@@ -68,4 +68,25 @@ test "grouping with existential" by [
         [a, 3],
         [b, 6]
     ]
+].
+
+test "percentile_discrete with default sort" by [
+    Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
+    reduce([percentile_discrete(0.1, V) as PV1], member(V, Elements)), PV1 = 2,
+    reduce([percentile_discrete(0.58, V) as PV2], member(V, Elements)), PV2 = 401,
+    reduce([percentile_discrete(1, V) as PV3], member(V, Elements)), PV3 = 9662
+].
+
+test "percentile_discrete with explicit asc sort" by [
+    Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
+    reduce([percentile_discrete(0.1, V, asc) as PV1], member(V, Elements)), PV1 = 2,
+    reduce([percentile_discrete(0.58, V, asc) as PV2], member(V, Elements)), PV2 = 401,
+    reduce([percentile_discrete(1, V, asc) as PV3], member(V, Elements)), PV3 = 9662
+].
+
+test "percentile_discrete with explicit desc sort" by [
+    Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
+    reduce([percentile_discrete(0.1, V, desc) as PV1], member(V, Elements)), PV1 = 8832,
+    reduce([percentile_discrete(0.58, V, desc) as PV2], member(V, Elements)), PV2 = 99,
+    reduce([percentile_discrete(1, V, desc) as PV3], member(V, Elements)), PV3 = 1
 ].

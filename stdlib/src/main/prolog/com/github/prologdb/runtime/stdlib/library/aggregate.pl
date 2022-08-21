@@ -10,7 +10,9 @@
     avg/4,
     avg/5,
     sum/4,
-    sum/5
+    sum/5,
+    percentile_discrete/4,
+    percentile_discrete/5
 ]).
 
 :- native reduce/2.
@@ -60,3 +62,25 @@ avg(reductor, finalize, avg(_), {sum: Sum, count: Count}, Avg) :- var(Avg), Avg 
 sum(reductor, initialize, sum(_), 0).
 sum(reductor, accumulate, sum(Of), Acc, NAcc) :- NAcc is Acc + Of.
 sum(reductor, finalize, sum(_), Sum, Sum).
+
+percentile_discrete(reductor, initialize, percentile_discrete(P, _), Accumulator) :-
+    percentile_discrete(reductor, initialize, percentile_discrete(P, _, asc), Accumulator).
+percentile_discrete(reductor, initialize, percentile_discrete(P, _, Direction), []) :-
+    require(member(Direction, [asc, desc]), "sort direction must be asc or desc"),
+    require((P > 0, P =< 1), "the percentile must be in range (0, 1]").
+percentile_discrete(reductor, accumulate, percentile_discrete(_, Element), Elements, [Element|Elements]).
+percentile_discrete(reductor, accumulate, percentile_discrete(_, Element, _), Elements, [Element|Elements]).
+percentile_discrete(reductor, finalize, percentile_discrete(P, _), Elements, PValue) :-
+    percentile_discrete(reductor, finalize, percentile_discrete(P, _, asc), Elements, PValue).
+percentile_discrete(reductor, finalize, percentile_discrete(P, _, asc), Elements, PValue) :-
+    msort(Elements, SortedElements),
+    length(SortedElements, NElements),
+    Rank is ceil(decimal(P) * decimal(NElements)) - 1,
+    index_unifying(SortedElements, Rank, PValue).
+percentile_discrete(reductor, finalize, percentile_discrete(P, _, desc), Elements, PValue) :-
+    msort(Elements, SortedElements),
+    reverse(SortedElements, ReversedElements),
+    length(ReversedElements, NElements),
+    Rank is ceil(decimal(P) * decimal(NElements)) - 1,
+    index_unifying(ReversedElements, Rank, PValue).
+
