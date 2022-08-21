@@ -23,6 +23,9 @@ sealed interface PrologNumber : Term {
     operator fun unaryPlus(): PrologNumber
     operator fun unaryMinus(): PrologNumber
 
+    fun ceil(): PrologInteger
+    fun floor(): PrologInteger
+
     val isInteger: Boolean
 
     /**

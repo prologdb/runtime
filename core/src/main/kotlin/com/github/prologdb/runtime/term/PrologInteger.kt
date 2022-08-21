@@ -62,6 +62,10 @@ class PrologInteger(
 
     override fun toDecimal(): Double = value.toDouble()
 
+    override fun ceil(): PrologInteger = this
+
+    override fun floor(): PrologInteger = this
+
     override fun compareTo(other: PrologNumber) =
         when(other) {
             is PrologInteger -> this.value.compareTo(other.value)

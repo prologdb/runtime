@@ -60,6 +60,14 @@ class PrologDecimal(
 
     override fun toDecimal(): Double = value
 
+    override fun ceil(): PrologInteger {
+        return PrologInteger(kotlin.math.ceil(this.value).toLong())
+    }
+
+    override fun floor(): PrologInteger {
+        return PrologInteger(kotlin.math.floor(this.value).toLong())
+    }
+
     override fun compareTo(other: PrologNumber) =
         when(other) {
             is PrologInteger -> this.value.compareTo(other.value)
