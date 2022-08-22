@@ -13,8 +13,15 @@ import com.github.prologdb.runtime.term.Variable
  */
 interface UnificationGrouping<T : Any> : Iterable<Map.Entry<VariableBucket, T>> {
     operator fun get(key: VariableBucket): T?
-    operator fun set(key: VariableBucket, value: T)
+
+    /**
+     * @return the value previously associated with [key], or `null` if none.
+     * @see MutableMap.put
+     */
+    operator fun set(key: VariableBucket, value: T): T?
     val size: Int
+
+    operator fun contains(key: VariableBucket): Boolean = get(key) != null
 
     companion object {
         operator fun <T : Any> invoke(randomVariableScope: RandomVariableScope): UnificationGrouping<T> {
@@ -27,10 +34,12 @@ private class StrategyUnificationGrouping<T : Any>(var strategy: UnificationGrou
 
     override fun get(key: VariableBucket): T? = strategy.get(key)
 
-    override fun set(key: VariableBucket, value: T) {
-        if (!strategy.trySet(key, value)) {
+    override fun set(key: VariableBucket, value: T): T? {
+        return try {
+            strategy.set(key, value)
+        } catch (ex: UnsupportedArgumentException) {
             strategy = strategy.upgradeFor(key)
-            check(strategy.trySet(key, value))
+            strategy.set(key, value)
         }
     }
 
@@ -39,15 +48,16 @@ private class StrategyUnificationGrouping<T : Any>(var strategy: UnificationGrou
     override val size: Int get() = strategy.size
 }
 
-private interface UnificationGroupingStrategy<T> : Iterable<Map.Entry<VariableBucket, T>> {
+private interface UnificationGroupingStrategy<T : Any> : Iterable<Map.Entry<VariableBucket, T>> {
     fun get(key: VariableBucket): T?
 
     /**
      * Attempts to set the given value.
-     * @return whether the value was set; false if this strategy cannot handle the [key].
-     * In that case, invoke [upgradeFor].
+     * @return the value previously associated with [key], or `null` if [key] wasn't present before.
+     * @see MutableMap.put
+     * @throws UnsupportedArgumentException if this strategy doesn't support [key]. In that case, invoke [upgradeFor].
      */
-    fun trySet(key: VariableBucket, value: T): Boolean
+    fun set(key: VariableBucket, value: T): T?
 
     fun upgradeFor(key: VariableBucket): UnificationGroupingStrategy<T>
 
@@ -63,15 +73,13 @@ private class HashMapUnificationGroupingStrategy<T : Any>(
 
     override fun get(key: VariableBucket): T? = groups[key]
 
-    override fun trySet(key: VariableBucket, value: T): Boolean {
+    override fun set(key: VariableBucket, value: T): T? {
         val compactedKey = key.compact(randomVariableScope)
         if (!compactedKey.isGround) {
-            return false
+            throw UnsupportedArgumentException("Only supports ground keys")
         }
 
-        groups[key] = value
-
-        return true
+        return groups.put(key, value)
     }
 
     override fun upgradeFor(key: VariableBucket): UnificationGroupingStrategy<T> {
@@ -108,20 +116,20 @@ private class ListUnificationGroupingStrategy<T : Any>(
         return null
     }
 
-    override fun trySet(key: VariableBucket, value: T): Boolean {
+    override fun set(key: VariableBucket, value: T): T? {
         val compactedKey = key.compact(randomVariableScope)
         val iterator = entries.listIterator()
         while (iterator.hasNext()) {
             val currentEntry = iterator.next()
             if (currentEntry.key.equalsIgnoringUnboundVariables(compactedKey, randomVariableScope)) {
                 iterator.set(MapEntry(currentEntry.key, value))
-                return true
+                return currentEntry.value
             }
         }
 
         // no existing entry matched
         entries.add(MapEntry(key, value))
-        return true
+        return null
     }
 
     override fun upgradeFor(key: VariableBucket): UnificationGroupingStrategy<T> {
@@ -175,3 +183,5 @@ private class MapEntry<K, V>(
     override val key: K,
     override val value: V,
 ) : Map.Entry<K, V>
+
+private class UnsupportedArgumentException(message: String? = null, cause: Throwable? = null) : RuntimeException(message, cause)
