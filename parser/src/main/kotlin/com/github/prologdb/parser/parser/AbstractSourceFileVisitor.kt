@@ -1,13 +1,12 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.ParseException
-import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SemanticError
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.module.ModuleImport
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
@@ -141,7 +140,7 @@ abstract class AbstractSourceFileVisitor<Result : Any>(
                 return result.reportings
             }
 
-            return result.reportings + visitor(result.item, input.sourceInformation as SourceLocation)
+            return result.reportings + visitor(result.item, input.sourceInformation as? SourceLocation? ?: SourceLocation.EOF)
         }
     }
 }
