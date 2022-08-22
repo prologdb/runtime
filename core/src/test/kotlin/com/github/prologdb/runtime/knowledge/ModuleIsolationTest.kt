@@ -114,7 +114,7 @@ class ModuleIsolationTest : FreeSpec({
         )
 
         val ex = shouldThrow<PredicateNotDefinedException> {
-            runtimeWithLoadedModules(moduleA, userModule).fulfill("user", PredicateInvocationQuery(foo(R))).consumeAll()
+            runtimeWithLoadedModules(moduleA, userModule).fulfill("user", PredicateInvocationQuery(foo(R))).consumeAll().get()
         }
         ex.message shouldBe "Predicate a/1 not defined in context of module user"
     }
@@ -160,7 +160,7 @@ class ModuleIsolationTest : FreeSpec({
         }
 
         val ex = shouldThrow<PredicateNotDefinedException> {
-            runtimeEnv.fulfill("user", PredicateInvocationQuery(CompoundTerm("bar", arrayOf(R)))).consumeAll()
+            runtimeEnv.fulfill("user", PredicateInvocationQuery(CompoundTerm("bar", arrayOf(R)))).consumeAll().get()
         }
         ex.message shouldBe "Predicate c/1 not defined in context of module user"
     }

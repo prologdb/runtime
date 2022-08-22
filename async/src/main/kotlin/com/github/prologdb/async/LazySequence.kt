@@ -219,8 +219,10 @@ interface LazySequence<T : Any> {
      * Consumes all elements of this sequence. Useful for sequences where consuming has side effects and the user
      * only cares about the side effects (instead of the elements).
      */
-    fun consumeAll() {
-        while (true) tryAdvance() ?: break
+    fun consumeAll(): WorkableFuture<Unit> {
+        return launchWorkableFuture(principal) {
+            this@launchWorkableFuture.foldRemaining(this@LazySequence, Unit) { _, _ -> }
+        }
     }
 
     companion object {
@@ -409,10 +411,9 @@ fun <T : Any> buildLazySequence(principal: Any, code: suspend LazySequenceBuilde
  *
  * @return The collection obtained from [supplier]
  */
-fun <T : Any, C : MutableCollection<in T>> LazySequence<T>.remainingTo(supplier: () -> C): C {
+fun <T : Any, C : MutableCollection<in T>> LazySequence<T>.remainingTo(supplier: () -> C): WorkableFuture<C> {
     val target = supplier()
-    forEachRemaining { target.add(it) }
-    return target
+    return forEachRemaining { target.add(it) }.map { target }
 }
 
 /**
@@ -478,9 +479,10 @@ inline fun <T : Any, reified E> LazySequence<T>.transformExceptionsOnRemaining(n
 /**
  * Invokes the given action for all remaining elements in this [LazySequence]
  */
-inline fun <T : Any> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
-    while (true) consumer(tryAdvance() ?: break)
-    close()
+fun <T : Any> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit): WorkableFuture<Unit> {
+    return launchWorkableFuture(principal) {
+        this@launchWorkableFuture.foldRemaining(this@forEachRemaining, Unit) { _, e -> consumer(e) }
+    }
 }
 
 /**
@@ -488,17 +490,13 @@ inline fun <T : Any> LazySequence<T>.forEachRemaining(consumer: (T) -> Unit) {
  * value and, for each element, applying the given accumulator.
  * @return the last return value of the accumulator
  */
-inline fun <T : Any, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (T, R) -> R): R {
-    var carry = initial
-    while (true) {
-        val el = tryAdvance() ?: break
-        carry = accumulator(el, carry)
+fun <T : Any, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (R, T) -> R): WorkableFuture<R> {
+    return launchWorkableFuture(principal) {
+        this@launchWorkableFuture.foldRemaining(this@foldRemaining, initial, accumulator)
     }
-
-    return carry
 }
 
 /**
  * Adds the remaining elements to a list and returns that list.
  */
-fun <T : Any> LazySequence<T>.remainingToList(): List<T> = remainingTo { ArrayList<T>() }
+fun <T : Any> LazySequence<T>.remainingToList(): WorkableFuture<out List<T>> = remainingTo(::ArrayList)

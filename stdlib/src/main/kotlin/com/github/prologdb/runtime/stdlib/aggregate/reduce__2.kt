@@ -50,7 +50,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
     val groupByVariables = goalVariables - existentialVariables - specificationVariables
     val grouping = UnificationGrouping<List<Reduction>>(ctxt.randomVariableScope)
 
-    yieldAll(
+    await(
         buildLazySequence(ctxt.principal) {
             ctxt.fulfillAttach(this, goal, VariableBucket())
         }
@@ -68,13 +68,8 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
                 for (reduction in reductions) {
                     await(reduction.add(element.variableValues))
                 }
-
-                // its mandatory not to yield anything. This allows the step() calls on the parent
-                // sequence to trickle down to the reduction properly but not have the side-effect of yielding
-                // unwanted solutions to reduce/2
-                // the yieldAll is purely for the side-effects on the reductions
-                return@flatMapRemaining null
             }
+            .consumeAll()
     )
 
     val resultOutTerms = reductionFactories.map { it.resultTerm }.toTypedArray()
