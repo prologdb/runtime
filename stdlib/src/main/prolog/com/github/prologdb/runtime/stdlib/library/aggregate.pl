@@ -1,5 +1,5 @@
 :- module(aggregate, [
-    op(1100, xfx, as),
+    op(700, xfx, as),
     reduce/2,
     count/4,
     count/5,
@@ -12,7 +12,13 @@
     sum/4,
     sum/5,
     percentile_discrete/4,
-    percentile_discrete/5
+    percentile_discrete/5,
+    variance/4,
+    variance/5,
+    stddev/4,
+    stddev/5,
+    list/4,
+    list/5
 ]).
 
 :- native reduce/2.
@@ -21,6 +27,10 @@
 count(reductor, initialize, count, 0).
 count(reductor, accumulate, count, Acc, NAcc) :- NAcc is Acc + 1.
 count(reductor, finalize, count, Acc, Acc).
+
+list(reductor, initialize, list(_), []).
+list(reductor, accumulate, list(E), Es, [E|Es]).
+list(reductor, finalize, list(_), EsReversed, Es) :- reverse(EsReversed, Es).
 
 min(reductor, initialize, min(_), {initial: true}).
 min(reductor, accumulate, min(Of), {initial: true}, {acc: Of}).
@@ -58,6 +68,27 @@ avg(reductor, accumulate, avg(Of), {sum: CurrentSum, count: CurrentCount}, {sum:
     .
 avg(reductor, finalize, avg(_), {initial: true}, _).
 avg(reductor, finalize, avg(_), {sum: Sum, count: Count}, Avg) :- var(Avg), Avg is decimal(Sum) / decimal(Count).
+
+variance(reductor, initialize, variance(_), {initial: true}).
+variance(reductor, accumulate, variance(Of), {initial: true}, {sum: Of, elements: [Of]}).
+variance(reductor, accumulate, variance(Of), {sum: PrevSum, elements: Elements}, {sum: Sum, elements: [Of|Elements]}) :-
+    Sum is PrevSum + Of.
+variance(reductor, finalize, variance(_), {initial: true}, _).
+variance(reductor, finalize, variance(_), {sum: Sum, elements: Elements}, Variance) :-
+    reduce([avg(E) as Average], member(E, Elements)),
+    DecimalAverage is decimal(Average),
+    reduce([avg(Step) as Variance], E^(member(E, Elements), Step is (decimal(E) - DecimalAverage) ^ 2.0)).
+
+stddev(reductor, initialize, stddev(Of), VarianceAcc) :- variance(reductor, initialize, variance(Of), VarianceAcc).
+stddev(reductor, accumulate, stddev(Of), PrevAcc, Acc) :- variance(reductor, accumulate, variance(Of), PrevAcc, Acc).
+stddev(reductor, finalize, stddev(Of), Acc, StandardDeviation) :-
+    variance(reductor, finalize, variance(Of), Acc, Variance),
+    once((
+        var(Variance),
+        StandardDeviation = _
+    ) ; (
+        StandardDeviation is sqrt(Variance)
+    )).
 
 sum(reductor, initialize, sum(_), 0).
 sum(reductor, accumulate, sum(Of), Acc, NAcc) :- NAcc is Acc + Of.
