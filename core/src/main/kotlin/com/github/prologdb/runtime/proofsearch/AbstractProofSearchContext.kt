@@ -1,10 +1,6 @@
 package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.async.LazySequence
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.flatMapRemaining
-import com.github.prologdb.async.mapRemainingNotNull
+import com.github.prologdb.async.*
 import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.exception.prologTry
 import com.github.prologdb.runtime.query.AndQuery
@@ -47,18 +43,16 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
                 return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
                     val stateCombined = stateBefore.variableValues.copy()
                     for ((variable, value) in goalUnification.variableValues.values) {
-                        if (value != null) {
-                            // substitute all instantiated variables for simplicity and performance
-                            val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
-                            if (stateCombined.isInstantiated(variable)) {
-                                if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
-                                    // instantiated to different value => no unification
-                                    return@mapRemainingNotNull null
-                                }
+                        // substitute all instantiated variables for simplicity and performance
+                        val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
+                        if (stateCombined.isInstantiated(variable)) {
+                            if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
+                                // instantiated to different value => no unification
+                                return@mapRemainingNotNull null
                             }
-                            else {
-                                stateCombined.instantiate(variable, substitutedValue)
-                            }
+                        }
+                        else {
+                            stateCombined.instantiate(variable, substitutedValue)
                         }
                     }
                     Unification(stateCombined)

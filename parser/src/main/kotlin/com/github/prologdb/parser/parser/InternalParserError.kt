@@ -11,5 +11,5 @@ open class InternalParserError private constructor(actualMessage: Any) : Excepti
     // equal and the code would not compile.
 
     constructor() : this(FEEDBACK_NOTE as Any)
-    constructor(message: String) : this(("$message $FEEDBACK_NOTE") as Any)
+    constructor(message: String) : this(("$message. $FEEDBACK_NOTE") as Any)
 }

@@ -23,6 +23,11 @@ sealed interface PrologNumber : Term {
     operator fun unaryPlus(): PrologNumber
     operator fun unaryMinus(): PrologNumber
 
+    fun ceil(): PrologInteger
+    fun floor(): PrologInteger
+
+    fun sqrt(): PrologNumber
+
     val isInteger: Boolean
 
     /**
@@ -35,4 +40,6 @@ sealed interface PrologNumber : Term {
      * Converts this number to a [Double] and returns it.
      */
     fun toDecimal(): Double
+
+    fun asPrologDecimal(): PrologDecimal
 }

@@ -31,17 +31,15 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
         }
 
         for ((variable, value) in argUnification.variableValues.values) {
-            if (value != null) {
-                // substitute all instantiated variables for simplicity
-                val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
-                if (vars.isInstantiated(variable)) {
-                    if (vars[variable] != substitutedValue && vars[variable] != value) {
-                        // instantiated to different value => no unification
-                        return Unification.FALSE
-                    }
-                } else {
-                    vars.instantiate(variable, substitutedValue)
+            // substitute all instantiated variables for simplicity
+            val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
+            if (vars.isInstantiated(variable)) {
+                if (vars[variable] != substitutedValue && vars[variable] != value) {
+                    // instantiated to different value => no unification
+                    return Unification.FALSE
                 }
+            } else {
+                vars.instantiate(variable, substitutedValue)
             }
         }
     }

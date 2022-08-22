@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicReference
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
  */
-abstract class PrologException(message: String, override val cause: Throwable? = null) : RuntimeException(message) {
+abstract class PrologException(message: String, cause: Throwable? = null) : RuntimeException(message, cause) {
     private val _prologStackTrace = mutableListOf<PrologStackTraceElement>()
 
     fun addPrologStackFrame(frameInfo: PrologStackTraceElement) {
@@ -49,7 +49,7 @@ open class PredicateNotExportedException(val fqi: FullyQualifiedClauseIndicator,
     "Predicate ${fqi.indicator} is not exported by module ${fqi.moduleName}"
 )
 
-open class PrologInvocationContractViolationException(private val initialIndicator: ClauseIndicator?, message: String, cause: Throwable? = null) : PrologException(message, cause) {
+open class PrologInvocationContractViolationException(initialIndicator: ClauseIndicator?, message: String, cause: Throwable? = null) : PrologException(message, cause) {
     constructor(message: String, cause: Throwable? = null) : this(null, message, cause)
 
     private val actualIndicator = AtomicReference<ClauseIndicator>(initialIndicator)

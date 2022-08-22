@@ -44,18 +44,16 @@ open class ParseException private constructor(val reporting: Reporting, message:
         )
 
         fun failOnError(reportings: Collection<Reporting>, extraMessage: String? = null, cause: Throwable? = null) : Unit {
-            val mostSevere = reportings.maxByOrNull { it.level } ?: return
-            if (mostSevere.level < Reporting.Level.ERROR) {
+            val highestLevel = reportings.maxOfOrNull { it.level } ?: return
+            if (highestLevel < Reporting.Level.ERROR) {
                 return
             }
 
-            var reportingMessage = mostSevere.toString()
-            if (reportings.size > 1) {
-                reportingMessage += " (and ${reportings.size - 1} more)"
-            }
+            val highestLevelReportings = reportings.filter { it.level == highestLevel }
+            val reportingMessage = highestLevelReportings.joinToString(separator = "\n")
 
             val message = if (extraMessage != null) "$extraMessage: $reportingMessage" else reportingMessage
-            throw ParseException(mostSevere, message, cause)
+            throw ParseException(highestLevelReportings.first(), message, cause)
         }
     }
 }

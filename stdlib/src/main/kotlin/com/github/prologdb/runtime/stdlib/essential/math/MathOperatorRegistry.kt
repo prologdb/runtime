@@ -80,5 +80,10 @@ object MathOperatorRegistry {
 
         registerOperator("+", PrologNumber::unaryPlus)
         registerOperator("-", PrologNumber::unaryMinus)
+
+        registerOperator("decimal", PrologNumber::asPrologDecimal)
+        registerOperator("ceil", PrologNumber::ceil)
+        registerOperator("floor", PrologNumber::floor)
+        registerOperator("sqrt", PrologNumber::sqrt)
     }
 }

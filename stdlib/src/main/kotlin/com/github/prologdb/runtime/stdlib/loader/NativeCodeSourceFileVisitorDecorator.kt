@@ -7,8 +7,11 @@ import com.github.prologdb.parser.parser.SourceFileVisitor
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
+import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
@@ -33,13 +36,14 @@ class NativeCodeSourceFileVisitorDecorator<Result : Any>(
     private val availableNativeCode: Map<ClauseIndicator, NativeCodeRule>,
     private val parser: PrologParser = PrologParser()
 ) : SourceFileVisitor<Result> by delegate {
-    override val operators: OperatorRegistry = DefaultOperatorRegistry().apply {
-        include(delegate.operators)
-        defineOperator(OperatorDefinition(1150, OperatorType.FX, "native"))
-    }
-
     private val clausesWithPrologSource = mutableSetOf<ClauseIndicator>()
     private val declaredNative = mutableSetOf<ClauseIndicator>()
+
+    override fun visitModuleDeclaration(declaration: ModuleDeclaration, location: SourceLocation) {
+        delegate.visitModuleDeclaration(declaration, location)
+
+        delegate.visitDirective(CompoundTerm("op", arrayOf(PrologInteger(1150), Atom("fx"), Atom("native"))))
+    }
 
     override fun visitDirective(command: CompoundTerm): Collection<Reporting> {
         if (command.functor == "native" && command.arity == 1) {

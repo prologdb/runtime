@@ -11,7 +11,9 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 
 class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out Term>) {
     val size = raw.size
@@ -22,15 +24,70 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
         if (type.isInstance(untyped)) {
             @Suppress("unchecked_cast")
             return untyped as T
-        } else {
-            throw ArgumentTypeError(indicator, index, untyped, type)
         }
+
+        throw ArgumentTypeError(indicator, index, untyped, type)
     }
 
     inline fun <reified T : Term> getTyped(index: Int) = getTyped(index, T::class.java)
 
+    fun <T : Term> getTypedOrUnbound(index: Int, type: Class<T>): Term {
+        val term = this[index]
+        if (term is Variable) {
+            return term
+        }
+        if (type.isInstance(term)) {
+            return term
+        }
+
+        throw ArgumentTypeError(indicator, index, term, type, Variable::class.java)
+    }
+
+    inline fun <reified T: Term> getTypedOrUnbound(index: Int): Term = getTypedOrUnbound(index, T::class.java)
+
     fun getQuery(index: Int): Query {
         return compoundToQuery(getTyped(index), index)
+    }
+
+    /**
+     * Parses a goal of the form `Var1^Var2^Goal`, where there can be an arbitrary number
+     * of variables (including none) prepended by instances of `^/2`. If the first argument to a `^/2` instance
+     * is not a [Variable], that term is ignored.
+     */
+    fun getQueryWithExistentialVariables(index: Int): Pair<Query, Set<Variable>> {
+        val variables = mutableSetOf<Variable>()
+        var pivot = get(index)
+        while (pivot is CompoundTerm && pivot.functor == "^" && pivot.arity == 2) {
+            val variable = pivot.arguments[0]
+            if (variable is Variable) {
+                variables.add(variable)
+            }
+
+            pivot = pivot.arguments[1]
+        }
+
+        if (pivot !is CompoundTerm) {
+            throw ArgumentTypeError(index, pivot, CompoundTerm::class.java)
+        }
+
+        return Pair(compoundToQuery(pivot, index), variables)
+    }
+
+    /**
+     * If the [index]th argument is a [PrologList], assures that it doesn't have a tail and
+     * returns its [PrologList.elements]. Otherwise, returns the argument term.
+     */
+    fun getListWithoutTailOrSingle(index: Int): List<Term> {
+        val parameter = get(index)
+        if (parameter !is PrologList) {
+            return listOf(parameter)
+        }
+
+        if (parameter.tail != null) {
+            throw ArgumentError(index, "The list cannot have a tail")
+        }
+
+        return parameter.elements
     }
 
     private fun compoundToQuery(compoundTerm: CompoundTerm, argumentIndex: Int): Query {

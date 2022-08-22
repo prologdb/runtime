@@ -19,6 +19,8 @@ open class Variable(val name: String) : Term {
     override val variables: Set<Variable>
         get() = setOf(this)
 
+    override val isGround = false
+
     override fun substituteVariables(mapper: (Variable) -> Term): Term {
         return mapper(this)
     }

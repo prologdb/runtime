@@ -1,14 +1,12 @@
 package com.github.prologdb.runtime.stdlib.essential.dynamic
 
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
+import com.github.prologdb.async.remainingToList
 import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
 /**
@@ -58,17 +56,16 @@ val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
             // decision (implicitly when unifying resultList with solutionInput)
             if (solutionInput.tail == null) nResultsToCalculate++
 
-            val resultList = await(launchWorkableFuture(principal) {
-                val resultSequence = buildLazySequence<Unification>(principal) {
+            val resultList = await(
+                buildLazySequence(principal) {
                     context.fulfillAttach(this, goalInput, VariableBucket())
                 }
                     .limitRemaining(nResultsToCalculate.toLong())
                     .mapRemaining { solution ->
                         templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
                     }
-
-                foldRemaining(resultSequence, mutableListOf<Term>()) { l, t -> l.add(t); l }
-            })
+                    .remainingToList()
+            )
 
             val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
             return@nativeRule if (resultListUnified != null) {

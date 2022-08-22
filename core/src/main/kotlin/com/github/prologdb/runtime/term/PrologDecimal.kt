@@ -54,9 +54,21 @@ class PrologDecimal(
 
     override fun unaryMinus(): PrologNumber = PrologDecimal(-this.value)
 
+    override fun asPrologDecimal(): PrologDecimal = this
+
     override fun toInteger(): Long = value.roundToLong()
 
     override fun toDecimal(): Double = value
+
+    override fun ceil(): PrologInteger {
+        return PrologInteger(kotlin.math.ceil(this.value).toLong())
+    }
+
+    override fun floor(): PrologInteger {
+        return PrologInteger(kotlin.math.floor(this.value).toLong())
+    }
+
+    override fun sqrt() = PrologDecimal(kotlin.math.sqrt(this.value))
 
     override fun compareTo(other: PrologNumber) =
         when(other) {
@@ -83,6 +95,7 @@ class PrologDecimal(
     }
 
     override val variables: Set<Variable> = emptySet()
+    override val isGround = true
 
     override fun substituteVariables(mapper: (Variable) -> Term) = this
 

@@ -1,17 +1,19 @@
 package com.github.prologdb.runtime.unification
 
+import com.github.prologdb.runtime.CircularTermException
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
 class VariableBucket private constructor(
-        /**
-         * Each known variable gets a key in this map; The value however is not present if the variable
-         * has not been instantiated yet.
-         */
-        private val variableMap: MutableMap<Variable, Term?>
+    /**
+     * Each known variable gets a key in this map; The value however is not present if the variable
+     * has not been instantiated yet.
+     */
+    private val variableMap: MutableMap<Variable, Term>
 ) {
-    constructor() : this(mutableMapOf<Variable, Term?>())
+    constructor() : this(mutableMapOf<Variable, Term>())
 
     val isEmpty
         get() = variableMap.isEmpty()
@@ -57,29 +59,34 @@ class VariableBucket private constructor(
      * @throws VariableDiscrepancyException if the same variable is instantiated to different values in `this` and
      *                                      in `variables`
      */
-    fun incorporate(variables: VariableBucket) {
-        for ((variable, value) in variables.values) {
-            if (variable in variableMap) {
-                val thisValue = variableMap[variable]
-                if (thisValue != null && thisValue != value) {
-                    throw VariableDiscrepancyException("Cannot combine: variable $variable is instantiated to unequal values: $value and $thisValue")
-                }
+    fun incorporate(variables: VariableBucket, randomVariableScope: RandomVariableScope) {
+        if (variables === this) {
+            return
+        }
+
+        for ((variable, otherValue) in variables.values) {
+            val thisValue = variableMap[variable]
+            if (thisValue == null) {
+                instantiate(variable, otherValue)
+                continue
             }
-            else if (value != null) {
-                instantiate(variable, value)
-            }
+
+            val unificationResult = thisValue.unify(otherValue, randomVariableScope)
+                ?: throw VariableDiscrepancyException("Cannot incorporate: variable $variable is instantiated to non-unify values: $otherValue and $thisValue")
+
+            incorporate(unificationResult.variableValues, randomVariableScope)
         }
     }
 
-    fun combinedWith(other: VariableBucket): VariableBucket {
+    fun combinedWith(other: VariableBucket, randomVariableScope: RandomVariableScope): VariableBucket {
         val copy = copy()
-        copy.incorporate(other)
+        copy.incorporate(other, randomVariableScope)
 
         return copy
     }
 
     fun copy(): VariableBucket {
-        val mapCopy = mutableMapOf<Variable,Term?>()
+        val mapCopy = mutableMapOf<Variable,Term>()
         mapCopy.putAll(variableMap)
         return VariableBucket(mapCopy)
     }
@@ -101,9 +108,7 @@ class VariableBucket private constructor(
         }
 
         for ((key, value) in variableMap) {
-            if (value != null) {
-                variableMap[key] = value.substituteVariables({ variable -> removedToSubstitute[variable] ?: variable })
-            }
+            variableMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
         }
     }
 
@@ -119,13 +124,66 @@ class VariableBucket private constructor(
         val newBucket = VariableBucket()
         for ((variable, value) in values) {
             val resolved = resolve(variable)
-            if (value != null) {
-                val resolvedValue = value.substituteVariables(::resolve)
-                newBucket.instantiate(resolved, resolvedValue)
-            }
+            val resolvedValue = value.substituteVariables(::resolve)
+            newBucket.instantiate(resolved, resolvedValue)
         }
 
         return newBucket
+    }
+
+    /**
+     * Sorts entries in the given bucket such that, when applied in sequence even references between entries
+     * in the bucket are resolved correctly. So e.g. given the bucket `B = 1, A = B` and the subject term `foo(A)`,
+     * applying the bucket in original order would yield `foo(B)`. After resorting with this function to `A = B, B = 1`
+     * the result would be `foo(1)`.
+     *
+     * *Example:*
+     * ```kotlin
+     * var _term = originalTerm
+     * originalBucket.sortForSubstitution().forEach {
+     *     _term = _term.substituteVariables(it.asSubstitutionMapper())
+     * }
+     * // _term is now correctly substituted
+     * ```
+     *
+     * @return When successively applied using [Term.substituteVariables] all substitutions, including references, are done.
+     *
+     * @throws CircularTermException If there are circular references in the bucket.
+     */
+    fun sortForSubstitution(): List<VariableBucket> {
+        val variablesToSort = HashSet(this.variables)
+        val bucket = this
+
+        fun Variable.isReferenced(): Boolean {
+            for (toSort in variablesToSort) {
+                if (toSort === this) continue
+                if (this in bucket[toSort].variables) {
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        val sorted = ArrayList<VariableBucket>(variablesToSort.size)
+
+        while (variablesToSort.isNotEmpty()) {
+            val free = variablesToSort.filterNot { it.isReferenced() }
+            if (free.isEmpty()) {
+                // there are variables left but none of them are free -> circular dependency!
+                throw CircularTermException("Circular dependency in variable instantiations between $variablesToSort")
+            }
+
+            val subBucket = VariableBucket()
+            for (freeVariable in free) {
+                subBucket.instantiate(freeVariable, bucket[freeVariable])
+            }
+            sorted.add(subBucket)
+
+            variablesToSort.removeAll(free)
+        }
+
+        return sorted
     }
 
     override fun equals(other: Any?): Boolean {
@@ -142,7 +200,7 @@ class VariableBucket private constructor(
         return variableMap.hashCode()
     }
 
-    val values: Iterable<Pair<Variable,Term?>>
+    val values: Iterable<Pair<Variable,Term>>
         get() = variableMap.map { it.key to it.value }
 
 

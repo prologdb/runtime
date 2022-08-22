@@ -141,9 +141,9 @@ class LazySequenceBuilderTest : FreeSpec() { init {
             try {
                 yieldAll(buildLazySequence(this.principal) {
                     try {
-                        buildLazySequence<Unit>(this.principal) {
+                        await(buildLazySequence<Unit>(this.principal) {
                             throw ex
-                        }.consumeAll()
+                        }.consumeAll())
                     } catch (ex: RuntimeException) {
                         throw RuntimeException(ex)
                     }
@@ -154,7 +154,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
         }
 
         val thrown = shouldThrow<RuntimeException> {
-            seq.consumeAll()
+            seq.consumeAll().get()
         }
 
         thrown.cause!!.cause shouldBe ex
@@ -174,7 +174,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
         }
 
         val thrown = shouldThrow<RuntimeException> {
-            seq.consumeAll()
+            seq.consumeAll().get()
         }
 
         thrown.message shouldBe "Rethrow"
@@ -216,7 +216,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
         }
 
         val thrown = shouldThrow<RuntimeException> {
-            seq.consumeAll()
+            seq.consumeAll().get()
         }
 
         thrown.message shouldBe "Rethrow"

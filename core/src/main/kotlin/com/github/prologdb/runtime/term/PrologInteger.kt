@@ -11,6 +11,8 @@ class PrologInteger(
     val value: Long
 ) : PrologNumber {
 
+    override val variables = emptySet<Variable>()
+    override val isGround = true
     override val isInteger = true
 
     override fun plus(other: PrologNumber) =
@@ -54,9 +56,17 @@ class PrologInteger(
 
     override fun unaryMinus(): PrologNumber = createUsingStringOptimizerCache(-this.value)
 
+    override fun asPrologDecimal(): PrologDecimal = PrologDecimal(this.toDecimal())
+
     override fun toInteger(): Long = value
 
     override fun toDecimal(): Double = value.toDouble()
+
+    override fun ceil(): PrologInteger = this
+
+    override fun floor(): PrologInteger = this
+
+    override fun sqrt() = asPrologDecimal().sqrt()
 
     override fun compareTo(other: PrologNumber) =
         when(other) {
@@ -75,8 +85,6 @@ class PrologInteger(
             return rhs.unify(this, randomVarsScope)
         }
     }
-
-    override val variables = emptySet<Variable>()
 
     override fun substituteVariables(mapper: (Variable) -> Term) = this
 

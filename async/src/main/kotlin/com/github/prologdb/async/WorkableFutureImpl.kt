@@ -1,6 +1,6 @@
 package com.github.prologdb.async
 
-import java.util.*
+import java.util.LinkedList
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -46,7 +46,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     @Volatile
     private var currentFoldingCarry: Any? = null
     @Volatile
-    private var currentFoldingAccumulator: ((Any, Any) -> Any)? = null
+    private var currentFoldingAccumulator: ((Any?, Any) -> Any)? = null
 
     /**
      * Teardown code, in the reverse order as it was added using [WorkableFutureBuilder.finally]; see
@@ -92,7 +92,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                     when (seqState) {
                         LazySequence.State.DEPLETED -> {
                             // great, accumulation is done
-                            val result = currentFoldingCarry!!
+                            val result = currentFoldingCarry
 
                             state = State.RUNNING
                             sequence.close()
@@ -104,7 +104,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                         }
                         LazySequence.State.RESULTS_AVAILABLE -> {
                             val element = sequence.tryAdvance()!!
-                            currentFoldingCarry = currentFoldingAccumulator!!(currentFoldingCarry!!, element)
+                            currentFoldingCarry = currentFoldingAccumulator!!(currentFoldingCarry, element)
                         }
                         LazySequence.State.FAILED -> {
                             val exception = try {
@@ -256,7 +256,7 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 state = State.WAITING_ON_FUTURE
             }
 
-            suspendCoroutine<Any> { continuation = it }
+            suspendCoroutine { continuation = it }
             return try {
                 future.get()
             }
@@ -276,13 +276,13 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
                 currentFoldingSequence = sequence
                 currentFoldingCarry = initial
                 @Suppress("UNCHECKED_CAST")
-                currentFoldingAccumulator = accumulator as (Any, Any) -> Any
+                currentFoldingAccumulator = accumulator as (Any?, Any) -> Any
                 state = State.FOLDING_SEQUENCE
             }
 
             return suspendCoroutine {
                 @Suppress("UNCHECKED_CAST")
-                continuation = it as Continuation<Any>
+                continuation = it as Continuation<Any?>
             }
         }
 
@@ -295,9 +295,9 @@ class WorkableFutureImpl<T>(override val principal: Any, code: suspend WorkableF
     }
 
     @Volatile
-    private var continuation: Continuation<Any> = run {
+    private var continuation: Continuation<Any?> = run {
         @Suppress("UNCHECKED_CAST")
-        code.createCoroutine(Builder, onComplete) as Continuation<Any>
+        code.createCoroutine(Builder, onComplete) as Continuation<Any?>
     }
 
     private enum class State {

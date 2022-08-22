@@ -47,7 +47,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
                     try {
-                        return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope))
+                        return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope), randomVarsScope)
                     } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
@@ -61,7 +61,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                     return Unification.FALSE
                 } else {
                     try {
-                        carryUnification = carryUnification.combinedWith(iterationUnification)
+                        carryUnification = carryUnification.combinedWith(iterationUnification, randomVarsScope)
                     } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
@@ -80,7 +80,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                 }
 
                 try {
-                    carryUnification = carryUnification.combinedWith(tailUnification)
+                    carryUnification = carryUnification.combinedWith(tailUnification, randomVarsScope)
                 } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }
@@ -101,6 +101,8 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
 
         variables
     }
+
+    override val isGround: Boolean by lazy { tail != null && elements.all { it.isGround } }
 
     override fun substituteVariables(mapper: (Variable) -> Term): PrologList {
         return PrologList(elements.map { it.substituteVariables(mapper) }, tail?.substituteVariables(mapper)).also {

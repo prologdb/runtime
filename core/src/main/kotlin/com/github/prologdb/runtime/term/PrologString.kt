@@ -83,6 +83,7 @@ open class PrologString private constructor(
     val characters: Iterable<Char> by lazy { PrologStringCharacterIterable(this) }
 
     override val variables: Set<Variable> = emptySet()
+    override val isGround = true
 
     override fun substituteVariables(mapper: (Variable) -> Term): PrologString = this
 

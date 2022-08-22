@@ -16,7 +16,7 @@ class Atom(val name: String) : Term {
     }
 
     override val variables: Set<Variable> = emptySet()
-
+    override val isGround = true
     override fun substituteVariables(mapper: (Variable) -> Term) = this
 
     override fun compareTo(other: Term): Int {
