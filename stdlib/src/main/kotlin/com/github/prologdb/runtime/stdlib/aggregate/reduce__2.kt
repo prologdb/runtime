@@ -15,13 +15,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
     val (goal, existentialVariables) = args.getQueryWithExistentialVariables(1)
-    val reductionSpecifications = args.getTyped<PrologList>(0)
-        .also {
-            if (it.tail != null) {
-                throw ArgumentError(0, "The list of reductors cannot have a tail")
-            }
-        }
-        .elements
+    val reductionSpecifications = args.getListWithoutTailOrSingle(0)
         .mapIndexed { index, specTerm -> parseSpecification(specTerm, 0, index) }
 
     val goalVariables = goal.variables

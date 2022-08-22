@@ -11,6 +11,7 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 
@@ -70,6 +71,23 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
         }
 
         return Pair(compoundToQuery(pivot, index), variables)
+    }
+
+    /**
+     * If the [index]th argument is a [PrologList], assures that it doesn't have a tail and
+     * returns its [PrologList.elements]. Otherwise, returns the argument term.
+     */
+    fun getListWithoutTailOrSingle(index: Int): List<Term> {
+        val parameter = get(index)
+        if (parameter !is PrologList) {
+            return listOf(parameter)
+        }
+
+        if (parameter.tail != null) {
+            throw ArgumentError(index, "The list cannot have a tail")
+        }
+
+        return parameter.elements
     }
 
     private fun compoundToQuery(compoundTerm: CompoundTerm, argumentIndex: Int): Query {

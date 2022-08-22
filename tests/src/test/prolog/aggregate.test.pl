@@ -50,6 +50,11 @@ test "set" by [
     Sorted == [2, a, b, c]
 ].
 
+test "single reductor without enclosing list" by [
+    reduce(count as Count, pred(_)),
+    Count == 6
+].
+
 pred(a, g(a), 1).
 pred(a, g(a), 2).
 pred(a, g(b), 3).
