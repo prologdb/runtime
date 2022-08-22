@@ -11,8 +11,12 @@
     avg/5,
     sum/4,
     sum/5,
+    percentile_discrete/3,
     percentile_discrete/4,
     percentile_discrete/5,
+    percentile_continuous/3,
+    percentile_continuous/4,
+    percentile_continuous/5,
     variance/4,
     variance/5,
     stddev/4,
@@ -105,13 +109,41 @@ percentile_discrete(reductor, finalize, percentile_discrete(P, _), Elements, PVa
     percentile_discrete(reductor, finalize, percentile_discrete(P, _, asc), Elements, PValue).
 percentile_discrete(reductor, finalize, percentile_discrete(P, _, asc), Elements, PValue) :-
     msort(Elements, SortedElements),
-    length(SortedElements, NElements),
-    Rank is ceil(decimal(P) * decimal(NElements)) - 1,
-    index_unifying(SortedElements, Rank, PValue).
+    percentile_discrete(SortedElements, P, PValue).
 percentile_discrete(reductor, finalize, percentile_discrete(P, _, desc), Elements, PValue) :-
     msort(Elements, SortedElements),
     reverse(SortedElements, ReversedElements),
-    length(ReversedElements, NElements),
-    Rank is ceil(decimal(P) * decimal(NElements)) - 1,
-    index_unifying(ReversedElements, Rank, PValue).
+    percentile_discrete(ReversedElements, P, PValue).
 
+percentile_continuous(reductor, initialize, percentile_continuous(P, _), Accumulator) :-
+    percentile_continuous(reductor, initialize, percentile_continuous(P, _, asc), Accumulator).
+percentile_continuous(reductor, initialize, percentile_continuous(P, _, Direction), []) :-
+    require(member(Direction, [asc, desc]), "sort direction must be asc or desc"),
+    require((P > 0, P =< 1), "the percentile must be in range (0, 1]").
+percentile_continuous(reductor, accumulate, percentile_continuous(_, Element), Elements, [Element|Elements]).
+percentile_continuous(reductor, accumulate, percentile_continuous(_, Element, _), Elements, [Element|Elements]).
+percentile_continuous(reductor, finalize, percentile_continuous(P, _), Elements, PValue) :-
+    percentile_continuous(reductor, finalize, percentile_continuous(P, _, asc), Elements, PValue).
+percentile_continuous(reductor, finalize, percentile_continuous(P, _, asc), Elements, PValue) :-
+    msort(Elements, SortedElements),
+    percentile_continuous(SortedElements, P, PValue).
+percentile_continuous(reductor, finalize, percentile_continuous(P, _, desc), Elements, PValue) :-
+    msort(Elements, SortedElements),
+    reverse(SortedElements, ReversedElements),
+    percentile_continuous(ReversedElements, P, PValue).
+
+percentile_discrete(SortedElements, P, PValue) :-
+    length(SortedElements, NElements),
+    Rank is ceil(decimal(P) * decimal(NElements)) - 1,
+    index_unifying(SortedElements, Rank, PValue).
+
+percentile_continuous(SortedElements, P, PValue) :-
+    length(SortedElements, NElements),
+    Rank is decimal(P) * (decimal(NElements) - 1),
+    CeiledRank is ceil(Rank),
+    FlooredRank is floor(Rank),
+    index_unifying(SortedElements, FlooredRank, FlooredPValue),
+    index_unifying(SortedElements, CeiledRank, CeiledPValue),
+    Diff is CeiledPValue - FlooredPValue,
+    FractionalDiff is (decimal(Rank) - decimal(FlooredRank)) * Diff,
+    PValue is FlooredPValue + FractionalDiff.
