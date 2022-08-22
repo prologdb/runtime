@@ -1,5 +1,6 @@
 package com.github.prologdb.runtime.stdlib.aggregate
 
+import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.parser.Reporting
@@ -74,15 +75,14 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
 
     val resultOutTerms = reductionFactories.map { it.resultTerm }.toTypedArray()
 
-    for ((groupKey, reductions) in grouping) {
-        val actualResultTerms = reductions.map { await(it.finalize()) }.toTypedArray()
-        val resultUnification = resultOutTerms.unify(actualResultTerms, ctxt.randomVariableScope)
-        resultUnification
-            ?.combinedWith(Unification(groupKey), ctxt.randomVariableScope)
-            ?.let { yield(it) }
-    }
-
-    return@nativeRule Unification.FALSE
+    yieldAllFinal(
+        LazySequence.ofIterable(grouping, principal)
+            .flatMapRemaining { (groupKey, reductions) ->
+                val actualResultTerms = reductions.map { await(it.finalize()) }.toTypedArray()
+                val resultUnification = resultOutTerms.unify(actualResultTerms, ctxt.randomVariableScope)
+                return@flatMapRemaining resultUnification?.combinedWith(Unification(groupKey), ctxt.randomVariableScope)
+            }
+    )
 }
 
 private fun parseSpecification(specification: Term, listArgumentIndex: Int, indexInList: Int): ReductionSpecification {
