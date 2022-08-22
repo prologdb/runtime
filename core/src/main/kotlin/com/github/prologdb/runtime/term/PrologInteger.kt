@@ -66,6 +66,8 @@ class PrologInteger(
 
     override fun floor(): PrologInteger = this
 
+    override fun sqrt() = asPrologDecimal().sqrt()
+
     override fun compareTo(other: PrologNumber) =
         when(other) {
             is PrologInteger -> this.value.compareTo(other.value)

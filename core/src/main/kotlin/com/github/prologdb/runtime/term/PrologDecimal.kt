@@ -68,6 +68,8 @@ class PrologDecimal(
         return PrologInteger(kotlin.math.floor(this.value).toLong())
     }
 
+    override fun sqrt() = PrologDecimal(kotlin.math.sqrt(this.value))
+
     override fun compareTo(other: PrologNumber) =
         when(other) {
             is PrologInteger -> this.value.compareTo(other.value)

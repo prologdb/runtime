@@ -26,6 +26,8 @@ sealed interface PrologNumber : Term {
     fun ceil(): PrologInteger
     fun floor(): PrologInteger
 
+    fun sqrt(): PrologNumber
+
     val isInteger: Boolean
 
     /**
