@@ -21,3 +21,19 @@ test "identity - equal complex" by [
 test "identity - different complex" by [
     \+ [a, c, 3.213] == some(very(complex), [term])
 ].
+
+test "variance - equal ground terms" by [
+    foo(a, b) =@= foo(a, b)
+].
+
+test "variance - equal non-ground terms" by [
+    foo(a, B) =@= foo(a, B)
+].
+
+test "variance - non-equal variant terms" by [
+    foo(a, B) =@= foo(a, C)
+].
+
+test "variance - non-variant terms" by [
+    foo(a, B) \=@= foo(a, bar(B))
+].

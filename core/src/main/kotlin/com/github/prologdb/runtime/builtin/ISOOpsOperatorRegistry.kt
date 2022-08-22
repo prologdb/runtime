@@ -2,11 +2,7 @@
 @file:JvmName("ISOOpsOperatorRegistry")
 package com.github.prologdb.runtime.builtin
 
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorDefinition
-import com.github.prologdb.runtime.util.OperatorRegistrationTarget
-import com.github.prologdb.runtime.util.OperatorRegistry
-import com.github.prologdb.runtime.util.OperatorType
+import com.github.prologdb.runtime.util.*
 
 /**
  * An [OperatorRegistry] that contains these ISO operators:
@@ -32,6 +28,8 @@ import com.github.prologdb.runtime.util.OperatorType
  * |        |XFX          |`@=<`    |
  * |        |XFX          |`@>`     |
  * |        |XFX          |`@>=`    |
+ * |        |XFX          |`=@=`    |
+ * |        |XFX          |`\=@=`   |
  * |        |XFX          |`<`      |
  * |        |XFX          |`=<`     |
  * |        |XFX          |`=\=`    |
@@ -70,6 +68,8 @@ val ISOOpsOperatorRegistry: OperatorRegistry = DefaultOperatorRegistry().apply {
     defineOperator(700, OperatorType.XFX, "@=<")
     defineOperator(700, OperatorType.XFX, "@>")
     defineOperator(700, OperatorType.XFX, "@>=")
+    defineOperator(700, OperatorType.XFX, "=@=")
+    defineOperator(700, OperatorType.XFX, "\\=@=")
     defineOperator(700, OperatorType.XFX, "<")
     defineOperator(700, OperatorType.XFX, "=<")
     defineOperator(700, OperatorType.XFX, "=\\=")

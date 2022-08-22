@@ -87,3 +87,12 @@ val Class<out Term>.prologTypeName: String
         clazz.getAnnotation(PrologTypeName::class.java)?.value
             ?: clazz.simpleName
     }
+
+/**
+ * Implements structural equality (`=@=/2`).
+ * @return whether the two terms are equal (`==/2` semantics), but ignoring variable names.
+ */
+fun Term.equalsStructurally(other: Term, randomVarsScope: RandomVariableScope): Boolean {
+    val unification = this.unify(other, randomVarsScope) ?: return false
+    return unification.variableValues.values.all { (_, instantiatedTo) -> instantiatedTo is Variable }
+}

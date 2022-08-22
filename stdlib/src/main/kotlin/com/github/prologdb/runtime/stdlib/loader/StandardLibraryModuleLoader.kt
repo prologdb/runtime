@@ -55,7 +55,9 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinNot,
             BuiltinNotOperator,
             BuiltinIdentity,
-            BuiltinNegatedIdentityOperator
+            BuiltinNegatedIdentityOperator,
+            BuiltinVariance,
+            BuiltinNegatedVariance,
         ),
         "essential(\$typesafety)" to listOf(
             BuiltinAtom1,

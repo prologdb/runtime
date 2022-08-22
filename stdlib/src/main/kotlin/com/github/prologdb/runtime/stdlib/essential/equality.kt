@@ -4,6 +4,7 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.equalsStructurally
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -38,4 +39,12 @@ val BuiltinIdentity = nativeRule("==", 2) { args, _ ->
 
 val BuiltinNegatedIdentityOperator = nativeRule("\\==", 2) { args, _ ->
     Unification.whether(args[0] != args[1])
+}
+
+val BuiltinVariance = nativeRule("=@=", 2) { args, ctxt ->
+    return@nativeRule Unification.whether(args[0].equalsStructurally(args[1], ctxt.randomVariableScope))
+}
+
+val BuiltinNegatedVariance = nativeRule("\\=@=", 2) { args, ctxt ->
+    return@nativeRule Unification.whether(!args[0].equalsStructurally(args[1], ctxt.randomVariableScope))
 }

@@ -38,6 +38,8 @@ enum class Operator(val text: String) {
     LESS_THAN("<"),
     LESS_THAN_OR_EQUAL("=<"),
     ARITHMETIC_NOT_EQUALS("=\\="),
+    TERM_VARIANT("=@="),
+    TERM_NOT_VARIANT("\\=@="),
     UNIFY("="),
     GREATER_THAN_OR_EQUAL(">="),
     GREATER_THAN(">"),
