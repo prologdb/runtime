@@ -20,6 +20,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
     private val clauses = mutableListOf<Clause>()
     private val dynamics = mutableSetOf<ClauseIndicator>()
     private val moduleTransparents = mutableSetOf<ClauseIndicator>()
+    private val deterministics = mutableSetOf<ClauseIndicator>()
     private val imports = mutableListOf<ModuleImport>()
     private val defaultImports: MutableSet<ModuleImport> = defaultImports.toMutableSet()
 
@@ -64,6 +65,21 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
         }
 
         moduleTransparents.add(clauseIndicator)
+        return emptyList()
+    }
+
+    override fun visitDeterministicDeclaration(
+        clauseIndicator: ClauseIndicator,
+        location: SourceLocation
+    ): Collection<Reporting> {
+        if (clauseIndicator in deterministics) {
+            return listOf(SemanticInfo(
+                "Predicate $clauseIndicator has been declared deterministic multiple times.",
+                location
+            ))
+        }
+
+        deterministics.add(clauseIndicator)
         return emptyList()
     }
 
@@ -128,6 +144,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
                 clauses,
                 dynamics,
                 moduleTransparents,
+                deterministics,
                 moduleDeclaration.exportedPredicates
                     ?: clauses.map { ClauseIndicator.of(it) }.toSet(),
                 operators

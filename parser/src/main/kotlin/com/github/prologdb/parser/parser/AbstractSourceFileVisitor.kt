@@ -56,6 +56,10 @@ abstract class AbstractSourceFileVisitor<Result : Any>(
                 "module_transparent" -> return convertAndVisit(command.arguments[0],
                     parser::parseIdiomaticClauseIndicator,
                     this::visitModuleTransparentDeclaration)
+                "det" -> return convertAndVisit(command.arguments[0],
+                    parser::parseIdiomaticClauseIndicator,
+                    this::visitDeterministicDeclaration,
+                    )
             }
             2 -> when (command.functor) {
                 "module" -> return setOf(SemanticError(
@@ -103,7 +107,12 @@ abstract class AbstractSourceFileVisitor<Result : Any>(
 
     protected abstract fun visitModuleTransparentDeclaration(
         clauseIndicator: ClauseIndicator,
-        location: SourceLocation
+        location: SourceLocation,
+    ): Collection<Reporting>
+
+    protected abstract fun visitDeterministicDeclaration(
+        clauseIndicator: ClauseIndicator,
+        location: SourceLocation,
     ): Collection<Reporting>
 
     protected abstract fun visitImport(import: ModuleImport, location: SourceLocation): Collection<Reporting>

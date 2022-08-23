@@ -3,8 +3,9 @@ package com.github.prologdb.runtime.module
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
+import com.github.prologdb.runtime.proofsearch.DeterministicDynamicPrologPredicate
+import com.github.prologdb.runtime.proofsearch.DynamicPrologPredicate
 import com.github.prologdb.runtime.proofsearch.PrologCallable
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.EmptyOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorRegistry
 
@@ -19,6 +20,7 @@ class ASTModule(
     val givenClauses: Iterable<Clause>,
     val dynamicPredicates: Set<ClauseIndicator>,
     val moduleTransparents: Set<ClauseIndicator>,
+    val deterministics: Set<ClauseIndicator>,
     val exportedPredicateIndicators: Set<ClauseIndicator>,
     override val localOperators: OperatorRegistry = EmptyOperatorRegistry,
 ) : Module {
@@ -30,11 +32,16 @@ class ASTModule(
             .foldTo(
                 HashMap(),
                 { indicator, _ ->
-                    ASTPrologPredicate(
+                    var predicate: DynamicPrologPredicate = ASTPrologPredicate(
                         indicator,
                         this,
                         indicator in moduleTransparents
                     )
+                    if (indicator in deterministics) {
+                        predicate = DeterministicDynamicPrologPredicate(predicate)
+                    }
+
+                    predicate
                 },
                 { _, astPredicate, clause ->
                     astPredicate.assertz(clause)
@@ -51,7 +58,7 @@ class ASTModule(
         allDeclaredPredicates = _allDeclaredPredicates
 
         allDeclaredPredicates.values.forEach {
-            if (it.indicator !in dynamicPredicates) {
+            if (ClauseIndicator.of(it) !in dynamicPredicates) {
                 it.seal()
             }
         }
