@@ -9,10 +9,10 @@ val BuiltinOffset2 = nativeRule("offset", 2) { args, ctxt ->
     val offset = args.getTyped<PrologInteger>(0)
     val goal = args.getQuery(1)
 
-    val solutions = buildLazySequence(ctxt.principal) {
-        ctxt.fulfillAttach(this, goal, VariableBucket())
-    }
-
-    solutions.skip(offset.value)
-    yieldAllFinal(solutions)
+    yieldAllFinal(
+        buildLazySequence(ctxt.principal) {
+            ctxt.fulfillAttach(this, goal, VariableBucket())
+        }
+            .skipRemaining(offset.value)
+    )
 }

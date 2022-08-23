@@ -193,19 +193,9 @@ interface LazySequence<T : Any> {
     }
 
     /**
-     * Skips/consumes the next [n] elements
-     * @return The actual number of elements skipped. Is less than [n] if the sequence had fewer than [n] elements
-     *         at the time of invocation.
+     * @return a sequence that skips over the next [n] elements in this sequence
      */
-    fun skip(n: Long): Long {
-        var skipped = 0L
-        for (i in 1..n) {
-            if (tryAdvance() == null) break
-            skipped++
-        }
-
-        return skipped
-    }
+    fun skipRemaining(n: Long): LazySequence<T> = SkippingLazySequence(this, n)
 
     /**
      * @return A sequence that, of the remaining elements, emits at most [n]. As soon as [n]
