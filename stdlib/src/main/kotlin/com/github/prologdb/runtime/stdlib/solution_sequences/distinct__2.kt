@@ -2,17 +2,22 @@ package com.github.prologdb.runtime.stdlib.solution_sequences
 
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.numberVariables
 import com.github.prologdb.runtime.unification.VariableBucket
 
-val BuiltinOffset2 = nativeRule("offset", 2) { args, ctxt ->
-    val offset = args.getTyped<PrologInteger>(0)
+val BuiltinDistinct2 = nativeRule("distinct", 2) { args, ctxt ->
     val goal = args.getQuery(1)
+    val witness = args.get(0)
 
     yieldAllFinal(
         buildLazySequence(ctxt.principal) {
             ctxt.fulfillAttach(this, goal, VariableBucket())
         }
-            .skipRemaining(offset.value)
+            .distinctBy { unification ->
+                val witnessInstantiated = witness
+                    .substituteVariables(unification.variableValues.asSubstitutionMapper())
+
+                witnessInstantiated.numberVariables()
+            }
     )
 }

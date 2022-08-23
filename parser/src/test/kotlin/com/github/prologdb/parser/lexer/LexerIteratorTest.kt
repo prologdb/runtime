@@ -19,6 +19,8 @@ class LexerIteratorTest : FreeSpec() {init{
             /* ignore! */
             bar /* ignore! */ foo
             'atom literal'
+            foo =@= bar
+            bar \=@= foo
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
@@ -431,6 +433,58 @@ class LexerIteratorTest : FreeSpec() {init{
             next.location.start.column shouldBe 13
             next.location.end.line shouldBe 12
             next.location.end.column shouldBe 26
+        }
+
+        "line 13" {
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldBe "foo"
+            next.location.start.line shouldBe 13
+            next.location.start.column shouldBe 13
+            next.location.end.line shouldBe 13
+            next.location.end.column shouldBe 15
+
+            next = lexer.next()
+            assert(next is OperatorToken)
+            (next as OperatorToken).operator shouldBe Operator.TERM_VARIANT
+            next.location.start.line shouldBe 13
+            next.location.start.column shouldBe 17
+            next.location.end.line shouldBe 13
+            next.location.end.column shouldBe 19
+
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldBe "bar"
+            next.location.start.line shouldBe 13
+            next.location.start.column shouldBe 21
+            next.location.end.line shouldBe 13
+            next.location.end.column shouldBe 23
+        }
+
+        "line 14" {
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldBe "bar"
+            next.location.start.line shouldBe 14
+            next.location.start.column shouldBe 13
+            next.location.end.line shouldBe 14
+            next.location.end.column shouldBe 15
+
+            next = lexer.next()
+            assert(next is OperatorToken)
+            (next as OperatorToken).operator shouldBe Operator.TERM_NOT_VARIANT
+            next.location.start.line shouldBe 14
+            next.location.start.column shouldBe 17
+            next.location.end.line shouldBe 14
+            next.location.end.column shouldBe 20
+
+            next = lexer.next()
+            assert(next is IdentifierToken)
+            (next as IdentifierToken).textContent shouldBe "foo"
+            next.location.start.line shouldBe 14
+            next.location.start.column shouldBe 22
+            next.location.end.line shouldBe 14
+            next.location.end.column shouldBe 24
         }
 
         "eof" {

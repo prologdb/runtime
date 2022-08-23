@@ -122,3 +122,5 @@ class ArgumentTypeError(
             }
     }
 }
+
+class UnsupportedArgumentException(message: String? = null, cause: Throwable? = null) : RuntimeException(message, cause)

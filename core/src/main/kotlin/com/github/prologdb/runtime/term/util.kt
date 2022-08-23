@@ -87,3 +87,23 @@ val Class<out Term>.prologTypeName: String
         clazz.getAnnotation(PrologTypeName::class.java)?.value
             ?: clazz.simpleName
     }
+
+/**
+ * Implements structural equality (`=@=/2`).
+ * @return whether the two terms are equal (`==/2` semantics), but ignoring variable names.
+ */
+fun Term.equalsStructurally(other: Term, randomVarsScope: RandomVariableScope): Boolean {
+    val unification = this.unify(other, randomVarsScope) ?: return false
+    return unification.variableValues.values.all { (_, instantiatedTo) -> instantiatedTo is Variable }
+}
+
+/**
+ * Replaces all variables in the term by instances of `$VAR(N)`, where N is an integer
+ * corresponding to the index of the variable in the term. Multiple mentions of the same
+ * variable will get different indexes. So e.g. `foo(a, X, X, Y)` will turn into
+ * `foo(a, $VAR(0), $VAR(1), $VAR(2))`
+ */
+fun Term.numberVariables(): Term {
+    var variableCounter = 0L
+    return substituteVariables { CompoundTerm("\$VAR", arrayOf(PrologInteger(variableCounter++))) }
+}

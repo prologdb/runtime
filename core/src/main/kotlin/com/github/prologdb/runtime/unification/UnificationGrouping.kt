@@ -2,7 +2,7 @@ package com.github.prologdb.runtime.unification
 
 import com.github.prologdb.runtime.CircularTermException
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.UnsupportedArgumentException
 
 /**
  * Groups [T]s by a [Unification]. Optimizes with [Any.hashCode]  as long as the [Unification]s
@@ -11,10 +11,24 @@ import com.github.prologdb.runtime.term.Variable
  *
  * TODO: thread-safety
  */
-interface UnificationGrouping<T : Any> : Iterable<Map.Entry<VariableBucket, T>> {
+interface UnificationGrouping<T : Any> : MutableIterable<Map.Entry<VariableBucket, T>> {
     operator fun get(key: VariableBucket): T?
-    operator fun set(key: VariableBucket, value: T)
+
+    /**
+     * @return the value previously associated with [key], or `null` if none.
+     * @see MutableMap.put
+     */
+    operator fun set(key: VariableBucket, value: T): T?
     val size: Int
+
+    operator fun contains(key: VariableBucket): Boolean = get(key) != null
+
+    fun clear()
+
+    /**
+     * @return the value that was associated with the given [key], `null` if they [key] was not part of the grouping
+     */
+    fun remove(key: VariableBucket): T?
 
     companion object {
         operator fun <T : Any> invoke(randomVariableScope: RandomVariableScope): UnificationGrouping<T> {
@@ -27,29 +41,42 @@ private class StrategyUnificationGrouping<T : Any>(var strategy: UnificationGrou
 
     override fun get(key: VariableBucket): T? = strategy.get(key)
 
-    override fun set(key: VariableBucket, value: T) {
-        if (!strategy.trySet(key, value)) {
+    override fun set(key: VariableBucket, value: T): T? {
+        return try {
+            strategy.set(key, value)
+        } catch (ex: UnsupportedArgumentException) {
             strategy = strategy.upgradeFor(key)
-            check(strategy.trySet(key, value))
+            strategy.set(key, value)
         }
     }
 
-    override fun iterator(): Iterator<Map.Entry<VariableBucket, T>> = strategy.iterator()
+    override fun iterator(): MutableIterator<Map.Entry<VariableBucket, T>> = strategy.iterator()
 
     override val size: Int get() = strategy.size
+
+    override fun clear() {
+        strategy.clear()
+    }
+
+    override fun remove(key: VariableBucket) = strategy.remove(key)
 }
 
-private interface UnificationGroupingStrategy<T> : Iterable<Map.Entry<VariableBucket, T>> {
+private interface UnificationGroupingStrategy<T : Any> : MutableIterable<Map.Entry<VariableBucket, T>> {
     fun get(key: VariableBucket): T?
 
     /**
      * Attempts to set the given value.
-     * @return whether the value was set; false if this strategy cannot handle the [key].
-     * In that case, invoke [upgradeFor].
+     * @return the value previously associated with [key], or `null` if [key] wasn't present before.
+     * @see MutableMap.put
+     * @throws UnsupportedArgumentException if this strategy doesn't support [key]. In that case, invoke [upgradeFor].
      */
-    fun trySet(key: VariableBucket, value: T): Boolean
+    fun set(key: VariableBucket, value: T): T?
 
     fun upgradeFor(key: VariableBucket): UnificationGroupingStrategy<T>
+
+    fun clear()
+
+    fun remove(key: VariableBucket): T?
 
     val size: Int
 }
@@ -63,22 +90,26 @@ private class HashMapUnificationGroupingStrategy<T : Any>(
 
     override fun get(key: VariableBucket): T? = groups[key]
 
-    override fun trySet(key: VariableBucket, value: T): Boolean {
+    override fun set(key: VariableBucket, value: T): T? {
         val compactedKey = key.compact(randomVariableScope)
         if (!compactedKey.isGround) {
-            return false
+            throw UnsupportedArgumentException("Only supports ground keys")
         }
 
-        groups[key] = value
-
-        return true
+        return groups.put(key, value)
     }
 
     override fun upgradeFor(key: VariableBucket): UnificationGroupingStrategy<T> {
         return ListUnificationGroupingStrategy(randomVariableScope, this)
     }
 
-    override fun iterator(): Iterator<Map.Entry<VariableBucket, T>> = groups.iterator()
+    override fun clear() {
+        groups.clear()
+    }
+
+    override fun remove(key: VariableBucket) = groups.remove(key)
+
+    override fun iterator(): MutableIterator<Map.Entry<VariableBucket, T>> = groups.iterator()
 
     private val VariableBucket.isGround: Boolean get() = values.all { (_, value) -> value.isGround }
 }
@@ -95,12 +126,12 @@ private class ListUnificationGroupingStrategy<T : Any>(
 
     override val size: Int get() = entries.size
 
-    override fun iterator(): Iterator<Map.Entry<VariableBucket, T>> = entries.iterator()
+    override fun iterator(): MutableIterator<Map.Entry<VariableBucket, T>> = entries.iterator()
 
     override fun get(key: VariableBucket): T? {
         val compactedKey = key.compact(randomVariableScope)
         for ((vars, value) in entries) {
-            if (vars.equalsIgnoringUnboundVariables(compactedKey, randomVariableScope)) {
+            if (vars.equalsStructurally(compactedKey, randomVariableScope)) {
                 return value
             }
         }
@@ -108,24 +139,42 @@ private class ListUnificationGroupingStrategy<T : Any>(
         return null
     }
 
-    override fun trySet(key: VariableBucket, value: T): Boolean {
+    override fun set(key: VariableBucket, value: T): T? {
         val compactedKey = key.compact(randomVariableScope)
         val iterator = entries.listIterator()
         while (iterator.hasNext()) {
             val currentEntry = iterator.next()
-            if (currentEntry.key.equalsIgnoringUnboundVariables(compactedKey, randomVariableScope)) {
+            if (currentEntry.key.equalsStructurally(compactedKey, randomVariableScope)) {
                 iterator.set(MapEntry(currentEntry.key, value))
-                return true
+                return currentEntry.value
             }
         }
 
         // no existing entry matched
         entries.add(MapEntry(key, value))
-        return true
+        return null
     }
 
     override fun upgradeFor(key: VariableBucket): UnificationGroupingStrategy<T> {
         throw NotImplementedError("This strategy can handle all keys")
+    }
+
+    override fun clear() {
+        entries.clear()
+    }
+
+    override fun remove(key: VariableBucket): T? {
+        val compactedKey = key.compact(randomVariableScope)
+        val iterator = entries.listIterator()
+        while (iterator.hasNext()) {
+            val currentEntry = iterator.next()
+            if (currentEntry.key.equalsStructurally(compactedKey, randomVariableScope)) {
+                iterator.remove()
+                return currentEntry.value
+            }
+        }
+
+        return null
     }
 }
 
@@ -149,26 +198,6 @@ private fun VariableBucket.compact(randomVariableScope: RandomVariableScope): Va
     }
 
     return result
-}
-
-private fun VariableBucket.equalsIgnoringUnboundVariables(other: VariableBucket, randomVariableScope: RandomVariableScope): Boolean {
-    val combined = try {
-        combinedWith(other, randomVariableScope)
-    }
-    catch (ex: VariableDiscrepancyException) {
-        return false
-    }
-
-    for ((combinedVariable, combinedValue) in combined.values) {
-        if (!this.isInstantiated(combinedVariable) && combinedValue !is Variable) {
-            return false
-        }
-        if (!other.isInstantiated(combinedVariable) && combinedValue !is Variable) {
-            return false
-        }
-    }
-
-    return true
 }
 
 private class MapEntry<K, V>(

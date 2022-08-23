@@ -193,19 +193,9 @@ interface LazySequence<T : Any> {
     }
 
     /**
-     * Skips/consumes the next [n] elements
-     * @return The actual number of elements skipped. Is less than [n] if the sequence had fewer than [n] elements
-     *         at the time of invocation.
+     * @return a sequence that skips over the next [n] elements in this sequence
      */
-    fun skip(n: Long): Long {
-        var skipped = 0L
-        for (i in 1..n) {
-            if (tryAdvance() == null) break
-            skipped++
-        }
-
-        return skipped
-    }
+    fun skipRemaining(n: Long): LazySequence<T> = SkippingLazySequence(this, n)
 
     /**
      * @return A sequence that, of the remaining elements, emits at most [n]. As soon as [n]
@@ -439,6 +429,12 @@ fun <T : Any> LazySequence<T>.filterRemaining(predicate: (T) -> Boolean): LazySe
     = MapNotNullAndFilterLazySequence(this, { it }, predicate)
 
 /**
+ * Assigns an index to each solution, starting at 0. Note that these indices are no longer sequential
+ * when adding a [filterRemaining] afterwards.
+ */
+fun <T : Any> LazySequence<T>.withIndex(): LazySequence<Pair<Long, T>> = IndexingLazySequence(this)
+
+/**
  * Returns a [LazySequence] where each element is the result of invoking the given [mapper] with an element from
  * this [LazySequence]; order is preserved.
  *
@@ -449,6 +445,14 @@ fun <T : Any, M : Any> LazySequence<T>.mapRemaining(mapper: (T) -> M): LazySeque
 
 fun <T : Any, M : Any> LazySequence<T>.mapRemainingNotNull(mapper: (T) -> M?): LazySequence<M>
     = MapNotNullAndFilterLazySequence(this, mapper, { true })
+
+fun <T : Any, M : Any> LazySequence<T>.mapRemainingIndexed(mapper: (Long, T) -> M): LazySequence<M> {
+    return withIndex().mapRemaining { mapper(it.first, it.second) }
+}
+
+fun <T : Any, M : Any> LazySequence<T>.mapRemainingIndexedNotNull(mapper: (Long, T) -> M?): LazySequence<M> {
+    return withIndex().mapRemainingNotNull { mapper(it.first, it.second) }
+}
 
 /**
  * For every remaining element in `this`, invokes the given mapper, drains the resulting sequence yielding
