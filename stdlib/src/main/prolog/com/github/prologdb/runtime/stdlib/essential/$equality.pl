@@ -11,3 +11,12 @@
 
 :- module_transparent('not'/1).
 :- module_transparent('\\+'/1).
+
+:- semidet(not/1).
+:- semidet('='/2).
+:- semidet('\\='/2).
+:- semidet('=='/2).
+:- semidet('\\=='/2).
+:- semidet('=@='/2).
+:- semidet('\\=@='/2).
+
