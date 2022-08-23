@@ -60,3 +60,31 @@ test "distinct/2" by [
         [2, d]
     ]
 ].
+
+test "call_nth/2 - index unbound" by [
+    findall([Index, Letter], call_nth(pred_dup(_, Letter), Index), Solutions),
+    Solutions == [
+        [0, a],
+        [1, a],
+        [2, b],
+        [3, b],
+        [4, c],
+        [5, c],
+        [6, d],
+        [7, d]
+    ]
+].
+
+test "call_nth/2 - index bound" by [
+    findall(Letter, call_nth(pred_dup(_, Letter), 3), Solutions),
+    Solutions == [b]
+].
+
+test "call_nth/2 - index used in goal" by [
+    findall([Index, Letter], call_nth(pred_dup(Index, Letter), Index), Solutions),
+    Solutions == [
+        [2, b],
+        [3, b],
+        [4, c]
+    ]
+].
