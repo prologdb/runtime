@@ -8,6 +8,9 @@
 :- module_transparent(retract/1).
 :- module_transparent(retractAll/1).
 
+:- det(assert/1).
+:- det(retractAll/1).
+
 true() :- 1 = 1.
 fail() :- 1 = 2.
 

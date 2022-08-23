@@ -20,6 +20,8 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
     private val clauses = mutableListOf<Clause>()
     private val dynamics = mutableSetOf<ClauseIndicator>()
     private val moduleTransparents = mutableSetOf<ClauseIndicator>()
+    private val deterministics = mutableSetOf<ClauseIndicator>()
+    private val semiDeterministics = mutableSetOf<ClauseIndicator>()
     private val imports = mutableListOf<ModuleImport>()
     private val defaultImports: MutableSet<ModuleImport> = defaultImports.toMutableSet()
 
@@ -64,6 +66,50 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
         }
 
         moduleTransparents.add(clauseIndicator)
+        return emptyList()
+    }
+
+    override fun visitDeterministicDeclaration(
+        clauseIndicator: ClauseIndicator,
+        location: SourceLocation
+    ): Collection<Reporting> {
+        if (clauseIndicator in deterministics) {
+            return listOf(SemanticInfo(
+                "Predicate $clauseIndicator has been declared deterministic multiple times.",
+                location
+            ))
+        }
+
+        if (clauseIndicator in semiDeterministics) {
+            return listOf(SemanticInfo(
+                "Prediate $clauseIndicator cannot be declared deterministic and semi-deterministic at the same time.",
+                location
+            ))
+        }
+
+        deterministics.add(clauseIndicator)
+        return emptyList()
+    }
+
+    override fun visitSemiDeterministicDeclaration(
+        clauseIndicator: ClauseIndicator,
+        location: SourceLocation
+    ): Collection<Reporting> {
+        if (clauseIndicator in semiDeterministics) {
+            return listOf(SemanticInfo(
+                "Predicate $clauseIndicator has been declared deterministic multiple times.",
+                location
+            ))
+        }
+
+        if (clauseIndicator in deterministics) {
+            return listOf(SemanticInfo(
+                "Prediate $clauseIndicator cannot be declared semi-deterministic and deterministic at the same time.",
+                location
+            ))
+        }
+
+        semiDeterministics.add(clauseIndicator)
         return emptyList()
     }
 
@@ -128,6 +174,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
                 clauses,
                 dynamics,
                 moduleTransparents,
+                deterministics,
                 moduleDeclaration.exportedPredicates
                     ?: clauses.map { ClauseIndicator.of(it) }.toSet(),
                 operators
