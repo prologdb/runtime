@@ -96,3 +96,14 @@ fun Term.equalsStructurally(other: Term, randomVarsScope: RandomVariableScope): 
     val unification = this.unify(other, randomVarsScope) ?: return false
     return unification.variableValues.values.all { (_, instantiatedTo) -> instantiatedTo is Variable }
 }
+
+/**
+ * Replaces all variables in the term by instances of `$VAR(N)`, where N is an integer
+ * corresponding to the index of the variable in the term. Multiple mentions of the same
+ * variable will get different indexes. So e.g. `foo(a, X, X, Y)` will turn into
+ * `foo(a, $VAR(0), $VAR(1), $VAR(2))`
+ */
+fun Term.numberVariables(): Term {
+    var variableCounter = 0L
+    return substituteVariables { CompoundTerm("\$VAR", arrayOf(PrologInteger(variableCounter++))) }
+}

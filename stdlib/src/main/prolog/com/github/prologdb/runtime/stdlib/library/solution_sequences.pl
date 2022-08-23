@@ -4,13 +4,15 @@
     distinct/1,
     distinct/2,
     call_nth/2,
-    order_by/2
+    order_by/2,
+    group_by/4
 ]).
 
 :- native limit/2.
 :- native offset/2.
 :- native distinct/2.
 :- native call_nth/2.
+:- native group_by/4.
 
 :- module_transparent(limit/2).
 :- module_transparent(offset/2).
@@ -18,6 +20,7 @@
 :- module_transparent(distinct/2).
 :- module_transparent(call_nth/2).
 :- module_transparent(order_by/2).
+:- module_transparent(group_by/4).
 
 distinct(Goal) :- solution_sequences:distinct(Goal, Goal).
 

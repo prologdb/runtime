@@ -20,10 +20,7 @@ import com.github.prologdb.runtime.stdlib.essential.string.BuiltinAtomString2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringChars2
 import com.github.prologdb.runtime.stdlib.essential.string.BuiltinStringCodes2
 import com.github.prologdb.runtime.stdlib.lists.*
-import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinCallNth2
-import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinDistinct2
-import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinLimit2
-import com.github.prologdb.runtime.stdlib.solution_sequences.BuiltinOffset2
+import com.github.prologdb.runtime.stdlib.solution_sequences.*
 import com.github.prologdb.runtime.stdlib.sort.BuiltinPredsort3
 
 object StandardLibraryModuleLoader : ModuleLoader {
@@ -134,6 +131,7 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinOffset2,
             BuiltinDistinct2,
             BuiltinCallNth2,
+            BuiltinGroupBy4,
         ),
         "library(aggregate)" to listOf(
             BuiltinReduce2,

@@ -98,3 +98,13 @@ test "order_by/2 desc" by [
     findall(Letter, order_by(desc(Number), pred_dup(Number, Letter)), Solutions),
     Solutions == [d, c, b, d, b, a, c, a]
 ].
+
+test "group_by/4" by [
+    findall([Letter, Bag], group_by(Letter, Number, pred_dup(Number, Letter), Bag), Solutions),
+    Solutions == [
+        [a, [1, 2]],
+        [b, [2, 3]],
+        [c, [4, 1]],
+        [d, [2, 5]]
+    ]
+].
