@@ -60,6 +60,10 @@ abstract class AbstractSourceFileVisitor<Result : Any>(
                     parser::parseIdiomaticClauseIndicator,
                     this::visitDeterministicDeclaration,
                     )
+                "semidet" -> return convertAndVisit(command.arguments[0],
+                    parser::parseIdiomaticClauseIndicator,
+                    this::visitSemiDeterministicDeclaration,
+                )
             }
             2 -> when (command.functor) {
                 "module" -> return setOf(SemanticError(
@@ -111,6 +115,11 @@ abstract class AbstractSourceFileVisitor<Result : Any>(
     ): Collection<Reporting>
 
     protected abstract fun visitDeterministicDeclaration(
+        clauseIndicator: ClauseIndicator,
+        location: SourceLocation,
+    ): Collection<Reporting>
+
+    protected abstract fun visitSemiDeterministicDeclaration(
         clauseIndicator: ClauseIndicator,
         location: SourceLocation,
     ): Collection<Reporting>

@@ -5,12 +5,17 @@ import com.github.prologdb.async.LazySequence.State.*
 /**
  * Assures that the wrapped [LazySequence] returns exactly one result and that the state is [LazySequence.State.DEPLETED]
  * after retrieving that result. Throws an exception if that is not the case.
+ *
+ * This class can also be used to assert semi-determinism, by passing `null` for [onNoResults].
  */
 class DeterministicLazySequence<T : Any>(
     private val base: LazySequence<T>,
     private val onUnfinishedAfterResult: () -> Nothing,
     private val onSecondResult: () -> Nothing,
-    private val onNoResults: () -> Nothing,
+    /**
+     * If `null`, the resulting sequence will allow semi-determinism (up to one result, state DEPLETED afterwards).
+     */
+    private val onNoResults: (() -> Nothing)?,
 ) : LazySequence<T> {
     private var resultSeen: Boolean = false
     private var error: Throwable? = null
@@ -36,17 +41,19 @@ class DeterministicLazySequence<T : Any>(
                 return DEPLETED
             }
 
-            return when (val baseState = base.step()) {
+            when (val baseState = base.step()) {
                 DEPLETED -> {
                     val ex = try {
-                        onNoResults()
+                        onNoResults
+                            ?.let { it() }
+                            ?: return DEPLETED
                     } catch (ex: Throwable) {
                         ex
                     }
                     error = ex
-                    FAILED
+                    return FAILED
                 }
-                else -> baseState
+                else -> return baseState
             }
         }
     }
@@ -69,17 +76,19 @@ class DeterministicLazySequence<T : Any>(
                 return DEPLETED
             }
 
-            return when (val baseState = base.state) {
+            when (val baseState = base.state) {
                 DEPLETED -> {
                     val ex = try {
-                        onNoResults()
+                        onNoResults
+                            ?.let { it() }
+                            ?: return DEPLETED
                     } catch (ex: Throwable) {
                         ex
                     }
                     error = ex
-                    FAILED
+                    return FAILED
                 }
-                else -> baseState
+                else -> return baseState
             }
         }
     }
@@ -105,13 +114,15 @@ class DeterministicLazySequence<T : Any>(
 
             when (baseState) {
                 DEPLETED -> {
-                    try {
-                        onNoResults()
+                    val ex = try {
+                        onNoResults
+                            ?.let { it() }
+                            ?: return null
+                    } catch (ex: Throwable) {
+                        ex
                     }
-                    catch (ex: Throwable) {
-                        error = ex
-                        throw ex
-                    }
+                    error = ex
+                    throw ex
                 }
                 FAILED -> return base.tryAdvance() // must throw
                 RESULTS_AVAILABLE -> {

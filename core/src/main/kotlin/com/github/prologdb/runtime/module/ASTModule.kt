@@ -21,6 +21,7 @@ class ASTModule(
     val dynamicPredicates: Set<ClauseIndicator>,
     val moduleTransparents: Set<ClauseIndicator>,
     val deterministics: Set<ClauseIndicator>,
+    val semiDeterministics: Set<ClauseIndicator>,
     val exportedPredicateIndicators: Set<ClauseIndicator>,
     override val localOperators: OperatorRegistry = EmptyOperatorRegistry,
 ) : Module {
@@ -39,6 +40,8 @@ class ASTModule(
                     )
                     if (indicator in deterministics) {
                         predicate = DeterministicDynamicPrologPredicate(predicate)
+                    } else if (indicator in semiDeterministics) {
+                        predicate = DeterministicDynamicPrologPredicate(predicate, allowSemiDeterminism = true)
                     }
 
                     predicate
