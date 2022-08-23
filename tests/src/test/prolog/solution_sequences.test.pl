@@ -88,3 +88,13 @@ test "call_nth/2 - index used in goal" by [
         [4, c]
     ]
 ].
+
+test "order_by/2 asc" by [
+    findall(Letter, order_by(asc(Number), pred_dup(Number, Letter)), Solutions),
+    Solutions == [a, c, a, b, d, b, c, d]
+].
+
+test "order_by/2 desc" by [
+    findall(Letter, order_by(desc(Number), pred_dup(Number, Letter)), Solutions),
+    Solutions == [d, c, b, d, b, a, c, a]
+].

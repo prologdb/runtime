@@ -6,14 +6,14 @@ import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
+import com.github.prologdb.runtime.proofsearch.CurryingCallable
+import com.github.prologdb.runtime.proofsearch.PrologCallable
+import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.*
 
 class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out Term>) {
     val size = raw.size
@@ -88,6 +88,43 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
         }
 
         return parameter.elements
+    }
+
+    /**
+     * A callalbe can be references in three ways:
+     * * a simple atom: refers to the `<name>/<arity>` predicate in the scope of [ctxt]
+     * * an instance of `:/2` with the first argument being an atom: applies the logic of the other two options, but
+     *   within the scope of the specified module
+     * * any other compound: refers to the `<name>/<n arguments + arity>` predicate in the scope of [ctxt],
+     *   where the actual invocations are curried with the arguments given in here.
+     * @return the callable referenced at the specified index
+     */
+    fun getCallable(index: Int, arity: Int, ctxt: ProofSearchContext): PrologCallable {
+        val termAtIndex = this[index]
+
+        val resolveInContext: ProofSearchContext
+        val termToResolve: Term
+
+        if (termAtIndex is CompoundTerm && termAtIndex.functor == ":" && termAtIndex.arity == 2 && termAtIndex.arguments[0] is Atom) {
+            val module = (termAtIndex.arguments[0] as Atom).name
+            resolveInContext = ctxt.deriveForModuleContext(module)
+            termToResolve = termAtIndex.arguments[1]
+        } else {
+            resolveInContext = ctxt
+            termToResolve = termAtIndex
+        }
+
+        return when (termToResolve) {
+            is Atom -> {
+                val (_, callable) = resolveInContext.resolveCallable(ClauseIndicator.of(termToResolve.name, arity))
+                callable
+            }
+            is CompoundTerm -> {
+                val (_, callable) = resolveInContext.resolveCallable(ClauseIndicator.of(termToResolve.functor, termToResolve.arity + arity))
+                CurryingCallable(callable, termToResolve.arguments)
+            }
+            else -> throw ArgumentError(index, "Cannot resolve $termAtIndex to a callable. Specify either an atom or a compound, optionally module-scoped with ':'/2")
+        }
     }
 
     private fun compoundToQuery(compoundTerm: CompoundTerm, argumentIndex: Int): Query {
