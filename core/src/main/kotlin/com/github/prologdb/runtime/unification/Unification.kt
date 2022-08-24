@@ -13,7 +13,10 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
     }
 
     /**
-     * @see VariableBucket.compact
+     * Attempts to minimize the number of variables/size of this bucket.
+     * **DANGER:** a bucket that was [compact]ed may loose variables as those get inlined
+     * into other instantiations. Because of that, the bucket may fail to instantiate
+     * possible output variables and break the proof search.
      */
     fun compact(randomVariableScope: RandomVariableScope): Unification {
         val compactedVars = variableValues.compact(randomVariableScope)

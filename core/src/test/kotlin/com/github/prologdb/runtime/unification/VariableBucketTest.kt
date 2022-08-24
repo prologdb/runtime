@@ -79,4 +79,78 @@ class VariableBucketTest : FreeSpec({
             }
         }
     }
+
+    "compact" - {
+        "simplify with common value being a variable" - {
+            "one way" {
+                val bucket = VariableBucket()
+                bucket.instantiate(Variable("A"), Variable("X"))
+                bucket.instantiate(Variable("B"), Variable("X"))
+                bucket.instantiate(Variable("C"), Variable("X"))
+
+                val compacted = bucket.compact(RandomVariableScope())
+                compacted.variables should haveSize(2)
+                compacted[Variable("A")] shouldBe Variable("B")
+                compacted[Variable("C")] shouldBe Variable("B")
+            }
+
+            "two way" {
+                val bucket = VariableBucket()
+                bucket.instantiate(Variable("A"), Variable("X"))
+                bucket.instantiate(Variable("B"), Variable("X"))
+                bucket.instantiate(Variable("C"), Variable("X"))
+                bucket.instantiate(Variable("X"), Variable("D"))
+
+                val compacted = bucket.compact(RandomVariableScope())
+                compacted.variables should haveSize(3)
+                compacted[Variable("A")] shouldBe Variable("B")
+                compacted[Variable("C")] shouldBe Variable("B")
+                compacted[Variable("X")] shouldBe Variable("B")
+            }
+        }
+
+        "simplify with common value being a nonvar" - {
+            "one way" {
+                val bucket = VariableBucket()
+                bucket.instantiate(Variable("A"), Atom("a"))
+                bucket.instantiate(Variable("B"), Atom("a"))
+                bucket.instantiate(Variable("C"), Atom("a"))
+
+                val compacted = bucket.compact(RandomVariableScope())
+                compacted.variables should haveSize(3)
+                compacted[Variable("A")] shouldBe Atom("a")
+                compacted[Variable("B")] shouldBe Variable("A")
+                compacted[Variable("C")] shouldBe Variable("A")
+            }
+
+            "one way with additional indirection" {
+                val bucket = VariableBucket()
+                bucket.instantiate(Variable("A"), Atom("a"))
+                bucket.instantiate(Variable("B"), Atom("a"))
+                bucket.instantiate(Variable("C"), Atom("a"))
+                bucket.instantiate(Variable("D"), Variable("C"))
+
+                val compacted = bucket.compact(RandomVariableScope())
+                compacted.variables should haveSize(4)
+                compacted[Variable("A")] shouldBe Atom("a")
+                compacted[Variable("B")] shouldBe Variable("A")
+                compacted[Variable("C")] shouldBe Variable("A")
+                compacted[Variable("D")] shouldBe Variable("A")
+            }
+
+            "two way indirect" {
+                val bucket = VariableBucket()
+                bucket.instantiate(Variable("A"), Variable("X"))
+                bucket.instantiate(Variable("B"), Variable("X"))
+                bucket.instantiate(Variable("C"), Variable("X"))
+                bucket.instantiate(Variable("X"), Variable("D"))
+
+                val compacted = bucket.compact(RandomVariableScope())
+                compacted.variables should haveSize(3)
+                compacted[Variable("A")] shouldBe Variable("B")
+                compacted[Variable("C")] shouldBe Variable("B")
+                compacted[Variable("X")] shouldBe Variable("B")
+            }
+        }
+    }
 })

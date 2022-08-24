@@ -187,7 +187,7 @@ class VariableBucket private constructor(
     }
 
     /**
-     * Attempts to minimize the number of variables/size of this bucket.
+     * @see Unification.compact
      */
     fun compact(randomVariableScope: RandomVariableScope): VariableBucket {
         if (isEmpty) {
@@ -203,12 +203,60 @@ class VariableBucket private constructor(
 
         val result = sorted.first()
         if (sorted.size > 1) {
-            for (next in sorted.subList(1, sorted.lastIndex)) {
+            for (next in sorted.subList(1, sorted.size)) {
+                for (resultVar in result.variables) {
+                    result.variableMap[resultVar] = result[resultVar].substituteVariables(next.asSubstitutionMapper())
+                }
+
                 result.incorporate(next, randomVariableScope)
             }
         }
 
+        for ((commonValue, variables) in result.commonValues) {
+            check(commonValue !in variables)
+
+            var firstVariable: Variable? = null
+            if (commonValue is Variable) {
+                var secondVariable: Variable? = null
+                for (variable in variables) {
+                    if (firstVariable == null) {
+                        result.variableMap[variable] = commonValue
+                        firstVariable = variable
+                    } else if (secondVariable == null) {
+                        result.variableMap[firstVariable] = variable
+                        result.variableMap.remove(variable)
+                        secondVariable = variable
+                    } else {
+                        result.variableMap[variable] = secondVariable ?: firstVariable
+                    }
+                }
+            } else {
+                for (variable in variables) {
+                    if (firstVariable == null) {
+                        result.variableMap[variable] = commonValue
+                        firstVariable = variable
+                    } else {
+                        result.variableMap[variable] = firstVariable
+                    }
+                }
+            }
+        }
+
         return result
+    }
+
+    /**
+     * @return variables that are instantiated to equal (`==`) values,
+     * where there is more than one variable instantiated to that value.
+     * The values can be variables as well.
+     */
+    private val commonValues: Map<Term, Set<Variable>> get() {
+        return values
+            .groupBy { it.second }
+            .entries
+            .asSequence()
+            .filter { it.value.size > 1 }
+            .associateTo(HashMap()) { (commonValue, entries) -> commonValue to entries.map { (variable, _) -> variable }.toSet() }
     }
 
     override fun equals(other: Any?): Boolean {
