@@ -12,6 +12,18 @@ class Unification(val variableValues: VariableBucket = VariableBucket()) {
         return Unification(variableValues.combinedWith(other.variableValues, randomVariableScope))
     }
 
+    /**
+     * @see VariableBucket.compact
+     */
+    fun compact(randomVariableScope: RandomVariableScope): Unification {
+        val compactedVars = variableValues.compact(randomVariableScope)
+        if (compactedVars === variableValues) {
+            return this
+        }
+
+        return Unification(compactedVars)
+    }
+
     override fun toString(): String {
         return variableValues.values.joinToString(", ") { (variable, value) ->
             "$variable = $value"

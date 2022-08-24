@@ -2,6 +2,7 @@ package com.github.prologdb.runtime
 
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
@@ -51,9 +52,10 @@ interface PrologRuntimeEnvironment {
      */
     fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket, authorization: Authorization): LazySequence<Unification> {
         val psc = newProofSearchContext(inModule, authorization)
-        return buildLazySequence(psc.principal) {
+        return buildLazySequence<Unification>(psc.principal) {
             psc.fulfillAttach(this, query, initialVariables)
         }
+            .mapRemaining { it.compact(psc.randomVariableScope) }
     }
 
     /**
