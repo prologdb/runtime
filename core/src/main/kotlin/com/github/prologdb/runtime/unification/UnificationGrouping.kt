@@ -178,28 +178,6 @@ private class ListUnificationGroupingStrategy<T : Any>(
     }
 }
 
-private fun VariableBucket.compact(randomVariableScope: RandomVariableScope): VariableBucket {
-    if (isEmpty) {
-        return this
-    }
-
-    val sorted = try {
-        sortForSubstitution()
-    }
-    catch (ex: CircularTermException) {
-        return this
-    }
-
-    val result = sorted.first()
-    if (sorted.size > 1) {
-        for (next in sorted.subList(1, sorted.lastIndex)) {
-            result.incorporate(next, randomVariableScope)
-        }
-    }
-
-    return result
-}
-
 private class MapEntry<K, V>(
     override val key: K,
     override val value: V,

@@ -186,6 +186,31 @@ class VariableBucket private constructor(
         return sorted
     }
 
+    /**
+     * Attempts to minimize the number of variables/size of this bucket.
+     */
+    fun compact(randomVariableScope: RandomVariableScope): VariableBucket {
+        if (isEmpty) {
+            return this
+        }
+
+        val sorted = try {
+            sortForSubstitution()
+        }
+        catch (ex: CircularTermException) {
+            return this
+        }
+
+        val result = sorted.first()
+        if (sorted.size > 1) {
+            for (next in sorted.subList(1, sorted.lastIndex)) {
+                result.incorporate(next, randomVariableScope)
+            }
+        }
+
+        return result
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
 
@@ -202,8 +227,6 @@ class VariableBucket private constructor(
 
     val values: Iterable<Pair<Variable,Term>>
         get() = variableMap.map { it.key to it.value }
-
-
 }
 
 class NameError(message: String, override val cause: Throwable? = null) : RuntimeException(message)
