@@ -15,10 +15,10 @@ class DeterministicDynamicPrologPredicate(
             throw PrologInvocationContractViolationException("Predicate $baseIndicator is declared as deterministic but succeeded with a choicepoint.")
         }
         val onMultiple = onUnfinished
-        val onNoResults: (() -> Nothing)? = if (allowSemiDeterminism) null else {
+        val onNoResults: (() -> Nothing)? = if (allowSemiDeterminism) null else ({
             val baseIndicator = ClauseIndicator.of(base)
             throw PrologInvocationContractViolationException("Predicate $baseIndicator is declared as deterministic but failed without a solution.")
-        }
+        })
 
         yieldAllFinal(DeterministicLazySequence(
             buildLazySequence(ctxt.principal) {

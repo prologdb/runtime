@@ -1,6 +1,10 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.*
+import com.github.prologdb.parser.ParseException
+import com.github.prologdb.parser.Reporting
+import com.github.prologdb.parser.SemanticError
+import com.github.prologdb.parser.SemanticInfo
+import com.github.prologdb.parser.SemanticWarning
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
@@ -175,6 +179,7 @@ open class DefaultModuleSourceFileVisitor @JvmOverloads constructor(
                 dynamics,
                 moduleTransparents,
                 deterministics,
+                semiDeterministics,
                 moduleDeclaration.exportedPredicates
                     ?: clauses.map { ClauseIndicator.of(it) }.toSet(),
                 operators

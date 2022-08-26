@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.knowledge
 
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDefinedException
 import com.github.prologdb.runtime.module.ASTModule
 import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.module.ModuleImport
@@ -8,6 +9,10 @@ import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
+import com.github.prologdb.runtime.runtimeWithLoadedModules
+import com.github.prologdb.runtime.shouldProve
+import com.github.prologdb.runtime.shouldProveInContextOfModule
+import com.github.prologdb.runtime.suchThat
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundBuilder
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -50,7 +55,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseA01, clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
 
         runtimeWithLoadedModules(module) shouldProve foo(R) suchThat {
@@ -68,7 +75,10 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseA01),
             exportedPredicateIndicators = setOf(clauseA01Indicator),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
+
         )
         val moduleARef = ModuleReference("module", "A")
 
@@ -80,7 +90,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
 
         runtimeWithLoadedModules(moduleA, userModule) shouldProve foo(R) suchThat {
@@ -98,7 +110,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseA01),
             exportedPredicateIndicators = emptySet(), // a(a) is private
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
         val moduleARef = ModuleReference("module", "A")
 
@@ -110,7 +124,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
 
         val ex = shouldThrow<PredicateNotDefinedException> {
@@ -128,7 +144,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseA01, clauseC01),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseA01), ClauseIndicator.of(clauseC01)),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
         val moduleARef = ModuleReference("module", "A")
 
@@ -147,7 +165,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseFoo01, clauseBar01),
             exportedPredicateIndicators = setOf(clauseFoo01Indicator),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
 
         val runtimeEnv = runtimeWithLoadedModules(moduleA, userModule)
@@ -186,7 +206,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseFooA, clauseDelegateAToFoo),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseDelegateAToFoo)),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
         val moduleARef = ModuleReference("module", "A")
 
@@ -196,7 +218,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseFooB, clauseDelegateBToFoo),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseDelegateBToFoo)),
             dynamicPredicates = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
         val moduleBRef = ModuleReference("module", "B")
 
@@ -222,6 +246,8 @@ class ModuleIsolationTest : FreeSpec({
                     ModuleDeclaration("user"),
                     emptyList(),
                     emptyList(),
+                    emptySet(),
+                    emptySet(),
                     emptySet(),
                     emptySet(),
                     emptySet(),
@@ -255,6 +281,8 @@ class ModuleIsolationTest : FreeSpec({
                     emptySet(),
                     emptySet(),
                     emptySet(),
+                    emptySet(),
+                    emptySet(),
                 )
 
                 val runtimeEnv = runtimeWithLoadedModules(moduleA, moduleB, userModule)
@@ -285,7 +313,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = listOf(clauseFooA),
             dynamicPredicates = emptySet(),
             exportedPredicateIndicators = setOf(ClauseIndicator.of(clauseFooA)),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
 
         val userModule = ASTModule(
@@ -300,7 +330,9 @@ class ModuleIsolationTest : FreeSpec({
             givenClauses = emptyList(),
             dynamicPredicates = emptySet(),
             exportedPredicateIndicators = emptySet(),
-            moduleTransparents = emptySet()
+            moduleTransparents = emptySet(),
+            deterministics = emptySet(),
+            semiDeterministics = emptySet(),
         )
 
         val runtime = runtimeWithLoadedModules(moduleA, userModule)

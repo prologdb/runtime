@@ -3,7 +3,11 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.find
-import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.PredefinedModuleLoader
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -140,6 +144,8 @@ fun runtimeWithUserClauses(vararg clauses: Clause): DefaultPrologRuntimeEnvironm
         emptyList(),
         clauses.asIterable(),
         indicators,
+        emptySet(),
+        emptySet(),
         emptySet(),
         indicators
     )

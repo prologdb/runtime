@@ -1,10 +1,23 @@
 package com.github.prologdb.runtime.expression
 
-import com.github.prologdb.runtime.*
-import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
+import com.github.prologdb.runtime.module.ASTModule
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.PredefinedModuleLoader
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.runtimeWithUserClauses
+import com.github.prologdb.runtime.shouldNotProve
+import com.github.prologdb.runtime.shouldProve
+import com.github.prologdb.runtime.suchThat
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundBuilder
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.RandomVariable
+import com.github.prologdb.runtime.term.Variable
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 
@@ -316,6 +329,8 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             emptyList(),
             emptySet(),
             emptySet(),
+            emptySet(),
+            emptySet(),
             emptySet()
         )
 
@@ -325,6 +340,8 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             emptyList(),
             emptySet(),
             emptySet(),
+            emptySet(),
+            emptySet(),
             emptySet()
         )
 
@@ -332,6 +349,8 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             ModuleDeclaration("__root"),
             listOf(ModuleImport.Full(moduleARef)),
             emptyList(),
+            emptySet(),
+            emptySet(),
             emptySet(),
             emptySet(),
             emptySet()
