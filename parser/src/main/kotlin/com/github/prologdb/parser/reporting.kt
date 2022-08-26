@@ -8,6 +8,25 @@ import com.github.prologdb.runtime.PrologException
 sealed class Reporting(val level: Level, val message: String, val location: SourceLocation) {
     override fun toString() = "$message in $location"
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Reporting) return false
+
+        if (level != other.level) return false
+        if (message != other.message) return false
+        if (location != other.location) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = level.hashCode()
+        result = 31 * result + message.hashCode()
+        result = 31 * result + location.hashCode()
+        return result
+    }
+
+
     enum class Level {
         INFO,
         WARNING,
@@ -21,7 +40,7 @@ class UnexpectedTokenError(val actual: Token, vararg val expected: String) : Rep
     override fun toString() = "$message in ${actual.location.start}"
 }
 
-class UnexpectedEOFError(vararg val expected: String): Reporting(Level.ERROR, "Unexpected EOF, expecting ${expected.joinToString(", ")}", SourceLocationRange.EOF) {
+class UnexpectedEOFError(vararg val expected: String): Reporting(Level.ERROR, "Unexpected EOF, expecting ${expected.joinToString(" or ")}", SourceLocationRange.EOF) {
     constructor(vararg expected: Enum<*>) : this(*expected.map { it.name }.toTypedArray())
 
     override fun toString() = message

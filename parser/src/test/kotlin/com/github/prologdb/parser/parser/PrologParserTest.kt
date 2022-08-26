@@ -1,5 +1,6 @@
 package com.github.prologdb.parser.parser
 
+import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SemanticWarning
 import com.github.prologdb.parser.SyntaxError
 import com.github.prologdb.parser.lexer.Lexer
@@ -36,6 +37,7 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.beInstanceOf
 import io.kotest.matchers.types.instanceOf
 
@@ -50,7 +52,7 @@ class PrologParserTest : FreeSpec({
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
-    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
+    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, StopCondition.STOP_AT_EOF)
     fun parseTerm(code: String) = parseTerm(tokensOf(code))
 
     fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
@@ -901,6 +903,32 @@ class PrologParserTest : FreeSpec({
             result.reportings should haveSize(1)
             result.reportings.single().location.line shouldBe 1
             result.reportings.single().location.column shouldBe 13
+        }
+        "missing full stop at end of query" {
+            val result = parseQuery("some_goal(Var)")
+            result.certainty shouldBe MATCHED
+            result.reportings should haveSize(1)
+            result.reportings.single().level shouldBe Reporting.Level.ERROR
+            result.reportings.single().message should contain("missing operator .")
+            result.item shouldBe null
+        }
+
+        "missing closing parenthesis and full stop and end of query" {
+            val result = parseQuery("some_goal(Var")
+            result.certainty shouldBe MATCHED
+            result.reportings should haveSize(1)
+            result.reportings.single().level shouldBe Reporting.Level.ERROR
+            result.reportings.single().message should contain("missing operator )")
+            result.item shouldBe null
+        }
+
+        "missing closing parenthesis but not full stop and end of query" {
+            val result = parseQuery("some_goal(Var.")
+            result.certainty shouldBe MATCHED
+            result.reportings should haveSize(1)
+            result.reportings.single().level shouldBe Reporting.Level.ERROR
+            result.reportings.single().message should contain("missing operator )")
+            result.item shouldBe null
         }
     }
 }) {

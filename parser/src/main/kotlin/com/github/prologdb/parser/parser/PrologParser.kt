@@ -29,7 +29,7 @@ private typealias TokenOrTerm = Any
 class PrologParser {
 
     fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry): ParseResult<Query> {
-        val result = parseQuery(tokens, opRegistry, stopAtOperator(FULL_STOP))
+        val result = parseQuery(tokens, opRegistry, StopCondition.atAnyOf(FULL_STOP))
 
         if (!result.isSuccess) {
             return result
@@ -55,8 +55,8 @@ class PrologParser {
         )
     }
 
-    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Query> {
-        val termResult = parseTerm(tokens, opRegistry, shouldStop)
+    fun parseQuery(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, stopCondition: StopCondition): ParseResult<Query> {
+        val termResult = parseTerm(tokens, opRegistry, stopCondition)
 
         @Suppress("UNCHECKED_CAST")
         if (termResult.item == null) return termResult as ParseResult<Query>
@@ -73,9 +73,9 @@ class PrologParser {
     /**
      * @param tokens The tokens to parse from
      * @param opRegistry Is used to determine operators, their precedence and associativity
-     * @param shouldStop Is invoked with the given token lazysequence. If it returns true the matching will stop.
+     * @param stopCondition Is invoked with the given token lazysequence. If it returns true the matching will stop.
      */
-    fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, shouldStop: (TransactionalSequence<Token>) -> Boolean): ParseResult<Term> {
+    fun parseTerm(tokens: TransactionalSequence<Token>, opRegistry: OperatorRegistry, stopCondition: StopCondition): ParseResult<Term> {
         if (!tokens.hasNext()) return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
 
         // in prolog, the binary expression (e.g. a op b op c op d) is the concept that can be applied to all
@@ -91,73 +91,89 @@ class PrologParser {
 
         tokens.mark()
 
-        while (tokens.hasNext() && !shouldStop(tokens)) {
+        while (tokens.hasNext() && !stopCondition.shouldStop(tokens)) {
             val parseResult = parseSingle(tokens, opRegistry)
             if (parseResult.isSuccess) {
                 collectedElements.add(parseResult.item!!)
                 reportings.addAll(parseResult.reportings)
             }
-            else
-            {
+            else if (parseResult.certainty >= MATCHED) {
+                tokens.rollback()
+                reportings.addAll(parseResult.reportings)
+                return ParseResult(null, parseResult.certainty, reportings)
+            }
+            else {
                 collectedElements.add(tokens.next())
             }
         }
 
-        if (!shouldStop(tokens)) {
-            tokens.rollback()
-            return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
-        }
-
         if (collectedElements.isEmpty()) {
             tokens.rollback()
-            if (!tokens.hasNext() || !shouldStop(tokens)) {
+            if (!tokens.hasNext() || !stopCondition.shouldStop(tokens)) {
                 return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term")))
             } else {
                 tokens.mark()
                 val token = tokens.next()
                 tokens.rollback()
 
-                return ParseResult(null, MATCHED, setOf(UnexpectedTokenError(token, "term")))
+                return ParseResult(null, MATCHED, setOf(UnexpectedTokenError(token, "term", stopCondition.description)))
             }
         }
 
-        if (collectedElements.size == 1) {
-            if (collectedElements[0] is Term) {
-                tokens.commit()
+        fun composeTerm(collectedElements: List<TokenOrTerm>, opRegistry: OperatorRegistry, reportings: Collection<Reporting>): ParseResult<Term> {
+            if (collectedElements.size == 1) {
+                if (collectedElements[0] is Term) {
+                    return ParseResult(
+                        collectedElements[0] as Term,
+                        MATCHED,
+                        reportings
+                    )
+                }
+                else if (collectedElements[0] is Token) {
+                    return ParseResult(
+                        null,
+                        NOT_RECOGNIZED,
+                        setOf(UnexpectedTokenError(collectedElements[0] as Token, "term"))
+                    )
+                }
+                else throw InternalParserError()
+            }
+
+            try {
+                val astResult = buildExpressionAST(collectedElements, opRegistry)
+
                 return ParseResult(
-                    collectedElements[0] as Term,
+                    astResult.item?.first,
+                    astResult.certainty,
+                    reportings + astResult.reportings
+                )
+            } catch (ex: ExpressionASTBuildingException) {
+                return ParseResult(
+                    collectedElements[0].asTerm(),
                     MATCHED,
-                    reportings
+                    setOf(ex.reporting)
                 )
             }
-            else if (collectedElements[0] is Token) {
-                tokens.rollback()
-                return ParseResult(
-                    null,
-                     NOT_RECOGNIZED,
-                     setOf(UnexpectedTokenError(collectedElements[0] as Token, "term"))
-                )
+        }
+
+        if (!stopCondition.shouldStop(tokens)) {
+            tokens.rollback()
+            val termResult = composeTerm(collectedElements, opRegistry, reportings)
+            return if (termResult.item == null) {
+                ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedEOFError("term", stopCondition.description)))
+            } else {
+                ParseResult(null, MATCHED, setOf(SyntaxError("Unexpected EOF. You are likely missing ${stopCondition.description}", collectedElements.last().location.end)))
             }
-            else throw InternalParserError()
         }
 
-        tokens.commit()
-
-        try {
-            val astResult = buildExpressionAST(collectedElements, opRegistry)
-
-            return ParseResult(
-                astResult.item?.first,
-                astResult.certainty,
-                reportings + astResult.reportings
-            )
-        } catch (ex: ExpressionASTBuildingException) {
-            return ParseResult(
-                collectedElements[0].asTerm(),
-                MATCHED,
-                setOf(ex.reporting)
-            )
+        val termResult = composeTerm(collectedElements, opRegistry, reportings)
+        if (termResult.item != null) {
+            tokens.commit()
+        } else {
+            tokens.rollback()
         }
+
+        return termResult
     }
 
     /**
@@ -184,7 +200,7 @@ class PrologParser {
             if (result.certainty >= MATCHED) break
         }
 
-        if (result == null || !result.isSuccess) {
+        if (result == null) {
             if (tokens.hasNext()) {
                 tokens.mark()
                 val nextToken = tokens.next()
@@ -286,7 +302,7 @@ class PrologParser {
                     functor,
                     emptyArray()
                 ).also { it.sourceInformation = functorToken.location..parentOpenToken.location },
-                NOT_RECOGNIZED,
+                argsTermResult.certainty,
                 argsTermResult.reportings
             )
         }
@@ -322,7 +338,7 @@ class PrologParser {
         // else: list with content
         tokens.rollback()
 
-        val elementsResult = parseTerm(tokens, opRegistry, { t -> stopAtOperator(HEAD_TAIL_SEPARATOR)(t) || stopAtOperator(BRACKET_CLOSE)(t) })
+        val elementsResult = parseTerm(tokens, opRegistry, StopCondition.atAnyOf(HEAD_TAIL_SEPARATOR, BRACKET_CLOSE))
         if (!elementsResult.isSuccess) {
             tokens.rollback()
             return ParseResult(null, NOT_RECOGNIZED, elementsResult.reportings)
@@ -349,7 +365,7 @@ class PrologParser {
         if (tokenAfterElements is OperatorToken && tokenAfterElements.operator == HEAD_TAIL_SEPARATOR) {
             tokens.commit()
             tokens.mark()
-            val tailResult = parseTerm(tokens, opRegistry, stopAtOperator(BRACKET_CLOSE))
+            val tailResult = parseTerm(tokens, opRegistry, StopCondition.atAnyOf(BRACKET_CLOSE))
             tail = tailResult.item
             reportings += tailResult.reportings
 
@@ -407,7 +423,7 @@ class PrologParser {
         // else: dict with content
         tokens.rollback()
 
-        val elementsResult = parseTerm(tokens, opRegistry, stopAtAnyOf(HEAD_TAIL_SEPARATOR, CURLY_CLOSE))
+        val elementsResult = parseTerm(tokens, opRegistry, StopCondition.atAnyOf(HEAD_TAIL_SEPARATOR, CURLY_CLOSE))
         if (!elementsResult.isSuccess) {
             tokens.rollback()
             return ParseResult(null, NOT_RECOGNIZED, elementsResult.reportings)
@@ -463,7 +479,7 @@ class PrologParser {
         if (tokenAfterElements is OperatorToken && tokenAfterElements.operator == HEAD_TAIL_SEPARATOR) {
             tokens.commit()
             tokens.mark()
-            val tailResult = parseTerm(tokens, opRegistry, stopAtOperator(CURLY_CLOSE))
+            val tailResult = parseTerm(tokens, opRegistry, StopCondition.atAnyOf(CURLY_CLOSE))
             tail = tailResult.item
             reportings += tailResult.reportings
 
@@ -511,7 +527,11 @@ class PrologParser {
             return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(token, PARENT_OPEN)))
         }
 
-        val termResult = parseTerm(tokens, opRegistry, stopAtOperator(PARENT_CLOSE))
+        val termResult = parseTerm(tokens, opRegistry, StopCondition.atAnyOf(PARENT_CLOSE))
+        if (!termResult.isSuccess) {
+            @Suppress("UNCHECKED_CAST")
+            return termResult as ParseResult<Pair<Term, SourceLocation>>
+        }
         val tokensUntilParentClose = tokens.takeWhile({ it !is OperatorToken || it.operator != PARENT_CLOSE }, 1, 0)
         val locationAfterTerm: SourceLocation
 
@@ -1102,7 +1122,7 @@ class PrologParser {
 
         tokens.mark()
         if (tokens.hasNext()) {
-            val firstTermResult = parseTerm(tokens, visitor.operators, stopAtOperator(FULL_STOP))
+            val firstTermResult = parseTerm(tokens, visitor.operators, StopCondition.atAnyOf(FULL_STOP))
             ParseException.failOnError(firstTermResult.reportings)
             check(firstTermResult.item != null)
             // consume the FULL_STOP
@@ -1161,7 +1181,7 @@ class PrologParser {
                 visitor.visitModuleDeclaration(moduleDeclaration, moduleDeclaredAt)
 
                 while (tokens.hasNext()) {
-                    val parseResult = parseTerm(tokens, visitor.operators, stopAtOperator(FULL_STOP))
+                    val parseResult = parseTerm(tokens, visitor.operators, StopCondition.atAnyOf(FULL_STOP))
                     reportings += parseResult.reportings
 
                     if (parseResult.isSuccess) {
@@ -1282,44 +1302,6 @@ class PrologParser {
 
     interface ParsedStage : ModuleLoader.ParsedStage {
         val reportings: Collection<Reporting>
-    }
-
-    companion object {
-        /**
-         * Helper function for the `shouldStop` parameter to [parseTerm].
-         * @return Aborts matching if the next token in the sequence is an [OperatorToken] with the given [Operator], otherwise false.
-         *         Does not consume the final token if aborting.
-         */
-        fun stopAtOperator(operator: Operator): (TransactionalSequence<Token>) -> Boolean {
-            return { tokens ->
-                if (tokens.hasNext()) {
-                    tokens.mark()
-                    val token = tokens.next()
-                    tokens.rollback()
-
-                    token is OperatorToken && token.operator == operator
-                } else false
-                // return false so that EOF can be detected independently of the break condition
-            }
-        }
-
-        fun stopAtAnyOf(operator1: Operator, operator2: Operator): (TransactionalSequence<Token>) -> Boolean {
-            return { tokens ->
-                if (tokens.hasNext()) {
-                    tokens.mark()
-                    val token = tokens.next()
-                    tokens.rollback()
-
-                    token is OperatorToken && (token.operator == operator1 || token.operator == operator2)
-                } else false
-            }
-        }
-
-        /**
-         * Helper for the `shouldStop` parameter to [parseTerm].
-         * @return Aborts matching if EOF is reached.
-         */
-        val STOP_AT_EOF: (TransactionalSequence<Token>) -> Boolean = { !it.hasNext() }
     }
 }
 
