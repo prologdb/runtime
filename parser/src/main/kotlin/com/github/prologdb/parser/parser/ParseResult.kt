@@ -21,13 +21,17 @@ class ParseResult<out T>(
             .groupingBy { it.level }
             .eachCount()
             .entries
-            .joinToString(
+            .takeUnless { it.isEmpty() }
+            ?.joinToString(
                 prefix = "(",
                 transform = { (level, count) -> "$count ${level.name.lowercase()}" },
                 postfix = ")",
             )
+            ?: "(no reportings)"
 
-        return "$certainty [$item] $reportingLevelCounts"
+        val itemDescription = item?.let { it::class.java }?.simpleName ?: "<no item>"
+
+        return "$certainty $itemDescription $reportingLevelCounts"
     }
 
     companion object {

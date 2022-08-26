@@ -1,9 +1,14 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.*
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SyntaxError
+import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.ClauseIndicator
@@ -12,9 +17,6 @@ import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.query.AndQuery
-import com.github.prologdb.runtime.query.OrQuery
-import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
@@ -108,7 +110,7 @@ class PrologTest : FreeSpec() { init {
 
                 val testName = (arg0.arguments[0] as PrologString).toKotlinString()
 
-                val goalList = arg1.elements.map { it.asCompound().toQuery() }.toList()
+                val goalList = arg1.elements.map { it.toQuery() }.toList()
 
                 testCases.add(object : PrologTestCase {
                     override val name = testName
@@ -246,36 +248,10 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
     }
 }
 
-private fun CompoundTerm.toQuery(): Query {
-    if (this.functor == ",") {
-        val goals = mutableListOf<Query>()
-        goals.add(this.arguments[0].asCompound().toQuery())
-
-        var pivot = this.arguments[1].asCompound()
-        while (pivot.functor == ",") {
-            goals.add(pivot.arguments[0].asCompound().toQuery())
-            pivot = pivot.arguments[1].asCompound()
-        }
-
-        goals.add(pivot.toQuery())
-        return AndQuery(goals.toTypedArray()).also { it.sourceInformation = this.sourceInformation }
-    }
-    else if (this.functor == ";") {
-        val goals = mutableListOf<Query>()
-        goals.add(this.arguments[0].asCompound().toQuery())
-
-        var pivot = this.arguments[1].asCompound()
-        while (pivot.functor == ";") {
-            goals.add(pivot.arguments[0].asCompound().toQuery())
-            pivot = pivot.arguments[1].asCompound()
-        }
-
-        goals.add(pivot.toQuery())
-        return OrQuery(goals.toTypedArray()).also { it.sourceInformation = this.sourceInformation }
-    }
-    else {
-        return PredicateInvocationQuery(this).also { it.sourceInformation = this.sourceInformation }
-    }
+private fun Term.toQuery(): Query {
+    val result = PrologParser().transformQuery(this)
+    ParseException.failOnError(result.reportings)
+    return result.item!!
 }
 
 private fun Term.asCompound(): CompoundTerm {

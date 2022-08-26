@@ -1190,16 +1190,16 @@ class PrologParser {
                             if (item.isDirectiveInvocation) {
                                 reportings += visitor.visitDirective(item.arguments[0] as CompoundTerm)
                             } else if (item.isRuleDefinition) {
-                                val head = item.arguments[0] as? CompoundTerm
-                                    ?: throw InternalParserError("Rule heads must be compound term")
-                                val queryTerm = item.arguments[1] as? CompoundTerm
-                                    ?: throw InternalParserError("Queries must be compound term")
-                                val transformResult = transformQuery(queryTerm)
-                                reportings += transformResult.reportings
+                                val headResult = transformHead(item.arguments[0])
+                                val queryResult = transformQuery(item.arguments[1])
+                                reportings += headResult.reportings
+                                reportings += queryResult.reportings
 
-                                if (transformResult.item != null) {
-                                    val location = head.location..queryTerm.location
-                                    val rule = Rule(head, transformResult.item).apply {
+                                if (headResult.item != null && queryResult.item != null) {
+                                    val head = headResult.item
+                                    val query = queryResult.item
+                                    val location = head.location..query.location
+                                    val rule = Rule(head, query).apply {
                                         sourceInformation = location
                                     }
                                     reportings += visitor.visitClause(rule, location)
@@ -1254,6 +1254,16 @@ class PrologParser {
         return ParseResult.of(list)
     }
 
+    fun transformHead(head: Term): ParseResult<CompoundTerm> {
+        return when (head) {
+            is CompoundTerm -> ParseResult.of(head)
+            is Atom -> ParseResult.of(CompoundTerm(head.name, emptyArray()).also {
+                it.sourceInformation = head.sourceInformation
+            })
+            else -> ParseResult(null, MATCHED, setOf(SyntaxError("Rule heads must be compound terms or atoms, got ${head.prologTypeName}", head.location)))
+        }
+    }
+
     /**
      * Converts a term given as the second argument to `:-/2` into an instance of [Query].
      */
@@ -1291,6 +1301,11 @@ class PrologParser {
                     it.sourceInformation = query.sourceInformation
                 })
             }
+        } else if (query is Atom) {
+            // special treatment of atom literals is not required
+            val goal = CompoundTerm(query.name, emptyArray())
+            goal.sourceInformation = query.sourceInformation
+            return transformQuery(goal)
         } else {
             return ParseResult(null, NOT_RECOGNIZED, setOf(SemanticError("$query is not a valid query component", query.location)))
         }
@@ -1309,7 +1324,7 @@ private val CompoundTerm.isDirectiveInvocation: Boolean
     get() = functor == Operator.HEAD_QUERY_SEPARATOR.text && arity == 1 && arguments[0] is CompoundTerm
 
 private val CompoundTerm.isRuleDefinition: Boolean
-    get() = functor == Operator.HEAD_QUERY_SEPARATOR.text && arity == 2 && arguments[0] is CompoundTerm
+    get() = functor == Operator.HEAD_QUERY_SEPARATOR.text && arity == 2 && (arguments[0] is CompoundTerm || arguments[0] is Atom)
 
 /**
  * Skips (`next()`s) tokens in the receiver sequence until the parenthesis + bracket levels are 0 and the given
@@ -1383,6 +1398,8 @@ private val TokenOrTerm.location: SourceLocationRange
     get() = when(this) {
         is Token -> location
         is Term -> sourceInformation as? SourceLocationRange
+            ?: throw InternalParserError()
+        is Query -> sourceInformation as? SourceLocationRange
             ?: throw InternalParserError()
         else -> throw InternalParserError()
     }
