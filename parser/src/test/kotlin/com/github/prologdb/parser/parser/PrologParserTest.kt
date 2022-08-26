@@ -1,5 +1,6 @@
 package com.github.prologdb.parser.parser
 
+import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SemanticWarning
 import com.github.prologdb.parser.SyntaxError
 import com.github.prologdb.parser.lexer.Lexer
@@ -14,7 +15,13 @@ import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologDictionary
+import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
@@ -30,14 +37,11 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.beInstanceOf
 import io.kotest.matchers.types.instanceOf
 
-class PrologParserTest : FreeSpec() {
-    override fun isolationMode() = IsolationMode.InstancePerTest
-
-    init{
-
+class PrologParserTest : FreeSpec({
     val operators = DefaultOperatorRegistry().apply {
         include(ISOOpsOperatorRegistry)
     }
@@ -48,26 +52,26 @@ class PrologParserTest : FreeSpec() {
 
     fun tokensOf(str: String): TransactionalSequence<Token> = Lexer(SourceUnit("testcode"), str.iterator())
 
-        fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, PrologParser.STOP_AT_EOF)
-        fun parseTerm(code: String) = parseTerm(tokensOf(code))
+    fun parseTerm(tokens: TransactionalSequence<Token>) = PrologParser().parseTerm(tokens, operators, StopCondition.STOP_AT_EOF)
+    fun parseTerm(code: String) = parseTerm(tokensOf(code))
 
-        fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
-        fun parseList(code: String) = parseList(tokensOf(code))
+    fun parseList(tokens: TransactionalSequence<Token>) = PrologParser().parseList(tokens, operators)
+    fun parseList(code: String) = parseList(tokensOf(code))
 
-        fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
-        fun parseDict(code: String) = parseDict(tokensOf(code))
+    fun parseDict(tokens: TransactionalSequence<Token>) = PrologParser().parseDictionary(tokens, operators)
+    fun parseDict(code: String) = parseDict(tokensOf(code))
 
-        fun parseQuery(tokens: TransactionalSequence<Token>) = PrologParser().parseQuery(tokens, operators)
-        fun parseQuery(code: String) = parseQuery(tokensOf(code))
+    fun parseQuery(tokens: TransactionalSequence<Token>) = PrologParser().parseQuery(tokens, operators)
+    fun parseQuery(code: String) = parseQuery(tokensOf(code))
 
-        "atom" - {
-            "a" {
-                val result = parseTerm("a")
-                result.certainty shouldBe MATCHED
-                result.reportings.should(beEmpty())
-                assert(result.item is Atom)
-                (result.item!! as Atom).name shouldBe "a"
-            }
+    "atom" - {
+        "a" {
+            val result = parseTerm("a")
+            result.certainty shouldBe MATCHED
+            result.reportings.should(beEmpty())
+            assert(result.item is Atom)
+            (result.item!! as Atom).name shouldBe "a"
+        }
 
         "someAtom" {
             val result = parseTerm("someAtom")
@@ -131,7 +135,7 @@ class PrologParserTest : FreeSpec() {
         (term.arguments[0] as Atom).name shouldBe "b"
         (term.arguments[1] as Atom).name shouldBe "c"
     }
-    
+
     "compound term" - {
         "without arguments" {
             val result = parseTerm("predicate()")
@@ -833,36 +837,36 @@ class PrologParserTest : FreeSpec() {
         val outerColon = (result.item!! as PredicateInvocationQuery).goal
         outerColon.functor shouldBe ":"
         outerColon.arity shouldBe 2
-            outerColon.arguments[0] should beInstanceOf(Atom::class)
-            (outerColon.arguments[0] as Atom).name shouldBe "lists"
-            outerColon.arguments[1] should beInstanceOf(CompoundTerm::class)
+        outerColon.arguments[0] should beInstanceOf(Atom::class)
+        (outerColon.arguments[0] as Atom).name shouldBe "lists"
+        outerColon.arguments[1] should beInstanceOf(CompoundTerm::class)
 
-            val innerGoal = outerColon.arguments[1] as CompoundTerm
-            innerGoal.functor shouldBe "append"
-            innerGoal.arity shouldBe 0
+        val innerGoal = outerColon.arguments[1] as CompoundTerm
+        innerGoal.functor shouldBe "append"
+        innerGoal.arity shouldBe 0
+    }
+
+    "module" {
+        fun parseModule(tokens: TransactionalSequence<Token>): ParseResult<com.github.prologdb.runtime.module.Module> {
+            val runtime = DefaultPrologRuntimeEnvironment()
+            val primedStage = PrologParser().parseSourceFile(
+                tokens,
+                DefaultModuleSourceFileVisitor(runtime, emptySet()),
+            )
+            val parsedStage = primedStage.proceed()
+
+            return ParseResult(parsedStage.module, MATCHED, parsedStage.reportings)
         }
+        fun parseModule(code: String) = parseModule(tokensOf(code))
 
-        "module" {
-            fun parseModule(tokens: TransactionalSequence<Token>): ParseResult<com.github.prologdb.runtime.module.Module> {
-                val runtime = DefaultPrologRuntimeEnvironment()
-                val primedStage = PrologParser().parseSourceFile(
-                    tokens,
-                    DefaultModuleSourceFileVisitor(runtime, emptySet()),
-                )
-                val parsedStage = primedStage.proceed()
-
-                return ParseResult(parsedStage.module, MATCHED, parsedStage.reportings)
-            }
-            fun parseModule(code: String) = parseModule(tokensOf(code))
-
-            val result = parseModule("""
+        val result = parseModule("""
             :- module(test).
-
+    
             :- op(200,xf,isDead).
             :- op(200,fx,kill).
-
+    
             X isDead :- kill X, X = kenny; X = cartman.
-
+    
             kill kenny.
         """)
 
@@ -876,29 +880,57 @@ class PrologParserTest : FreeSpec() {
         module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
         module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
 
-            val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
-            isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
-            isDead1 as ASTPrologPredicate
-            isDead1.functor shouldBe "isDead"
-            isDead1.arity shouldBe 1
-            isDead1.clauses should haveSize(1)
-            isDead1.clauses[0] shouldBe instanceOf(Rule::class)
+        val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
+        isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
+        isDead1 as ASTPrologPredicate
+        isDead1.functor shouldBe "isDead"
+        isDead1.arity shouldBe 1
+        isDead1.clauses should haveSize(1)
+        isDead1.clauses[0] shouldBe instanceOf(Rule::class)
 
-            isDead1.clauses[0].toString() shouldBe "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+        isDead1.clauses[0].toString() shouldBe "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+    }
+
+    "query" - {
+        "content after full stop" {
+            val result = parseQuery("some_goal(). other().")
+            result.item shouldNotBe null
+            result.isSuccess shouldBe true
+            result.item!! should beInstanceOf(PredicateInvocationQuery::class)
+            result.item!! as PredicateInvocationQuery
+            (result.item!! as PredicateInvocationQuery).goal shouldBe CompoundTerm("some_goal", emptyArray())
+
+            result.reportings should haveSize(1)
+            result.reportings.single().location.line shouldBe 1
+            result.reportings.single().location.column shouldBe 13
+        }
+        "missing full stop at end of query" {
+            val result = parseQuery("some_goal(Var)")
+            result.certainty shouldBe MATCHED
+            result.reportings should haveSize(1)
+            result.reportings.single().level shouldBe Reporting.Level.ERROR
+            result.reportings.single().message should contain("missing operator .")
+            result.item shouldBe null
         }
 
-        "query" - {
-            "content after full stop" {
-                val result = parseQuery("some_goal(). other().")
-                result.item shouldNotBe null
-                result.isSuccess shouldBe true
-                result.item!! should beInstanceOf(PredicateInvocationQuery::class)
-                result.item!! as PredicateInvocationQuery
-                (result.item!! as PredicateInvocationQuery).goal shouldBe CompoundTerm("some_goal", emptyArray())
-
-                result.reportings should haveSize(1)
-                result.reportings.single().location.line shouldBe 1
-                result.reportings.single().location.column shouldBe 13
-            }
+        "missing closing parenthesis and full stop and end of query" {
+            val result = parseQuery("some_goal(Var")
+            result.certainty shouldBe MATCHED
+            result.reportings should haveSize(1)
+            result.reportings.single().level shouldBe Reporting.Level.ERROR
+            result.reportings.single().message should contain("missing operator )")
+            result.item shouldBe null
         }
-    }}
+
+        "missing closing parenthesis but not full stop and end of query" {
+            val result = parseQuery("some_goal(Var.")
+            result.certainty shouldBe MATCHED
+            result.reportings should haveSize(1)
+            result.reportings.single().level shouldBe Reporting.Level.ERROR
+            result.reportings.single().message should contain("missing operator )")
+            result.item shouldBe null
+        }
+    }
+}) {
+    override fun isolationMode() = IsolationMode.InstancePerTest
+}
