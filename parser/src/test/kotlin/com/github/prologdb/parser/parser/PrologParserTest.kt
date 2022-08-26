@@ -930,6 +930,28 @@ class PrologParserTest : FreeSpec({
             result.reportings.single().message should contain("missing operator )")
             result.item shouldBe null
         }
+
+        "zero arity goal without parenthesis" - {
+            "invocation with identifier token" {
+                val result = parseQuery("true.")
+                result.isSuccess shouldBe true
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! should beInstanceOf<PredicateInvocationQuery>()
+                (result.item!! as PredicateInvocationQuery).goal shouldBe CompoundTerm("true", arrayOf())
+            }
+
+            "invocation with atom literal" {
+                val result = parseQuery("'true'.")
+                result.isSuccess shouldBe true
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! should beInstanceOf<PredicateInvocationQuery>()
+                (result.item!! as PredicateInvocationQuery).goal shouldBe CompoundTerm("true", arrayOf())
+            }
+        }
     }
 }) {
     override fun isolationMode() = IsolationMode.InstancePerTest
