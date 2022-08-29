@@ -22,6 +22,10 @@
             <artifactId>runtime-async</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apfloat</groupId>
+            <artifactId>apfloat</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.kotest</groupId>
             <artifactId>kotest-runner-junit5-jvm</artifactId>
             <scope>test</scope>
