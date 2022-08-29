@@ -685,6 +685,50 @@ class PrologParserTest : FreeSpec({
         }
     }
 
+    "signed numbers" - {
+        "unary plus" - {
+            "with space" {
+                val result = parseTerm("+ 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe PrologNumber("3")
+            }
+            "without space" {
+                val result = parseTerm("+3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe PrologNumber("3")
+            }
+        }
+
+        "unary minus" - {
+            "with space" {
+                val result = parseTerm("- 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe PrologNumber("-3")
+            }
+            "without space" {
+                val result = parseTerm("-3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe PrologNumber("-3")
+            }
+        }
+
+        "ambiguity with expression" {
+            val result = parseTerm("a +1")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item shouldNotBe null
+            result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("3")))
+        }
+    }
+
     "invalid :-op/3" - {
         "non-numeric precedence" {
             val declaration = CompoundTerm("op", arrayOf(Atom("invalid"), Atom("xfx"), Atom("opname"))).withMockSourceLocation()

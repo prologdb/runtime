@@ -6,6 +6,7 @@ import com.github.prologdb.parser.lexer.Operator.*
 import com.github.prologdb.parser.lexer.TokenType.*
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
+import com.github.prologdb.parser.parser.StopCondition.Companion.peek
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
@@ -616,24 +617,16 @@ class PrologParser {
                 )
             }
         }
-        else if(token is NumericLiteralToken) {
+        else if (token is NumericLiteralToken) {
             tokens.commit()
 
-            val tokenNumber = token.number
-
-            val number = when(tokenNumber) {
-                is Int -> PrologInteger(tokenNumber.toLong())
-                is Long -> PrologInteger(tokenNumber)
-                is Float -> PrologDecimal(tokenNumber.toDouble())
-                is Double -> PrologDecimal(tokenNumber)
-                else -> throw InternalParserError("Unsupported number type in numeric literal token")
-            }
+            val number = token.number
             number.sourceInformation = token.location
 
             return ParseResult(
-                    number,
-                    MATCHED,
-                    emptySet()
+                number,
+                MATCHED,
+                emptySet()
             )
         }
         else if (token is StringLiteralToken) {
@@ -654,6 +647,19 @@ class PrologParser {
                     it.sourceInformation = token.location
                     it.quoted = token.quoted
                 },
+                MATCHED,
+                emptySet()
+            )
+        }
+        else if (token is OperatorToken && (token.operator == MINUS || token.operator == PLUS) && tokens.peek() is NumericLiteralToken) {
+            tokens.commit()
+            val numberToken = tokens.next() as NumericLiteralToken
+            // copy() is important because the sourceInformation is modified; the copy keeps this modification out of
+            // the source stream of tokens so that it remains clean if the parser backtracks
+            val unsignedNumberTerm = if (token.operator == MINUS) numberToken.number.unaryMinus() else numberToken.number.copy()
+            unsignedNumberTerm.sourceInformation = token.location.start..numberToken.location.end
+            return ParseResult(
+                unsignedNumberTerm,
                 MATCHED,
                 emptySet()
             )
@@ -868,16 +874,27 @@ class PrologParser {
                 val name: String?
 
                 when (precedenceTerm) {
-                    is PrologInteger -> {
-                        if (precedenceTerm.value !in 0..1200) {
-                            reportings.add(
-                                SemanticError(
-                                    "Operator precedences must be between 0 and 1200, got ${precedenceTerm.value}",
-                                    precedenceTerm.location
-                                )
-                            )
+                    is PrologNumber -> {
+                        if (!precedenceTerm.isInteger) {
+                            reportings.add(SemanticError(
+                                "Operator precedences in imports must be integers, got a decimal",
+                                precedenceTerm.location
+                            ))
+                            precedence = null
                         }
-                        precedence = min(max(precedenceTerm.value, 1200L), 0L).toShort()
+                        else {
+                            if (precedenceTerm in PRECEDENCE_MIN..PRECEDENCE_MAX) {
+                                precedence = min(max(precedenceTerm.toInteger(), 1200L), 0L).toShort()
+                            } else {
+                                reportings.add(
+                                    SemanticError(
+                                        "Operator precedences must be between 0 and 1200, got $precedenceTerm",
+                                        precedenceTerm.location
+                                    )
+                                )
+                                precedence = null
+                            }
+                        }
                     }
                     is Variable -> {
                         precedence = null
@@ -1086,28 +1103,13 @@ class PrologParser {
             )))
         }
 
-        if (arityTerm !is PrologInteger) {
-            return ParseResult(null, MATCHED, setOf(SyntaxError(
-                "Predicate arities must be integers, got ${functorTerm.prologTypeName}",
+        val arity = arityTerm.asIntegerInRange(0L..Int.MAX_VALUE.toLong())
+            ?: return ParseResult(null, MATCHED, setOf(SyntaxError(
+                "Predicate arity must be an integer in range [$ARITY_MIN; $ARITY_MAX], got $arityTerm",
                 arityTerm.sourceInformation as SourceLocation
             )))
-        }
 
-        if (arityTerm.toInteger() < 0) {
-            return ParseResult(null, MATCHED, setOf(SyntaxError(
-                "Predicate arity cannot be negative",
-                arityTerm.sourceInformation as SourceLocation
-            )))
-        }
-
-        if (arityTerm.toInteger() > Int.MAX_VALUE) {
-            return ParseResult(null, MATCHED, setOf(SyntaxError(
-                "Predicate arity cannot be negative",
-                arityTerm.sourceInformation as SourceLocation
-            )))
-        }
-
-        return ParseResult.of(ClauseIndicator.of(functorTerm.name, arityTerm.toInteger().toInt()))
+        return ParseResult.of(ClauseIndicator.of(functorTerm.name, arity.toInt()))
     }
 
     fun parseSourceFile(
@@ -1317,6 +1319,13 @@ class PrologParser {
 
     interface ParsedStage : ModuleLoader.ParsedStage {
         val reportings: Collection<Reporting>
+    }
+
+    companion object {
+        val PRECEDENCE_MIN = PrologNumber(0)
+        val PRECEDENCE_MAX = PrologNumber(1200)
+        val ARITY_MIN = PrologNumber(0)
+        val ARITY_MAX = PrologNumber(Int.MAX_VALUE)
     }
 }
 
