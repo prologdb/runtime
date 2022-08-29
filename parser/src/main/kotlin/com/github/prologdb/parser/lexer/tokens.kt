@@ -1,6 +1,7 @@
 package com.github.prologdb.parser.lexer
 
 import com.github.prologdb.parser.source.SourceLocationRange
+import com.github.prologdb.runtime.term.PrologNumber
 
 enum class TokenType {
     IDENTIFIER,
@@ -94,7 +95,7 @@ class OperatorToken(val operator: Operator, location: SourceLocationRange): Toke
 
     override fun toString() = "operator $operator"
 }
-class NumericLiteralToken(val number: Number, location: SourceLocationRange): Token(TokenType.NUMERIC_LITERAL, location) {
+class NumericLiteralToken(val number: PrologNumber, location: SourceLocationRange): Token(TokenType.NUMERIC_LITERAL, location) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is NumericLiteralToken) return false

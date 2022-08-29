@@ -2,6 +2,7 @@ package com.github.prologdb.parser.lexer
 
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.term.PrologNumber
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 
@@ -21,6 +22,7 @@ class LexerIteratorTest : FreeSpec() {init{
             'atom literal'
             foo =@= bar
             bar \=@= foo
+            922337203685477581000000000
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
@@ -283,7 +285,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is NumericLiteralToken)
-            (next as NumericLiteralToken).number shouldBe 1L
+            (next as NumericLiteralToken).number shouldBe PrologNumber(1)
             next.location.start.line shouldBe 4
             next.location.start.column shouldBe 17
             next.location.end.line shouldBe 4
@@ -299,7 +301,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is NumericLiteralToken)
-            (next as NumericLiteralToken).number shouldBe 2L
+            (next as NumericLiteralToken).number shouldBe PrologNumber(2)
             next.location.start.line shouldBe 4
             next.location.start.column shouldBe 19
             next.location.end.line shouldBe 4
@@ -315,7 +317,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is NumericLiteralToken)
-            (next as NumericLiteralToken).number shouldBe 3.412
+            (next as NumericLiteralToken).number shouldBe PrologNumber("3.412")
             next.location.start.line shouldBe 4
             next.location.start.column shouldBe 21
             next.location.end.line shouldBe 4
@@ -357,7 +359,7 @@ class LexerIteratorTest : FreeSpec() {init{
 
             next = lexer.next()
             assert(next is NumericLiteralToken)
-            (next as NumericLiteralToken).number shouldBe 1L
+            (next as NumericLiteralToken).number shouldBe PrologNumber(1L)
             next.location.start.line shouldBe 5
             next.location.start.column shouldBe 15
             next.location.end.line shouldBe 5
@@ -485,6 +487,16 @@ class LexerIteratorTest : FreeSpec() {init{
             next.location.start.column shouldBe 22
             next.location.end.line shouldBe 14
             next.location.end.column shouldBe 24
+        }
+
+        "line 15" {
+            next = lexer.next()
+            assert(next is NumericLiteralToken)
+            (next as NumericLiteralToken).number shouldBe PrologNumber("922337203685477581000000000")
+            next.location.start.line shouldBe 15
+            next.location.start.column shouldBe 13
+            next.location.end.line shouldBe 15
+            next.location.end.column shouldBe 39
         }
 
         "eof" {
