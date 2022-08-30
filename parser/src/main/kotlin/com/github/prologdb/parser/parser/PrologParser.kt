@@ -142,13 +142,6 @@ class PrologParser {
             try {
                 val astResult = buildExpressionAST(collectedElements, opRegistry)
 
-                if (astResult.item != null) {
-                    val asNumber = astResult.item.asSignedNumberOrNull()
-                    if (asNumber != null) {
-                        return ParseResult(asNumber, astResult.certainty, reportings + astResult.reportings)
-                    }
-                }
-
                 return ParseResult(
                     astResult.item?.first,
                     astResult.certainty,
@@ -1306,50 +1299,6 @@ class PrologParser {
         }
     }
 
-    /**
-     * Is supposed to work on a result of [buildExpressionAST].
-     *
-     * If the given AST can be a signed number, that is:
-     * * an instance of `'+'/1` or `'-'/1`
-     * * the `+` or `-` is recognized as a prefix operator
-     * * the compound [directlyPrecedes] the argument (no space between operator and number)
-     * * the argument is a [PrologNumber]
-     *
-     * then incorporates the sign into the number and returns a new number, including correct
-     * [SourceLocation]. Null otherwise.
-     */
-    private fun Pair<Term, OperatorDefinition?>.asSignedNumberOrNull(): PrologNumber? {
-        val secondLocal = second
-        if (secondLocal == null || (secondLocal.name != MINUS.text && secondLocal.name != PLUS.text) || !secondLocal.type.isPrefix){
-            return null
-        }
-
-        val firstLocal = first
-
-        if (firstLocal !is CompoundTerm || firstLocal.arity != 1) {
-            return null
-        }
-
-        val numberWithoutSign = firstLocal.arguments[0] as? PrologNumber ?: return null
-
-        // in a prefix notation, the compound ends where the number ends
-        // with explicit parenthesis, the compound ends further down
-        if (firstLocal.location.end != numberWithoutSign.location.end) {
-            return null
-        }
-
-        // only prefix notation without whitespace between sign and number can be conflated into a single number
-        if (!(firstLocal.location.start directlyPrecedes numberWithoutSign.location.start)) {
-            return null
-        }
-
-        // copy() is important because the sourceInformation is modified; the copy keeps this modification out of
-        // the source stream of tokens so that it remains clean if the parser backtracks
-        val numberWithSign = if (firstLocal.functor == MINUS.text) numberWithoutSign.unaryMinus() else numberWithoutSign.copy()
-        numberWithSign.sourceInformation = firstLocal.location.start..numberWithoutSign.location.end
-        return numberWithSign
-    }
-
     interface PrimedStage : ModuleLoader.PrimedStage {
         override fun proceed(): PrologParser.ParsedStage
     }
@@ -1467,6 +1416,50 @@ private fun TokenOrTerm.asTerm(): Term {
     throw InternalParserError()
 }
 
+/**
+ * Is supposed to work on an **internal** result of [buildExpressionAST].
+ *
+ * If the given AST can be a signed number, that is:
+ * * an instance of `'+'/1` or `'-'/1`
+ * * the `+` or `-` is recognized as a prefix operator
+ * * the compound [directlyPrecedes] the argument (no space between operator and number)
+ * * the argument is a [PrologNumber]
+ *
+ * then incorporates the sign into the number and returns a new number, including correct
+ * [SourceLocation] and no [OperatorDefinition]. Returns the input otherwise.
+ */
+private fun Pair<Term, OperatorDefinition?>.conflateSignedNumber(): Pair<Term, OperatorDefinition?> {
+    val secondLocal = second
+    if (secondLocal == null || (secondLocal.name != MINUS.text && secondLocal.name != PLUS.text) || !secondLocal.type.isPrefix){
+        return this
+    }
+
+    val firstLocal = first
+
+    if (firstLocal !is CompoundTerm || firstLocal.arity != 1) {
+        return this
+    }
+
+    val numberWithoutSign = firstLocal.arguments[0] as? PrologNumber ?: return this
+
+    // in a prefix notation, the compound ends where the number ends
+    // with explicit parenthesis, the compound ends further down
+    if (firstLocal.location.end != numberWithoutSign.location.end) {
+        return this
+    }
+
+    // only prefix notation without whitespace between sign and number can be conflated into a single number
+    if (!(firstLocal.location.start directlyPrecedes numberWithoutSign.location.start)) {
+        return this
+    }
+
+    // copy() is important because the sourceInformation is modified; the copy keeps this modification out of
+    // the source stream of tokens so that it remains clean if the parser backtracks
+    val numberWithSign = if (firstLocal.functor == MINUS.text) numberWithoutSign.unaryMinus() else numberWithoutSign.copy()
+    numberWithSign.sourceInformation = firstLocal.location.start..numberWithoutSign.location.end
+    return Pair(numberWithSign, null)
+}
+
 private class ExpressionASTBuildingException(val reporting: Reporting) : RuntimeException()
 
 /**
@@ -1477,7 +1470,7 @@ private class ExpressionASTBuildingException(val reporting: Reporting) : Runtime
 private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<Term, OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
-        return ParseResult.of(Pair(elements[0].asTerm(), null))
+        return ParseResult.of(Pair(elements[0].asTerm(), null).conflateSignedNumber())
     }
 
     val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
@@ -1563,7 +1556,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             }
 
             if (rhsResult.reportings.isEmpty()) {
-                return preliminaryResult
+                return preliminaryResult.map { it.conflateSignedNumber() }
             }
         } else if (operatorDef.type.isInfix) {
             val lhsResult = if (index > 0) {
@@ -1632,7 +1625,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             )
 
             if (lhsResult.isSuccess && rhsResult.isSuccess) {
-                return preliminaryResult
+                return preliminaryResult.map { it.conflateSignedNumber() }
             } // else: try another operator definition
         } else if (operatorDef.type.isPostfix) {
             val lhsResult = buildExpressionAST(elements.subList(0, index), opRegistry)
@@ -1651,13 +1644,13 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                 val fullResult = buildExpressionAST(newElements, opRegistry)
                 return ParseResult(fullResult.item, fullResult.certainty, fullResult.reportings + lhsResult.reportings)
             } else {
-                return ParseResult(Pair(thisTerm, operatorDef), MATCHED, lhsResult.reportings)
+                return ParseResult(Pair(thisTerm, operatorDef).conflateSignedNumber(), MATCHED, lhsResult.reportings)
             }
         } else throw InternalParserError("Illegal operator definition: is neither prefix nor infix nor postfix")
     }
 
     if (preliminaryResult != null) {
-        return preliminaryResult
+        return preliminaryResult.map { it.conflateSignedNumber() }
     }
 
     // there is no way to use the operator

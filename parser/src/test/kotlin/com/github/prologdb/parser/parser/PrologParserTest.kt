@@ -705,8 +705,19 @@ class PrologParserTest : FreeSpec({
                 val result = parseTerm("+(3)")
                 result.certainty shouldBe MATCHED
                 result.reportings should beEmpty()
-                result.item shouldNotBe null
-                result.item!! shouldBe CompoundTerm("+", arrayOf(PrologNumber("3")))
+                result.item shouldBe CompoundTerm("+", arrayOf(PrologNumber("3")))
+            }
+            "in context without space" {
+                val result = parseTerm("X == +3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), PrologNumber("3")))
+            }
+            "in context with space" {
+                val result = parseTerm("X == + 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), CompoundTerm("+", arrayOf(PrologNumber("3")))))
             }
         }
 
@@ -715,22 +726,31 @@ class PrologParserTest : FreeSpec({
                 val result = parseTerm("- 3")
                 result.certainty shouldBe MATCHED
                 result.reportings should beEmpty()
-                result.item shouldNotBe null
-                result.item!! shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
+                result.item shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
             }
             "without space" {
                 val result = parseTerm("-3")
                 result.certainty shouldBe MATCHED
                 result.reportings should beEmpty()
-                result.item shouldNotBe null
-                result.item!! shouldBe PrologNumber("-3")
+                result.item shouldBe PrologNumber("-3")
             }
             "explicit compound of sign and number" {
                 val result = parseTerm("-(3)")
                 result.certainty shouldBe MATCHED
                 result.reportings should beEmpty()
-                result.item shouldNotBe null
-                result.item!! shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
+                result.item shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
+            }
+            "in context without space" {
+                val result = parseTerm("X == -3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), PrologNumber("-3")))
+            }
+            "in context with space" {
+                val result = parseTerm("X == - 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), CompoundTerm("-", arrayOf(PrologNumber("3")))))
             }
         }
 
