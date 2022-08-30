@@ -1,7 +1,6 @@
 package com.github.prologdb.runtime.stdlib.essential.math
 
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
@@ -21,6 +20,6 @@ val BuiltinIs2 = nativeRule("is", 2) { args, ctxt ->
     }
 
     return@nativeRule Unification.whether(
-        inputForA is PrologNumber && inputForB.asPrologNumber == inputForA
+        inputForA.asPrologNumber == inputForB.asPrologNumber
     )
 }
