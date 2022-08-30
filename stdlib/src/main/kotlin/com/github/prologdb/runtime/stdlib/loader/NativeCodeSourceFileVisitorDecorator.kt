@@ -11,11 +11,7 @@ import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologInteger
-import com.github.prologdb.runtime.util.DefaultOperatorRegistry
-import com.github.prologdb.runtime.util.OperatorDefinition
-import com.github.prologdb.runtime.util.OperatorRegistry
-import com.github.prologdb.runtime.util.OperatorType
+import com.github.prologdb.runtime.term.PrologNumber
 
 /**
  * Implements the directive `native/1`: it takes a clause indicator
@@ -42,7 +38,7 @@ class NativeCodeSourceFileVisitorDecorator<Result : Any>(
     override fun visitModuleDeclaration(declaration: ModuleDeclaration, location: SourceLocation) {
         delegate.visitModuleDeclaration(declaration, location)
 
-        delegate.visitDirective(CompoundTerm("op", arrayOf(PrologInteger(1150), Atom("fx"), Atom("native"))))
+        delegate.visitDirective(CompoundTerm("op", arrayOf(PrologNumber(1150), Atom("fx"), Atom("native"))))
     }
 
     override fun visitDirective(command: CompoundTerm): Collection<Reporting> {

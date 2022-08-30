@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.stdlib.lists
 
 import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -26,8 +25,8 @@ private const val IOTA_BATCHSIZE = 100
  */
 val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
     val target = args[0]
-    val start = args.getTyped<PrologInteger>(1)
-    val endExcl = args.getTyped<PrologInteger>(2)
+    val start = args.getInteger(1)
+    val endExcl = args.getInteger(2)
 
     if (start == endExcl) {
         // empty range
@@ -60,7 +59,7 @@ val BuiltinIota3 = nativeRule("iota", 3) { args, ctxt ->
         batchStorage.clear()
         while (source.hasNext() && batchStorage.size < IOTA_BATCHSIZE) {
             val nextN = source.next()
-            batchStorage.add(target.unify(PrologInteger.createUsingStringOptimizerCache(nextN), ctxt.randomVariableScope))
+            batchStorage.add(target.unify(PrologNumber(nextN), ctxt.randomVariableScope))
         }
         if (source.hasNext()) {
             yieldAll(batchStorage)
@@ -123,7 +122,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
     val isForward = start < endExcl
 
     val progression = generateSequence(start) { carry ->
-        val next = carry + step
+        val next = carry.plus(step, ctxt.mathContext)
         if (next == carry) {
             // step is too small in comparison to range
             throw ArgumentError(3, "step is too small for the range (IEEE 754 inprecision)")

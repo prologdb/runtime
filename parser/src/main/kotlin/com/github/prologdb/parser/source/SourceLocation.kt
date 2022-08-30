@@ -34,6 +34,10 @@ open class SourceLocation (
         }
     }
 
+    infix fun directlyPrecedes(other: SourceLocation): Boolean {
+        return this.unit == other.unit && this.line == other.line && this.column + 1 == other.column
+    }
+
     companion object {
         val EOF = object : SourceLocation(SourceUnit(""), -1, -1, -1) {
         override fun toString() = "EOF"

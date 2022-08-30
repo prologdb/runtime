@@ -29,9 +29,13 @@ class ParseResult<out T>(
             )
             ?: "(no reportings)"
 
-        val itemDescription = item?.let { it::class.java }?.simpleName ?: "<no item>"
+        fun describe(item: Any?): String = when (item) {
+            is Pair<*, *> -> "Pair<${describe(item.first)}, ${describe(item.second)}>"
+            is Triple<*, *, *> -> "Triple<${describe(item.first)}, ${describe(item.second)}, ${describe(item.third)}>"
+            else -> item?.let { it::class.java }?.simpleName ?: "<no item>"
+        }
 
-        return "$certainty $itemDescription $reportingLevelCounts"
+        return "$certainty ${describe(item)} $reportingLevelCounts"
     }
 
     companion object {

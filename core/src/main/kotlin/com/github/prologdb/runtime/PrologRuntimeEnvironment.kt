@@ -3,12 +3,22 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.module.InvalidImportException
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleLoader
+import com.github.prologdb.runtime.module.ModuleNotFoundException
+import com.github.prologdb.runtime.module.ModuleNotLoadedException
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
+import com.github.prologdb.runtime.module.NoopModuleLoader
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
 import com.github.prologdb.runtime.query.Query
+import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import java.util.UUID
@@ -123,8 +133,9 @@ interface PrologRuntimeEnvironment {
     }
 }
 
-open class DefaultPrologRuntimeEnvironment(
-    protected val moduleLoader: ModuleLoader = NoopModuleLoader
+open class DefaultPrologRuntimeEnvironment @JvmOverloads constructor(
+    protected val moduleLoader: ModuleLoader = NoopModuleLoader,
+    private val mathContext: MathContext = MathContext.DEFAULT,
 ) : PrologRuntimeEnvironment {
 
     /**
@@ -309,7 +320,8 @@ open class DefaultPrologRuntimeEnvironment(
             moduleLookupTables.getValue(module.declaration.moduleName),
             UUID.randomUUID(),
             RandomVariableScope(),
-            authorization
+            authorization,
+            mathContext,
         )
     }
 
@@ -325,7 +337,8 @@ open class DefaultPrologRuntimeEnvironment(
             moduleLookupTables.getValue(module.declaration.moduleName),
             deriveFrom.principal,
             deriveFrom.randomVariableScope,
-            deriveFrom.authorization
+            deriveFrom.authorization,
+            mathContext,
         )
     }
 

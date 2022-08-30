@@ -2,13 +2,14 @@ package com.github.prologdb.runtime.stdlib.essential.math
 
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.util.ArityMap
 
 /**
  * Takes an arithmetic compound term (e.g. +(1,2) or mod(23,4)) and returns the calculated value
  */
-typealias Calculator = (CompoundTerm) -> PrologNumber
+typealias Calculator = (CompoundTerm, MathContext) -> PrologNumber
 
 /**
  * Keeps track of ways to evaluate mathematical compounds. This is global; registring a new calculator
@@ -22,7 +23,7 @@ object MathOperatorRegistry {
      */
     private val calculators: MutableMap<String, ArityMap<Calculator>> = mutableMapOf()
 
-    fun registerOperator(operatorName: String, arities: IntRange, calculator: Calculator) {
+    fun registerContextualOperator(operatorName: String, arities: IntRange, calculator: Calculator) {
         if (arities.first <= 0) {
             throw IllegalArgumentException("Cannot register an arithmetic operator with arity less than 1")
         }
@@ -45,45 +46,58 @@ object MathOperatorRegistry {
     /**
      * Evaluates the given compound term as an arithmetic expression.
      */
-    fun evaluate(compoundTerm: CompoundTerm): PrologNumber {
+    fun evaluate(compoundTerm: CompoundTerm, context: MathContext): PrologNumber {
         val calculator = getCalculator(compoundTerm.functor, compoundTerm.arity)
             ?: throw UndefinedMathOperatorException(ClauseIndicator.of(compoundTerm))
-        return calculator(compoundTerm)
+        return calculator(compoundTerm, context)
     }
 
-    fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {
-        registerOperator(operatorName, 1..1) { termAST ->
+    fun registerContextualOperator(operatorName: String, calculator: (PrologNumber, MathContext) -> PrologNumber) {
+        registerContextualOperator(operatorName, 1..1) { termAST, context ->
             if (termAST.arity != 1 || termAST.functor != operatorName) {
                 throw InvalidMathOperatorInvocationException(ClauseIndicator.of(operatorName, 1), ClauseIndicator.of(termAST))
             }
-            calculator(termAST.arguments[0].asPrologNumber)
+            calculator(termAST.arguments[0].evaluateAsMathematicalExpression(context), context)
+        }
+    }
+
+    fun registerOperator(operatorName: String, calculator: (PrologNumber) -> PrologNumber) {
+        registerContextualOperator(operatorName) { termAST, context ->
+            calculator(termAST.evaluateAsMathematicalExpression(context))
+        }
+    }
+
+    fun registerContextualOperator(operatorName: String, calculator: (PrologNumber, PrologNumber, MathContext) -> PrologNumber) {
+        registerContextualOperator(operatorName, 2..2) { compoundTerm, context ->
+            if (compoundTerm.arity != 2 || compoundTerm.functor != operatorName) {
+                throw InvalidMathOperatorInvocationException(ClauseIndicator.of(operatorName, 2), ClauseIndicator.of(compoundTerm))
+            }
+            calculator(
+                compoundTerm.arguments[0].evaluateAsMathematicalExpression(context),
+                compoundTerm.arguments[1].evaluateAsMathematicalExpression(context),
+                context,
+            )
         }
     }
 
     fun registerOperator(operatorName: String, calculator: (PrologNumber, PrologNumber) -> PrologNumber) {
-        registerOperator(operatorName, 2..2) { compoundTerm ->
-            if (compoundTerm.arity != 2 || compoundTerm.functor != operatorName) {
-                throw InvalidMathOperatorInvocationException(ClauseIndicator.of(operatorName, 2), ClauseIndicator.of(compoundTerm))
-            }
-            calculator(compoundTerm.arguments[0].asPrologNumber, compoundTerm.arguments[1].asPrologNumber)
-        }
+        registerContextualOperator(operatorName) { a, b, _ -> calculator(a, b) }
     }
 
     init {
         // common binary operators
-        registerOperator("+", PrologNumber::plus)
-        registerOperator("-", PrologNumber::minus)
-        registerOperator("*", PrologNumber::times)
-        registerOperator("/", PrologNumber::div)
-        registerOperator("mod", PrologNumber::rem)
-        registerOperator("^", PrologNumber::toThe)
+        registerContextualOperator("+", PrologNumber::plus)
+        registerContextualOperator("-", PrologNumber::minus)
+        registerContextualOperator("*", PrologNumber::times)
+        registerContextualOperator("/", PrologNumber::div)
+        registerContextualOperator("mod", PrologNumber::rem)
+        registerContextualOperator("^", PrologNumber::toThe)
 
         registerOperator("+", PrologNumber::unaryPlus)
         registerOperator("-", PrologNumber::unaryMinus)
 
-        registerOperator("decimal", PrologNumber::asPrologDecimal)
         registerOperator("ceil", PrologNumber::ceil)
         registerOperator("floor", PrologNumber::floor)
-        registerOperator("sqrt", PrologNumber::sqrt)
+        registerContextualOperator("sqrt", PrologNumber::sqrt)
     }
 }

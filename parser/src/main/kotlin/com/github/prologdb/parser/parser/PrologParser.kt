@@ -616,24 +616,16 @@ class PrologParser {
                 )
             }
         }
-        else if(token is NumericLiteralToken) {
+        else if (token is NumericLiteralToken) {
             tokens.commit()
 
-            val tokenNumber = token.number
-
-            val number = when(tokenNumber) {
-                is Int -> PrologInteger(tokenNumber.toLong())
-                is Long -> PrologInteger(tokenNumber)
-                is Float -> PrologDecimal(tokenNumber.toDouble())
-                is Double -> PrologDecimal(tokenNumber)
-                else -> throw InternalParserError("Unsupported number type in numeric literal token")
-            }
+            val number = token.number
             number.sourceInformation = token.location
 
             return ParseResult(
-                    number,
-                    MATCHED,
-                    emptySet()
+                number,
+                MATCHED,
+                emptySet()
             )
         }
         else if (token is StringLiteralToken) {
@@ -868,16 +860,27 @@ class PrologParser {
                 val name: String?
 
                 when (precedenceTerm) {
-                    is PrologInteger -> {
-                        if (precedenceTerm.value !in 0..1200) {
-                            reportings.add(
-                                SemanticError(
-                                    "Operator precedences must be between 0 and 1200, got ${precedenceTerm.value}",
-                                    precedenceTerm.location
-                                )
-                            )
+                    is PrologNumber -> {
+                        if (!precedenceTerm.isInteger) {
+                            reportings.add(SemanticError(
+                                "Operator precedences in imports must be integers, got a decimal",
+                                precedenceTerm.location
+                            ))
+                            precedence = null
                         }
-                        precedence = min(max(precedenceTerm.value, 1200L), 0L).toShort()
+                        else {
+                            if (precedenceTerm in PRECEDENCE_MIN..PRECEDENCE_MAX) {
+                                precedence = min(max(precedenceTerm.toInteger(), 1200L), 0L).toShort()
+                            } else {
+                                reportings.add(
+                                    SemanticError(
+                                        "Operator precedences must be between 0 and 1200, got $precedenceTerm",
+                                        precedenceTerm.location
+                                    )
+                                )
+                                precedence = null
+                            }
+                        }
                     }
                     is Variable -> {
                         precedence = null
@@ -1086,28 +1089,13 @@ class PrologParser {
             )))
         }
 
-        if (arityTerm !is PrologInteger) {
-            return ParseResult(null, MATCHED, setOf(SyntaxError(
-                "Predicate arities must be integers, got ${functorTerm.prologTypeName}",
+        val arity = arityTerm.asIntegerInRange(0L..Int.MAX_VALUE.toLong())
+            ?: return ParseResult(null, MATCHED, setOf(SyntaxError(
+                "Predicate arity must be an integer in range [$ARITY_MIN; $ARITY_MAX], got $arityTerm",
                 arityTerm.sourceInformation as SourceLocation
             )))
-        }
 
-        if (arityTerm.toInteger() < 0) {
-            return ParseResult(null, MATCHED, setOf(SyntaxError(
-                "Predicate arity cannot be negative",
-                arityTerm.sourceInformation as SourceLocation
-            )))
-        }
-
-        if (arityTerm.toInteger() > Int.MAX_VALUE) {
-            return ParseResult(null, MATCHED, setOf(SyntaxError(
-                "Predicate arity cannot be negative",
-                arityTerm.sourceInformation as SourceLocation
-            )))
-        }
-
-        return ParseResult.of(ClauseIndicator.of(functorTerm.name, arityTerm.toInteger().toInt()))
+        return ParseResult.of(ClauseIndicator.of(functorTerm.name, arity.toInt()))
     }
 
     fun parseSourceFile(
@@ -1318,6 +1306,13 @@ class PrologParser {
     interface ParsedStage : ModuleLoader.ParsedStage {
         val reportings: Collection<Reporting>
     }
+
+    companion object {
+        val PRECEDENCE_MIN = PrologNumber(0)
+        val PRECEDENCE_MAX = PrologNumber(1200)
+        val ARITY_MIN = PrologNumber(0)
+        val ARITY_MAX = PrologNumber(Int.MAX_VALUE)
+    }
 }
 
 private val CompoundTerm.isDirectiveInvocation: Boolean
@@ -1404,6 +1399,12 @@ private val TokenOrTerm.location: SourceLocationRange
         else -> throw InternalParserError()
     }
 
+private infix fun TokenOrTerm.directlyPrecedes(other: TokenOrTerm): Boolean {
+    return this.location.end == other.location.start || this.location.end directlyPrecedes other.location.start
+}
+
+private fun PrologNumber.copy(): PrologNumber = PrologNumber(toString())
+
 private fun TokenOrTerm.asTerm(): Term {
     if (this is Term) return this
 
@@ -1413,6 +1414,50 @@ private fun TokenOrTerm.asTerm(): Term {
     }
 
     throw InternalParserError()
+}
+
+/**
+ * Is supposed to work on an **internal** result of [buildExpressionAST].
+ *
+ * If the given AST can be a signed number, that is:
+ * * an instance of `'+'/1` or `'-'/1`
+ * * the `+` or `-` is recognized as a prefix operator
+ * * the compound [directlyPrecedes] the argument (no space between operator and number)
+ * * the argument is a [PrologNumber]
+ *
+ * then incorporates the sign into the number and returns a new number, including correct
+ * [SourceLocation] and no [OperatorDefinition]. Returns the input otherwise.
+ */
+private fun Pair<Term, OperatorDefinition?>.conflateSignedNumber(): Pair<Term, OperatorDefinition?> {
+    val secondLocal = second
+    if (secondLocal == null || (secondLocal.name != MINUS.text && secondLocal.name != PLUS.text) || !secondLocal.type.isPrefix){
+        return this
+    }
+
+    val firstLocal = first
+
+    if (firstLocal !is CompoundTerm || firstLocal.arity != 1) {
+        return this
+    }
+
+    val numberWithoutSign = firstLocal.arguments[0] as? PrologNumber ?: return this
+
+    // in a prefix notation, the compound ends where the number ends
+    // with explicit parenthesis, the compound ends further down
+    if (firstLocal.location.end != numberWithoutSign.location.end) {
+        return this
+    }
+
+    // only prefix notation without whitespace between sign and number can be conflated into a single number
+    if (!(firstLocal.location.start directlyPrecedes numberWithoutSign.location.start)) {
+        return this
+    }
+
+    // copy() is important because the sourceInformation is modified; the copy keeps this modification out of
+    // the source stream of tokens so that it remains clean if the parser backtracks
+    val numberWithSign = if (firstLocal.functor == MINUS.text) numberWithoutSign.unaryMinus() else numberWithoutSign.copy()
+    numberWithSign.sourceInformation = firstLocal.location.start..numberWithoutSign.location.end
+    return Pair(numberWithSign, null)
 }
 
 private class ExpressionASTBuildingException(val reporting: Reporting) : RuntimeException()
@@ -1425,7 +1470,7 @@ private class ExpressionASTBuildingException(val reporting: Reporting) : Runtime
 private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: OperatorRegistry): ParseResult<Pair<Term, OperatorDefinition?>> {
     if (elements.isEmpty()) throw InternalParserError()
     if (elements.size == 1) {
-        return ParseResult.of(Pair(elements[0].asTerm(), null))
+        return ParseResult.of(Pair(elements[0].asTerm(), null).conflateSignedNumber())
     }
 
     val leftmostOperatorWithMostPrecedence: Pair<Int, Set<OperatorDefinition>> = elements
@@ -1511,7 +1556,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             }
 
             if (rhsResult.reportings.isEmpty()) {
-                return preliminaryResult
+                return preliminaryResult.map { it.conflateSignedNumber() }
             }
         } else if (operatorDef.type.isInfix) {
             val lhsResult = if (index > 0) {
@@ -1580,7 +1625,7 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
             )
 
             if (lhsResult.isSuccess && rhsResult.isSuccess) {
-                return preliminaryResult
+                return preliminaryResult.map { it.conflateSignedNumber() }
             } // else: try another operator definition
         } else if (operatorDef.type.isPostfix) {
             val lhsResult = buildExpressionAST(elements.subList(0, index), opRegistry)
@@ -1599,13 +1644,13 @@ private fun buildExpressionAST(elements: List<TokenOrTerm>, opRegistry: Operator
                 val fullResult = buildExpressionAST(newElements, opRegistry)
                 return ParseResult(fullResult.item, fullResult.certainty, fullResult.reportings + lhsResult.reportings)
             } else {
-                return ParseResult(Pair(thisTerm, operatorDef), MATCHED, lhsResult.reportings)
+                return ParseResult(Pair(thisTerm, operatorDef).conflateSignedNumber(), MATCHED, lhsResult.reportings)
             }
         } else throw InternalParserError("Illegal operator definition: is neither prefix nor infix nor postfix")
     }
 
     if (preliminaryResult != null) {
-        return preliminaryResult
+        return preliminaryResult.map { it.conflateSignedNumber() }
     }
 
     // there is no way to use the operator

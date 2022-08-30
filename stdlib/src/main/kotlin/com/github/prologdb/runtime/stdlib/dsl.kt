@@ -12,8 +12,6 @@ import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologDecimal
-import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Term
@@ -42,9 +40,9 @@ fun L(vararg elements: Term): PrologList = PrologList(elements.toList())
  */
 fun N(number: Number): PrologNumber {
     if (number is Byte || number is Short || number is Int || number is Long) {
-        return PrologInteger(number.toLong())
+        return PrologNumber(number.toLong())
     } else {
-        return PrologDecimal(number.toDouble())
+        return PrologNumber(number.toDouble())
     }
 }
 

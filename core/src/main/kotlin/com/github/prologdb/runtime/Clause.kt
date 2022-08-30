@@ -3,7 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologInteger
+import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.util.ArityMap
 import java.util.WeakHashMap
 
@@ -23,7 +23,7 @@ data class ClauseIndicator internal constructor(
 
     override fun toString() = "$functor/$arity"
 
-    fun toIdiomatic(): CompoundTerm = CompoundTerm("/", arrayOf(Atom(functor), PrologInteger.createUsingStringOptimizerCache(arity.toLong())))
+    fun toIdiomatic(): CompoundTerm = CompoundTerm("/", arrayOf(Atom(functor), PrologNumber(arity.toLong())))
 
     companion object {
         /**

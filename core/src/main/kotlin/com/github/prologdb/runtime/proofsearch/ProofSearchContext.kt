@@ -1,9 +1,7 @@
 package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
@@ -11,6 +9,7 @@ import com.github.prologdb.runtime.PredicateNotDefinedException
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -41,6 +40,8 @@ interface ProofSearchContext {
      * the query has finished.
      */
     val fulfillAttach: ProofSearch
+
+    val mathContext: MathContext
 
     /**
      * Resolves the given, context-sensitive indicator against the contexts imports

@@ -5,9 +5,10 @@ import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.asIntegerInRange
 
 /**
  * length(++List, :Length)
@@ -19,30 +20,28 @@ val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
     when (arg0) {
         is PrologList -> {
             if (arg0.tail != null) {
-                when (arg1) {
-                    is PrologInteger -> {
-                        if (arg1.value < 0) {
-                            throw ArgumentError(1, "must not be negative")
-                        }
-                        return@nativeRule arg0.tail!!.unify(listOfLength(arg1.value.toInt(), ctxt), ctxt.randomVariableScope)
+                if (arg1 is PrologNumber) {
+                    val lengthInput = arg1.asIntegerInRange(0..Int.MAX_VALUE.toLong())
+                        ?: throw ArgumentError(1, "Must be an integer in range [0; ${Int.MAX_VALUE}], got $arg1")
+
+                    return@nativeRule arg0.tail!!.unify(listOfLength(lengthInput.toInt(), ctxt), ctxt.randomVariableScope)
+                } else if (arg1 is Variable) {
+                    val baseLength = arg0.elements.size
+                    var tailLength = 0
+                    while (true) {
+                        val result = arg0.tail!!.unify(listOfLength(tailLength, ctxt), ctxt.randomVariableScope)
+                        result.variableValues.instantiate(arg1,
+                            PrologNumber((baseLength + tailLength).toLong()))
+                        yield(result)
+                        tailLength++
                     }
-                    is Variable -> {
-                        val baseLength = arg0.elements.size
-                        var tailLength = 0
-                        while (true) {
-                            val result = arg0.tail!!.unify(listOfLength(tailLength, ctxt), ctxt.randomVariableScope)
-                            result.variableValues.instantiate(arg1,
-                                PrologInteger.createUsingStringOptimizerCache((baseLength + tailLength).toLong()))
-                            yield(result)
-                            tailLength++
-                        }
-                        @Suppress("UNREACHABLE_CODE")
-                        null
-                    }
-                    else -> throw ArgumentTypeError(1, arg1, PrologInteger::class.java, Variable::class.java)
+                    @Suppress("UNREACHABLE_CODE")
+                    null
+                } else {
+                    throw ArgumentTypeError(1, arg1, PrologNumber::class.java, Variable::class.java)
                 }
             } else {
-                val length = PrologInteger.createUsingStringOptimizerCache(arg0.elements.size.toLong())
+                val length = PrologNumber(arg0.elements.size.toLong())
                 return@nativeRule length.unify(arg1, ctxt.randomVariableScope)
             }
         }
@@ -52,15 +51,17 @@ val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                     var length = 0
                     while (true) {
                         val result = arg0.unify(listOfLength(length, ctxt), ctxt.randomVariableScope)
-                        result.variableValues.instantiate(arg1, PrologInteger.createUsingStringOptimizerCache(length.toLong()))
+                        result.variableValues.instantiate(arg1, PrologNumber(length.toLong()))
                         yield(result)
                         length++
                     }
                     @Suppress("UNREACHABLE_CODE")
                     null
                 }
-                is PrologInteger -> {
-                    return@nativeRule listOfLength(arg1.value.toInt(), ctxt).unify(arg0, ctxt.randomVariableScope)
+                is PrologNumber -> {
+                    val lengthInput = arg1.asIntegerInRange(0..Int.MAX_VALUE.toLong())
+                        ?: throw ArgumentError(1, "Must be an integer in range [0; ${Int.MAX_VALUE}], got $arg1")
+                    return@nativeRule listOfLength(lengthInput.toInt(), ctxt).unify(arg0, ctxt.randomVariableScope)
                 }
                 else -> {
                     throw PrologInvocationContractViolationException("If argument 1 is a variable, argument 2 must be an integer or a variable (got ${arg1.prologTypeName})")

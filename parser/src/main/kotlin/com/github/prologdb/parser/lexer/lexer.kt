@@ -7,6 +7,7 @@ import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
 import com.github.prologdb.parser.source.SourceUnit
+import com.github.prologdb.runtime.term.PrologNumber
 
 class Lexer(source: Iterator<Char>, initialSourceLocation: SourceLocation) : TransactionalSequence<Token>
 {
@@ -92,7 +93,8 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
 
         if (text.first[0].isDigit()) {
             // NUMERIC LITERAL
-            val numberWithLocation: Pair<Number, SourceLocationRange>
+            val number: PrologNumber
+            val location: SourceLocationRange
             source.mark()
 
             if (source.hasNext()) {
@@ -106,24 +108,28 @@ class LexerIterator(givenSource: Iterator<Char>, initialSourceLocation: SourceLo
                         val afterSeparator = collectUntilOperatorOrWhitespace()
                         val numberLocationRange = SourceLocationRange(text.second.start, afterSeparator.second.end)
                         val numberAsString = text.first + '.' + afterSeparator.first
-                        numberWithLocation = Pair(numberAsString.toDouble(), numberLocationRange)
+                        number = PrologNumber(numberAsString)
+                        location = numberLocationRange
                     } else {
                         // <DIGIT...> <SEPARATOR> <!DIGIT> => treat the separator as an operator; the nextCharsAsString invocation will
                         // find it and deal with it
                         source.commit()
                         source.rollback()
-                        numberWithLocation = Pair(text.first.toLong(), text.second)
+                        number = PrologNumber(text.first)
+                        location = text.second
                     }
                 } else {
-                    numberWithLocation = Pair(text.first.toLong(), text.second)
+                    number = PrologNumber(text.first)
+                    location = text.second
                     source.rollback()
                 }
             } else {
-                numberWithLocation = Pair(text.first.toLong(), text.second)
+                number = PrologNumber(text.first)
+                location = text.second
                 source.commit()
             }
 
-            return NumericLiteralToken(numberWithLocation.first, numberWithLocation.second)
+            return NumericLiteralToken(number, location)
         }
         else {
             // IDENTIFIER

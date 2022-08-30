@@ -2,7 +2,14 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDefinedException
+import com.github.prologdb.runtime.PredicateNotExportedException
+import com.github.prologdb.runtime.PrologPermissionError
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Authorization
@@ -11,6 +18,7 @@ import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
@@ -27,7 +35,8 @@ class ModuleScopeProofSearchContext(
     private val lookupTable: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>,
     override val principal: Principal,
     override val randomVariableScope: RandomVariableScope,
-    override val authorization: Authorization
+    override val authorization: Authorization,
+    override val mathContext: MathContext,
 ) : ProofSearchContext, AbstractProofSearchContext() {
 
     override val operators = module.localOperators

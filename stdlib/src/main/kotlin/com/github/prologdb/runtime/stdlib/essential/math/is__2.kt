@@ -1,7 +1,6 @@
 package com.github.prologdb.runtime.stdlib.essential.math
 
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 
@@ -13,14 +12,14 @@ val BuiltinIs2 = nativeRule("is", 2) { args, ctxt ->
     val inputForB = args[1]
 
     if (inputForA is Variable) {
-        return@nativeRule inputForA.unify(inputForB.asPrologNumber, ctxt.randomVariableScope)
+        return@nativeRule inputForA.unify(inputForB.evaluateAsMathematicalExpression(ctxt.mathContext), ctxt.randomVariableScope)
     }
 
     if (inputForB is Variable) {
-        return@nativeRule inputForB.unify(inputForA.asPrologNumber, ctxt.randomVariableScope)
+        return@nativeRule inputForB.unify(inputForA.evaluateAsMathematicalExpression(ctxt.mathContext), ctxt.randomVariableScope)
     }
 
     return@nativeRule Unification.whether(
-        inputForA is PrologNumber && inputForB.asPrologNumber == inputForA
+        inputForA.evaluateAsMathematicalExpression(ctxt.mathContext) == inputForB.evaluateAsMathematicalExpression(ctxt.mathContext)
     )
 }

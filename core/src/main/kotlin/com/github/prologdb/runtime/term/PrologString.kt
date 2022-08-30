@@ -12,17 +12,17 @@ open class PrologString private constructor(
     /**
      * The unicode code points that make up the string
      */
-    private val data: ImmutableSubList<PrologInteger>
+    private val data: ImmutableSubList<PrologNumber>
 ) : PrologList(data) {
 
     constructor(chars: CharArray, beginIndex: Int = 0, length: Int = chars.size) : this(
-        ImmutableSubList(chars.toList().map { PrologInteger(it.code.toLong()) }, beginIndex, length)
+        ImmutableSubList(chars.toList().map { PrologNumber(it.code.toLong()) }, beginIndex, length)
     )
 
     constructor(str: String) : this(CharArray(str.length) { str[it] })
 
     init {
-        if (data.any { it.value < 0 || it.value > 65535 }) throw IllegalArgumentException("Prolog strings must only contain unicode values in the range [0; 65535]")
+        if (data.any { it < CODEPOINT_MIN || it > CODEPOINT_MAX }) throw IllegalArgumentException("Prolog strings must only contain unicode values in the range [$CODEPOINT_MIN; $CODEPOINT_MAX]")
     }
 
     val length: Int = data.size
@@ -31,7 +31,7 @@ open class PrologString private constructor(
      * @return The character at the given index (0-based)
      * @throws ArrayIndexOutOfBoundsException If the given index is negative or exceeds this strings length
      */
-    fun charAt(index: Int): Char = data[index].value.toInt().toChar()
+    fun charAt(index: Int): Char = data[index].toInteger().toInt().toChar()
 
     /**
      * Returns a string that is a substring of this string. The
@@ -160,6 +160,11 @@ open class PrologString private constructor(
             .replace("\t", "\\t")
             .replace("\u000B", "\\v")
             .replace("\"", "\\\"")) + '"'
+    }
+
+    companion object {
+        val CODEPOINT_MIN = PrologNumber(0)
+        val CODEPOINT_MAX = PrologNumber(65535)
     }
 }
 

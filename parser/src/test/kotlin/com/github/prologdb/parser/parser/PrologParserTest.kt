@@ -18,8 +18,8 @@ import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologDictionary
-import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
@@ -375,7 +375,7 @@ class PrologParserTest : FreeSpec({
 
             val pair = result.item!!.pairs.entries.first()
             pair.key shouldBe Atom("a")
-            pair.value shouldBe PrologInteger(1)
+            pair.value shouldBe PrologNumber(1)
         }
 
         "{a : 1, b : 2}" {
@@ -387,8 +387,8 @@ class PrologParserTest : FreeSpec({
             result.item!!.pairs.size shouldBe 2
             result.item!!.tail shouldBe null
 
-            result.item!!.pairs[Atom("a")]!! shouldBe PrologInteger(1)
-            result.item!!.pairs[Atom("b")]!! shouldBe PrologInteger(2)
+            result.item!!.pairs[Atom("a")]!! shouldBe PrologNumber(1)
+            result.item!!.pairs[Atom("b")]!! shouldBe PrologNumber(2)
         }
 
         "{a : 1, b : 2 | T}" {
@@ -400,8 +400,8 @@ class PrologParserTest : FreeSpec({
             result.item!!.pairs.size shouldBe 2
             result.item!!.tail shouldBe Variable("T")
 
-            result.item!!.pairs[Atom("a")]!! shouldBe PrologInteger(1)
-            result.item!!.pairs[Atom("b")]!! shouldBe PrologInteger(2)
+            result.item!!.pairs[Atom("a")]!! shouldBe PrologNumber(1)
+            result.item!!.pairs[Atom("b")]!! shouldBe PrologNumber(2)
         }
 
         "{a}" {
@@ -610,7 +610,7 @@ class PrologParserTest : FreeSpec({
                 indicator.functor shouldBe "/"
                 indicator.arity shouldBe 2
                 indicator.arguments[0] shouldBe Atom("append")
-                indicator.arguments[1] shouldBe PrologInteger(3)
+                indicator.arguments[1] shouldBe PrologNumber(3)
             }
         }
 
@@ -685,6 +685,110 @@ class PrologParserTest : FreeSpec({
         }
     }
 
+    "signed numbers" - {
+        "unary plus" - {
+            "with space" {
+                val result = parseTerm("+ 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(PrologNumber("3")))
+            }
+            "without space" {
+                val result = parseTerm("+3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe PrologNumber("3")
+            }
+            "explicit compound of sign and number" {
+                val result = parseTerm("+(3)")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("+", arrayOf(PrologNumber("3")))
+            }
+            "in context without space" {
+                val result = parseTerm("X == +3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), PrologNumber("3")))
+            }
+            "in context with space" {
+                val result = parseTerm("X == + 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), CompoundTerm("+", arrayOf(PrologNumber("3")))))
+            }
+        }
+
+        "unary minus" - {
+            "with space" {
+                val result = parseTerm("- 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
+            }
+            "without space" {
+                val result = parseTerm("-3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe PrologNumber("-3")
+            }
+            "explicit compound of sign and number" {
+                val result = parseTerm("-(3)")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
+            }
+            "in context without space" {
+                val result = parseTerm("X == -3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), PrologNumber("-3")))
+            }
+            "in context with space" {
+                val result = parseTerm("X == - 3")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldBe CompoundTerm("==", arrayOf(Variable("X"), CompoundTerm("-", arrayOf(PrologNumber("3")))))
+            }
+        }
+
+        "ambiguity with expression" - {
+            "no space" {
+                val result = parseTerm("a+1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+
+            "space before sign" {
+                val result = parseTerm("a +1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+
+            "space after sign" {
+                val result = parseTerm("a+ 1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+
+            "space around sign" {
+                val result = parseTerm("a + 1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+        }
+    }
+
     "invalid :-op/3" - {
         "non-numeric precedence" {
             val declaration = CompoundTerm("op", arrayOf(Atom("invalid"), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
@@ -695,7 +799,7 @@ class PrologParserTest : FreeSpec({
         }
 
         "precedence out of range below" {
-            val declaration = CompoundTerm("op", arrayOf(PrologInteger(-10), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val declaration = CompoundTerm("op", arrayOf(PrologNumber(-10), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
             val result = PrologParser().parseOperatorDefinition(declaration)
             result.reportings.size shouldBe 1
             result.reportings.first().message shouldBe "operator precedence must be between 0 and 1200 (inclusive)"
@@ -704,7 +808,7 @@ class PrologParserTest : FreeSpec({
         }
 
         "precedence out of range above" {
-            val declaration = CompoundTerm("op", arrayOf(PrologInteger(1201), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
+            val declaration = CompoundTerm("op", arrayOf(PrologNumber(1201), Atom("xfx"), Atom("opname"))).withMockSourceLocation()
             val result = PrologParser().parseOperatorDefinition(declaration)
             result.reportings.size shouldBe 1
             result.reportings.first().message shouldBe "operator precedence must be between 0 and 1200 (inclusive)"
@@ -713,7 +817,7 @@ class PrologParserTest : FreeSpec({
         }
 
         "type argument not atom" {
-            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), PrologList(emptyList()), Atom("opname"))).withMockSourceLocation()
+            val declaration = CompoundTerm("op", arrayOf(PrologNumber(400), PrologList(emptyList()), Atom("opname"))).withMockSourceLocation()
             val result = PrologParser().parseOperatorDefinition(declaration)
             result.reportings.size shouldBe 1
             result.reportings.first().message shouldBe "operator type: expected atom but got list"
@@ -721,7 +825,7 @@ class PrologParserTest : FreeSpec({
         }
 
         "undefined type" {
-            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), Atom("yfy"), Atom("opname"))).withMockSourceLocation()
+            val declaration = CompoundTerm("op", arrayOf(PrologNumber(400), Atom("yfy"), Atom("opname"))).withMockSourceLocation()
             val result = PrologParser().parseOperatorDefinition(declaration)
             result.reportings.size shouldBe 1
             result.reportings.first().message shouldBe "yfy is not a known operator type"
@@ -729,7 +833,7 @@ class PrologParserTest : FreeSpec({
         }
 
         "name argument not atom" {
-            val declaration = CompoundTerm("op", arrayOf(PrologInteger(400), Atom("xfx"), PrologList(emptyList()))).withMockSourceLocation()
+            val declaration = CompoundTerm("op", arrayOf(PrologNumber(400), Atom("xfx"), PrologList(emptyList()))).withMockSourceLocation()
             val result = PrologParser().parseOperatorDefinition(declaration)
             result.reportings.size shouldBe 1
             result.reportings.first().message shouldBe "operator name: expected atom but got list"
@@ -738,7 +842,7 @@ class PrologParserTest : FreeSpec({
     }
 
     "valid :-op/3" {
-        val declaration = CompoundTerm("op", arrayOf(PrologInteger(800), Atom("xfx"), Atom("myop"))).withMockSourceLocation()
+        val declaration = CompoundTerm("op", arrayOf(PrologNumber(800), Atom("xfx"), Atom("myop"))).withMockSourceLocation()
         val result = PrologParser().parseOperatorDefinition(declaration)
         result.reportings should beEmpty()
         result.item shouldNotBe null
@@ -788,8 +892,8 @@ class PrologParserTest : FreeSpec({
 
     "valid :-module/2" {
         val exports = listOf(
-            CompoundTerm("/", arrayOf(Atom("predname"), PrologInteger(2))),
-            CompoundTerm("/", arrayOf(Atom("otherpred"), PrologInteger(4)))
+            CompoundTerm("/", arrayOf(Atom("predname"), PrologNumber(2))),
+            CompoundTerm("/", arrayOf(Atom("otherpred"), PrologNumber(4)))
         )
         val declaration = CompoundTerm("module", arrayOf(Atom("name"), PrologList(exports))).withMockSourceLocation()
         val result = PrologParser().parseModuleDeclaration(declaration)

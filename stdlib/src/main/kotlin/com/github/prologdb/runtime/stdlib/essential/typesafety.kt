@@ -7,7 +7,13 @@ import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.stdlib.NativeCodeRule
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.PrologDictionary
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.PrologString
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -35,8 +41,8 @@ val BuiltinTypeof2 = nativeRule("typeof", 2) { args, ctxt ->
 
 val BuiltinAtom1 = typeCheckBuiltin("atom") { it is Atom }
 
-val BuiltinInteger1 = typeCheckBuiltin("integer") { it is PrologInteger }
-val BuiltinDecimal1 = typeCheckBuiltin("decimal") { it is PrologDecimal }
+val BuiltinInteger1 = typeCheckBuiltin("integer") { it is PrologNumber && it.isInteger }
+val BuiltinDecimal1 = typeCheckBuiltin("decimal") { it is PrologNumber && !it.isInteger }
 val BuiltinNumber1 = typeCheckBuiltin("number") { it is PrologNumber }
 
 val BuiltinString1 = typeCheckBuiltin("string") { it is PrologString }
