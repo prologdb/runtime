@@ -8,7 +8,8 @@ import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
 import org.apfloat.InfiniteExpansionException
 import java.math.BigInteger
-import java.math.RoundingMode
+import kotlin.math.absoluteValue
+import kotlin.math.max
 
 /**
  * Numbers in prolog.
@@ -26,12 +27,12 @@ sealed class PrologNumber : Term {
     final override val isGround = true
     final override var sourceInformation: PrologSourceInformation = NullSourceInformation
 
-    abstract operator fun plus(other: PrologNumber): PrologNumber
-    abstract operator fun minus(other: PrologNumber): PrologNumber
-    abstract operator fun times(other: PrologNumber): PrologNumber
-    abstract operator fun div(other: PrologNumber): PrologNumber
-    abstract operator fun rem(other: PrologNumber): PrologNumber
-    abstract infix fun toThe(other: PrologNumber): PrologNumber
+    abstract fun plus(other: PrologNumber, context: MathContext): PrologNumber
+    abstract fun minus(other: PrologNumber, context: MathContext): PrologNumber
+    abstract fun times(other: PrologNumber, context: MathContext): PrologNumber
+    abstract fun div(other: PrologNumber, context: MathContext): PrologNumber
+    abstract fun rem(other: PrologNumber, context: MathContext): PrologNumber
+    abstract fun toThe(other: PrologNumber, context: MathContext): PrologNumber
     abstract operator fun compareTo(other: PrologNumber) : Int
 
     abstract operator fun unaryPlus(): PrologNumber
@@ -40,7 +41,7 @@ sealed class PrologNumber : Term {
     abstract fun ceil(): PrologNumber
     abstract fun floor(): PrologNumber
 
-    abstract fun sqrt(): PrologNumber
+    abstract fun sqrt(context: MathContext): PrologNumber
 
     abstract val isInteger: Boolean
 
@@ -150,31 +151,31 @@ class PrologLongInteger(
     val value: Long
 ) : PrologNumber() {
     override val isInteger = true
-    override fun plus(other: PrologNumber) =
+    override fun plus(other: PrologNumber, context: MathContext) =
         when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value, Math::addExact, Apfloat::add)
+            is PrologLongInteger -> this.value.combineExact(other.value, context, Math::addExact, Apfloat::add)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).add(other.value))
         }
 
-    override fun minus(other: PrologNumber) =
+    override fun minus(other: PrologNumber, context: MathContext) =
         when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value, Math::subtractExact, Apfloat::subtract)
+            is PrologLongInteger -> this.value.combineExact(other.value, context, Math::subtractExact, Apfloat::subtract)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).subtract(other.value))
         }
 
-    override fun times(other: PrologNumber) =
+    override fun times(other: PrologNumber, context: MathContext) =
         when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value, Math::multiplyExact, Apfloat::multiply)
+            is PrologLongInteger -> this.value.combineExact(other.value, context, Math::multiplyExact, Apfloat::multiply)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).multiply(other.value))
         }
 
-    override fun div(other: PrologNumber) =
+    override fun div(other: PrologNumber, context: MathContext) =
         when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value, ::divideExact, Apfloat::divideWithFinitePrecision)
-            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).divideWithFinitePrecision(other.value))
+            is PrologLongInteger -> this.value.combineExact(other.value, context, ::divideExact) { divident, divisor -> divident.divideWithFinitePrecision(divisor, context) }
+            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).divideWithFinitePrecision(other.value, context))
         }
 
-    override fun rem(other: PrologNumber) =
+    override fun rem(other: PrologNumber, context: MathContext) =
         when(other) {
             is PrologLongInteger -> PrologLongInteger(this.value % other.value)
             is PrologBigNumber -> {
@@ -188,10 +189,10 @@ class PrologLongInteger(
             }
         }
 
-    override fun toThe(other: PrologNumber): PrologNumber {
+    override fun toThe(other: PrologNumber, context: MathContext): PrologNumber {
         return when(other) {
-            is PrologLongInteger -> PrologBigNumber(Apfloat(this.value).powSupportingNegativeBase(Apfloat(other.value)))
-            is PrologBigNumber -> PrologBigNumber(ApfloatMath.round(ApfloatMath.pow(Apfloat(this.value, PrologBigNumber.PRECISION + 1), other.value), PrologBigNumber.PRECISION, RoundingMode.HALF_UP))
+            is PrologLongInteger -> PrologBigNumber(Apfloat(this.value).powSupportingNegativeBase(Apfloat(other.value), context))
+            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).powSupportingNegativeBase(other.value, context))
         }
     }
 
@@ -201,7 +202,7 @@ class PrologLongInteger(
     override fun unaryMinus() = PrologLongInteger(-this.value)
     override fun toInteger(): Long = value
     override fun toDecimal(): Double = value.toDouble()
-    override fun sqrt() = PrologBigNumber(ApfloatMath.round(ApfloatMath.sqrt(Apfloat(this.value, PrologBigNumber.PRECISION + 1)), PrologBigNumber.PRECISION, RoundingMode.HALF_UP))
+    override fun sqrt(context: MathContext) = PrologBigNumber(context.transformWithCappedPrecision(Apfloat(this.value), ApfloatMath::sqrt))
 
     override fun compareTo(other: PrologNumber) = when(other) {
         is PrologLongInteger -> this.value.compareTo(other.value)
@@ -240,12 +241,12 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
         ApfloatMath.scale(unscaled, scale)
     }())
 
-    override fun plus(other: PrologNumber) = combineSimple(other, Apfloat::add)
-    override fun minus(other: PrologNumber) = combineSimple(other, Apfloat::subtract)
-    override fun times(other: PrologNumber) = combineSimple(other, Apfloat::multiply)
-    override fun div(other: PrologNumber) = combineSimple(other, Apfloat::divideWithFinitePrecision)
-    override fun rem(other: PrologNumber) = combineSimple(other, Apfloat::mod)
-    override fun toThe(other: PrologNumber) = combineSimple(other, Apfloat::powSupportingNegativeBase)
+    override fun plus(other: PrologNumber, context: MathContext) = combineSimple(other, Apfloat::add)
+    override fun minus(other: PrologNumber, context: MathContext) = combineSimple(other, Apfloat::subtract)
+    override fun times(other: PrologNumber, context: MathContext) = combineSimple(other, Apfloat::multiply)
+    override fun div(other: PrologNumber, context: MathContext) = combineSimple(other) { divident, divisor -> divident.divideWithFinitePrecision(divisor, context) }
+    override fun rem(other: PrologNumber, context: MathContext) = combineSimple(other, Apfloat::mod)
+    override fun toThe(other: PrologNumber, context: MathContext) = combineSimple(other) { base, exp -> base.powSupportingNegativeBase(exp, context) }
     override fun compareTo(other: PrologNumber) = when (other) {
         is PrologLongInteger -> this.value.compareTo(Apfloat(other.value))
         is PrologBigNumber -> this.value.compareTo(other.value)
@@ -254,13 +255,7 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
     override fun unaryMinus() = PrologBigNumber(this.value.negate())
     override fun ceil() = PrologBigNumber(this.value.ceil())
     override fun floor() = PrologBigNumber(this.value.floor())
-    override fun sqrt(): PrologNumber {
-        return try {
-            PrologBigNumber(ApfloatMath.sqrt(this.value))
-        } catch (_: InfiniteExpansionException) {
-            PrologBigNumber(ApfloatMath.round(ApfloatMath.sqrt(this.value.precision(PRECISION + 1)), PRECISION, RoundingMode.HALF_UP))
-        }
-    }
+    override fun sqrt(context: MathContext): PrologNumber = PrologBigNumber(context.transformWithCappedPrecision(this.value, ApfloatMath::sqrt))
     override val isInteger = this.value.isInteger
     override fun toInteger() = this.value.longValueExact()
     override fun toDecimal() = this.value.toDouble().takeUnless { it.isInfinite() || it.isNaN() } ?: throw ArithmeticException("overflow")
@@ -279,16 +274,11 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
         return Triple(asByteArray, value.signum(), value.scale())
     }
 
-    private inline fun combineSimple(other: PrologNumber, crossinline operation: (Apfloat, Apfloat) -> (Apfloat)): PrologNumber {
+    private inline fun combineSimple(other: PrologNumber, crossinline operation: (Apfloat, Apfloat) -> Apfloat): PrologNumber {
         return when (other) {
             is PrologLongInteger -> PrologBigNumber(operation(this.value, Apfloat(other.value)))
             is PrologBigNumber -> PrologBigNumber(operation(this.value, other.value))
         }
-    }
-
-    companion object {
-        // TODO: put into ProofSearchContext
-        const val PRECISION = 50L
     }
 }
 
@@ -300,11 +290,18 @@ private fun divideExact(divident: Long, divisor: Long): Long {
     return divident / divisor
 }
 
+private fun Long.toApfloatWithFinitePrecision(context: MathContext): Apfloat {
+    val uncapped = Apfloat(this)
+    return uncapped.precision(max(uncapped.scale().absoluteValue, context.fractionalPrecision + 1))
+}
+
 /**
- * @param simpleCombinator must throw [ArithmeticException] if the opration is not exact. Use method references from [Math]
+ * @param simpleCombinator must throw [ArithmeticException] if the operation is not exact. Use method references from [Math],
+ * e.g. [Math.addExact]
  */
 private inline fun Long.combineExact(
     other: Long,
+    context: MathContext,
     crossinline simpleCombinator: (Long, Long) -> Long,
     crossinline apfloatCombinator: (Apfloat, Apfloat) -> Apfloat,
 ): PrologNumber {
@@ -312,24 +309,55 @@ private inline fun Long.combineExact(
         PrologLongInteger(simpleCombinator(this, other))
     }
     catch (_: ArithmeticException) {
-        PrologBigNumber(
-            ApfloatMath.round(
-                apfloatCombinator(Apfloat(this, PrologBigNumber.PRECISION + 1), Apfloat(other, PrologBigNumber.PRECISION + 1)),
-                PrologBigNumber.PRECISION,
-                RoundingMode.HALF_UP,
-            )
-        )
+        val rawResult = apfloatCombinator(this.toApfloatWithFinitePrecision(context), other.toApfloatWithFinitePrecision(context))
+        PrologBigNumber(rawResult.roundToFractionalPrecision(context))
     }
 }
 
-private fun Apfloat.powSupportingNegativeBase(exponent: Apfloat): Apfloat {
-    // ApfloatMath rejects the operation if the base is negative as the result would be a complex number
-    // however, all prolog systems agree that `0.25 is (-0.5)^2`, so this case is caught here
-    val adjustedBase = ApfloatMath.abs(this)
-    return ApfloatMath.round(ApfloatMath.pow(adjustedBase.precision(PrologBigNumber.PRECISION + 1), exponent), PrologBigNumber.PRECISION, RoundingMode.HALF_UP)
+private fun Apfloat.roundToFractionalPrecision(context: MathContext): Apfloat {
+    val precision = this.precision()
+    if (precision == Apfloat.INFINITE) {
+        return ApfloatMath.round(this, precision, context.roundingMode.java)
+    }
+
+    val fractionalPrecision = (this.precision() - this.scale().absoluteValue).absoluteValue
+    return if (fractionalPrecision > context.fractionalPrecision) {
+        ApfloatMath.round(this, this.scale().absoluteValue + context.fractionalPrecision, context.roundingMode.java)
+    } else {
+        this
+    }
 }
 
-private fun Apfloat.divideWithFinitePrecision(divident: Apfloat): Apfloat {
+private fun Apfloat.fractionalPrecision(fracPrecision: Long): Apfloat = precision(scale().absoluteValue + fracPrecision)
+
+private inline fun MathContext.transformWithCappedPrecision(value: Apfloat, crossinline transform: (Apfloat) -> Apfloat): Apfloat {
+    return try {
+        transform(value)
+    } catch (_: InfiniteExpansionException) {
+        transform(value.fractionalPrecision(fractionalPrecision + 1)).roundToFractionalPrecision(this)
+    }
+}
+
+private fun Apfloat.powSupportingNegativeBase(exponent: Apfloat, context: MathContext): Apfloat {
+    // ApfloatMath rejects the operation if the base is negative as the result would be a complex number
+    // however, SWI, GNU prolog, Tau prolog and my SHARP calculator agree that `0.25 is (-0.5)^2`, so this case is caught here
+    val adjustedBase = ApfloatMath.abs(this)
+
+    val rawResult = try {
+        ApfloatMath.pow(adjustedBase, exponent)
+    } catch (_: InfiniteExpansionException) {
+        ApfloatMath.pow(adjustedBase.fractionalPrecision(context.fractionalPrecision), exponent)
+    }
+
+    return if (adjustedBase.isInteger && exponent.isInteger && exponent.signum() >= 0) {
+        // result has to be integer as well
+        ApfloatMath.round(rawResult, rawResult.scale().absoluteValue, context.roundingMode.java)
+    } else {
+        rawResult.roundToFractionalPrecision(context)
+    }
+}
+
+private fun Apfloat.divideWithFinitePrecision(divident: Apfloat, context: MathContext): Apfloat {
     return try {
         this.divide(divident)
     } catch (ex: InfiniteExpansionException)  {
@@ -338,6 +366,10 @@ private fun Apfloat.divideWithFinitePrecision(divident: Apfloat): Apfloat {
         if (this == divident) {
             return Apfloat.ONE
         }
-        ApfloatMath.round(this.precision(PrologBigNumber.PRECISION + 1).divide(divident), PrologBigNumber.PRECISION, RoundingMode.HALF_UP)
+
+        this
+            .precision(this.scale().absoluteValue + context.fractionalPrecision + 1)
+            .divide(divident)
+            .roundToFractionalPrecision(context)
     }
 }

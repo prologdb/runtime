@@ -127,6 +127,6 @@ test "percentile_continuous with explicit desc sort" by [
 
 test "standard deviation and variance" by [
     reduce([variance(V) as Variance, stddev(V) as StdDev], pred(V)),
-    Variance == 2.9166666666666666666666,
-    StdDev == 1.7078251276599330638701
+    Variance == 2.9166666666666666666666666666666,
+    StdDev == 1.7078251276599330638701731134201
 ].

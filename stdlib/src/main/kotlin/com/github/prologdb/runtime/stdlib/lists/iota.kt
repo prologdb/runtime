@@ -122,7 +122,7 @@ val BuiltinIota4 = nativeRule("iota", 4) { args, ctxt ->
     val isForward = start < endExcl
 
     val progression = generateSequence(start) { carry ->
-        val next = carry + step
+        val next = carry.plus(step, ctxt.mathContext)
         if (next == carry) {
             // step is too small in comparison to range
             throw ArgumentError(3, "step is too small for the range (IEEE 754 inprecision)")
