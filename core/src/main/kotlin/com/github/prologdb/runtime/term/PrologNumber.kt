@@ -8,7 +8,6 @@ import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
 import java.math.BigInteger
 import kotlin.math.pow
-import kotlin.math.roundToLong
 
 /**
  * Numbers in prolog.
@@ -118,26 +117,23 @@ sealed class PrologNumber : Term {
             asApfloat = asApfloat.add(Apfloat(remainder.toLong()))
             return PrologBigNumber(asApfloat)
         }
-        operator fun invoke(value: Float): PrologNumber = PrologDoubleDecimal(value.toDouble())
-        operator fun invoke(value: Double): PrologNumber = PrologDoubleDecimal(value)
+        operator fun invoke(value: Float): PrologNumber = PrologBigNumber(Apfloat(value))
+        operator fun invoke(value: Double): PrologNumber = PrologBigNumber(Apfloat(value))
 
         /**
          * @throws NumberFormatException
          */
         operator fun invoke(value: String): PrologNumber {
-            try {
-                return PrologLongInteger(value.toLong())
-            }
-            catch (_: NumberFormatException) {
-                val asBig = PrologBigNumber(value)
-                val asDouble = try {
-                    PrologDoubleDecimal(value.toDouble())
+            return try {
+                PrologLongInteger(value.toLong())
+            } catch (longEx: NumberFormatException) {
+                try {
+                    PrologBigNumber(value)
                 }
-                catch (_: NumberFormatException) {
-                    return asBig
+                catch (bigEx: NumberFormatException) {
+                    bigEx.addSuppressed(longEx)
+                    throw bigEx
                 }
-
-                return if (asBig.compareTo(asDouble) == 0) asDouble else asBig
             }
         }
     }
@@ -162,21 +158,18 @@ class PrologLongInteger(
     override fun plus(other: PrologNumber) =
         when(other) {
             is PrologLongInteger -> this.value.combineExact(other.value, Math::addExact, Apfloat::add)
-            is PrologDoubleDecimal -> this.value.toDouble().combineExact(other.value, Double::plus, Apfloat::add)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).add(other.value))
         }
 
     override fun minus(other: PrologNumber) =
         when(other) {
             is PrologLongInteger -> this.value.combineExact(other.value, Math::subtractExact, Apfloat::subtract)
-            is PrologDoubleDecimal -> this.value.toDouble().combineExact(other.value, Double::minus, Apfloat::subtract)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).subtract(other.value))
         }
 
     override fun times(other: PrologNumber) =
         when(other) {
             is PrologLongInteger -> this.value.combineExact(other.value, Math::multiplyExact, Apfloat::multiply)
-            is PrologDoubleDecimal -> this.value.toDouble().combineExact(other.value, Double::times, Apfloat::multiply)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).multiply(other.value))
         }
 
@@ -191,14 +184,12 @@ class PrologLongInteger(
                     this.value.toDouble().combineExact(other.value.toDouble(), Double::div, Apfloat::divide)
                 }
             }
-            is PrologDoubleDecimal -> this.value.toDouble().combineExact(other.value, Double::div, Apfloat::divide)
             is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).add(other.value))
         }
 
     override fun rem(other: PrologNumber) =
         when(other) {
             is PrologLongInteger -> PrologLongInteger(this.value % other.value)
-            is PrologDoubleDecimal -> PrologDoubleDecimal(this.value.toDouble() % other.value)
             is PrologBigNumber -> {
                 val result = Apfloat(this.value).mod(other.value)
                 try {
@@ -213,7 +204,6 @@ class PrologLongInteger(
     override fun toThe(other: PrologNumber): PrologNumber {
         return when(other) {
             is PrologLongInteger -> this.value.toDouble().powExact(other.value)
-            is PrologDoubleDecimal -> this.value.toDouble().combineExact(other.value, Double::pow, ApfloatMath::pow)
             is PrologBigNumber -> PrologBigNumber(ApfloatMath.pow(Apfloat(this.value), other.value))
         }
     }
@@ -224,98 +214,16 @@ class PrologLongInteger(
     override fun unaryMinus() = PrologLongInteger(-this.value)
     override fun toInteger(): Long = value
     override fun toDecimal(): Double = value.toDouble()
-    override fun sqrt() = PrologDoubleDecimal(kotlin.math.sqrt(this.value.toDouble()))
+    override fun sqrt() = PrologBigNumber(ApfloatMath.sqrt(Apfloat(this.value)))
 
     override fun compareTo(other: PrologNumber) = when(other) {
         is PrologLongInteger -> this.value.compareTo(other.value)
-        is PrologDoubleDecimal -> this.value.compareTo(other.value)
         is PrologBigNumber -> Apfloat(this.value).compareTo(other.value)
     }
 
     override fun hashCode(): Int {
         return value.hashCode()
     }
-
-    override fun toString() = value.toString()
-}
-
-@PrologTypeName("number")
-class PrologDoubleDecimal(
-    val value: Double
-) : PrologNumber() {
-    override val isInteger = value % 1.0 == 0.0
-
-    override fun plus(other: PrologNumber) =
-        when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value.toDouble(), Double::plus, Apfloat::add)
-            is PrologDoubleDecimal -> this.value.combineExact(other.value, Double::plus, Apfloat::add)
-            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).add(other.value))
-        }
-
-    override fun minus(other: PrologNumber) =
-        when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value.toDouble(), Double::minus, Apfloat::subtract)
-            is PrologDoubleDecimal -> this.value.combineExact(other.value, Double::minus, Apfloat::subtract)
-            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).subtract(other.value))
-        }
-
-    override fun times(other: PrologNumber) =
-        when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value.toDouble(), Double::times, Apfloat::multiply)
-            is PrologDoubleDecimal -> this.value.combineExact(other.value, Double::times, Apfloat::multiply)
-            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).multiply(other.value))
-        }
-
-    override fun div(other: PrologNumber) =
-        when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value.toDouble(), Double::div, Apfloat::divide)
-            is PrologDoubleDecimal -> this.value.combineExact(other.value, Double::div, Apfloat::divide)
-            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).multiply(other.value))
-        }
-
-    override fun rem(other: PrologNumber) =
-        when(other) {
-            is PrologLongInteger -> this.value.combineExact(other.value.toDouble(), Double::rem, Apfloat::mod)
-            is PrologDoubleDecimal -> this.value.combineExact(other.value, Double::rem, Apfloat::mod)
-            is PrologBigNumber -> PrologBigNumber(Apfloat(this.value).mod(other.value))
-        }
-
-    override fun toThe(other: PrologNumber): PrologNumber {
-        return when(other) {
-            is PrologLongInteger -> {
-                if (other.value <= Int.MAX_VALUE) {
-                    this.value.pow(other.value.toInt()).exactOrElse { ApfloatMath.pow(Apfloat(this.value), other.value) }
-                } else {
-                    PrologBigNumber(ApfloatMath.pow(Apfloat(this.value), Apfloat(other.value)))
-                }
-            }
-            is PrologDoubleDecimal -> this.value.combineExact(other.value, Double::pow, ApfloatMath::pow)
-            is PrologBigNumber -> PrologBigNumber(ApfloatMath.pow(Apfloat(this.value), other.value))
-        }
-    }
-
-    override fun unaryPlus() = if (this.value >= 0) this else PrologDoubleDecimal(+this.value)
-
-    override fun unaryMinus() = PrologDoubleDecimal(-this.value)
-
-    override fun toInteger(): Long = value.roundToLong()
-
-    override fun toDecimal(): Double = value
-
-    override fun ceil() = this.value.transformExact(Math::ceil, Apfloat::ceil)
-
-    override fun floor() = this.value.transformExact(Math::floor, Apfloat::floor)
-
-    override fun sqrt() = this.value.transformExact(Math::sqrt, ApfloatMath::sqrt)
-
-    override fun compareTo(other: PrologNumber) =
-        when(other) {
-            is PrologLongInteger -> this.value.compareTo(other.value)
-            is PrologDoubleDecimal -> this.value.compareTo(other.value)
-            is PrologBigNumber -> Apfloat(this.value).compareTo(other.value)
-        }
-
-    override fun hashCode() = value.hashCode()
 
     override fun toString() = value.toString()
 }
@@ -353,7 +261,6 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
     override fun toThe(other: PrologNumber) = combineSimple(other, ApfloatMath::pow)
     override fun compareTo(other: PrologNumber) = when (other) {
         is PrologLongInteger -> this.value.compareTo(Apfloat(other.value))
-        is PrologDoubleDecimal -> this.value.compareTo(Apfloat(other.value))
         is PrologBigNumber -> this.value.compareTo(other.value)
     }
     override fun unaryPlus() = if (this.value.signum() >= 0) this else PrologBigNumber(this.value.negate())
@@ -382,7 +289,6 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
     private inline fun combineSimple(other: PrologNumber, crossinline operation: (Apfloat, Apfloat) -> (Apfloat)): PrologNumber {
         return when (other) {
             is PrologLongInteger -> PrologBigNumber(operation(this.value, Apfloat(other.value)))
-            is PrologDoubleDecimal -> PrologBigNumber(operation(this.value, Apfloat(other.value)))
             is PrologBigNumber -> PrologBigNumber(operation(this.value, other.value))
         }
     }
@@ -395,12 +301,8 @@ private inline fun Double.exactOrElse(crossinline alternative: () -> Apfloat): P
         PrologLongInteger(this.toLongExact())
     }
     catch (_: ArithmeticException) {
-        PrologDoubleDecimal(this)
+        PrologBigNumber(Apfloat(this))
     }
-}
-
-private inline fun Double.transformExact(transform: (Double) -> Double, crossinline alternative: (Apfloat) -> Apfloat): PrologNumber {
-    return transform(this).exactOrElse { alternative(Apfloat(this)) }
 }
 
 private fun Double.toLongExact(): Long {
