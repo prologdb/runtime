@@ -133,7 +133,7 @@ interface PrologRuntimeEnvironment {
     }
 }
 
-open class DefaultPrologRuntimeEnvironment(
+open class DefaultPrologRuntimeEnvironment @JvmOverloads constructor(
     protected val moduleLoader: ModuleLoader = NoopModuleLoader,
     private val mathContext: MathContext = MathContext.DEFAULT,
 ) : PrologRuntimeEnvironment {
