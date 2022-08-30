@@ -105,5 +105,27 @@ fun Term.equalsStructurally(other: Term, randomVarsScope: RandomVariableScope): 
  */
 fun Term.numberVariables(): Term {
     var variableCounter = 0L
-    return substituteVariables { CompoundTerm("\$VAR", arrayOf(PrologInteger(variableCounter++))) }
+    return substituteVariables { CompoundTerm("\$VAR", arrayOf(PrologNumber(variableCounter++))) }
+}
+
+/**
+ * If this term is an integer [PrologNumber] and in the given [range], returns this
+ * number as a [Long]; null otherwise.
+ */
+fun Term.asIntegerInRange(range: LongRange): Long? {
+    if (this !is PrologNumber) {
+        return null
+    }
+
+    if (!this.isInteger) {
+        return null
+    }
+
+    val longValue = try {
+        toInteger()
+    } catch (_: ArithmeticException) {
+        return null
+    }
+
+    return longValue.takeIf { it in range }
 }

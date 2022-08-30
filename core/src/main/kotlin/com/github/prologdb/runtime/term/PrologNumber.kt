@@ -258,7 +258,12 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
     override fun times(other: PrologNumber) = combineSimple(other, Apfloat::multiply)
     override fun div(other: PrologNumber) = combineSimple(other, Apfloat::divide)
     override fun rem(other: PrologNumber) = combineSimple(other, Apfloat::mod)
-    override fun toThe(other: PrologNumber) = combineSimple(other, ApfloatMath::pow)
+    override fun toThe(other: PrologNumber) = combineSimple(other) { base, exponent ->
+        // ApfloatMath rejects the operation if the base is negative as the result would be a complex number
+        // however, all prolog systems agree that `0.25 is (-0.5)^2`, so this case is caught here
+        val adjustedBase = ApfloatMath.abs(base)
+        ApfloatMath.pow(adjustedBase, exponent)
+    }
     override fun compareTo(other: PrologNumber) = when (other) {
         is PrologLongInteger -> this.value.compareTo(Apfloat(other.value))
         is PrologBigNumber -> this.value.compareTo(other.value)

@@ -13,7 +13,13 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.Atom
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.PrologList
+import com.github.prologdb.runtime.term.PrologNumber
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.asIntegerInRange
 
 class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out Term>) {
     val size = raw.size
@@ -30,6 +36,21 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
     }
 
     inline fun <reified T : Term> getTyped(index: Int) = getTyped(index, T::class.java)
+
+    fun getInteger(index: Int): PrologNumber {
+        val term = getTyped<PrologNumber>(index)
+        if (!term.isInteger) {
+            throw ArgumentError(index, "must be an integer")
+        }
+
+        return term
+    }
+
+    fun getIntegerInRange(index: Int, range: LongRange): Long {
+        val integer = getInteger(index)
+        return integer.asIntegerInRange(range)
+            ?: throw ArgumentError(index, "Must be an integer in range [${range.min()}; ${range.max()}], got $integer")
+    }
 
     fun <T : Term> getTypedOrUnbound(index: Int, type: Class<T>): Term {
         val term = this[index]

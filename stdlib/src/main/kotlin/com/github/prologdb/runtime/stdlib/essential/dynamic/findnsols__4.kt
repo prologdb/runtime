@@ -4,8 +4,8 @@ import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.launchWorkableFuture
 import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.ArgumentTypeError
+import com.github.prologdb.runtime.PrologInvocationContractViolationException
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.PrologInteger
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
@@ -17,7 +17,11 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * Like findall/3 but finds at most N solutions
  */
 val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
-    val nSolutions = args.getTyped<PrologInteger>(0)
+    val nSolutions = try {
+        args.getInteger(0).toInteger()
+    } catch (_: ArithmeticException) {
+        throw PrologInvocationContractViolationException("Cannot find more than ${Long.MAX_VALUE} solutions with findnsols/4")
+    }
     val templateInput = args[1]
     val goalInput = args.getQuery(2)
     val solutionInput = args[3]
@@ -30,7 +34,7 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
         val resultSequence = buildLazySequence<Unification>(principal) {
             context.fulfillAttach(this, goalInput, VariableBucket())
         }
-            .limitRemaining(nSolutions.value)
+            .limitRemaining(nSolutions)
             .mapRemaining { solution ->
                 templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
             }

@@ -103,16 +103,16 @@ test "percentile_discrete with explicit desc sort" by [
 
 test "percentile_continuous with default sort" by [
     Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
-    reduce([percentile_continuous(0.1, V) as PV1], member(V, Elements)), PV1 == 3.6000000000000014,
-    reduce([percentile_continuous(0.58, V) as PV2], member(V, Elements)), PV2 == 393.39999999999986,
+    reduce([percentile_continuous(0.1, V) as PV1], member(V, Elements)), PV1 == 3.6,
+    reduce([percentile_continuous(0.58, V) as PV2], member(V, Elements)), PV2 == 393.4,
     reduce([percentile_continuous(0.98, V) as PV3], member(V, Elements)), PV3 == 9462.8,
     reduce([percentile_continuous(1, V) as PV4], member(V, Elements)), PV4 == 9662.0
 ].
 
 test "percentile_continuous with explicit asc sort" by [
     Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
-    reduce([percentile_continuous(0.1, V, asc) as PV1], member(V, Elements)), PV1 == 3.6000000000000014,
-    reduce([percentile_continuous(0.58, V, asc) as PV2], member(V, Elements)), PV2 == 393.39999999999986,
+    reduce([percentile_continuous(0.1, V, asc) as PV1], member(V, Elements)), PV1 == 3.6,
+    reduce([percentile_continuous(0.58, V, asc) as PV2], member(V, Elements)), PV2 == 393.4,
     reduce([percentile_continuous(0.98, V, asc) as PV3], member(V, Elements)), PV3 == 9462.8,
     reduce([percentile_continuous(1, V, asc) as PV4], member(V, Elements)), PV4 == 9662.0
 ].
@@ -120,13 +120,13 @@ test "percentile_continuous with explicit asc sort" by [
 test "percentile_continuous with explicit desc sort" by [
     Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
     reduce([percentile_continuous(0.1, V, desc) as PV1], member(V, Elements)), PV1 == 8389.8,
-    reduce([percentile_continuous(0.58, V, desc) as PV2], member(V, Elements)), PV2 == 103.4800000000001,
-    reduce([percentile_continuous(0.98, V, desc) as PV3], member(V, Elements)), PV3 == 1.2400000000000002,
+    reduce([percentile_continuous(0.58, V, desc) as PV2], member(V, Elements)), PV2 == 103.48,
+    reduce([percentile_continuous(0.98, V, desc) as PV3], member(V, Elements)), PV3 == 1.24,
     reduce([percentile_continuous(1, V, desc) as PV4], member(V, Elements)), PV4 == 1.0
 ].
 
 test "standard deviation and variance" by [
     reduce([variance(V) as Variance, stddev(V) as StdDev], pred(V)),
-    Variance == 2.9166666666666665,
+    Variance == 2.9166666666666666,
     StdDev == 1.707825127659933
 ].

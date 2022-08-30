@@ -71,7 +71,7 @@ avg(reductor, accumulate, avg(Of), {sum: CurrentSum, count: CurrentCount}, {sum:
     NewCount is CurrentCount + 1
     .
 avg(reductor, finalize, avg(_), {initial: true}, _).
-avg(reductor, finalize, avg(_), {sum: Sum, count: Count}, Avg) :- var(Avg), Avg is decimal(Sum) / decimal(Count).
+avg(reductor, finalize, avg(_), {sum: Sum, count: Count}, Avg) :- var(Avg), Avg is Sum / Count.
 
 variance(reductor, initialize, variance(_), {initial: true}).
 variance(reductor, accumulate, variance(Of), {initial: true}, {sum: Of, elements: [Of]}).
@@ -80,8 +80,8 @@ variance(reductor, accumulate, variance(Of), {sum: PrevSum, elements: Elements},
 variance(reductor, finalize, variance(_), {initial: true}, _).
 variance(reductor, finalize, variance(_), {sum: Sum, elements: Elements}, Variance) :-
     reduce([avg(E) as Average], member(E, Elements)),
-    DecimalAverage is decimal(Average),
-    reduce([avg(Step) as Variance], E^(member(E, Elements), Step is (decimal(E) - DecimalAverage) ^ 2.0)).
+    DecimalAverage is Average,
+    reduce([avg(Step) as Variance], E^(member(E, Elements), Step is (E - DecimalAverage) ^ 2)).
 
 stddev(reductor, initialize, stddev(Of), VarianceAcc) :- variance(reductor, initialize, variance(Of), VarianceAcc).
 stddev(reductor, accumulate, stddev(Of), PrevAcc, Acc) :- variance(reductor, accumulate, variance(Of), PrevAcc, Acc).
@@ -134,16 +134,16 @@ percentile_continuous(reductor, finalize, percentile_continuous(P, _, desc), Ele
 
 percentile_discrete(SortedElements, P, PValue) :-
     length(SortedElements, NElements),
-    Rank is ceil(decimal(P) * decimal(NElements)) - 1,
+    Rank is ceil(P * NElements) - 1,
     index_unifying(SortedElements, Rank, PValue).
 
 percentile_continuous(SortedElements, P, PValue) :-
     length(SortedElements, NElements),
-    Rank is decimal(P) * (decimal(NElements) - 1),
+    Rank is P * (NElements - 1),
     CeiledRank is ceil(Rank),
     FlooredRank is floor(Rank),
     index_unifying(SortedElements, FlooredRank, FlooredPValue),
     index_unifying(SortedElements, CeiledRank, CeiledPValue),
     Diff is CeiledPValue - FlooredPValue,
-    FractionalDiff is (decimal(Rank) - decimal(FlooredRank)) * Diff,
+    FractionalDiff is (Rank - FlooredRank) * Diff,
     PValue is FlooredPValue + FractionalDiff.
