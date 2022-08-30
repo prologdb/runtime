@@ -692,7 +692,7 @@ class PrologParserTest : FreeSpec({
                 result.certainty shouldBe MATCHED
                 result.reportings should beEmpty()
                 result.item shouldNotBe null
-                result.item!! shouldBe PrologNumber("3")
+                result.item!! shouldBe CompoundTerm("+", arrayOf(PrologNumber("3")))
             }
             "without space" {
                 val result = parseTerm("+3")
@@ -700,6 +700,13 @@ class PrologParserTest : FreeSpec({
                 result.reportings should beEmpty()
                 result.item shouldNotBe null
                 result.item!! shouldBe PrologNumber("3")
+            }
+            "explicit compound of sign and number" {
+                val result = parseTerm("+(3)")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(PrologNumber("3")))
             }
         }
 
@@ -709,7 +716,7 @@ class PrologParserTest : FreeSpec({
                 result.certainty shouldBe MATCHED
                 result.reportings should beEmpty()
                 result.item shouldNotBe null
-                result.item!! shouldBe PrologNumber("-3")
+                result.item!! shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
             }
             "without space" {
                 val result = parseTerm("-3")
@@ -718,14 +725,47 @@ class PrologParserTest : FreeSpec({
                 result.item shouldNotBe null
                 result.item!! shouldBe PrologNumber("-3")
             }
+            "explicit compound of sign and number" {
+                val result = parseTerm("-(3)")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("-", arrayOf(PrologNumber("3")))
+            }
         }
 
-        "ambiguity with expression" {
-            val result = parseTerm("a +1")
-            result.certainty shouldBe MATCHED
-            result.reportings should beEmpty()
-            result.item shouldNotBe null
-            result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("3")))
+        "ambiguity with expression" - {
+            "no space" {
+                val result = parseTerm("a+1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+
+            "space before sign" {
+                val result = parseTerm("a +1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+
+            "space after sign" {
+                val result = parseTerm("a+ 1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
+
+            "space around sign" {
+                val result = parseTerm("a + 1")
+                result.certainty shouldBe MATCHED
+                result.reportings should beEmpty()
+                result.item shouldNotBe null
+                result.item!! shouldBe CompoundTerm("+", arrayOf(Atom("a"), PrologNumber("1")))
+            }
         }
     }
 

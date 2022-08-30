@@ -6,7 +6,6 @@ import com.github.prologdb.parser.lexer.Operator.*
 import com.github.prologdb.parser.lexer.TokenType.*
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.parser.ParseResultCertainty.NOT_RECOGNIZED
-import com.github.prologdb.parser.parser.StopCondition.Companion.peek
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.parser.source.SourceLocationRange
@@ -142,6 +141,13 @@ class PrologParser {
 
             try {
                 val astResult = buildExpressionAST(collectedElements, opRegistry)
+
+                if (astResult.item != null) {
+                    val asNumber = astResult.item.asSignedNumberOrNull()
+                    if (asNumber != null) {
+                        return ParseResult(asNumber, astResult.certainty, reportings + astResult.reportings)
+                    }
+                }
 
                 return ParseResult(
                     astResult.item?.first,
@@ -647,19 +653,6 @@ class PrologParser {
                     it.sourceInformation = token.location
                     it.quoted = token.quoted
                 },
-                MATCHED,
-                emptySet()
-            )
-        }
-        else if (token is OperatorToken && (token.operator == MINUS || token.operator == PLUS) && tokens.peek() is NumericLiteralToken) {
-            tokens.commit()
-            val numberToken = tokens.next() as NumericLiteralToken
-            // copy() is important because the sourceInformation is modified; the copy keeps this modification out of
-            // the source stream of tokens so that it remains clean if the parser backtracks
-            val unsignedNumberTerm = if (token.operator == MINUS) numberToken.number.unaryMinus() else numberToken.number.copy()
-            unsignedNumberTerm.sourceInformation = token.location.start..numberToken.location.end
-            return ParseResult(
-                unsignedNumberTerm,
                 MATCHED,
                 emptySet()
             )
@@ -1313,6 +1306,50 @@ class PrologParser {
         }
     }
 
+    /**
+     * Is supposed to work on a result of [buildExpressionAST].
+     *
+     * If the given AST can be a signed number, that is:
+     * * an instance of `'+'/1` or `'-'/1`
+     * * the `+` or `-` is recognized as a prefix operator
+     * * the compound [directlyPrecedes] the argument (no space between operator and number)
+     * * the argument is a [PrologNumber]
+     *
+     * then incorporates the sign into the number and returns a new number, including correct
+     * [SourceLocation]. Null otherwise.
+     */
+    private fun Pair<Term, OperatorDefinition?>.asSignedNumberOrNull(): PrologNumber? {
+        val secondLocal = second
+        if (secondLocal == null || (secondLocal.name != MINUS.text && secondLocal.name != PLUS.text) || !secondLocal.type.isPrefix){
+            return null
+        }
+
+        val firstLocal = first
+
+        if (firstLocal !is CompoundTerm || firstLocal.arity != 1) {
+            return null
+        }
+
+        val numberWithoutSign = firstLocal.arguments[0] as? PrologNumber ?: return null
+
+        // in a prefix notation, the compound ends where the number ends
+        // with explicit parenthesis, the compound ends further down
+        if (firstLocal.location.end != numberWithoutSign.location.end) {
+            return null
+        }
+
+        // only prefix notation without whitespace between sign and number can be conflated into a single number
+        if (!(firstLocal.location.start directlyPrecedes numberWithoutSign.location.start)) {
+            return null
+        }
+
+        // copy() is important because the sourceInformation is modified; the copy keeps this modification out of
+        // the source stream of tokens so that it remains clean if the parser backtracks
+        val numberWithSign = if (firstLocal.functor == MINUS.text) numberWithoutSign.unaryMinus() else numberWithoutSign.copy()
+        numberWithSign.sourceInformation = firstLocal.location.start..numberWithoutSign.location.end
+        return numberWithSign
+    }
+
     interface PrimedStage : ModuleLoader.PrimedStage {
         override fun proceed(): PrologParser.ParsedStage
     }
@@ -1412,6 +1449,12 @@ private val TokenOrTerm.location: SourceLocationRange
             ?: throw InternalParserError()
         else -> throw InternalParserError()
     }
+
+private infix fun TokenOrTerm.directlyPrecedes(other: TokenOrTerm): Boolean {
+    return this.location.end == other.location.start || this.location.end directlyPrecedes other.location.start
+}
+
+private fun PrologNumber.copy(): PrologNumber = PrologNumber(toString())
 
 private fun TokenOrTerm.asTerm(): Term {
     if (this is Term) return this
