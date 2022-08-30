@@ -8,6 +8,7 @@ import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
 import org.apfloat.InfiniteExpansionException
 import java.math.BigInteger
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.absoluteValue
 import kotlin.math.max
 
@@ -88,16 +89,32 @@ sealed class PrologNumber : Term {
     final override fun substituteVariables(mapper: (Variable) -> Term): Term = this
 
     companion object {
-        // TODO: string optimizer cache
         private val LONG_MAX_APFLOAT = Apfloat(Long.MAX_VALUE)
+
+        /* The integers 0 through 65536 are cached: these are used for
+           strings and this avoids a lot of memory overhead. Also, this
+           likely applies to other uses-cases where small numbers are used.
+         */
+        private val CACHE: MutableMap<UShort, PrologNumber> = ConcurrentHashMap()
+        private val CACHEABLE_RANGE_INT = IntRange(0, UShort.MAX_VALUE.toInt())
+        private val CACHEABLE_RANGE_UINT = UIntRange(0.toUInt(), UShort.MAX_VALUE.toUInt())
+        private val CACHEABLE_RANGE_LONG = LongRange(0.toLong(), UShort.MAX_VALUE.toLong())
+        private val CACHEABLE_RANGE_ULONG = ULongRange(0.toULong(), UShort.MAX_VALUE.toULong())
+
         operator fun invoke(value: Byte): PrologNumber = PrologLongInteger(value.toLong())
         operator fun invoke(value: UByte): PrologNumber = PrologLongInteger(value.toLong())
         operator fun invoke(value: Short): PrologNumber = PrologLongInteger(value.toLong())
-        operator fun invoke(value: UShort): PrologNumber = PrologLongInteger(value.toLong())
-        operator fun invoke(value: Int): PrologNumber = PrologLongInteger(value.toLong())
-        operator fun invoke(value: UInt): PrologNumber = PrologLongInteger(value.toLong())
-        operator fun invoke(value: Long): PrologNumber = PrologLongInteger(value)
+        operator fun invoke(value: UShort): PrologNumber {
+            return CACHE.getOrPut(value) { PrologLongInteger(value.toLong()) }
+        }
+        operator fun invoke(value: Int): PrologNumber = if (value in CACHEABLE_RANGE_INT) PrologNumber(value.toUShort()) else PrologLongInteger(value.toLong())
+        operator fun invoke(value: UInt): PrologNumber = if (value in CACHEABLE_RANGE_UINT) PrologNumber(value.toUShort()) else PrologLongInteger(value.toLong())
+        operator fun invoke(value: Long): PrologNumber = if (value in CACHEABLE_RANGE_LONG) PrologNumber(value.toUShort()) else PrologLongInteger(value)
         operator fun invoke(value: ULong): PrologNumber {
+            if (value in CACHEABLE_RANGE_ULONG) {
+                return PrologNumber(value.toUShort())
+            }
+
             val raw = value.toLong()
             if (raw >= 0) {
                 return PrologLongInteger(raw)
