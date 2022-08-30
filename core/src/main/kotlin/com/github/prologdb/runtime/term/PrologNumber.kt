@@ -152,17 +152,6 @@ sealed class PrologNumber : Term {
     }
 }
 
-class PrologInteger {
-    companion object {
-        @Deprecated("use PrologNumber.Companion.invoke instead", replaceWith = ReplaceWith("PrologNumber(value)", imports = ["com.github.prologdb.runtime.term.PrologNumber"]))
-        fun createUsingStringOptimizerCache(value: Long): PrologNumber = error("not implemented")
-
-        @Deprecated("use PrologNumber.Companion.invoke instead", replaceWith = ReplaceWith("PrologNumber(value)", imports = ["com.github.prologdb.runtime.term.PrologNumber"]))
-        operator fun invoke(value: Number): PrologNumber = error("not implemented")
-    }
-
-}
-
 @PrologTypeName("number")
 class PrologLongInteger(
     val value: Long
