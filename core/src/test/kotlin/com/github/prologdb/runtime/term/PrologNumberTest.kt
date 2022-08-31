@@ -3,6 +3,7 @@ package com.github.prologdb.runtime.term
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.assertThrows
+import kotlin.random.Random
 
 class PrologNumberTest : FreeSpec({
     "ULong constructor" - {
@@ -33,6 +34,36 @@ class PrologNumberTest : FreeSpec({
         "invalid" {
             assertThrows<NumberFormatException> {
                 PrologNumber("not a number")
+            }
+        }
+    }
+
+    "big number serialization" - {
+        "just serialize" {
+            val (mantissaBytes, signum, scale) = PrologBigNumber("314.15928").serialize()
+            mantissaBytes shouldBe byteArrayOf(1, -33, 94, 120)
+            signum shouldBe 1
+            scale shouldBe -5
+        }
+
+        "just deserialize" {
+            val number = PrologBigNumber(byteArrayOf(1, -33, 94, 120), 0, 4, 1, -5)
+            number shouldBe PrologNumber("314.15928")
+        }
+
+        "random numbers" {
+            val context = MathContext(100, MathContext.RoundingMode.HALF_UP)
+            repeat(100) {
+                val mantissa = Random.nextLong()
+                val scale = Random.nextLong(-1000, 1000)
+                val number = PrologBigNumber(mantissa.toString(10), 10)
+                    .times(PrologNumber(10).toThe(PrologNumber(scale), context), context)
+                number as PrologBigNumber
+
+                val serialized = number.serialize()
+                val deserialized = PrologBigNumber(serialized.first, 0, serialized.first.size, serialized.second, serialized.third)
+
+                deserialized shouldBe number
             }
         }
     }

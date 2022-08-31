@@ -6,7 +6,10 @@ import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
 import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
+import org.apfloat.Apint
+import org.apfloat.ApintMath
 import org.apfloat.InfiniteExpansionException
+import java.io.Writer
 import java.math.BigInteger
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.absoluteValue
@@ -241,7 +244,7 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
      * @param scale Scale that will convert the integer into a decimal value; the actual value of
      *              the resulting [PrologBigNumber] will be `intValue * pow(10, scale)`
      */
-    constructor(data: ByteArray, off: Int, len: Int, signum: Int, scale: Long = 0) : this({
+    constructor(data: ByteArray, off: Int, len: Int, signum: Int, scale: Long = 1) : this({
         val bigInt = BigInteger(signum, data, off, len)
         val unscaled = Apfloat(bigInt, Apfloat.INFINITE, 10)
         ApfloatMath.scale(unscaled, scale)
@@ -274,10 +277,8 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
      * @return [Triple.first]: twos-complement representation of the number, [Triple.second]: the signum, [Triple.third]: the scale of the number
      */
     fun serialize(): Triple<ByteArray, Int, Long> {
-        val withoutScale = ApfloatMath.scale(value, -value.scale())
-        val asString = withoutScale.toString(true)
-        val asByteArray = BigInteger(asString).toByteArray()
-        return Triple(asByteArray, value.signum(), value.scale())
+        val significantDigitsAsInt = ApintMath.abs(ApfloatMath.scale(value, -value.scale() + value.size()).toRadix(16).truncate())
+        return Triple(significantDigitsAsInt.toByteArray(), value.signum(), value.scale() - value.size())
     }
 
     private inline fun combineSimple(other: PrologNumber, crossinline operation: (Apfloat, Apfloat) -> Apfloat): PrologNumber {
@@ -378,4 +379,51 @@ private fun Apfloat.divideWithFinitePrecision(divident: Apfloat, context: MathCo
             .divide(divident)
             .roundToFractionalPrecision(context)
     }
+}
+
+/**
+ * equivalent to [ApfloatHelper.toBigInteger] + [BigInteger.toByteArray], but without copying the byte array around.
+ */
+private fun Apint.toByteArray(): ByteArray {
+    check(this.radix() == 16)
+
+    val byteCount = (scale() + 1 shr 1)
+    if (byteCount > Int.MAX_VALUE) {
+        throw IllegalArgumentException("Cannot represent a number of scale ${scale()} as a byte-array; exceeds maximum array size of ${Int.MAX_VALUE}")
+    }
+
+    val startOnHighHalfByte = scale() and 1L == 0L
+
+    val data = ByteArray(byteCount.toInt())
+    writeTo(object : Writer() {
+        override fun close() {
+        }
+
+        override fun flush() {
+        }
+
+        override fun write(cbuf: CharArray, off: Int, len: Int) {
+            for (i in off..(off + len)) {
+                write(cbuf[i].code)
+            }
+        }
+
+        private var isHighHalfByte = startOnHighHalfByte
+        private var carry: Int = 0
+        private var bytePosition = 0
+
+        override fun write(c: Int) {
+            val value = Character.digit(c, 16)
+            if (isHighHalfByte) {
+                carry = value shl 4
+            } else {
+                carry += (value and 0x0F)
+                data[bytePosition++] = carry.toByte()
+            }
+
+            isHighHalfByte = !isHighHalfByte
+        }
+    })
+
+    return data
 }
