@@ -277,6 +277,10 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
      * @return [Triple.first]: twos-complement representation of the number, [Triple.second]: the signum, [Triple.third]: the scale of the number
      */
     fun serialize(): Triple<ByteArray, Int, Long> {
+        if (value == Apfloat.ZERO) {
+            return Triple(byteArrayOf(), 0, 0)
+        }
+
         val significantDigitsAsInt = ApintMath.abs(ApfloatMath.scale(value, -value.scale() + value.size()).toRadix(16).truncate())
         return Triple(significantDigitsAsInt.toByteArray(), value.signum(), value.scale() - value.size())
     }
