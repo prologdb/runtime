@@ -2,14 +2,7 @@ package com.github.prologdb.runtime.module
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
-import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
-import com.github.prologdb.runtime.PredicateNotDefinedException
-import com.github.prologdb.runtime.PredicateNotExportedException
-import com.github.prologdb.runtime.PrologPermissionError
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.proofsearch.AbstractProofSearchContext
 import com.github.prologdb.runtime.proofsearch.Authorization
@@ -30,7 +23,7 @@ import com.github.prologdb.runtime.unification.VariableBucket
  * module within the proper [ModuleScopeProofSearchContext] achieves that behaviour.
  */
 class ModuleScopeProofSearchContext(
-    val module: Module,
+    override val module: Module,
     private val runtimeEnvironment: DefaultPrologRuntimeEnvironment,
     private val lookupTable: Map<ClauseIndicator, Pair<ModuleReference, PrologCallable>>,
     override val principal: Principal,

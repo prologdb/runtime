@@ -3,16 +3,7 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.module.InvalidImportException
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.module.ModuleLoader
-import com.github.prologdb.runtime.module.ModuleNotFoundException
-import com.github.prologdb.runtime.module.ModuleNotLoadedException
-import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
-import com.github.prologdb.runtime.module.NoopModuleLoader
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
@@ -326,7 +317,7 @@ open class DefaultPrologRuntimeEnvironment @JvmOverloads constructor(
     }
 
     override fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext {
-        if (deriveFrom is ModuleScopeProofSearchContext && deriveFrom.module.declaration.moduleName == moduleName) {
+        if (deriveFrom.module.declaration.moduleName == moduleName) {
             return deriveFrom
         }
 

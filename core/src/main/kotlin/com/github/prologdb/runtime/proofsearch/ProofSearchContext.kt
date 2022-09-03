@@ -2,11 +2,8 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
-import com.github.prologdb.runtime.PredicateNotDefinedException
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.*
+import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.MathContext
@@ -42,6 +39,8 @@ interface ProofSearchContext {
     val fulfillAttach: ProofSearch
 
     val mathContext: MathContext
+
+    val module: Module
 
     /**
      * Resolves the given, context-sensitive indicator against the contexts imports

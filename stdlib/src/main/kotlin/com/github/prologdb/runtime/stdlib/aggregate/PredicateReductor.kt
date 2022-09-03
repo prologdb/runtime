@@ -8,7 +8,6 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.PredicateNotDefinedException
 import com.github.prologdb.runtime.PrologException
 import com.github.prologdb.runtime.PrologInternalError
-import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.Atom
@@ -88,9 +87,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
             )))
         }
 
-        reductorModule = reductorModule
-            ?: (ctxt as? ModuleScopeProofSearchContext)?.module?.declaration?.moduleName
-            ?: throw PrologInternalError("Cannot find implicit module for reductor $reductorName")
+        reductorModule = reductorModule ?: ctxt.module.declaration.moduleName
 
         val parsedSpecification = Specification(reductorModule, unqualifiedSpecification, reductorName)
         return launchWorkableFuture(ctxt.principal) {
