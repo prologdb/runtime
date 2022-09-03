@@ -227,7 +227,7 @@ class VariableBucket private constructor(
                         result.variableMap.remove(variable)
                         secondVariable = variable
                     } else {
-                        result.variableMap[variable] = secondVariable ?: firstVariable
+                        result.variableMap[variable] = secondVariable
                     }
                 }
             } else {
