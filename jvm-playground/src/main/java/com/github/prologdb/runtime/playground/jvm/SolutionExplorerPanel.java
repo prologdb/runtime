@@ -165,7 +165,7 @@ public class SolutionExplorerPanel {
                 addSolutionComponent(createFalseComponent());
                 setDepleted();
             } catch (PrologException e) {
-                addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
+                addSolutionComponent(createErrorComponent("Error: " + e.getFormattedPrologStackTrace()));
                 e.printStackTrace(System.err);
                 setDepleted();
             } catch (StackOverflowError e) {
@@ -201,7 +201,7 @@ public class SolutionExplorerPanel {
                     }
                 }
             } catch (PrologException e) {
-                addSolutionComponent(createErrorComponent("Error: " + formatPrologException(e)));
+                addSolutionComponent(createErrorComponent("Error: " + e.getFormattedPrologStackTrace()));
                 e.printStackTrace(System.err);
                 setDepleted();
             } catch (StackOverflowError e) {
@@ -279,46 +279,5 @@ public class SolutionExplorerPanel {
         } else {
             return hours + "h";
         }
-    }
-
-    private String formatPrologException(PrologException ex) {
-        StringBuilder sb = new StringBuilder();
-
-        Throwable pivot = ex;
-        while (pivot != null) {
-            if (!(pivot instanceof PrologException)) {
-                sb.append(pivot.getClass().getSimpleName());
-                sb.append(": ");
-            }
-
-            sb.append(pivot.getMessage());
-
-            if (pivot instanceof PrologException) {
-                ((PrologException) pivot).getPrologStackTrace().forEach(pste -> {
-                    sb.append("\n\tat ");
-                    sb.append(pste.toString());
-                });
-            } else {
-                for (StackTraceElement jste : pivot.getStackTrace()) {
-                    sb.append("\n\tat ");
-                    sb.append(jste.getClassName());
-                    sb.append('.');
-                    sb.append(jste.getMethodName());
-                    sb.append('(');
-                    sb.append(jste.getFileName());
-                    sb.append(':');
-                    sb.append(Integer.toString(jste.getLineNumber(), 10));
-                    sb.append(')');
-                }
-            }
-
-            pivot = pivot.getCause();
-            if (pivot != null) {
-                sb.append('\n');
-                sb.append("caused by ");
-            }
-        }
-
-        return sb.toString();
     }
 }

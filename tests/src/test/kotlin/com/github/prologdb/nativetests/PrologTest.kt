@@ -1,10 +1,6 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.LazySequence
-import com.github.prologdb.async.LazySequenceBuilder
-import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.async.flatMapRemaining
-import com.github.prologdb.async.mapRemainingNotNull
+import com.github.prologdb.async.*
 import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SyntaxError
@@ -48,6 +44,10 @@ class PrologTest : FreeSpec() { init {
                         }
 
                         override fun onTestError(testName: String, error: Throwable) {
+                            if (error is PrologException) {
+                                fail(error.formattedPrologStackTrace)
+                            }
+
                             throw error
                         }
 

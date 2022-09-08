@@ -7,6 +7,7 @@ import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.prologTypeName
 import java.util.concurrent.atomic.AtomicReference
+import java.util.function.Consumer
 
 /**
  * An exception related to, but not limited to, parsing and interpreting prolog programs.
@@ -19,6 +20,43 @@ abstract class PrologException(message: String, cause: Throwable? = null) : Runt
     }
 
     val prologStackTrace: List<PrologStackTraceElement> = _prologStackTrace
+
+    val formattedPrologStackTrace: String get() {
+        val sb = StringBuilder()
+        var pivot: Throwable? = this
+        while (pivot != null) {
+            if (pivot !is PrologException) {
+                sb.append(pivot.javaClass.simpleName)
+                sb.append(": ")
+            }
+            sb.append(pivot.message)
+            if (pivot is PrologException) {
+                pivot.prologStackTrace.forEach(Consumer { pste: PrologStackTraceElement ->
+                    sb.append("\n\tat ")
+                    sb.append(pste.toString())
+                })
+            } else {
+                for (jste in pivot.stackTrace) {
+                    sb.append("\n\tat ")
+                    sb.append(jste.className)
+                    sb.append('.')
+                    sb.append(jste.methodName)
+                    sb.append('(')
+                    sb.append(jste.fileName)
+                    sb.append(':')
+                    sb.append(jste.lineNumber.toString(10))
+                    sb.append(')')
+                }
+            }
+            pivot = pivot.cause
+            if (pivot != null) {
+                sb.append('\n')
+                sb.append("caused by ")
+            }
+        }
+
+        return sb.toString()
+    }
 }
 
 open class PrologInternalError(message: String, cause: Throwable? = null) : PrologException(message, cause)
