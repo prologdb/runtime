@@ -20,7 +20,10 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
     val nSolutions = try {
         args.getInteger(0).toInteger()
     } catch (_: ArithmeticException) {
-        throw PrologInvocationContractViolationException("Cannot find more than ${Long.MAX_VALUE} solutions with findnsols/4")
+        throw PrologInvocationContractViolationException("Cannot find more than ${Int.MAX_VALUE} solutions with findnsols/4")
+    }
+    if (nSolutions > Int.MAX_VALUE) {
+        throw PrologInvocationContractViolationException("Cannot find more than ${Int.MAX_VALUE} solutions with findnsols/4")
     }
     val templateInput = args[1]
     val goalInput = args.getQuery(2)
@@ -41,6 +44,10 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
 
         foldRemaining(resultSequence, mutableListOf<Term>()) { l, t -> l.add(t); l }
     })
+
+    if (resultList.size != nSolutions.toInt()) {
+        return@nativeRule Unification.FALSE
+    }
 
     val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
     resultListUnified?.variableValues?.retainAll(templateInput.variables + solutionInput.variables)
