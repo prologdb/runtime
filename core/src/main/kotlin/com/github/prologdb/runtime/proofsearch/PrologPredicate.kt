@@ -116,45 +116,42 @@ class ASTPrologPredicate(
                     } else {
                         val lastClauseForTailCall = this@ASTPrologPredicate.lastClauseForTailCall
                         val tailCall = this@ASTPrologPredicate.tailCall
+                            ?: return@fulfill clause.fulfill(this, arguments, ctxt)
 
-                        if (tailCall != null) {
-                            val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
-                                ?: return@fulfill null
-                            val lastClausePartialResults = buildLazySequence<Unification>(principal) {
-                                return@buildLazySequence lastClauseForTailCall.fulfillPreparedCall(
-                                    this@buildLazySequence,
-                                    lastClauseCallPreparation
-                                )
-                            }
-
-                            val firstPartialResult = lastClausePartialResults.tryAdvance() ?: return@fulfill null
-                            if (lastClausePartialResults.state == LazySequence.State.DEPLETED) {
-                                val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
-                                if (tailCallArguments != null) {
-                                    arguments = tailCallArguments
-                                    continue@tailCallLoop
-                                }
-                            }
-
-                            val partialSolutions = buildLazySequence<Unification>(principal) {
-                                yield(firstPartialResult)
-                                yieldAllFinal(lastClausePartialResults)
-                            }
-                            val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
-                                val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
-                                    .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
-
-                                return@flatMapRemaining ctxt.fulfillAttach.invoke(
-                                    this,
-                                    PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
-                                    VariableBucket()
-                                )
-                            }
-                            val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
-                            return@fulfill yieldAllFinal(untranslatedSolutions)
-                        } else {
-                            return@fulfill clause.fulfill(this, arguments, ctxt)
+                        val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
+                            ?: return@fulfill null
+                        val lastClausePartialResults = buildLazySequence<Unification>(principal) {
+                            return@buildLazySequence lastClauseForTailCall.fulfillPreparedCall(
+                                this@buildLazySequence,
+                                lastClauseCallPreparation
+                            )
                         }
+
+                        val firstPartialResult = lastClausePartialResults.tryAdvance() ?: return@fulfill null
+                        if (lastClausePartialResults.state == LazySequence.State.DEPLETED) {
+                            val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
+                            if (tailCallArguments != null) {
+                                arguments = tailCallArguments
+                                continue@tailCallLoop
+                            }
+                        }
+
+                        val partialSolutions = buildLazySequence<Unification>(principal) {
+                            yield(firstPartialResult)
+                            yieldAllFinal(lastClausePartialResults)
+                        }
+                        val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
+                            val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
+                                .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
+
+                            return@flatMapRemaining ctxt.fulfillAttach.invoke(
+                                this,
+                                PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
+                                VariableBucket()
+                            )
+                        }
+                        val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
+                        return@fulfill yieldAllFinal(untranslatedSolutions)
                     }
                 } else {
                     throw PrologInternalError("Unsupported clause type ${clause.javaClass.name} in predicate $indicator")
