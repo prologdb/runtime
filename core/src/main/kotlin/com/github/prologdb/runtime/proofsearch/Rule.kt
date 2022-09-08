@@ -8,11 +8,7 @@ import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.term.unify
-import com.github.prologdb.runtime.term.variables
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 
@@ -133,26 +129,30 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          *
          * thereby also dropping the clause-local variables.
          */
-        fun untranslateResult(solution: Unification): Unification {
+        fun untranslateResult(solution: VariableBucket): VariableBucket {
             val solutionVars = VariableBucket()
 
             for (randomGoalVariable in randomArguments.variables)
             {
                 if (goalAndHeadUnification.variableValues.isInstantiated(randomGoalVariable)) {
                     val value = goalAndHeadUnification.variableValues[randomGoalVariable]
-                        .substituteVariables(solution.variableValues.asSubstitutionMapper())
+                        .substituteVariables(solution.asSubstitutionMapper())
                         .substituteVariables(goalAndHeadUnification.variableValues.asSubstitutionMapper())
 
                     solutionVars.instantiate(randomGoalVariable, value)
                 }
-                else if (solution.variableValues.isInstantiated(randomGoalVariable)) {
+                else if (solution.isInstantiated(randomGoalVariable)) {
                     argumentsRandomVarsMapping.getOriginal(randomGoalVariable)?.let { originalVar ->
-                        solutionVars.instantiate(originalVar, solution.variableValues[randomGoalVariable])
+                        solutionVars.instantiate(originalVar, solution[randomGoalVariable])
                     }
                 }
             }
 
-            return Unification(solutionVars.withVariablesResolvedFrom(argumentsRandomVarsMapping))
+            return solutionVars.withVariablesResolvedFrom(argumentsRandomVarsMapping)
+        }
+
+        fun untranslateResult(solution: Unification): Unification {
+            return Unification(untranslateResult(solution.variableValues))
         }
 
         fun untranslateResult(term: CompoundTerm): CompoundTerm? {
