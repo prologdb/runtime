@@ -1,6 +1,8 @@
 :- use_module(essential($equality)).
 :- use_module(essential($math)).
 :- use_module(essential($typesafety)).
+:- use_module(essential($dynamic), [findnsols/4]).
+:- use_module(essential($clauses), [true/0]).
 
 count(0, A, A).
 count(N, A, R) :-
@@ -30,4 +32,24 @@ test "doesn't apply if head requires actions" by [
     append(L1, L2, R),
     var(C),
     R = [1, 2, 3, 4, 5, 6]
+].
+
+tco_instantiations_before_tco_test_A(stop, _) :- true.
+tco_instantiations_before_tco_test_A(loop, Result) :-
+    Result = result,
+    tco_instantiations_before_tco_test_A(stop, _).
+
+test "handles instantiations before tail call correctly - from other predicate" by [
+    tco_instantiations_before_tco_test_A(loop, Result),
+    Result == result
+].
+
+tco_instantiations_before_tco_test_B(stop, _).
+tco_instantiations_before_tco_test_B(loop, Result) :-
+    Result = result,
+    tco_instantiations_before_tco_test_B(stop, _).
+
+test "handles instantiations before tail call correctly - with own clause" by [
+    tco_instantiations_before_tco_test_B(loop, Result),
+    Result == result
 ].

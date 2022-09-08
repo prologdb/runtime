@@ -12,6 +12,7 @@ import com.github.prologdb.runtime.term.unify
 import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import mapIndexedToArray
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -98,6 +99,7 @@ class ASTPrologPredicate(
 
         val lastClause = clauses.last()
         var arguments = initialArguments
+        val stateCarry = VariableBucket()
         tailCallLoop@ while (true) {
             clauses@ for (clause in clauses) {
                 if (clause is CompoundTerm) {
@@ -106,13 +108,27 @@ class ASTPrologPredicate(
                         VariableMapping()
                     )
                     val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
-                    unification?.variableValues?.retainAll(arguments.variables)
+                    try {
+                        unification?.variableValues?.incorporate(stateCarry, RandomVariableScope())
+                    }
+                    catch (ex: VariableDiscrepancyException) {
+                        throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
+                    }
+                    unification?.variableValues?.retainAll(initialArguments.variables)
                     if (lastClause === clause) return@fulfill unification else {
                         unification?.let { yield(it) }
                     }
                 } else if (clause is Rule) {
                     if (lastClause !== clause) {
-                        clause.fulfill(this, arguments, ctxt)?.let { yield(it) }
+                        clause.fulfill(this, arguments, ctxt)?.let { unification ->
+                            try {
+                                unification.variableValues.incorporate(stateCarry, ctxt.randomVariableScope)
+                                yield(unification)
+                            }
+                            catch (ex: VariableDiscrepancyException) {
+                                throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the rule shouldn't have succeeded in this case - yet it has happened.", ex)
+                            }
+                        }
                     } else {
                         val lastClauseForTailCall = this@ASTPrologPredicate.lastClauseForTailCall
                         val tailCall = this@ASTPrologPredicate.tailCall
@@ -132,7 +148,16 @@ class ASTPrologPredicate(
                             val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
                             if (tailCallArguments != null) {
                                 arguments = tailCallArguments
-                                continue@tailCallLoop
+                                try {
+                                    stateCarry.incorporate(
+                                        lastClauseCallPreparation.untranslateResult(firstPartialResult.variableValues),
+                                        ctxt.randomVariableScope
+                                    )
+                                    continue@tailCallLoop
+                                }
+                                catch (ex: VariableDiscrepancyException) {
+                                    throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
+                                }
                             }
                         }
 
@@ -140,6 +165,16 @@ class ASTPrologPredicate(
                             yield(firstPartialResult)
                             yieldAllFinal(lastClausePartialResults)
                         }
+                            .mapRemainingNotNull { result ->
+                                try {
+                                    result.variableValues.incorporate(stateCarry, ctxt.randomVariableScope)
+                                    result
+                                }
+                                catch (ex: VariableDiscrepancyException) {
+                                    throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
+                                }
+                            }
+
                         val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
                             val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
                                 .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
@@ -147,7 +182,7 @@ class ASTPrologPredicate(
                             return@flatMapRemaining ctxt.fulfillAttach.invoke(
                                 this,
                                 PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
-                                VariableBucket()
+                                partialResult.variableValues,
                             )
                         }
                         val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
