@@ -13,7 +13,6 @@ import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
-import mapIndexedToArray
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -71,8 +70,7 @@ class ASTPrologPredicate(
 
     override val fqIndicator = FullyQualifiedClauseIndicator(declaringModule.declaration.moduleName, indicator)
 
-    private var lastClauseForTailCall: Rule? = null
-    private var tailCall: CompoundTerm? = null
+    private var tailCallData: TailCallData? = null
     private var tailCallInitialized: Boolean = false
 
     /**
@@ -130,14 +128,16 @@ class ASTPrologPredicate(
                             }
                         }
                     } else {
-                        val lastClauseForTailCall = this@ASTPrologPredicate.lastClauseForTailCall
-                        val tailCall = this@ASTPrologPredicate.tailCall
+                        val localTailCallData = tailCallData
                             ?: return@fulfill clause.fulfill(this, arguments, ctxt)
 
-                        val lastClauseCallPreparation = lastClauseForTailCall!!.prepareCall(arguments, ctxt)
+                        localTailCallData.bodyPriorToTailCall?.fulfill?.invoke(this, arguments, ctxt)?.let { yield(it) }
+                        val bodyForTailCall = localTailCallData.bodyForTailCall ?: Rule(clause.head, AndQuery(emptyArray()))
+                        val lastClauseCallPreparation = bodyForTailCall.prepareCall(arguments, ctxt)
                             ?: return@fulfill null
+
                         val lastClausePartialResults = buildLazySequence<Unification>(principal) {
-                            return@buildLazySequence lastClauseForTailCall.fulfillPreparedCall(
+                            return@buildLazySequence bodyForTailCall.fulfillPreparedCall(
                                 this@buildLazySequence,
                                 lastClauseCallPreparation
                             )
@@ -145,7 +145,7 @@ class ASTPrologPredicate(
 
                         val firstPartialResult = lastClausePartialResults.tryAdvance() ?: return@fulfill null
                         if (lastClausePartialResults.state == LazySequence.State.DEPLETED) {
-                            val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, tailCall)
+                            val tailCallArguments = lastClauseCallPreparation.getTailCallArguments(firstPartialResult, localTailCallData.tailCallInvocation)
                             if (tailCallArguments != null) {
                                 arguments = tailCallArguments
                                 try {
@@ -176,13 +176,26 @@ class ASTPrologPredicate(
                             }
 
                         val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
-                            val tailCallConcrete = lastClauseCallPreparation.translateClausePart(tailCall)
+                            val tailCallConcrete = lastClauseCallPreparation.translateClausePart(localTailCallData.tailCallInvocation)
                                 .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
 
-                            return@flatMapRemaining ctxt.fulfillAttach.invoke(
-                                this,
-                                PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
-                                partialResult.variableValues,
+                            return@flatMapRemaining yieldAllFinal(
+                                buildLazySequence(ctxt.principal) {
+                                    ctxt.fulfillAttach.invoke(
+                                        this,
+                                        PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
+                                        partialResult.variableValues,
+                                    )
+                                }
+                                    .mapRemaining {
+                                        try {
+                                            it.variableValues.incorporate(partialResult.variableValues, ctxt.randomVariableScope)
+                                        }
+                                        catch (ex: VariableDiscrepancyException) {
+                                            throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
+                                        }
+                                        it
+                                    }
                             )
                         }
                         val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
@@ -235,56 +248,92 @@ class ASTPrologPredicate(
     }
 
     /**
-     * If the last goal in this rule is a recursive call, returns a rule with that last goal omitted
+     * If the last goal in this query is a recursive call, returns a rule with that last goal omitted
      * and a separate reference onto that last, omitted goal.
      */
-    private fun Rule.toTailCall(): Pair<Rule, CompoundTerm>? {
-        fun Query.toTailCall(): Pair<Query, CompoundTerm>? = when(this) {
-            is AndQuery,
-            is OrQuery -> {
-                val (queryCtor, thisGoals) = when (this) {
-                    is AndQuery -> Pair(::AndQuery, goals)
-                    is OrQuery -> Pair(::OrQuery, goals)
-                    else -> error("unreachable code")
+    private fun Rule.toTailCall(): TailCallData? {
+        fun Query.toTailCall(): Triple<OrQuery?, AndQuery?, CompoundTerm>? {
+            val priorGoals = mutableListOf<Query>()
+            var self: Query = this
+            while (self is OrQuery) {
+                for (i in 0 until self.goals.lastIndex) {
+                    priorGoals.add(self.goals[i])
                 }
-                thisGoals.last().toTailCall()?.let { (replacementGoal, tailCall) ->
-                    if (replacementGoal is AndQuery && replacementGoal.goals.isEmpty()) {
-                        Pair(
-                            queryCtor(thisGoals.copyOfRange(0, thisGoals.size - 1)),
-                            tailCall
+                self = self.goals.last()
+            }
+
+            val bodyPriorToTailCall: OrQuery? = priorGoals
+                .takeIf { it.isNotEmpty() }
+                ?.let { OrQuery(it.toTypedArray()) }
+
+            return when (self) {
+                is AndQuery -> {
+                    val subResult = self.goals.last().toTailCall() ?: return null
+                    val bodyForTailCall: AndQuery = if (subResult.second == null) {
+                        AndQuery(Array(self.goals.size - 1) { self.goals[it] })
+                    } else {
+                        AndQuery(Array(self.goals.size) { index ->
+                            if (index == 0) subResult.second!! else self.goals[index - 1]
+                        })
+                    }
+
+                    Triple(
+                        bodyPriorToTailCall,
+                        bodyForTailCall,
+                        subResult.third,
+                    )
+                }
+
+                is PredicateInvocationQuery -> {
+                    if (self.goal.arity == this@ASTPrologPredicate.arity && self.goal.functor == this@ASTPrologPredicate.functor) {
+                        Triple(
+                            bodyPriorToTailCall,
+                            null,
+                            self.goal,
                         )
                     } else {
-                        Pair(
-                            queryCtor(thisGoals.mapIndexedToArray { goal, index -> if (index == thisGoals.lastIndex) replacementGoal else goal }),
-                            tailCall
-                        )
+                        null
                     }
                 }
-            }
-            is PredicateInvocationQuery -> {
-                if (this.goal.arity == this@ASTPrologPredicate.arity && this.goal.functor == this@ASTPrologPredicate.functor) {
-                    Pair(AndQuery(emptyArray()), this.goal)
-                } else {
-                    null
-                }
+
+                is OrQuery -> error("IntelliJ realizes this branch is not reachable but Kotlin won't let me omit this branch.")
             }
         }
 
-        return this.query.toTailCall()?.let { (replacementQuery, tailCall) -> Pair(Rule(this.head, replacementQuery), tailCall) }
+        val (queryBeforeTailCall, queryForTailCall, tailCallInvocation) = query.toTailCall() ?: return null
+        return TailCallData(
+            queryBeforeTailCall?.let { Rule(head, it) },
+            queryForTailCall?.let { Rule(head, it) },
+            tailCallInvocation,
+        )
     }
 
     private fun updateTailCall() {
-        (clauses.lastOrNull() as? Rule)?.toTailCall().let {
-            lastClauseForTailCall = it?.first
-            tailCall = it?.second
-        }
-
+        tailCallData = (clauses.lastOrNull() as? Rule)?.toTailCall()
         tailCallInitialized = true
     }
 
     private fun invalidateTailCall() {
         tailCallInitialized = false
-        lastClauseForTailCall = null
-        tailCall = null
+        tailCallData = null
     }
+
+    private data class TailCallData(
+        /**
+         * Code to run before doing any TCO. This happens if the rule is a `;/2` at its root. In that case,
+         * the first part of the disjunction has to be run without doing a tail-call afterwards.
+         */
+        val bodyPriorToTailCall: Rule?,
+
+        /**
+         * The part of the body after which a TCO can happen
+         */
+        val bodyForTailCall: Rule?,
+
+        /**
+         * The actual tail call, as it is declared after [bodyForTailCall], which can converted into a looping
+         * call to save stack space iff [bodyForTailCall] behaves deterministically
+         */
+        val tailCallInvocation: CompoundTerm,
+    )
 }

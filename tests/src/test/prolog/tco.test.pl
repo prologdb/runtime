@@ -34,6 +34,26 @@ test "doesn't apply if head requires actions" by [
     R = [1, 2, 3, 4, 5, 6]
 ].
 
+tco_disjunction_test_fixed(Handle, Result) :- var(Handle), Result = var_handle.
+tco_disjunction_test_fixed(Handle, Result) :- nonvar(Handle), Result = nonvar_handle.
+
+tco_disjunction_test(stop, _, _) :- true.
+tco_disjunction_test(loop, Handle, Result) :-
+    Handle = instantiated,
+    Result = base_case
+    ;
+    tco_disjunction_test_fixed(Handle, Result),
+    tco_disjunction_test(stop, _, _).
+
+test "handles disjunction/or correctly" by [
+    findnsols(2, [Handle, Result], tco_disjunction_test(loop, Handle, Result), Solutions),
+    Solutions = [[R1Handle, R1Result], [R2Handle, R2Result]],
+    R1Handle == instantiated,
+    R1Result == base_case,
+    var(R2Handle),
+    R2Result == var_handle
+].
+
 tco_instantiations_before_tco_test_A(stop, _) :- true.
 tco_instantiations_before_tco_test_A(loop, Result) :-
     Result = result,
