@@ -13,6 +13,7 @@
 
 true() :- 1 = 1.
 fail() :- 1 = 2.
+false() :- 1 = 2.
 
 retractAll(Template) :-
     $dynamic:findall(_, $clauses:retract(Template), _)
