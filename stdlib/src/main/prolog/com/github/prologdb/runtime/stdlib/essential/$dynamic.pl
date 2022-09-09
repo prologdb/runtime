@@ -19,5 +19,6 @@
 :- module_transparent(current_op/3).
 :- module_transparent(current_module/1).
 :- module_transparent(qualify_callable/3).
+:- module_transparent(once/1).
 
-once(Goal) :- findnsols(1, Goal, Goal, [Goal]).
+once(Goal) :- $dynamic:findnsols(1, Goal, Goal, [Goal]).
