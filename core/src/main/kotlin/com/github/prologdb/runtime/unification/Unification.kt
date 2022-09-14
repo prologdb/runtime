@@ -1,59 +1,332 @@
 package com.github.prologdb.runtime.unification
 
 import com.github.prologdb.async.LazySequence
+import com.github.prologdb.runtime.CircularTermException
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.VariableMapping
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
+import java.util.Collections
 
-/**
- * A single possible way to unify two expressions; one query result.
- */
-class Unification(val variableValues: VariableBucket = VariableBucket()) {
-
-    fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope): Unification {
-        return Unification(variableValues.combinedWith(other.variableValues, randomVariableScope))
-    }
+interface Unification {
+    val isEmpty: Boolean
+    val variables: Set<Variable>
 
     /**
-     * Attempts to minimize the number of variables/size of this bucket.
-     * **DANGER:** a bucket that was [compact]ed may loose variables as those get inlined
-     * into other instantiations. Because of that, the bucket may fail to instantiate
-     * possible output variables and break the proof search.
+     * @return variables that are instantiated to equal (`==`) values,
+     * where there is more than one variable instantiated to that value.
+     * The values can be variables as well.
      */
-    fun compact(randomVariableScope: RandomVariableScope): Unification {
-        val compactedVars = variableValues.compact(randomVariableScope)
-        if (compactedVars === variableValues) {
+    val commonValues: Map<Term, Set<Variable>>
+    val values: Iterable<Pair<Variable, Term>>
+    fun asSubstitutionMapper(): (Variable) -> Term
+    operator fun get(v: Variable): Term
+    fun isInstantiated(variable: Variable): Boolean
+    fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope): Unification
+    fun createMutableCopy(): MutableUnification
+    fun withVariablesResolvedFrom(mapping: VariableMapping): Unification
+
+    /**
+     * Sorts entries in the given bucket such that, when applied in sequence even references between entries
+     * in the bucket are resolved correctly. So e.g. given the bucket `B = 1, A = B` and the subject term `foo(A)`,
+     * applying the bucket in original order would yield `foo(B)`. After resorting with this function to `A = B, B = 1`
+     * the result would be `foo(1)`.
+     *
+     * *Example:*
+     * ```kotlin
+     * var _term = originalTerm
+     * originalBucket.sortForSubstitution().forEach {
+     *     _term = _term.substituteVariables(it.asSubstitutionMapper())
+     * }
+     * // _term is now correctly substituted
+     * ```
+     *
+     * @return When successively applied using [Term.substituteVariables] all substitutions, including references, are done.
+     *
+     * @throws CircularTermException If there are circular references in the bucket.
+     */
+    fun sortedForSubstitution(): List<Unification>
+
+    /**
+     * @see Unification.compact
+     */
+    fun compacted(randomVariableScope: RandomVariableScope): Unification
+
+    companion object {
+        @JvmStatic
+        @get:JvmName("true")
+        val TRUE: Unification = UnificationImpl(Collections.unmodifiableMap(mapOf()))
+
+        @JvmStatic
+        @get:JvmName("false")
+        val FALSE: Unification? = null
+
+        @JvmStatic
+        @get:JvmName("none")
+        val NONE: LazySequence<Unification> = LazySequence.empty()
+
+        @JvmStatic
+        fun whether(condition: Boolean): Unification? = if(condition) TRUE else FALSE
+    }
+}
+
+interface MutableUnification : Unification {
+
+    fun instantiate(variable: Variable, value: Term)
+
+    /**
+     * Copies all instantiations from the given variable bucket to this one
+     * @throws VariableDiscrepancyException if the same variable is instantiated to different values in `this` and
+     *                                      in `variables`
+     */
+    fun incorporate(variables: Unification, randomVariableScope: RandomVariableScope)
+
+    /**
+     * Removes all variables from this bucket that are not in the given collection
+     */
+    fun retainAll(variables: Iterable<Variable>)
+
+    companion object {
+        @JvmName("createEmpty")
+        operator fun invoke(): MutableUnification = UnificationImpl()
+
+        @JvmStatic
+        fun createTrue(): MutableUnification = UnificationImpl()
+
+        @JvmStatic
+        fun createFalse(): MutableUnification? = null
+
+        @JvmStatic
+        fun whether(condition: Boolean): MutableUnification? = if(condition) createTrue() else null
+    }
+}
+
+private class UnificationImpl(
+    private val variableMap: MutableMap<Variable, Term> = mutableMapOf()
+) : MutableUnification {
+    override val isEmpty
+        get() = variableMap.isEmpty()
+
+    override val variables: Set<Variable> = variableMap.keys
+
+    private val substitutionMapper: (Variable) -> Term = { variable ->
+        if (isInstantiated(variable) && this[variable] != variable) {
+            this[variable].substituteVariables(this.asSubstitutionMapper())
+        }
+        else {
+            variable
+        }
+    }
+
+    override fun asSubstitutionMapper(): (Variable) -> Term = substitutionMapper
+
+    override operator fun get(v: Variable): Term {
+        if (isInstantiated(v)) {
+            return variableMap[v]!!
+        }
+        else {
+            throw NameError("Variable $v has not been instantiated yet.")
+        }
+    }
+
+    override fun instantiate(variable: Variable, value: Term) {
+        if (variable == Variable.ANONYMOUS) return
+
+        if (variableMap[variable]?.let { it == value } == false) {
+            throw VariableDiscrepancyException("Variable $variable is already instantiated in this bucket.")
+        }
+
+        variableMap[variable] = value
+    }
+
+    override fun isInstantiated(variable: Variable): Boolean {
+        return variableMap[variable] != null
+    }
+
+    override fun incorporate(variables: Unification, randomVariableScope: RandomVariableScope) {
+        if (variables === this) {
+            return
+        }
+
+        for ((variable, otherValue) in variables.values) {
+            val thisValue = variableMap[variable]
+            if (thisValue == null) {
+                instantiate(variable, otherValue)
+                continue
+            }
+
+            val unificationResult = thisValue.unify(otherValue, randomVariableScope)
+                ?: throw VariableDiscrepancyException("Cannot incorporate: variable $variable is instantiated to non-unify values: $otherValue and $thisValue")
+
+            incorporate(unificationResult, randomVariableScope)
+        }
+    }
+
+    override fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope): Unification {
+        val copy = createMutableCopy()
+        copy.incorporate(other, randomVariableScope)
+
+        return copy
+    }
+
+    override fun createMutableCopy(): MutableUnification {
+        val mapCopy = mutableMapOf<Variable,Term>()
+        mapCopy.putAll(variableMap)
+        return UnificationImpl(mapCopy)
+    }
+
+    override fun retainAll(variables: Iterable<Variable>) {
+        val keysToRemove = variableMap.keys.filter { it !in variables }
+        val removedToSubstitute = mutableMapOf<Variable, Term>()
+
+        for (key in keysToRemove) {
+            val value = variableMap[key]
+            if (value != null) {
+                removedToSubstitute[key] = value
+            }
+
+            variableMap.remove(key)
+        }
+
+        for ((key, value) in variableMap) {
+            variableMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
+        }
+    }
+
+    override fun withVariablesResolvedFrom(mapping: VariableMapping): Unification {
+        fun resolve(variable: Variable): Variable {
+            var pivot = variable
+            while (mapping.hasSubstitution(pivot)) {
+                pivot = mapping.getOriginal(pivot)!!
+            }
+            return pivot
+        }
+
+        val newBucket = UnificationImpl()
+        for ((variable, value) in values) {
+            val resolved = resolve(variable)
+            val resolvedValue = value.substituteVariables(::resolve)
+            newBucket.instantiate(resolved, resolvedValue)
+        }
+
+        return newBucket
+    }
+
+    override fun sortedForSubstitution(): List<UnificationImpl> {
+        val variablesToSort = HashSet(this.variables)
+        val bucket = this
+
+        fun Variable.isReferenced(): Boolean {
+            for (toSort in variablesToSort) {
+                if (toSort === this) continue
+                if (this in bucket[toSort].variables) {
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        val sorted = ArrayList<UnificationImpl>(variablesToSort.size)
+
+        while (variablesToSort.isNotEmpty()) {
+            val free = variablesToSort.filterNot { it.isReferenced() }
+            if (free.isEmpty()) {
+                // there are variables left but none of them are free -> circular dependency!
+                throw CircularTermException("Circular dependency in variable instantiations between $variablesToSort")
+            }
+
+            val subBucket = UnificationImpl()
+            for (freeVariable in free) {
+                subBucket.instantiate(freeVariable, bucket[freeVariable])
+            }
+            sorted.add(subBucket)
+
+            variablesToSort.removeAll(free)
+        }
+
+        return sorted
+    }
+
+    override fun compacted(randomVariableScope: RandomVariableScope): Unification {
+        if (isEmpty) {
             return this
         }
 
-        return Unification(compactedVars)
-    }
-
-    override fun toString(): String {
-        return variableValues.values.joinToString(", ") { (variable, value) ->
-            "$variable = $value"
+        val sorted = try {
+            sortedForSubstitution()
         }
+        catch (ex: CircularTermException) {
+            return this
+        }
+
+        val result = sorted.first()
+        if (sorted.size > 1) {
+            for (next in sorted.subList(1, sorted.size)) {
+                for (resultVar in result.variables) {
+                    result.variableMap[resultVar] = result[resultVar].substituteVariables(next.asSubstitutionMapper())
+                }
+
+                result.incorporate(next, randomVariableScope)
+            }
+        }
+
+        for ((commonValue, variables) in result.commonValues) {
+            check(commonValue !in variables)
+
+            var firstVariable: Variable? = null
+            if (commonValue is Variable) {
+                var secondVariable: Variable? = null
+                for (variable in variables) {
+                    if (firstVariable == null) {
+                        result.variableMap[variable] = commonValue
+                        firstVariable = variable
+                    } else if (secondVariable == null) {
+                        result.variableMap[firstVariable] = variable
+                        result.variableMap.remove(variable)
+                        secondVariable = variable
+                    } else {
+                        result.variableMap[variable] = secondVariable
+                    }
+                }
+            } else {
+                for (variable in variables) {
+                    if (firstVariable == null) {
+                        result.variableMap[variable] = commonValue
+                        firstVariable = variable
+                    } else {
+                        result.variableMap[variable] = firstVariable
+                    }
+                }
+            }
+        }
+
+        return result
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other === null) return false
         if (this === other) return true
+        if (other !is UnificationImpl) return false
 
-        other as Unification
-
-        if (variableValues != other.variableValues) return false
+        if (variableMap != other.variableMap) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        return variableValues.hashCode()
+        return variableMap.hashCode()
     }
 
-
-    companion object {
-        val FALSE: Unification? = null
-        val TRUE: Unification get() = Unification()
-        val NONE: LazySequence<Unification> = LazySequence.empty()
-
-        fun whether(condition: Boolean): Unification? = if(condition) TRUE else FALSE
+    override val commonValues: Map<Term, Set<Variable>> get() {
+        return values
+            .groupBy { it.second }
+            .entries
+            .asSequence()
+            .filter { it.value.size > 1 }
+            .associateTo(HashMap()) { (commonValue, entries) -> commonValue to entries.map { (variable, _) -> variable }.toSet() }
     }
+
+    override val values: Iterable<Pair<Variable,Term>>
+        get() = variableMap.map { it.key to it.value }
 }
+
