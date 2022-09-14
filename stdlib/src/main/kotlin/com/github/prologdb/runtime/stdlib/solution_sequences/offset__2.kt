@@ -10,7 +10,7 @@ val BuiltinOffset2 = nativeRule("offset", 2) { args, ctxt ->
 
     yieldAllFinal(
         buildLazySequence(ctxt.principal) {
-            ctxt.fulfillAttach(this, goal, Unification())
+            ctxt.fulfillAttach(this, goal, Unification.TRUE)
         }
             .skipRemaining(offset)
     )

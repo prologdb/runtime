@@ -58,22 +58,21 @@ val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
 
             val resultList = await(
                 buildLazySequence(principal) {
-                    context.fulfillAttach(this, goalInput, Unification())
+                    context.fulfillAttach(this, goalInput, Unification.TRUE)
                 }
                     .limitRemaining(nResultsToCalculate.toLong())
                     .mapRemaining { solution ->
-                        templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
+                        templateInput.substituteVariables(solution.asSubstitutionMapper())
                     }
                     .remainingToList()
             )
 
             val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
-            return@nativeRule if (resultListUnified != null) {
-                resultListUnified.variableValues.retainAll(templateInput.variables + solutionInput.variables)
-                resultListUnified
-            } else {
-                null
-            }
+            return@nativeRule resultListUnified
+                ?.createMutableCopy()
+                ?.apply {
+                    retainAll(templateInput.variables + solutionInput.variables)
+                }
         }
     }
 }

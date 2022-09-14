@@ -70,7 +70,7 @@ val BuiltinRequire2 = nativeRule("require", 2) { args, ctxt ->
     val hadResults = await(launchWorkableFuture(ctxt.principal) {
         return@launchWorkableFuture foldRemaining(
             buildLazySequence(ctxt.principal) {
-                ctxt.fulfillAttach(this, goal, Unification())
+                ctxt.fulfillAttach(this, goal, Unification.TRUE)
             }
                 .limitRemaining(1),
             false,

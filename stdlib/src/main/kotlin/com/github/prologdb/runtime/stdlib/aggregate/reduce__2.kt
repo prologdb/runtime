@@ -8,7 +8,11 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.stdlib.ReductionFactory
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.AnonymousVariable
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.unify
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.UnificationGrouping
 
@@ -46,10 +50,10 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
 
     await(
         buildLazySequence(ctxt.principal) {
-            ctxt.fulfillAttach(this, goal, Unification())
+            ctxt.fulfillAttach(this, goal, Unification.TRUE)
         }
             .flatMapRemaining { element ->
-                val groupKey = element.getGroupKey(groupByVariables)
+                val groupKey = element.subset(groupByVariables)
                 var reductions = grouping[groupKey]
                 if (reductions == null) {
                     reductions = ArrayList<Reduction>(reductionFactories.size)
@@ -60,7 +64,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
                 }
 
                 for (reduction in reductions) {
-                    await(reduction.add(element.variableValues))
+                    await(reduction.add(element))
                 }
             }
             .consumeAll()
@@ -73,7 +77,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
             .flatMapRemaining { (groupKey, reductions) ->
                 val actualResultTerms = reductions.map { await(it.finalize()) }.toTypedArray()
                 val resultUnification = resultOutTerms.unify(actualResultTerms, ctxt.randomVariableScope)
-                return@flatMapRemaining resultUnification?.combinedWith(Unification(groupKey), ctxt.randomVariableScope)
+                return@flatMapRemaining resultUnification?.combinedWith(groupKey, ctxt.randomVariableScope)
             }
     )
 }
@@ -117,12 +121,16 @@ private fun parseSpecification(specification: Term, listArgumentIndex: Int, inde
 private class ReductionSpecification(val reductorSpecification: Term, val resultTerm: Term)
 private class ReductionFactoryWithResultTerm(val reductionFactory: ReductionFactory, val resultTerm: Term)
 
-private fun Unification.getGroupKey(keys: Set<Variable>): Unification {
+private fun Unification.subset(keys: Set<Variable>): Unification {
     if (keys.isEmpty()) {
-        return VariableBucket()
+        return Unification.TRUE
     }
 
-    return variableValues.createMutableCopy().apply {
+    if (variables.intersect(keys) == keys) {
+        return this
+    }
+
+    return createMutableCopy().apply {
         retainAll(keys)
     }
 }

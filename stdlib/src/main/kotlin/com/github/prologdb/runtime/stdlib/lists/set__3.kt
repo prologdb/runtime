@@ -28,7 +28,7 @@ val BuiltinSet3 = nativeRule("set", 3) { args, context ->
 
     fun <T : Term> Collection<T>.toSetUsingComparator(comparatorName: Atom): List<T> {
         fun Term.isEqualToAccordingToComparator(rhs: Term): Boolean {
-            val result = buildLazySequence<Unification>(principal) { context.fulfillAttach(this, PredicateInvocationQuery(CompoundTerm(comparatorName.name, arrayOf(this@isEqualToAccordingToComparator, rhs))), Unification()) }
+            val result = buildLazySequence<Unification>(principal) { context.fulfillAttach(this, PredicateInvocationQuery(CompoundTerm(comparatorName.name, arrayOf(this@isEqualToAccordingToComparator, rhs))), Unification.TRUE) }
             val areEqual = result.tryAdvance() != null
             result.close()
             return areEqual
@@ -53,9 +53,7 @@ val BuiltinSet3 = nativeRule("set", 3) { args, context ->
 
         val isSet = arg1.elements.size == arg1.elements.toSetUsingComparator(comparatorName).size
         return@nativeRule if (isSet) {
-            val result = Unification()
-            result.instantiate(arg0, arg1)
-            Unification(result)
+            arg0.unify(arg1, context.randomVariableScope)
         } else {
             null
         }
@@ -67,8 +65,6 @@ val BuiltinSet3 = nativeRule("set", 3) { args, context ->
         val arg1 = args.getTyped<Variable>(1)
 
         val arg0asSet = arg0.elements.toSetUsingComparator(comparatorName)
-        val result = Unification()
-        result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        return@nativeRule Unification(result)
+        return@nativeRule arg1.unify(PrologList(arg0asSet.toList()), context.randomVariableScope)
     }
 }

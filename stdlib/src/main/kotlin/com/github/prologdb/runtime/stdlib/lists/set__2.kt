@@ -4,7 +4,6 @@ import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 
 /**
  * set(-List, -List)
@@ -16,7 +15,7 @@ import com.github.prologdb.runtime.unification.Unification
  *
  * This acts as if defined as `set(L, S) :- set(L, S, ==).`
  */
-val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
+val BuiltinSet2 = nativeRule("set", 2) { args, ctxt ->
     if (args[0] is Variable) {
         val arg0 = args[0] as Variable
         val arg1 = args.getTyped<PrologList>(1)
@@ -26,9 +25,7 @@ val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
 
         val isSet = arg1.elements.size == arg1.elements.toSet().size
         return@nativeRule if (isSet) {
-            val result = Unification()
-            result.instantiate(arg0, arg1)
-            Unification(result)
+            arg0.unify(arg1, ctxt.randomVariableScope)
         } else {
             null
         }
@@ -40,8 +37,6 @@ val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
         val arg1 = args.getTyped<Variable>(1)
 
         val arg0asSet = arg0.elements.toSet()
-        val result = Unification()
-        result.instantiate(arg1, PrologList(arg0asSet.toList()))
-        return@nativeRule Unification(result)
+        return@nativeRule arg1.unify(PrologList(arg0asSet.toList()), ctxt.randomVariableScope)
     }
 }

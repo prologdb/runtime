@@ -1,6 +1,10 @@
 package com.github.prologdb.nativetests
 
-import com.github.prologdb.async.*
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.Reporting
 import com.github.prologdb.parser.SyntaxError
@@ -155,16 +159,16 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
     private var stateBeforeFailedGoal: Unification? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                         initialVariables: Unification = Unification()): Unification? {
-        var sequence = LazySequence.singleton(Unification(initialVariables.createMutableCopy()))
+                                                                         initialVariables: Unification = Unification.TRUE): Unification? {
+        var sequence = LazySequence.singleton(initialVariables.createMutableCopy())
 
         for (goalIndex in goals.indices) {
             sequence = sequence.flatMapRemaining { stateBefore ->
                 val goalSequence = buildLazySequence<Unification>(principal) {
                     context.fulfillAttach(
                         this,
-                        goals[goalIndex].substituteVariables(stateBefore.variableValues),
-                        stateBefore.variableValues.createMutableCopy()
+                        goals[goalIndex].substituteVariables(stateBefore),
+                        stateBefore.createMutableCopy()
                     )
                 }
                 val firstSolution = goalSequence.tryAdvance()
@@ -180,8 +184,8 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                         yieldAllFinal(goalSequence)
                     }
                     .mapRemainingNotNull { goalUnification ->
-                        val stateCombined = stateBefore.variableValues.createMutableCopy()
-                        for ((variable, value) in goalUnification.variableValues.values) {
+                        val stateCombined = stateBefore.createMutableCopy()
+                        for ((variable, value) in goalUnification.values) {
                             // substitute all instantiated variables for simplicity and performance
                             val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
                             if (stateCombined.isInstantiated(variable)) {
@@ -195,7 +199,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                                 stateCombined.instantiate(variable, substitutedValue)
                             }
                         }
-                        Unification(stateCombined)
+                        stateCombined
                     }
                 )
             }
@@ -206,11 +210,11 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
 
     fun run(callback: TestResultCallback) {
         val substitutedGoals = allGoals
-            .map { it.substituteVariables(Unification()) }
+            .map { it.substituteVariables(Unification.TRUE) }
 
         val psc = runtime.newProofSearchContext(moduleName)
         val results = buildLazySequence<Unification>(UUID.randomUUID()) {
-            fulfillAllGoals(substitutedGoals, psc, Unification())
+            fulfillAllGoals(substitutedGoals, psc, Unification.TRUE)
         }
 
         try {
@@ -218,7 +222,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                 callback.onTestSuccess(testName)
             } else {
                 var stateStr = ""
-                for ((variable, value) in stateBeforeFailedGoal!!.variableValues.values) {
+                for ((variable, value) in stateBeforeFailedGoal!!.values) {
                     val entryTerm = CompoundTerm("=", arrayOf(variable, value))
                     stateStr += entryTerm.toStringUsingOperatorNotations(runtime.getLoadedModule(moduleName).localOperators)
                     stateStr += ",\n"

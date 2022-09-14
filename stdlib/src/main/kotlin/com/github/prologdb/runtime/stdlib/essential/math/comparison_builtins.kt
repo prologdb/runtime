@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.stdlib.essential.math
 
 import com.github.prologdb.runtime.stdlib.nativeRule
+import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinGreaterThan2 = numericComparisonBuiltin(">") { it > 0 }
 val BuiltinGreaterThanOrEqual2 = numericComparisonBuiltin(">=") { it >= 0 }

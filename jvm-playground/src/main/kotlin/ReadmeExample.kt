@@ -13,6 +13,7 @@ import com.github.prologdb.runtime.playground.jvm.CharacterIterable
 import com.github.prologdb.runtime.stdlib.loader.StandardLibraryModuleLoader
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
 
 fun main() {
     val moduleSourceCode = """
@@ -53,7 +54,7 @@ fun main() {
 
     val solutions: LazySequence<Unification> = runtime.fulfill(userModuleReference.moduleName, queryAST)
     val personsJealousOfMarcellus = solutions
-        .mapRemaining { it.variableValues[Variable("Person")] }
+        .mapRemaining { it[Variable("Person")] }
         .mapRemaining { (it as Atom).name }
         .remainingTo(::mutableSetOf)
 

@@ -4,6 +4,7 @@ import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
 
 private const val IOTA_BATCHSIZE = 100
 

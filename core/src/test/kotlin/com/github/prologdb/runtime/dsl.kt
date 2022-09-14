@@ -103,7 +103,7 @@ fun DefaultPrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: Str
     val generator: UnificationSequenceGenerator = {
         val psc = this@shouldProveInContextOfModule.newProofSearchContext(moduleName)
         buildLazySequence(psc.principal) {
-            psc.fulfillAttach(this, PredicateInvocationQuery(query), Unification())
+            psc.fulfillAttach(this, PredicateInvocationQuery(query), Unification.TRUE)
         }
     }
 

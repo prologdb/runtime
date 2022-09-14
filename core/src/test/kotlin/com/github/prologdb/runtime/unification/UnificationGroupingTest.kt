@@ -10,10 +10,10 @@ import io.kotest.matchers.shouldBe
 
 class UnificationGroupingTest : FreeSpec({
     "should differentiate unbound from bound" - {
-        val keyUnbound = Unification().apply {
+        val keyUnbound = MutableUnification.createTrue().apply {
             instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Variable("B"))))
         }
-        val keyBound = Unification().apply {
+        val keyBound = MutableUnification.createTrue().apply {
             instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Atom("ground"))))
         }
 
@@ -43,10 +43,10 @@ class UnificationGroupingTest : FreeSpec({
     }
 
     "should combine unbound with different variables" - {
-        val keyA = Unification().apply {
+        val keyA = MutableUnification.createTrue().apply {
             instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Variable("UnboundA"))))
         }
-        val keyB = Unification().apply {
+        val keyB = MutableUnification.createTrue().apply {
             instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Variable("UnboundB"))))
         }
 

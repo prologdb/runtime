@@ -19,6 +19,6 @@ val BuiltinCall1 = nativeRule("call", 1) { args, ctxt ->
     ctxt.fulfillAttach(
         this,
         PredicateInvocationQuery(goal, goalInput.sourceInformation),
-        Unification()
+        Unification.TRUE
     )
 }

@@ -11,11 +11,11 @@ val BuiltinDistinct2 = nativeRule("distinct", 2) { args, ctxt ->
 
     yieldAllFinal(
         buildLazySequence(ctxt.principal) {
-            ctxt.fulfillAttach(this, goal, Unification())
+            ctxt.fulfillAttach(this, goal, Unification.TRUE)
         }
             .distinctBy { unification ->
                 val witnessInstantiated = witness
-                    .substituteVariables(unification.variableValues.asSubstitutionMapper())
+                    .substituteVariables(unification.asSubstitutionMapper())
 
                 witnessInstantiated.numberVariables()
             }

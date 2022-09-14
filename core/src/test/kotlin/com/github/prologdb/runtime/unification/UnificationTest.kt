@@ -15,11 +15,11 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
-class VariableBucketTest : FreeSpec({
+class UnificationTest : FreeSpec({
     "variable bucket topological sort (sortForSubstitution)" - {
         "happy path" {
             // SETUP
-            val bucket = Unification()
+            val bucket = MutableUnification.createTrue()
             bucket.instantiate(Variable("C"), Atom("a"))
             bucket.instantiate(Variable("B"), Variable("C"))
             bucket.instantiate(Variable("A"), Variable("B"))
@@ -41,7 +41,7 @@ class VariableBucketTest : FreeSpec({
 
         "circular dependency should error" {
             // SETUP
-            val bucket = Unification()
+            val bucket = MutableUnification.createTrue()
             bucket.instantiate(Variable("A"), CompoundTerm("foo", arrayOf(Variable("B"))))
             bucket.instantiate(Variable("B"), CompoundTerm("bar", arrayOf(Variable("A"))))
 
@@ -54,11 +54,11 @@ class VariableBucketTest : FreeSpec({
 
     "incorporate" - {
         "should unify" {
-            val bucketA = Unification().apply {
+            val bucketA = MutableUnification.createTrue().apply {
                 instantiate(Variable("A"), PrologList(listOf(Variable("NestedA"))))
                 instantiate(Variable("B"), Atom("ground"))
             }
-            val bucketB = Unification().apply {
+            val bucketB = MutableUnification.createTrue().apply {
                 instantiate(Variable("A"), PrologList(listOf(Variable("NestedB"))))
                 instantiate(Variable("B"), Atom("ground"))
             }
@@ -83,7 +83,7 @@ class VariableBucketTest : FreeSpec({
     "compact" - {
         "simplify with common value being a variable" - {
             "one way" {
-                val bucket = Unification()
+                val bucket = MutableUnification.createTrue()
                 bucket.instantiate(Variable("A"), Variable("X"))
                 bucket.instantiate(Variable("B"), Variable("X"))
                 bucket.instantiate(Variable("C"), Variable("X"))
@@ -95,7 +95,7 @@ class VariableBucketTest : FreeSpec({
             }
 
             "two way" {
-                val bucket = Unification()
+                val bucket = MutableUnification.createTrue()
                 bucket.instantiate(Variable("A"), Variable("X"))
                 bucket.instantiate(Variable("B"), Variable("X"))
                 bucket.instantiate(Variable("C"), Variable("X"))
@@ -111,7 +111,7 @@ class VariableBucketTest : FreeSpec({
 
         "simplify with common value being a nonvar" - {
             "one way" {
-                val bucket = Unification()
+                val bucket = MutableUnification.createTrue()
                 bucket.instantiate(Variable("A"), Atom("a"))
                 bucket.instantiate(Variable("B"), Atom("a"))
                 bucket.instantiate(Variable("C"), Atom("a"))
@@ -124,7 +124,7 @@ class VariableBucketTest : FreeSpec({
             }
 
             "one way with additional indirection" {
-                val bucket = Unification()
+                val bucket = MutableUnification.createTrue()
                 bucket.instantiate(Variable("A"), Atom("a"))
                 bucket.instantiate(Variable("B"), Atom("a"))
                 bucket.instantiate(Variable("C"), Atom("a"))
@@ -139,7 +139,7 @@ class VariableBucketTest : FreeSpec({
             }
 
             "two way indirect" {
-                val bucket = Unification()
+                val bucket = MutableUnification.createTrue()
                 bucket.instantiate(Variable("A"), Variable("X"))
                 bucket.instantiate(Variable("B"), Variable("X"))
                 bucket.instantiate(Variable("C"), Variable("X"))

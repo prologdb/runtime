@@ -3,6 +3,8 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.unification.MutableUnification
+import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 import kotlin.math.min
@@ -37,7 +39,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                 return Unification.FALSE
             }
 
-            var carryUnification = Unification()
+            var carryUnification = MutableUnification.createTrue()
             for (index in 0..this.elements.lastIndex) {
                 var iterationUnification: Unification?
 
@@ -60,7 +62,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                     return Unification.FALSE
                 } else {
                     try {
-                        carryUnification = carryUnification.combinedWith(iterationUnification, randomVarsScope)
+                        carryUnification.incorporate(iterationUnification, randomVarsScope)
                     } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
@@ -79,7 +81,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                 }
 
                 try {
-                    carryUnification = carryUnification.combinedWith(tailUnification, randomVarsScope)
+                    carryUnification.incorporate(tailUnification, randomVarsScope)
                 } catch (ex: VariableDiscrepancyException) {
                     return Unification.FALSE
                 }

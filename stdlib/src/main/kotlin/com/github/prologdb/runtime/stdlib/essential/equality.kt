@@ -11,7 +11,7 @@ val BuiltinNot = nativeRule("not", 1) { args, context ->
     val arg0 = args[0] as? CompoundTerm ?: return@nativeRule null
 
     val proofSequence = buildLazySequence<Unification>(context.principal) {
-        context.fulfillAttach(this, PredicateInvocationQuery(arg0), Unification())
+        context.fulfillAttach(this, PredicateInvocationQuery(arg0), Unification.TRUE)
     }
 
     val hasProof = proofSequence.tryAdvance() != null

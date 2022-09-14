@@ -5,10 +5,17 @@ import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.proofsearch.PrologCallableFulfill
+import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorRegistry
 import com.github.prologdb.runtime.util.OperatorType
-import com.github.prologdb.runtime.util.OperatorType.*
+import com.github.prologdb.runtime.util.OperatorType.FX
+import com.github.prologdb.runtime.util.OperatorType.FY
+import com.github.prologdb.runtime.util.OperatorType.XF
+import com.github.prologdb.runtime.util.OperatorType.XFX
+import com.github.prologdb.runtime.util.OperatorType.XFY
+import com.github.prologdb.runtime.util.OperatorType.YF
+import com.github.prologdb.runtime.util.OperatorType.YFX
 import sensibleHashCode
 
 @PrologTypeName("compound term")

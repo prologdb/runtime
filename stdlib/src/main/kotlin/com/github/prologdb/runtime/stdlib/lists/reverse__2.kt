@@ -6,6 +6,7 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import kotlin.math.max
 
@@ -61,7 +62,7 @@ val BuiltinReverse2 = nativeRule("reverse", 2) { args, ctxt ->
         if (unifyWithReversed !is PrologList || unifyWithReversed.tail == null) {
             yield(stepResult)
         } else {
-            val fullList = unifyWithReversed.substituteVariables(stepResult.variableValues.asSubstitutionMapper())
+            val fullList = unifyWithReversed.substituteVariables(stepResult.asSubstitutionMapper())
             check(fullList.tail == null)
 
             val partialResult1 = unifyWithReversed.unify(fullList, ctxt.randomVariableScope)

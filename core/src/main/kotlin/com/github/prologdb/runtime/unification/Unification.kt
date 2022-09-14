@@ -24,7 +24,7 @@ interface Unification {
     fun isInstantiated(variable: Variable): Boolean
     fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope): Unification
     fun createMutableCopy(): MutableUnification
-    fun withVariablesResolvedFrom(mapping: VariableMapping): Unification
+    fun withVariablesResolvedFrom(mapping: VariableMapping): MutableUnification
 
     /**
      * Sorts entries in the given bucket such that, when applied in sequence even references between entries
@@ -193,7 +193,7 @@ private class UnificationImpl(
         }
     }
 
-    override fun withVariablesResolvedFrom(mapping: VariableMapping): Unification {
+    override fun withVariablesResolvedFrom(mapping: VariableMapping): MutableUnification {
         fun resolve(variable: Variable): Variable {
             var pivot = variable
             while (mapping.hasSubstitution(pivot)) {

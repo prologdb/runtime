@@ -9,6 +9,7 @@ import com.github.prologdb.runtime.proofsearch.DynamicPrologPredicate
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinAssert1 = nativeRule("assert", 1) { args, ctxt ->
     val clause = args.getTyped<CompoundTerm>(0)

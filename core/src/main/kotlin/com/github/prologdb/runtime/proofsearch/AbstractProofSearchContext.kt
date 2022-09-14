@@ -1,6 +1,10 @@
 package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.async.*
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.runtime.exception.PrologStackTraceElement
 import com.github.prologdb.runtime.exception.prologTry
 import com.github.prologdb.runtime.query.AndQuery
@@ -23,25 +27,25 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
 
     protected suspend fun LazySequenceBuilder<Unification>.fulfillAndQuery(query: AndQuery, initialVariables: Unification): Unification? {
         if (query.goals.isEmpty()) {
-            return Unification(initialVariables)
+            return initialVariables
         }
         if (query.goals.size == 1) {
             return fulfillAttach(query.goals.first(), initialVariables)
         }
 
-        var sequence = LazySequence.singleton(Unification(initialVariables.createMutableCopy()))
+        var sequence = LazySequence.singleton(initialVariables)
 
         for (goalIndex in query.goals.indices) {
             sequence = sequence.flatMapRemaining { stateBefore ->
                 val goalSequence = buildLazySequence<Unification>(principal) {
                     fulfillAttach(
-                        query.goals[goalIndex].substituteVariables(stateBefore.variableValues),
-                        stateBefore.variableValues.createMutableCopy()
+                        query.goals[goalIndex].substituteVariables(stateBefore),
+                        stateBefore.createMutableCopy()
                     )
                 }
                 return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
-                    val stateCombined = stateBefore.variableValues.createMutableCopy()
-                    for ((variable, value) in goalUnification.variableValues.values) {
+                    val stateCombined = stateBefore.createMutableCopy()
+                    for ((variable, value) in goalUnification.values) {
                         // substitute all instantiated variables for simplicity and performance
                         val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
                         if (stateCombined.isInstantiated(variable)) {
@@ -54,7 +58,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
                             stateCombined.instantiate(variable, substitutedValue)
                         }
                     }
-                    Unification(stateCombined)
+                    stateCombined
                 })
             }
         }

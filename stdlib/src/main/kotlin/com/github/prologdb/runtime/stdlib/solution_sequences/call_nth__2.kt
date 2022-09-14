@@ -16,7 +16,7 @@ val BuiltinCallNth2 = nativeRule("call_nth", 2) { args, ctxt ->
     val nInput = args[1]
 
     val solutions = buildLazySequence(ctxt.principal) {
-        ctxt.fulfillAttach(this, goal, Unification())
+        ctxt.fulfillAttach(this, goal, Unification.TRUE)
     }
 
     if (nInput is PrologNumber) {

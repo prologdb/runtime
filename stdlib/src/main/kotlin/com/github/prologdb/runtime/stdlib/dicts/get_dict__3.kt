@@ -21,13 +21,14 @@ val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
         return@nativeRule yieldAllFinal(LazySequence.ofIterable(dictArg.pairs.entries, principal).mapRemainingNotNull { (dictKey, dictValue) ->
             val valueUnification = valueArg.unify(dictValue, ctxt.randomVariableScope)
             if (valueUnification != null) {
-                if (valueUnification.variableValues.isInstantiated(keyArg)) {
-                    if (valueUnification.variableValues[keyArg] == dictKey) {
+                if (valueUnification.isInstantiated(keyArg)) {
+                    if (valueUnification[keyArg] == dictKey) {
                         return@mapRemainingNotNull valueUnification
                     }
                 } else {
-                    valueUnification.variableValues.instantiate(keyArg, dictKey)
-                    return@mapRemainingNotNull valueUnification
+                    return@mapRemainingNotNull valueUnification.createMutableCopy().apply {
+                        instantiate(keyArg, dictKey)
+                    }
                 }
             }
 

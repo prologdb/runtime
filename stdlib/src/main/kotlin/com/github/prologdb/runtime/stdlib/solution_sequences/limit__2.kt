@@ -9,7 +9,7 @@ val BuiltinLimit2 = nativeRule("limit", 2) { args, ctxt ->
     val goal = args.getQuery(1)
 
     val solutions = buildLazySequence(ctxt.principal) {
-        ctxt.fulfillAttach(this, goal, Unification())
+        ctxt.fulfillAttach(this, goal, Unification.TRUE)
     }
 
     yieldAllFinal(solutions.limitRemaining(limit))

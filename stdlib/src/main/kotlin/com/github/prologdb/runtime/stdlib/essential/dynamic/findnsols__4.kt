@@ -34,11 +34,11 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
 
     val resultList = await(launchWorkableFuture(principal) {
         val resultSequence = buildLazySequence<Unification>(principal) {
-            context.fulfillAttach(this, goalInput, Unification())
+            context.fulfillAttach(this, goalInput, Unification.TRUE)
         }
             .limitRemaining(nSolutions)
             .mapRemaining { solution ->
-                templateInput.substituteVariables(solution.variableValues.asSubstitutionMapper())
+                templateInput.substituteVariables(solution.asSubstitutionMapper())
             }
 
         foldRemaining(resultSequence, mutableListOf<Term>()) { l, t -> l.add(t); l }
@@ -49,6 +49,9 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
     }
 
     val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
-    resultListUnified?.variableValues?.retainAll(templateInput.variables + solutionInput.variables)
     return@nativeRule resultListUnified
+        ?.createMutableCopy()
+        ?.apply {
+            retainAll(templateInput.variables + solutionInput.variables)
+        }
 }

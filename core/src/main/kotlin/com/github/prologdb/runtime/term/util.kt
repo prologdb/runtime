@@ -18,7 +18,7 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
         return MutableUnification.createTrue()
     }
 
-    val vars = MutableUnification()
+    val vars = MutableUnification.createTrue()
     for (argIndex in 0..lastIndex) {
         val lhsArg = this[argIndex].substituteVariables(vars.asSubstitutionMapper())
         val rhsArg = rhs[argIndex].substituteVariables(vars.asSubstitutionMapper())
@@ -29,7 +29,7 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
             return MutableUnification.createFalse()
         }
 
-        for ((variable, value) in argUnification.variableValues.values) {
+        for ((variable, value) in argUnification.values) {
             // substitute all instantiated variables for simplicity
             val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
             if (vars.isInstantiated(variable)) {
