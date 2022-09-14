@@ -2,7 +2,6 @@ package com.github.prologdb.runtime.stdlib.essential.math
 
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 
 /**
  * Implements the is/2 builtin that evaluates mathematical expressions

@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.unify
 import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -97,7 +96,7 @@ class ASTPrologPredicate(
 
         val lastClause = clauses.last()
         var arguments = initialArguments
-        val stateCarry = VariableBucket()
+        val stateCarry = Unification()
         tailCallLoop@ while (true) {
             clauses@ for (clause in clauses) {
                 if (clause is CompoundTerm) {
@@ -107,12 +106,12 @@ class ASTPrologPredicate(
                     )
                     val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
                     try {
-                        unification?.variableValues?.incorporate(stateCarry, RandomVariableScope())
+                        unification?.incorporate(stateCarry, RandomVariableScope())
                     }
                     catch (ex: VariableDiscrepancyException) {
                         throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
                     }
-                    unification?.variableValues?.retainAll(initialArguments.variables)
+                    unification?.retainAll(initialArguments.variables)
                     if (lastClause === clause) return@fulfill unification else {
                         unification?.let { yield(it) }
                     }

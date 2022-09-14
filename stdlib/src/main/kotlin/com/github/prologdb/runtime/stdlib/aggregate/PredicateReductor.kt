@@ -14,7 +14,6 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -119,7 +118,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
                                 specification.specificationTerm,
                                 initialAccumulatorVar,
                             ),
-                            VariableBucket(),
+                            Unification(),
                         )
                     },
                     { PrologReductorDefinitionException(specification, "initialization yielded no solutions.") },
@@ -144,7 +143,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
     override fun accumulate(
         ctxt: ProofSearchContext,
         accumulator: Accumulator,
-        element: VariableBucket
+        element: Unification
     ): WorkableFuture<Accumulator> {
         return accumulator.accumulateOnSelf(ctxt, element).map { accumulator }
     }
@@ -172,7 +171,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
     ) {
         private val accumulatorTerm = AtomicReference(initialAccumulator)
 
-        fun accumulateOnSelf(ctxt: ProofSearchContext, element: VariableBucket): WorkableFuture<Unit> {
+        fun accumulateOnSelf(ctxt: ProofSearchContext, element: Unification): WorkableFuture<Unit> {
             val instantiatedSpecification = specification.specificationTerm.substituteVariables(element.asSubstitutionMapper())
             val accumulatorTermIn = accumulatorTerm.getAcquire()
             val accumulatorTermOutVariable = ctxt.randomVariableScope.createNewRandomVariable()
@@ -189,7 +188,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
                                 accumulatorTermIn,
                                 accumulatorTermOutVariable,
                             ),
-                            VariableBucket(),
+                            Unification(),
                         )
                     },
                     { PrologReductorDefinitionException(specification, "accumulate yielded zero solutions") },
@@ -218,7 +217,7 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
                                 accumulatorTerm.getAcquire(),
                                 resultTermOutVariable,
                             ),
-                            VariableBucket(),
+                            Unification(),
                         )
                     },
                     { PrologReductorDefinitionException(specification, "finalize yielded zero solutions") },

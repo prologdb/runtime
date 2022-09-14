@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -51,7 +50,7 @@ interface PrologRuntimeEnvironment {
     /**
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
-    fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket, authorization: Authorization): LazySequence<Unification> {
+    fun fulfill(inModule: String, query: Query, initialVariables: Unification, authorization: Authorization): LazySequence<Unification> {
         val psc = newProofSearchContext(inModule, authorization)
         return buildLazySequence<Unification>(psc.principal) {
             psc.fulfillAttach(this, query, initialVariables)
@@ -62,7 +61,7 @@ interface PrologRuntimeEnvironment {
     /**
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
-    fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket): LazySequence<Unification> {
+    fun fulfill(inModule: String, query: Query, initialVariables: Unification): LazySequence<Unification> {
         return fulfill(inModule, query, initialVariables, ReadWriteAuthorization)
     }
 
@@ -70,7 +69,7 @@ interface PrologRuntimeEnvironment {
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
     fun fulfill(inModule: String, query: Query): LazySequence<Unification> {
-        return fulfill(inModule, query, VariableBucket(), ReadWriteAuthorization)
+        return fulfill(inModule, query, Unification(), ReadWriteAuthorization)
     }
 
     companion object {

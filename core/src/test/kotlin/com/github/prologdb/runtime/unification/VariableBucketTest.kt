@@ -19,7 +19,7 @@ class VariableBucketTest : FreeSpec({
     "variable bucket topological sort (sortForSubstitution)" - {
         "happy path" {
             // SETUP
-            val bucket = VariableBucket()
+            val bucket = Unification()
             bucket.instantiate(Variable("C"), Atom("a"))
             bucket.instantiate(Variable("B"), Variable("C"))
             bucket.instantiate(Variable("A"), Variable("B"))
@@ -29,7 +29,7 @@ class VariableBucketTest : FreeSpec({
             bucket.values.first() shouldNotBe Pair(Variable("A"), Variable("B"))
 
             // ACT
-            val sorted = bucket.sortForSubstitution()
+            val sorted = bucket.sortedForSubstitution()
 
             var value = CompoundTerm("foo", arrayOf(Variable("A")))
             sorted.forEach { replacement ->
@@ -41,24 +41,24 @@ class VariableBucketTest : FreeSpec({
 
         "circular dependency should error" {
             // SETUP
-            val bucket = VariableBucket()
+            val bucket = Unification()
             bucket.instantiate(Variable("A"), CompoundTerm("foo", arrayOf(Variable("B"))))
             bucket.instantiate(Variable("B"), CompoundTerm("bar", arrayOf(Variable("A"))))
 
             // ACT & ASSERT
             shouldThrow<CircularTermException> {
-                bucket.sortForSubstitution()
+                bucket.sortedForSubstitution()
             }
         }
     }
 
     "incorporate" - {
         "should unify" {
-            val bucketA = VariableBucket().apply {
+            val bucketA = Unification().apply {
                 instantiate(Variable("A"), PrologList(listOf(Variable("NestedA"))))
                 instantiate(Variable("B"), Atom("ground"))
             }
-            val bucketB = VariableBucket().apply {
+            val bucketB = Unification().apply {
                 instantiate(Variable("A"), PrologList(listOf(Variable("NestedB"))))
                 instantiate(Variable("B"), Atom("ground"))
             }
@@ -83,25 +83,25 @@ class VariableBucketTest : FreeSpec({
     "compact" - {
         "simplify with common value being a variable" - {
             "one way" {
-                val bucket = VariableBucket()
+                val bucket = Unification()
                 bucket.instantiate(Variable("A"), Variable("X"))
                 bucket.instantiate(Variable("B"), Variable("X"))
                 bucket.instantiate(Variable("C"), Variable("X"))
 
-                val compacted = bucket.compact(RandomVariableScope())
+                val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(2)
                 compacted[Variable("A")] shouldBe Variable("B")
                 compacted[Variable("C")] shouldBe Variable("B")
             }
 
             "two way" {
-                val bucket = VariableBucket()
+                val bucket = Unification()
                 bucket.instantiate(Variable("A"), Variable("X"))
                 bucket.instantiate(Variable("B"), Variable("X"))
                 bucket.instantiate(Variable("C"), Variable("X"))
                 bucket.instantiate(Variable("X"), Variable("D"))
 
-                val compacted = bucket.compact(RandomVariableScope())
+                val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(3)
                 compacted[Variable("A")] shouldBe Variable("B")
                 compacted[Variable("C")] shouldBe Variable("B")
@@ -111,12 +111,12 @@ class VariableBucketTest : FreeSpec({
 
         "simplify with common value being a nonvar" - {
             "one way" {
-                val bucket = VariableBucket()
+                val bucket = Unification()
                 bucket.instantiate(Variable("A"), Atom("a"))
                 bucket.instantiate(Variable("B"), Atom("a"))
                 bucket.instantiate(Variable("C"), Atom("a"))
 
-                val compacted = bucket.compact(RandomVariableScope())
+                val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(3)
                 compacted[Variable("A")] shouldBe Atom("a")
                 compacted[Variable("B")] shouldBe Variable("A")
@@ -124,13 +124,13 @@ class VariableBucketTest : FreeSpec({
             }
 
             "one way with additional indirection" {
-                val bucket = VariableBucket()
+                val bucket = Unification()
                 bucket.instantiate(Variable("A"), Atom("a"))
                 bucket.instantiate(Variable("B"), Atom("a"))
                 bucket.instantiate(Variable("C"), Atom("a"))
                 bucket.instantiate(Variable("D"), Variable("C"))
 
-                val compacted = bucket.compact(RandomVariableScope())
+                val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(4)
                 compacted[Variable("A")] shouldBe Atom("a")
                 compacted[Variable("B")] shouldBe Variable("A")
@@ -139,13 +139,13 @@ class VariableBucketTest : FreeSpec({
             }
 
             "two way indirect" {
-                val bucket = VariableBucket()
+                val bucket = Unification()
                 bucket.instantiate(Variable("A"), Variable("X"))
                 bucket.instantiate(Variable("B"), Variable("X"))
                 bucket.instantiate(Variable("C"), Variable("X"))
                 bucket.instantiate(Variable("X"), Variable("D"))
 
-                val compacted = bucket.compact(RandomVariableScope())
+                val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(3)
                 compacted[Variable("A")] shouldBe Variable("B")
                 compacted[Variable("C")] shouldBe Variable("B")

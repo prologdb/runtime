@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.term.Variable
  * @return Whether the terms in the two buckets are structurally equivalent (that means `==` semantics, but
  * ignoring variable names).
  */
-fun VariableBucket.equalsStructurally(other: VariableBucket, randomVariableScope: RandomVariableScope): Boolean {
+fun Unification.equalsStructurally(other: Unification, randomVariableScope: RandomVariableScope): Boolean {
     val combined = try {
         combinedWith(other, randomVariableScope)
     }

@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.UnificationGrouping
-import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
     val (goal, existentialVariables) = args.getQueryWithExistentialVariables(1)
@@ -47,7 +46,7 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
 
     await(
         buildLazySequence(ctxt.principal) {
-            ctxt.fulfillAttach(this, goal, VariableBucket())
+            ctxt.fulfillAttach(this, goal, Unification())
         }
             .flatMapRemaining { element ->
                 val groupKey = element.getGroupKey(groupByVariables)
@@ -118,12 +117,12 @@ private fun parseSpecification(specification: Term, listArgumentIndex: Int, inde
 private class ReductionSpecification(val reductorSpecification: Term, val resultTerm: Term)
 private class ReductionFactoryWithResultTerm(val reductionFactory: ReductionFactory, val resultTerm: Term)
 
-private fun Unification.getGroupKey(keys: Set<Variable>): VariableBucket {
+private fun Unification.getGroupKey(keys: Set<Variable>): Unification {
     if (keys.isEmpty()) {
         return VariableBucket()
     }
 
-    return variableValues.copy().apply {
+    return variableValues.createMutableCopy().apply {
         retainAll(keys)
     }
 }

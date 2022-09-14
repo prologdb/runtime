@@ -7,7 +7,6 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 /**
  * Defines boilerplate code for correctly handling [AndQuery]s and [OrQuery]s as well checking read access
@@ -22,7 +21,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
         }
     }
 
-    protected suspend fun LazySequenceBuilder<Unification>.fulfillAndQuery(query: AndQuery, initialVariables: VariableBucket): Unification? {
+    protected suspend fun LazySequenceBuilder<Unification>.fulfillAndQuery(query: AndQuery, initialVariables: Unification): Unification? {
         if (query.goals.isEmpty()) {
             return Unification(initialVariables)
         }
@@ -30,18 +29,18 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
             return fulfillAttach(query.goals.first(), initialVariables)
         }
 
-        var sequence = LazySequence.singleton(Unification(initialVariables.copy()))
+        var sequence = LazySequence.singleton(Unification(initialVariables.createMutableCopy()))
 
         for (goalIndex in query.goals.indices) {
             sequence = sequence.flatMapRemaining { stateBefore ->
                 val goalSequence = buildLazySequence<Unification>(principal) {
                     fulfillAttach(
                         query.goals[goalIndex].substituteVariables(stateBefore.variableValues),
-                        stateBefore.variableValues.copy()
+                        stateBefore.variableValues.createMutableCopy()
                     )
                 }
                 return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
-                    val stateCombined = stateBefore.variableValues.copy()
+                    val stateCombined = stateBefore.variableValues.createMutableCopy()
                     for ((variable, value) in goalUnification.variableValues.values) {
                         // substitute all instantiated variables for simplicity and performance
                         val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
@@ -63,7 +62,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
         return yieldAllFinal(sequence)
     }
 
-    protected suspend inline fun LazySequenceBuilder<Unification>.fulfillOrQuery(query: OrQuery, initialVariables: VariableBucket): Unification? {
+    protected suspend inline fun LazySequenceBuilder<Unification>.fulfillOrQuery(query: OrQuery, initialVariables: Unification): Unification? {
         if (query.goals.size == 1) {
             return fulfillAttach(this, query.goals[0], initialVariables)
         }
@@ -75,13 +74,13 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
         return fulfillAttach(query.goals.last(), initialVariables)
     }
 
-    private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification? {
+    private suspend fun LazySequenceBuilder<Unification>.invokePredicate(query: PredicateInvocationQuery, variables: Unification): Unification? {
         return prologTry({ getStackTraceElementOf(query) }) {
             doInvokePredicate(query, variables)
         }
     }
 
-    protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: VariableBucket): Unification?
+    protected abstract suspend fun LazySequenceBuilder<Unification>.doInvokePredicate(query: PredicateInvocationQuery, variables: Unification): Unification?
 
     protected open fun getStackTraceElementOf(query: PredicateInvocationQuery): PrologStackTraceElement = PrologStackTraceElement(
         query.goal,

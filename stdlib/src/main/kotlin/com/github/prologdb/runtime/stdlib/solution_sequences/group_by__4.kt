@@ -6,7 +6,6 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.numberVariables
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -19,7 +18,7 @@ val BuiltinGroupBy4 = nativeRule("group_by", 4) { args, ctxt ->
 
     val bagsByGrouping = await(
         buildLazySequence(ctxt.principal) {
-            ctxt.fulfillAttach(this, goal, VariableBucket())
+            ctxt.fulfillAttach(this, goal, Unification())
         }
             .foldRemaining(ConcurrentHashMap<KeyIdentity<Unification, Term>, MutableList<Term>>()) { bagByGrouping, solution ->
                 val normalizedGrouping = groupingBy

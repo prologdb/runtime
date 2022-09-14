@@ -5,7 +5,7 @@ import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinCall1 = nativeRule("call", 1) { args, ctxt ->
     val goalInput = args[0]
@@ -19,6 +19,6 @@ val BuiltinCall1 = nativeRule("call", 1) { args, ctxt ->
     ctxt.fulfillAttach(
         this,
         PredicateInvocationQuery(goal, goalInput.sourceInformation),
-        VariableBucket()
+        Unification()
     )
 }

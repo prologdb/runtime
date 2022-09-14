@@ -2,24 +2,23 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.MutableUnification
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Unifies the two arrays of terms as if the arguments to predicates with equal functors.
  * @return `Unification.FALSE` if the two arrays haf different lengths
  */
-fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableScope): Unification? {
+fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableScope): MutableUnification? {
     if (size != rhs.size) {
-        return Unification.FALSE
+        return MutableUnification.createFalse()
     }
 
     if (size == 0) {
-        return Unification.TRUE
+        return MutableUnification.createTrue()
     }
 
-    val vars = VariableBucket()
+    val vars = MutableUnification()
     for (argIndex in 0..lastIndex) {
         val lhsArg = this[argIndex].substituteVariables(vars.asSubstitutionMapper())
         val rhsArg = rhs[argIndex].substituteVariables(vars.asSubstitutionMapper())
@@ -27,7 +26,7 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
 
         if (argUnification == null) {
             // the arguments at place argIndex do not unify => the terms don't unify
-            return Unification.FALSE
+            return MutableUnification.createFalse()
         }
 
         for ((variable, value) in argUnification.variableValues.values) {
@@ -36,7 +35,7 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
             if (vars.isInstantiated(variable)) {
                 if (vars[variable] != substitutedValue && vars[variable] != value) {
                     // instantiated to different value => no unification
-                    return Unification.FALSE
+                    return MutableUnification.createFalse()
                 }
             } else {
                 vars.instantiate(variable, substitutedValue)
@@ -44,7 +43,7 @@ fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableS
         }
     }
 
-    return Unification(vars)
+    return vars
 }
 
 val Array<out Term>.variables: Iterable<Variable>
@@ -94,7 +93,7 @@ val Class<out Term>.prologTypeName: String
  */
 fun Term.equalsStructurally(other: Term, randomVarsScope: RandomVariableScope): Boolean {
     val unification = this.unify(other, randomVarsScope) ?: return false
-    return unification.variableValues.values.all { (_, instantiatedTo) -> instantiatedTo is Variable }
+    return unification.values.all { (_, instantiatedTo) -> instantiatedTo is Variable }
 }
 
 /**

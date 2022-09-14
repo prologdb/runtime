@@ -6,13 +6,12 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.equalsStructurally
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinNot = nativeRule("not", 1) { args, context ->
     val arg0 = args[0] as? CompoundTerm ?: return@nativeRule null
 
     val proofSequence = buildLazySequence<Unification>(context.principal) {
-        context.fulfillAttach(this, PredicateInvocationQuery(arg0), VariableBucket())
+        context.fulfillAttach(this, PredicateInvocationQuery(arg0), Unification())
     }
 
     val hasProof = proofSequence.tryAdvance() != null

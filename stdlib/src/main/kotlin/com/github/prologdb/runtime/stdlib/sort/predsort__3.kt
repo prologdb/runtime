@@ -9,7 +9,6 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.Unification
 
 private val Delta = Variable("Delta")
 

@@ -5,7 +5,6 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 /**
  * set(-List, -List)
@@ -27,7 +26,7 @@ val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
 
         val isSet = arg1.elements.size == arg1.elements.toSet().size
         return@nativeRule if (isSet) {
-            val result = VariableBucket()
+            val result = Unification()
             result.instantiate(arg0, arg1)
             Unification(result)
         } else {
@@ -41,7 +40,7 @@ val BuiltinSet2 = nativeRule("set", 2) { args, _ ->
         val arg1 = args.getTyped<Variable>(1)
 
         val arg0asSet = arg0.elements.toSet()
-        val result = VariableBucket()
+        val result = Unification()
         result.instantiate(arg1, PrologList(arg0asSet.toList()))
         return@nativeRule Unification(result)
     }

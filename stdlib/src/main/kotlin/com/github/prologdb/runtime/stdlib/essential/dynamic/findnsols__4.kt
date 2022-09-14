@@ -10,7 +10,6 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 /**
  * findnsols(+N, @Template, :Goal, -List)
@@ -35,7 +34,7 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
 
     val resultList = await(launchWorkableFuture(principal) {
         val resultSequence = buildLazySequence<Unification>(principal) {
-            context.fulfillAttach(this, goalInput, VariableBucket())
+            context.fulfillAttach(this, goalInput, Unification())
         }
             .limitRemaining(nSolutions)
             .mapRemaining { solution ->

@@ -10,7 +10,6 @@ import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor
@@ -42,7 +41,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
 
     val fulfillPreparedCall: suspend LazySequenceBuilder<Unification>.(PreparedCall) -> Unification? = { preparation ->
         val (context, randomQuery) = preparation
-        context.fulfillAttach(this, randomQuery, VariableBucket())
+        context.fulfillAttach(this, randomQuery, Unification())
     }
 
     /**
@@ -129,8 +128,8 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          *
          * thereby also dropping the clause-local variables.
          */
-        fun untranslateResult(solution: VariableBucket): VariableBucket {
-            val solutionVars = VariableBucket()
+        fun untranslateResult(solution: Unification): Unification {
+            val solutionVars = Unification()
 
             for (randomGoalVariable in randomArguments.variables)
             {

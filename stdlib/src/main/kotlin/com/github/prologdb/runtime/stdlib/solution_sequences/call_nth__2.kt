@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.asIntegerInRange
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 val BuiltinCallNth2 = nativeRule("call_nth", 2) { args, ctxt ->
@@ -16,7 +16,7 @@ val BuiltinCallNth2 = nativeRule("call_nth", 2) { args, ctxt ->
     val nInput = args[1]
 
     val solutions = buildLazySequence(ctxt.principal) {
-        ctxt.fulfillAttach(this, goal, VariableBucket())
+        ctxt.fulfillAttach(this, goal, Unification())
     }
 
     if (nInput is PrologNumber) {

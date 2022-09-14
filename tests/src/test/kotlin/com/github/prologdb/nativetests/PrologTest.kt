@@ -19,7 +19,6 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import io.kotest.assertions.fail
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FreeSpec
@@ -156,8 +155,8 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
     private var stateBeforeFailedGoal: Unification? = null
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
-                                                                         initialVariables: VariableBucket = VariableBucket()): Unification? {
-        var sequence = LazySequence.singleton(Unification(initialVariables.copy()))
+                                                                         initialVariables: Unification = Unification()): Unification? {
+        var sequence = LazySequence.singleton(Unification(initialVariables.createMutableCopy()))
 
         for (goalIndex in goals.indices) {
             sequence = sequence.flatMapRemaining { stateBefore ->
@@ -165,7 +164,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                     context.fulfillAttach(
                         this,
                         goals[goalIndex].substituteVariables(stateBefore.variableValues),
-                        stateBefore.variableValues.copy()
+                        stateBefore.variableValues.createMutableCopy()
                     )
                 }
                 val firstSolution = goalSequence.tryAdvance()
@@ -181,7 +180,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                         yieldAllFinal(goalSequence)
                     }
                     .mapRemainingNotNull { goalUnification ->
-                        val stateCombined = stateBefore.variableValues.copy()
+                        val stateCombined = stateBefore.variableValues.createMutableCopy()
                         for ((variable, value) in goalUnification.variableValues.values) {
                             // substitute all instantiated variables for simplicity and performance
                             val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
@@ -207,11 +206,11 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
 
     fun run(callback: TestResultCallback) {
         val substitutedGoals = allGoals
-            .map { it.substituteVariables(VariableBucket()) }
+            .map { it.substituteVariables(Unification()) }
 
         val psc = runtime.newProofSearchContext(moduleName)
         val results = buildLazySequence<Unification>(UUID.randomUUID()) {
-            fulfillAllGoals(substitutedGoals, psc, VariableBucket())
+            fulfillAllGoals(substitutedGoals, psc, Unification())
         }
 
         try {

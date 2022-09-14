@@ -7,7 +7,7 @@ import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 
 /**
  * findall/3 always finds all solutions and then unifies a list of those with the input. This
@@ -58,7 +58,7 @@ val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
 
             val resultList = await(
                 buildLazySequence(principal) {
-                    context.fulfillAttach(this, goalInput, VariableBucket())
+                    context.fulfillAttach(this, goalInput, Unification())
                 }
                     .limitRemaining(nResultsToCalculate.toLong())
                     .mapRemaining { solution ->

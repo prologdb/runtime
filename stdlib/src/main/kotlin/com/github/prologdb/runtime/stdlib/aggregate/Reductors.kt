@@ -10,7 +10,7 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.stdlib.ReductionFactory
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 import java.util.ServiceLoader
 
 object Reductors {
@@ -74,7 +74,7 @@ private class DefaultReduction<Specification, Accumulator, Result>(
     @Volatile
     private var accumulator: Accumulator,
 ) : Reduction {
-    override fun add(element: VariableBucket): WorkableFuture<Unit> {
+    override fun add(element: Unification): WorkableFuture<Unit> {
         val previousAccumulator = accumulator
         return reductor.accumulate(proofSearchContext, accumulator, element)
             .map { newAccumulator ->
