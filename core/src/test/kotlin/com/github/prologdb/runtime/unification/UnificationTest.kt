@@ -19,10 +19,11 @@ class UnificationTest : FreeSpec({
     "variable bucket topological sort (sortForSubstitution)" - {
         "happy path" {
             // SETUP
-            val bucket = MutableUnification.createTrue()
-            bucket.instantiate(Variable("C"), Atom("a"))
-            bucket.instantiate(Variable("B"), Variable("C"))
-            bucket.instantiate(Variable("A"), Variable("B"))
+            val bucket = Unification.fromMap(mapOf(
+                Variable("C") to Atom("a"),
+                Variable("B") to Variable("C"),
+                Variable("A") to Variable("B"),
+            ))
 
             // if this is the case then the variables are, by accident, sorted correctly
             // switching the names should be able to deterministically resolve this
@@ -41,9 +42,10 @@ class UnificationTest : FreeSpec({
 
         "circular dependency should error" {
             // SETUP
-            val bucket = MutableUnification.createTrue()
-            bucket.instantiate(Variable("A"), CompoundTerm("foo", arrayOf(Variable("B"))))
-            bucket.instantiate(Variable("B"), CompoundTerm("bar", arrayOf(Variable("A"))))
+            val bucket = Unification.fromMap(mapOf(
+                Variable("A") to CompoundTerm("foo", arrayOf(Variable("B"))),
+                Variable("B") to CompoundTerm("bar", arrayOf(Variable("A"))),
+            ))
 
             // ACT & ASSERT
             shouldThrow<CircularTermException> {
@@ -54,14 +56,14 @@ class UnificationTest : FreeSpec({
 
     "incorporate" - {
         "should unify" {
-            val bucketA = MutableUnification.createTrue().apply {
-                instantiate(Variable("A"), PrologList(listOf(Variable("NestedA"))))
-                instantiate(Variable("B"), Atom("ground"))
-            }
-            val bucketB = MutableUnification.createTrue().apply {
-                instantiate(Variable("A"), PrologList(listOf(Variable("NestedB"))))
-                instantiate(Variable("B"), Atom("ground"))
-            }
+            val bucketA = Unification.fromMap(mapOf(
+                Variable("A") to PrologList(listOf(Variable("NestedA"))),
+                Variable("B") to Atom("ground"),
+            ))
+            val bucketB = Unification.fromMap(mapOf(
+                Variable("A") to PrologList(listOf(Variable("NestedB"))),
+                Variable("B") to Atom("ground"),
+            ))
 
             val result = bucketA.combinedWith(bucketB, RandomVariableScope())
             result.variables should haveSize(3)
@@ -83,10 +85,11 @@ class UnificationTest : FreeSpec({
     "compact" - {
         "simplify with common value being a variable" - {
             "one way" {
-                val bucket = MutableUnification.createTrue()
-                bucket.instantiate(Variable("A"), Variable("X"))
-                bucket.instantiate(Variable("B"), Variable("X"))
-                bucket.instantiate(Variable("C"), Variable("X"))
+                val bucket = Unification.fromMap(mapOf(
+                    Variable("A") to Variable("X"),
+                    Variable("B") to Variable("X"),
+                    Variable("C") to Variable("X"),
+                ))
 
                 val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(2)
@@ -95,11 +98,12 @@ class UnificationTest : FreeSpec({
             }
 
             "two way" {
-                val bucket = MutableUnification.createTrue()
-                bucket.instantiate(Variable("A"), Variable("X"))
-                bucket.instantiate(Variable("B"), Variable("X"))
-                bucket.instantiate(Variable("C"), Variable("X"))
-                bucket.instantiate(Variable("X"), Variable("D"))
+                val bucket = Unification.fromMap(mapOf(
+                    Variable("A") to Variable("X"),
+                    Variable("B") to Variable("X"),
+                    Variable("C") to Variable("X"),
+                    Variable("X") to Variable("D"),
+                ))
 
                 val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(3)
@@ -111,10 +115,11 @@ class UnificationTest : FreeSpec({
 
         "simplify with common value being a nonvar" - {
             "one way" {
-                val bucket = MutableUnification.createTrue()
-                bucket.instantiate(Variable("A"), Atom("a"))
-                bucket.instantiate(Variable("B"), Atom("a"))
-                bucket.instantiate(Variable("C"), Atom("a"))
+                val bucket = Unification.fromMap(mapOf(
+                    Variable("A") to Atom("a"),
+                    Variable("B") to Atom("a"),
+                    Variable("C") to Atom("a"),
+                ))
 
                 val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(3)
@@ -124,11 +129,12 @@ class UnificationTest : FreeSpec({
             }
 
             "one way with additional indirection" {
-                val bucket = MutableUnification.createTrue()
-                bucket.instantiate(Variable("A"), Atom("a"))
-                bucket.instantiate(Variable("B"), Atom("a"))
-                bucket.instantiate(Variable("C"), Atom("a"))
-                bucket.instantiate(Variable("D"), Variable("C"))
+                val bucket = Unification.fromMap(mapOf(
+                    Variable("A") to Atom("a"),
+                    Variable("B") to Atom("a"),
+                    Variable("C") to Atom("a"),
+                    Variable("D") to Variable("C"),
+                ))
 
                 val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(4)
@@ -139,11 +145,12 @@ class UnificationTest : FreeSpec({
             }
 
             "two way indirect" {
-                val bucket = MutableUnification.createTrue()
-                bucket.instantiate(Variable("A"), Variable("X"))
-                bucket.instantiate(Variable("B"), Variable("X"))
-                bucket.instantiate(Variable("C"), Variable("X"))
-                bucket.instantiate(Variable("X"), Variable("D"))
+                val bucket = Unification.fromMap(mapOf(
+                    Variable("A") to Variable("X"),
+                    Variable("B") to Variable("X"),
+                    Variable("C") to Variable("X"),
+                    Variable("X") to Variable("D"),
+                ))
 
                 val compacted = bucket.compacted(RandomVariableScope())
                 compacted.variables should haveSize(3)

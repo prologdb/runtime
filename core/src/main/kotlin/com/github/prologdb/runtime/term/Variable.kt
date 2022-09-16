@@ -3,7 +3,6 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.unification.MutableUnification
 import com.github.prologdb.runtime.unification.Unification
 
 @PrologTypeName("variable")
@@ -11,9 +10,7 @@ open class Variable(val name: String) : Term {
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification {
         if (rhs is Variable && rhs == this) return Unification.TRUE
 
-        val vars = MutableUnification.createTrue()
-        vars.instantiate(this, rhs)
-        return vars
+        return Unification.of(this, rhs)
     }
 
     override val variables: Set<Variable>

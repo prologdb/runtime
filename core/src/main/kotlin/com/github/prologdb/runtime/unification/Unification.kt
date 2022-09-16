@@ -67,6 +67,18 @@ interface Unification {
 
         @JvmStatic
         fun whether(condition: Boolean): Unification? = if(condition) TRUE else FALSE
+
+        @JvmStatic
+        fun of(variable: Variable, value: Term): Unification = UnificationImpl(HashMap<Variable, Term>(1).apply {
+            put(variable, value)
+        })
+
+        @JvmStatic
+        fun fromMap(map: Map<Variable, Term>): Unification {
+            val implMap = HashMap<Variable, Term>(map.size)
+            implMap.putAll(map)
+            return UnificationImpl(implMap)
+        }
     }
 }
 
@@ -163,14 +175,16 @@ private class UnificationImpl(
     }
 
     override fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope): Unification {
-        val copy = createMutableCopy()
+        val copy = createMutableCopy(other.variables.size)
         copy.incorporate(other, randomVariableScope)
 
         return copy
     }
 
-    override fun createMutableCopy(): MutableUnification {
-        val mapCopy = mutableMapOf<Variable,Term>()
+    override fun createMutableCopy(): MutableUnification = createMutableCopy(0)
+
+    private fun createMutableCopy(additionalCapacity: Int = 0): MutableUnification {
+        val mapCopy = HashMap<Variable,Term>(variableMap.size + additionalCapacity)
         mapCopy.putAll(variableMap)
         return UnificationImpl(mapCopy)
     }

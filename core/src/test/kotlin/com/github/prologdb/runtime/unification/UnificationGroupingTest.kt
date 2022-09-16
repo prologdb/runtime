@@ -10,12 +10,12 @@ import io.kotest.matchers.shouldBe
 
 class UnificationGroupingTest : FreeSpec({
     "should differentiate unbound from bound" - {
-        val keyUnbound = MutableUnification.createTrue().apply {
-            instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Variable("B"))))
-        }
-        val keyBound = MutableUnification.createTrue().apply {
-            instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Atom("ground"))))
-        }
+        val keyUnbound = Unification.fromMap(mapOf(
+            Variable("A") to CompoundTerm("wrap", arrayOf(Variable("B")))
+        ))
+        val keyBound = Unification.fromMap(mapOf(
+            Variable("A") to CompoundTerm("wrap", arrayOf(Atom("ground")))
+        ))
 
         val grouping = UnificationGrouping<String>(RandomVariableScope())
         grouping[keyUnbound] = "unbound"
@@ -43,12 +43,12 @@ class UnificationGroupingTest : FreeSpec({
     }
 
     "should combine unbound with different variables" - {
-        val keyA = MutableUnification.createTrue().apply {
-            instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Variable("UnboundA"))))
-        }
-        val keyB = MutableUnification.createTrue().apply {
-            instantiate(Variable("A"), CompoundTerm("wrap", arrayOf(Variable("UnboundB"))))
-        }
+        val keyA = Unification.fromMap(mapOf(
+            Variable("A") to CompoundTerm("wrap", arrayOf(Variable("UnboundA")))
+        ))
+        val keyB = Unification.fromMap(mapOf(
+            Variable("A") to CompoundTerm("wrap", arrayOf(Variable("UnboundB")))
+        ))
 
         val grouping = UnificationGrouping<String>(RandomVariableScope())
         grouping[keyA] = "first value"
