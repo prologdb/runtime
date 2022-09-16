@@ -126,7 +126,7 @@ private fun Unification.subset(keys: Set<Variable>): Unification {
         return Unification.TRUE
     }
 
-    if (variables.intersect(keys) == keys) {
+    if (variables == keys) {
         return this
     }
 

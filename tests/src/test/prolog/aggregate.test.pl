@@ -80,6 +80,21 @@ test "grouping with existential" by [
     ]
 ].
 
+test "simple grouping" by [
+    findall(
+        [Group, Max],
+        reduce(
+            [max(V) as Max],
+            member([Group, V], [[a, 1], [a, 2], [b, 1], [b, 3]])
+        ),
+        Results
+    ),
+    Results == [
+        [a, 2],
+        [b, 3]
+    ]
+].
+
 test "percentile_discrete with default sort" by [
     Elements = [10, 25, 1, 2, 90, 2512, 551, 8832, 401, 99, 211, 6621, 9662],
     reduce([percentile_discrete(0.1, V) as PV1], member(V, Elements)), PV1 == 2,
