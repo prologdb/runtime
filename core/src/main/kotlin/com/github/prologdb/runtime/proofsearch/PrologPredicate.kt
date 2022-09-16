@@ -203,7 +203,6 @@ class ASTPrologPredicate(
                                         catch (ex: VariableDiscrepancyException) {
                                             throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
                                         }
-                                        it
                                     }
                             )
                         }
