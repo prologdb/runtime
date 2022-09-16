@@ -120,17 +120,3 @@ private fun parseSpecification(specification: Term, listArgumentIndex: Int, inde
 
 private class ReductionSpecification(val reductorSpecification: Term, val resultTerm: Term)
 private class ReductionFactoryWithResultTerm(val reductionFactory: ReductionFactory, val resultTerm: Term)
-
-private fun Unification.subset(keys: Set<Variable>): Unification {
-    if (keys.isEmpty()) {
-        return Unification.TRUE
-    }
-
-    if (variables == keys) {
-        return this
-    }
-
-    return createMutableCopy().apply {
-        retainAll(keys)
-    }
-}

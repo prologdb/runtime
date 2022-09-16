@@ -67,12 +67,8 @@ val BuiltinFindAllOptimized3 = nativeRule("findall_o", 3) { args, context ->
                     .remainingToList()
             )
 
-            val resultListUnified = solutionInput.unify(PrologList(resultList), context.randomVariableScope)
-            return@nativeRule resultListUnified
-                ?.createMutableCopy()
-                ?.apply {
-                    retainAll(templateInput.variables + solutionInput.variables)
-                }
+            return@nativeRule solutionInput.unify(PrologList(resultList), context.randomVariableScope)
+                ?.subset(templateInput.variables + solutionInput.variables)
         }
     }
 }

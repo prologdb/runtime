@@ -7,6 +7,8 @@ import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import java.util.Collections
+import kotlin.math.max
+import kotlin.math.min
 
 interface Unification {
     val isEmpty: Boolean
@@ -52,6 +54,11 @@ interface Unification {
      */
     fun compacted(randomVariableScope: RandomVariableScope): Unification
 
+    /**
+     * @return a copy of this [Unification] with only the variables that are also in [retain]
+     */
+    fun subset(retain: Set<Variable>): Unification
+
     companion object {
         @JvmStatic
         @get:JvmName("true")
@@ -92,11 +99,6 @@ interface MutableUnification : Unification {
      *                                      in `variables`
      */
     fun incorporate(variables: Unification, randomVariableScope: RandomVariableScope)
-
-    /**
-     * Removes all variables from this bucket that are not in the given collection
-     */
-    fun retainAll(variables: Iterable<Variable>)
 
     companion object {
         @JvmName("createEmpty")
@@ -189,22 +191,29 @@ private class UnificationImpl(
         return UnificationImpl(mapCopy)
     }
 
-    override fun retainAll(variables: Iterable<Variable>) {
-        val keysToRemove = variableMap.keys.filter { it !in variables }
-        val removedToSubstitute = mutableMapOf<Variable, Term>()
+    override fun subset(retain: Set<Variable>): Unification {
+        if (retain.isEmpty() || variableMap.isEmpty()) {
+            return Unification.TRUE
+        }
 
-        for (key in keysToRemove) {
-            val value = variableMap[key]
-            if (value != null) {
-                removedToSubstitute[key] = value
+        // TODO: can we optimize sensibly for the case variableMap.keys == retain?
+        // TODO: can the signature be Iterable<Variable>?
+
+        val newMap = HashMap<Variable, Term>(min(variableMap.size, retain.size))
+        val removedToSubstitute = HashMap<Variable, Term>(max(variableMap.size - retain.size, 3))
+        for ((variable, value) in variableMap) {
+            if (variable in retain) {
+                newMap[variable] = value
+            } else {
+                removedToSubstitute[variable] = value
             }
-
-            variableMap.remove(key)
         }
 
-        for ((key, value) in variableMap) {
-            variableMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
+        for ((key, value) in newMap) {
+            newMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
         }
+
+        return UnificationImpl(newMap)
     }
 
     override fun withVariablesResolvedFrom(mapping: VariableMapping): MutableUnification {

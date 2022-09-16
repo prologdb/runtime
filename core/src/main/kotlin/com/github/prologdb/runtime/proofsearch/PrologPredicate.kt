@@ -117,13 +117,9 @@ class ASTPrologPredicate(
                         VariableMapping()
                     )
                     val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
-                    try {
-                        unification?.incorporate(stateCarry, RandomVariableScope())
-                    }
-                    catch (ex: VariableDiscrepancyException) {
-                        throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
-                    }
-                    unification?.retainAll(initialArguments.variables)
+                        ?.subset(arguments.variables.toSet())
+                        ?.combinedWith(stateCarry, RandomVariableScope())
+
                     if (lastClause === clause) return@fulfill unification else {
                         unification?.let { yield(it) }
                     }
@@ -247,9 +243,7 @@ class ASTPrologPredicate(
                 if (unification != null) {
                     clauses.remove(clause)
                     invalidateTailCall()
-                    val result = unification.createMutableCopy()
-                    result.retainAll(matching.variables)
-                    yield(result)
+                    yield(unification.subset(matching.variables))
                 }
             }
 
