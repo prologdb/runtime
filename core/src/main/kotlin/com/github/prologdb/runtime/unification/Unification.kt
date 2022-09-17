@@ -16,6 +16,8 @@ class UnificationBuilder(private val variableMap: MutableMap<Variable, Term>) {
     private var built = false
     private var corrupted = false
 
+    val isEmpty: Boolean get() = variableMap.isEmpty()
+
     fun instantiate(variable: Variable, value: Term, randomVariableScope: RandomVariableScope) {
         checkCleanState()
 
@@ -125,6 +127,14 @@ class Unification internal constructor(
      */
     @JvmOverloads
     fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope, replaceInline: Boolean = false): Unification {
+        if (other.isEmpty) {
+            return this
+        }
+
+        if (this.isEmpty) {
+            return other
+        }
+
         return copyToBuilder().run {
             incorporate(other, randomVariableScope, replaceInline)
             build()
@@ -133,6 +143,10 @@ class Unification internal constructor(
 
     fun combinedWithCurrentStateOf(other: UnificationBuilder, randomVariableScope: RandomVariableScope): Unification {
         other.checkNotCorrupted()
+
+        if (other.isEmpty) {
+            return this
+        }
 
         return copyToBuilder().run {
             incorporateCurrentStateOf(other, randomVariableScope)
@@ -149,7 +163,6 @@ class Unification internal constructor(
         }
 
         // TODO: can we optimize sensibly for the case variableMap.keys == retain?
-        // TODO: can the signature be Iterable<Variable>?
 
         val newMap = HashMap<Variable, Term>(min(variableMap.size, retain.size))
         val removedToSubstitute = HashMap<Variable, Term>(max(variableMap.size - retain.size, 3))
