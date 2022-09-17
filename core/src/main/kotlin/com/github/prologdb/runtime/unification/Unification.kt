@@ -94,10 +94,12 @@ class Unification internal constructor(
             }
         }
 
-        if (removedToSubstitute.isNotEmpty()) {
-            for ((key, value) in newMap) {
-                newMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
-            }
+        if (removedToSubstitute.isEmpty()) {
+            return this
+        }
+
+        for ((key, value) in newMap) {
+            newMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
         }
 
         return Unification(newMap)
