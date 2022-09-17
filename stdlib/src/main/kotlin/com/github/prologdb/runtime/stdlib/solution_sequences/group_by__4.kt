@@ -10,7 +10,6 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.numberVariables
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
@@ -46,12 +45,7 @@ val BuiltinGroupBy4 = nativeRule("group_by", 4) { args, ctxt ->
                 val bagUnification = bagInput.unify(PrologList(instantiatedBag), ctxt.randomVariableScope)
                     ?: return@mapRemainingNotNull null
 
-                return@mapRemainingNotNull try {
-                    solution.combinedWith(bagUnification, ctxt.randomVariableScope)
-                }
-                catch (ex: VariableDiscrepancyException) {
-                    null
-                }
+                return@mapRemainingNotNull solution.combinedWith(bagUnification, ctxt.randomVariableScope)
             }
     )
 }

@@ -8,7 +8,6 @@ import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
     val keyArg = args[0]
@@ -21,13 +20,8 @@ val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
 
     if (keyArg is Variable) {
         return@nativeRule yieldAllFinal(LazySequence.ofIterable(dictArg.pairs.entries, principal).mapRemainingNotNull { (dictKey, dictValue) ->
-            try {
-                valueArg.unify(dictValue, ctxt.randomVariableScope)
-                    ?.combinedWith(Unification.of(keyArg, dictKey), ctxt.randomVariableScope)
-            }
-            catch (ex: VariableDiscrepancyException) {
-                null
-            }
+            valueArg.unify(dictValue, ctxt.randomVariableScope)
+                ?.combinedWith(Unification.of(keyArg, dictKey), ctxt.randomVariableScope)
         })
     } else {
         keyArg as Atom

@@ -5,7 +5,6 @@ import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.flatMapRemaining
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.async.mapRemainingNotNull
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
@@ -126,12 +125,7 @@ class ASTPrologPredicate(
                 } else if (clause is Rule) {
                     if (lastClause !== clause) {
                         clause.fulfill(this, arguments, ctxt)?.let { unification ->
-                            try {
-                                yield(unification.combinedWithCurrentStateOf(stateCarry, ctxt.randomVariableScope))
-                            }
-                            catch (ex: VariableDiscrepancyException) {
-                                throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the rule shouldn't have succeeded in this case - yet it has happened.", ex)
-                            }
+                            yield(unification.combinedWithCurrentStateOfExpectSuccess(stateCarry, ctxt.randomVariableScope))
                         }
                     } else {
                         val localTailCallData = tailCallData
@@ -171,13 +165,8 @@ class ASTPrologPredicate(
                             yield(firstPartialResult)
                             yieldAllFinal(lastClausePartialResults)
                         }
-                            .mapRemainingNotNull { result ->
-                                try {
-                                    result.combinedWithCurrentStateOf(stateCarry, ctxt.randomVariableScope)
-                                }
-                                catch (ex: VariableDiscrepancyException) {
-                                    throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
-                                }
+                            .mapRemaining { result ->
+                                result.combinedWithCurrentStateOfExpectSuccess(stateCarry, ctxt.randomVariableScope)
                             }
 
                         val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
@@ -193,12 +182,7 @@ class ASTPrologPredicate(
                                     )
                                 }
                                     .mapRemaining {
-                                        try {
-                                            it.combinedWith(partialResult, ctxt.randomVariableScope)
-                                        }
-                                        catch (ex: VariableDiscrepancyException) {
-                                            throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
-                                        }
+                                        it.combinedWithExpectSuccess(partialResult, ctxt.randomVariableScope)
                                     }
                             )
                         }

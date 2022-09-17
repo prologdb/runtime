@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.unification
 
 import com.github.prologdb.runtime.CircularTermException
+import com.github.prologdb.runtime.PrologInternalError
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.term.Term
@@ -48,7 +49,7 @@ class Unification internal constructor(
      * from this unification.
      */
     @JvmOverloads
-    fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope, replaceInline: Boolean = false): Unification {
+    fun combinedWith(other: Unification, randomVariableScope: RandomVariableScope, replaceInline: Boolean = false): Unification? {
         if (other.isEmpty) {
             return this
         }
@@ -57,23 +58,72 @@ class Unification internal constructor(
             return other
         }
 
-        return toBuilder().run {
-            incorporate(other, randomVariableScope, replaceInline)
-            build()
+        val builder = toBuilder()
+        try {
+            builder.incorporate(other, randomVariableScope, replaceInline)
         }
+        catch (ex: VariableDiscrepancyException) {
+            return null
+        }
+
+        return builder.build()
     }
 
-    fun combinedWithCurrentStateOf(other: UnificationBuilder, randomVariableScope: RandomVariableScope): Unification {
+    @JvmOverloads
+    fun combinedWithExpectSuccess(other: Unification, randomVariableScope: RandomVariableScope, replaceInline: Boolean = false): Unification {
+        if (other.isEmpty) {
+            return this
+        }
+
+        if (this.isEmpty) {
+            return other
+        }
+
+        val builder = toBuilder()
+        try {
+            builder.incorporate(other, randomVariableScope, replaceInline)
+        }
+        catch (ex: VariableDiscrepancyException) {
+            throw PrologInternalError("Combination of two unifications should have succeeded but didn't: ${ex.message}", ex)
+        }
+
+        return builder.build()
+    }
+
+    fun combinedWithCurrentStateOf(other: UnificationBuilder, randomVariableScope: RandomVariableScope): Unification? {
         other.checkNotCorrupted()
 
         if (other.isEmpty) {
             return this
         }
 
-        return toBuilder().run {
-            incorporateCurrentStateOf(other, randomVariableScope)
-            build()
+        val builder = toBuilder()
+        try {
+            builder.incorporateCurrentStateOf(other, randomVariableScope)
         }
+        catch (ex: VariableDiscrepancyException) {
+            return null
+        }
+
+        return builder.build()
+    }
+
+    fun combinedWithCurrentStateOfExpectSuccess(other: UnificationBuilder, randomVariableScope: RandomVariableScope): Unification {
+        other.checkNotCorrupted()
+
+        if (other.isEmpty) {
+            return this
+        }
+
+        val builder = toBuilder()
+        try {
+            builder.incorporateCurrentStateOf(other, randomVariableScope)
+        }
+        catch (ex: VariableDiscrepancyException) {
+            throw PrologInternalError("Combination of two unifications should have succeeded but didn't: ${ex.message}", ex)
+        }
+
+        return builder.build()
     }
 
     /**

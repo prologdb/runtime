@@ -9,7 +9,6 @@ import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.asIntegerInRange
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 val BuiltinCallNth2 = nativeRule("call_nth", 2) { args, ctxt ->
     val goal = args.getQuery(0)
@@ -32,12 +31,7 @@ val BuiltinCallNth2 = nativeRule("call_nth", 2) { args, ctxt ->
     yieldAllFinal(
         solutions.mapRemainingIndexedNotNull { index, unification ->
             val indexUnification = nInput.unify(PrologNumber(index), ctxt.randomVariableScope)
-            return@mapRemainingIndexedNotNull try {
-                indexUnification.combinedWith(unification, ctxt.randomVariableScope)
-            }
-            catch (ex: VariableDiscrepancyException) {
-                null
-            }
+            return@mapRemainingIndexedNotNull indexUnification.combinedWith(unification, ctxt.randomVariableScope)
         }
     )
 }

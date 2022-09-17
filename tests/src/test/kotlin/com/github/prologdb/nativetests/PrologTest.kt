@@ -23,7 +23,6 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import io.kotest.assertions.fail
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FreeSpec
@@ -185,13 +184,11 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                         yieldAllFinal(goalSequence)
                     }
                     .mapRemainingNotNull { goalUnification ->
-                        try {
-                            stateBefore.combinedWith(goalUnification, context.randomVariableScope, replaceInline = true)
-                        }
-                        catch (ex: VariableDiscrepancyException) {
+                        val result = stateBefore.combinedWith(goalUnification, context.randomVariableScope, replaceInline = true)
+                        if (result == null) {
                             failedGoal = goals[goalIndex]
-                            null
                         }
+                        return@mapRemainingNotNull result
                     }
                 )
             }

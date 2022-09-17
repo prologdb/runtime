@@ -11,7 +11,6 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 /**
  * Defines boilerplate code for correctly handling [AndQuery]s and [OrQuery]s as well checking read access
@@ -45,12 +44,7 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
                     )
                 }
                 return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
-                    try {
-                        stateBefore.combinedWith(goalUnification, randomVariableScope, replaceInline = true)
-                    }
-                    catch (ex: VariableDiscrepancyException) {
-                        null
-                    }
+                    stateBefore.combinedWith(goalUnification, randomVariableScope, replaceInline = true)
                 })
             }
         }

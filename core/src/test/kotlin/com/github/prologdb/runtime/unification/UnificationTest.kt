@@ -65,7 +65,7 @@ class UnificationTest : FreeSpec({
                 Variable("B") to Atom("ground"),
             ))
 
-            val result = bucketA.combinedWith(bucketB, RandomVariableScope())
+            val result = bucketA.combinedWithExpectSuccess(bucketB, RandomVariableScope())
             result.variables should haveSize(3)
             result.values.toList().forOne { (variable, value) ->
                 variable shouldBe Variable("A")
