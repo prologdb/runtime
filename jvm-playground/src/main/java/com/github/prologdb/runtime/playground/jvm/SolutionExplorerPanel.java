@@ -130,7 +130,7 @@ public class SolutionExplorerPanel {
     }
 
     private void addSolution(Unification solution) {
-        if (solution.getVariableValues().isEmpty()) {
+        if (solution.isEmpty()) {
             addSolutionComponent(createTrueComponent());
         } else {
             SolutionPanel solutionPanel = new SolutionPanel(solution, currentSolutionDisplayOperators);

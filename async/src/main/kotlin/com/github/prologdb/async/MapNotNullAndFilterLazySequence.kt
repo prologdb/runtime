@@ -1,7 +1,7 @@
 package com.github.prologdb.async
 
 class MapNotNullAndFilterLazySequence<T : Any, M : Any>(
-    private val base: LazySequence<out T>,
+    private val base: LazySequence<T>,
     private val mapper: (T) -> M?,
     private val predicate: (M) -> Boolean
 ) : LazySequence<M> {

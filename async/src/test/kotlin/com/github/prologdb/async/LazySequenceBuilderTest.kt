@@ -207,7 +207,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
 
         val seq = buildLazySequence<Unit>(RANDOM_PRINCIPAL) {
             try {
-                await(launchWorkableFuture(principal) {
+                await(launchWorkableFuture<Unit>(principal) {
                     throw ex
                 })
             } catch (ex: RuntimeException) {
@@ -228,7 +228,7 @@ class LazySequenceBuilderTest : FreeSpec() { init {
 
         val seq = buildLazySequence<Unit>(RANDOM_PRINCIPAL) {
             try {
-                await(launchWorkableFuture(principal) {
+                await(launchWorkableFuture<Unit>(principal) {
                     throw ex
                 })
             } catch (ex: RuntimeException) {

@@ -18,28 +18,19 @@ class Unification internal constructor(
 
     val variables: Set<Variable> = variableMap.keys
 
-    private val substitutionMapper: (Variable) -> Term = { variable ->
-        if (isInstantiated(variable) && this[variable] != variable) {
-            this[variable].substituteVariables(this.asSubstitutionMapper())
-        }
-        else {
-            variable
-        }
-    }
+    fun asSubstitutionMapper(): (Variable) -> Term = this::resolveValue
 
-    fun asSubstitutionMapper(): (Variable) -> Term = substitutionMapper
+    operator fun get(v: Variable): Term = variableMap[v] ?: v
 
-    operator fun get(v: Variable): Term {
-        if (isInstantiated(v)) {
-            return variableMap[v]!!
-        }
-        else {
-            throw NameError("Variable $v has not been instantiated yet.")
-        }
-    }
+    fun isInstantiated(variable: Variable): Boolean = resolveValue(variable) !is Variable
 
-    fun isInstantiated(variable: Variable): Boolean {
-        return variableMap[variable] != null
+    private tailrec fun resolveValue(v: Variable): Term {
+        val value = variableMap[v] ?: return v
+        if (value !is Variable) {
+            return value
+        }
+
+        return resolveValue(value)
     }
 
     fun toBuilder(): UnificationBuilder = UnificationBuilder(HashMap(variableMap))
@@ -181,7 +172,7 @@ class Unification internal constructor(
         fun Variable.isReferenced(): Boolean {
             for (toSort in variablesToSort) {
                 if (toSort === this) continue
-                if (this in bucket[toSort].variables) {
+                if (this in bucket.variableMap[toSort]!!.variables) {
                     return true
                 }
             }

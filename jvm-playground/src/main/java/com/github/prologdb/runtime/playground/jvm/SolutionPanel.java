@@ -1,9 +1,9 @@
 package com.github.prologdb.runtime.playground.jvm;
 
-import com.github.prologdb.runtime.util.OperatorRegistry;
 import com.github.prologdb.runtime.term.CompoundTerm;
 import com.github.prologdb.runtime.term.Term;
 import com.github.prologdb.runtime.unification.Unification;
+import com.github.prologdb.runtime.util.OperatorRegistry;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -49,7 +49,7 @@ public class SolutionPanel {
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        solution.getVariableValues().getValues().forEach(varAndValue -> {
+        solution.getEntries().forEach(varAndValue -> {
             String text = (new CompoundTerm("=", new Term[]{ varAndValue.getFirst(), varAndValue.getSecond() })).toStringUsingOperatorNotations(displayOperators);
             JLabel label = new JLabel(text);
             label.setFont(FONT);

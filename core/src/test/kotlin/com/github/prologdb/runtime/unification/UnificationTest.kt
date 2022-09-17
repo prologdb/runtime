@@ -20,14 +20,14 @@ class UnificationTest : FreeSpec({
         "happy path" {
             // SETUP
             val bucket = Unification.fromMap(mapOf(
-                Variable("C") to Atom("a"),
-                Variable("B") to Variable("C"),
-                Variable("A") to Variable("B"),
+                Variable("A") to Atom("a"),
+                Variable("B") to Variable("A"),
+                Variable("C") to Variable("B"),
             ))
 
             // if this is the case then the variables are, by accident, sorted correctly
             // switching the names should be able to deterministically resolve this
-            bucket.entries.first() shouldNotBe Pair(Variable("A"), Variable("B"))
+            bucket.entries.first() shouldNotBe Pair(Variable("C"), Variable("B"))
 
             // ACT
             val sorted = bucket.sortedForSubstitution()
@@ -83,80 +83,92 @@ class UnificationTest : FreeSpec({
     }
 
     "compact" - {
-        "simplify with common value being a variable" - {
-            "one way" {
-                val bucket = Unification.fromMap(mapOf(
-                    Variable("A") to Variable("X"),
-                    Variable("B") to Variable("X"),
-                    Variable("C") to Variable("X"),
-                ))
+        "aggressive" - {
+            "common value being a variable" - {
+                "one way" {
+                    val bucket = Unification.fromMap(
+                        mapOf(
+                            Variable("A") to Variable("X"),
+                            Variable("B") to Variable("X"),
+                            Variable("C") to Variable("X"),
+                        )
+                    )
 
-                val compacted = bucket.compacted()
-                compacted.variables should haveSize(2)
-                compacted[Variable("A")] shouldBe Variable("B")
-                compacted[Variable("C")] shouldBe Variable("B")
+                    val compacted = bucket.compacted(true)
+                    compacted.variables should haveSize(2)
+                    compacted[Variable("A")] shouldBe Variable("B")
+                    compacted[Variable("C")] shouldBe Variable("B")
+                }
+
+                "two way" {
+                    val bucket = Unification.fromMap(
+                        mapOf(
+                            Variable("A") to Variable("X"),
+                            Variable("B") to Variable("X"),
+                            Variable("C") to Variable("X"),
+                            Variable("X") to Variable("D"),
+                        )
+                    )
+
+                    val compacted = bucket.compacted(true)
+                    compacted.variables should haveSize(3)
+                    compacted[Variable("B")] shouldBe Variable("A")
+                    compacted[Variable("C")] shouldBe Variable("A")
+                    compacted[Variable("X")] shouldBe Variable("A")
+                }
             }
 
-            "two way" {
-                val bucket = Unification.fromMap(mapOf(
-                    Variable("A") to Variable("X"),
-                    Variable("B") to Variable("X"),
-                    Variable("C") to Variable("X"),
-                    Variable("X") to Variable("D"),
-                ))
+            "common value being a nonvar" - {
+                "one way" {
+                    val bucket = Unification.fromMap(
+                        mapOf(
+                            Variable("A") to Atom("a"),
+                            Variable("B") to Atom("a"),
+                            Variable("C") to Atom("a"),
+                        )
+                    )
 
-                val compacted = bucket.compacted()
-                compacted.variables should haveSize(3)
-                compacted[Variable("A")] shouldBe Variable("B")
-                compacted[Variable("C")] shouldBe Variable("B")
-                compacted[Variable("X")] shouldBe Variable("B")
-            }
-        }
+                    val compacted = bucket.compacted(true)
+                    compacted.variables should haveSize(3)
+                    compacted[Variable("A")] shouldBe Atom("a")
+                    compacted[Variable("B")] shouldBe Variable("A")
+                    compacted[Variable("C")] shouldBe Variable("A")
+                }
 
-        "simplify with common value being a nonvar" - {
-            "one way" {
-                val bucket = Unification.fromMap(mapOf(
-                    Variable("A") to Atom("a"),
-                    Variable("B") to Atom("a"),
-                    Variable("C") to Atom("a"),
-                ))
+                "one way with additional indirection" {
+                    val bucket = Unification.fromMap(
+                        mapOf(
+                            Variable("A") to Atom("a"),
+                            Variable("B") to Atom("a"),
+                            Variable("C") to Atom("a"),
+                            Variable("D") to Variable("C"),
+                        )
+                    )
 
-                val compacted = bucket.compacted()
-                compacted.variables should haveSize(3)
-                compacted[Variable("A")] shouldBe Atom("a")
-                compacted[Variable("B")] shouldBe Variable("A")
-                compacted[Variable("C")] shouldBe Variable("A")
-            }
+                    val compacted = bucket.compacted(true)
+                    compacted.variables should haveSize(4)
+                    compacted[Variable("A")] shouldBe Atom("a")
+                    compacted[Variable("B")] shouldBe Variable("A")
+                    compacted[Variable("C")] shouldBe Variable("A")
+                    compacted[Variable("D")] shouldBe Variable("A")
+                }
 
-            "one way with additional indirection" {
-                val bucket = Unification.fromMap(mapOf(
-                    Variable("A") to Atom("a"),
-                    Variable("B") to Atom("a"),
-                    Variable("C") to Atom("a"),
-                    Variable("D") to Variable("C"),
-                ))
+                "two way indirect" {
+                    val bucket = Unification.fromMap(
+                        mapOf(
+                            Variable("A") to Variable("X"),
+                            Variable("B") to Variable("X"),
+                            Variable("C") to Variable("X"),
+                            Variable("X") to Variable("D"),
+                        )
+                    )
 
-                val compacted = bucket.compacted()
-                compacted.variables should haveSize(4)
-                compacted[Variable("A")] shouldBe Atom("a")
-                compacted[Variable("B")] shouldBe Variable("A")
-                compacted[Variable("C")] shouldBe Variable("A")
-                compacted[Variable("D")] shouldBe Variable("A")
-            }
-
-            "two way indirect" {
-                val bucket = Unification.fromMap(mapOf(
-                    Variable("A") to Variable("X"),
-                    Variable("B") to Variable("X"),
-                    Variable("C") to Variable("X"),
-                    Variable("X") to Variable("D"),
-                ))
-
-                val compacted = bucket.compacted()
-                compacted.variables should haveSize(3)
-                compacted[Variable("A")] shouldBe Variable("B")
-                compacted[Variable("C")] shouldBe Variable("B")
-                compacted[Variable("X")] shouldBe Variable("B")
+                    val compacted = bucket.compacted(true)
+                    compacted.variables should haveSize(3)
+                    compacted[Variable("B")] shouldBe Variable("A")
+                    compacted[Variable("C")] shouldBe Variable("A")
+                    compacted[Variable("X")] shouldBe Variable("A")
+                }
             }
         }
     }
