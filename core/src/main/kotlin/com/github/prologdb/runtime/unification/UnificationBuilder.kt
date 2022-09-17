@@ -28,7 +28,7 @@ class UnificationBuilder(private val variableMap: MutableMap<Variable, Term>) {
      */
     @JvmOverloads
     fun incorporate(variables: Unification, randomVariableScope: RandomVariableScope, replaceInline: Boolean= false) {
-        incorporate(variables.values.toMap(), randomVariableScope, replaceInline)
+        incorporate(variables.entries.toMap(), randomVariableScope, replaceInline)
     }
 
     fun incorporateCurrentStateOf(other: UnificationBuilder, randomVariableScope: RandomVariableScope) {

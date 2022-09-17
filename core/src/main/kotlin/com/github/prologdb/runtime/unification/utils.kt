@@ -11,7 +11,7 @@ import com.github.prologdb.runtime.term.Variable
 fun Unification.equalsStructurally(other: Unification, randomVariableScope: RandomVariableScope): Boolean {
     val combined = combinedWith(other, randomVariableScope) ?: return false
 
-    for ((combinedVariable, combinedValue) in combined.values) {
+    for ((combinedVariable, combinedValue) in combined.entries) {
         if (!this.isInstantiated(combinedVariable) && combinedValue !is Variable) {
             return false
         }

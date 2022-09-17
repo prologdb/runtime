@@ -27,7 +27,7 @@ class UnificationTest : FreeSpec({
 
             // if this is the case then the variables are, by accident, sorted correctly
             // switching the names should be able to deterministically resolve this
-            bucket.values.first() shouldNotBe Pair(Variable("A"), Variable("B"))
+            bucket.entries.first() shouldNotBe Pair(Variable("A"), Variable("B"))
 
             // ACT
             val sorted = bucket.sortedForSubstitution()
@@ -67,15 +67,15 @@ class UnificationTest : FreeSpec({
 
             val result = bucketA.combinedWithExpectSuccess(bucketB, RandomVariableScope())
             result.variables should haveSize(3)
-            result.values.toList().forOne { (variable, value) ->
+            result.entries.toList().forOne { (variable, value) ->
                 variable shouldBe Variable("A")
                 value shouldBe PrologList(listOf(Variable("NestedA")))
             }
-            result.values.toList().forOne { (variable, value) ->
+            result.entries.toList().forOne { (variable, value) ->
                 variable shouldBe Variable("B")
                 value shouldBe Atom("ground")
             }
-            result.values.toList().forOne { (variable, value) ->
+            result.entries.toList().forOne { (variable, value) ->
                 variable shouldBe Variable("NestedA")
                 value shouldBe Variable("NestedB")
             }

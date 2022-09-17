@@ -85,7 +85,7 @@ val Class<out Term>.prologTypeName: String
  */
 fun Term.equalsStructurally(other: Term, randomVarsScope: RandomVariableScope): Boolean {
     val unification = this.unify(other, randomVarsScope) ?: return false
-    return unification.values.all { (_, instantiatedTo) -> instantiatedTo is Variable }
+    return unification.entries.all { (_, instantiatedTo) -> instantiatedTo is Variable }
 }
 
 /**

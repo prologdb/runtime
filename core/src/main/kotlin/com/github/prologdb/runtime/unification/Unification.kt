@@ -165,7 +165,7 @@ class Unification internal constructor(
         }
 
         val newBucket = UnificationBuilder(variableMap.size)
-        for ((variable, value) in values) {
+        for ((variable, value) in entries) {
             val resolved = resolve(variable)
             val resolvedValue = value.substituteVariables(::resolve)
             newBucket.instantiate(resolved, resolvedValue, randomVariableScope)
@@ -281,7 +281,7 @@ class Unification internal constructor(
         return variableMap.hashCode()
     }
 
-    val values: Iterable<Pair<Variable,Term>>
+    val entries: Iterable<Pair<Variable,Term>>
         get() = variableMap.map { it.key to it.value }
 
     companion object {

@@ -110,7 +110,7 @@ private class HashMapUnificationGroupingStrategy<T : Any>(
 
     override fun iterator(): MutableIterator<Map.Entry<Unification, T>> = groups.iterator()
 
-    private val Unification.isGround: Boolean get() = values.all { (_, value) -> value.isGround }
+    private val Unification.isGround: Boolean get() = entries.all { (_, value) -> value.isGround }
 }
 
 private class ListUnificationGroupingStrategy<T : Any>(
