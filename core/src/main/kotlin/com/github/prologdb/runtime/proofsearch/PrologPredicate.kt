@@ -21,8 +21,8 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.unify
 import com.github.prologdb.runtime.term.variables
-import com.github.prologdb.runtime.unification.MutableUnification
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.UnificationBuilder
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -108,7 +108,7 @@ class ASTPrologPredicate(
 
         val lastClause = clauses.last()
         var arguments = initialArguments
-        val stateCarry = MutableUnification.createTrue()
+        val stateCarry = UnificationBuilder()
         tailCallLoop@ while (true) {
             clauses@ for (clause in clauses) {
                 if (clause is CompoundTerm) {
@@ -118,7 +118,7 @@ class ASTPrologPredicate(
                     )
                     val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
                         ?.subset(arguments.variables.toSet())
-                        ?.combinedWith(stateCarry, RandomVariableScope())
+                        ?.combinedWithCurrentStateOf(stateCarry, RandomVariableScope())
 
                     if (lastClause === clause) return@fulfill unification else {
                         unification?.let { yield(it) }
@@ -127,7 +127,7 @@ class ASTPrologPredicate(
                     if (lastClause !== clause) {
                         clause.fulfill(this, arguments, ctxt)?.let { unification ->
                             try {
-                                yield(unification.combinedWith(stateCarry, ctxt.randomVariableScope))
+                                yield(unification.combinedWithCurrentStateOf(stateCarry, ctxt.randomVariableScope))
                             }
                             catch (ex: VariableDiscrepancyException) {
                                 throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the rule shouldn't have succeeded in this case - yet it has happened.", ex)
@@ -156,7 +156,7 @@ class ASTPrologPredicate(
                                 arguments = tailCallArguments
                                 try {
                                     stateCarry.incorporate(
-                                        lastClauseCallPreparation.untranslateResult(firstPartialResult),
+                                        lastClauseCallPreparation.untranslateResult(firstPartialResult, ctxt.randomVariableScope),
                                         ctxt.randomVariableScope
                                     )
                                     continue@tailCallLoop
@@ -173,7 +173,7 @@ class ASTPrologPredicate(
                         }
                             .mapRemainingNotNull { result ->
                                 try {
-                                    result.combinedWith(stateCarry, ctxt.randomVariableScope)
+                                    result.combinedWithCurrentStateOf(stateCarry, ctxt.randomVariableScope)
                                 }
                                 catch (ex: VariableDiscrepancyException) {
                                     throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
@@ -202,7 +202,7 @@ class ASTPrologPredicate(
                                     }
                             )
                         }
-                        val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
+                        val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it, ctxt.randomVariableScope) }
                         return@fulfill yieldAllFinal(untranslatedSolutions)
                     }
                 } else {

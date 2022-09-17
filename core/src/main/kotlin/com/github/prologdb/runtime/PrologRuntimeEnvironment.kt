@@ -64,7 +64,7 @@ interface PrologRuntimeEnvironment {
         return buildLazySequence<Unification>(psc.principal) {
             psc.fulfillAttach(this, query, initialVariables)
         }
-            .mapRemaining { it.compacted(psc.randomVariableScope) }
+            .mapRemaining { it.compacted(aggressive = true) }
     }
 
     /**

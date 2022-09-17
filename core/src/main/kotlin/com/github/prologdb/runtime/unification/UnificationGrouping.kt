@@ -90,7 +90,7 @@ private class HashMapUnificationGroupingStrategy<T : Any>(
     override fun get(key: Unification): T? = groups[key]
 
     override fun set(key: Unification, value: T): T? {
-        val compactedKey = key.compacted(randomVariableScope)
+        val compactedKey = key.compacted()
         if (!compactedKey.isGround) {
             throw UnsupportedArgumentException("Only supports ground keys")
         }
@@ -128,7 +128,7 @@ private class ListUnificationGroupingStrategy<T : Any>(
     override fun iterator(): MutableIterator<Map.Entry<Unification, T>> = entries.iterator()
 
     override fun get(key: Unification): T? {
-        val compactedKey = key.compacted(randomVariableScope)
+        val compactedKey = key.compacted()
         for ((vars, value) in entries) {
             if (vars.equalsStructurally(compactedKey, randomVariableScope)) {
                 return value
@@ -139,7 +139,7 @@ private class ListUnificationGroupingStrategy<T : Any>(
     }
 
     override fun set(key: Unification, value: T): T? {
-        val compactedKey = key.compacted(randomVariableScope)
+        val compactedKey = key.compacted()
         val iterator = entries.listIterator()
         while (iterator.hasNext()) {
             val currentEntry = iterator.next()
@@ -163,7 +163,7 @@ private class ListUnificationGroupingStrategy<T : Any>(
     }
 
     override fun remove(key: Unification): T? {
-        val compactedKey = key.compacted(randomVariableScope)
+        val compactedKey = key.compacted()
         val iterator = entries.listIterator()
         while (iterator.hasNext()) {
             val currentEntry = iterator.next()

@@ -3,8 +3,8 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.unification.MutableUnification
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.UnificationBuilder
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 
@@ -41,7 +41,7 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
 
         if (rhs !is PrologDictionary) return Unification.FALSE
 
-        val carryUnification = MutableUnification.createTrue()
+        val carryUnification = UnificationBuilder()
         val commonKeys = this.pairs.keys.intersect(rhs.pairs.keys)
 
         if (this.pairs.size > commonKeys.size) {
@@ -115,7 +115,7 @@ class PrologDictionary(givenPairs: Map<Atom, Term>, givenTail: Term? = null) : T
             }
         }
 
-        return carryUnification
+        return carryUnification.build()
     }
 
     override val variables: Set<Variable> by lazy {

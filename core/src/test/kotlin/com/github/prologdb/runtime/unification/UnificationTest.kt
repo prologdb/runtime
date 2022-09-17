@@ -91,7 +91,7 @@ class UnificationTest : FreeSpec({
                     Variable("C") to Variable("X"),
                 ))
 
-                val compacted = bucket.compacted(RandomVariableScope())
+                val compacted = bucket.compacted()
                 compacted.variables should haveSize(2)
                 compacted[Variable("A")] shouldBe Variable("B")
                 compacted[Variable("C")] shouldBe Variable("B")
@@ -105,7 +105,7 @@ class UnificationTest : FreeSpec({
                     Variable("X") to Variable("D"),
                 ))
 
-                val compacted = bucket.compacted(RandomVariableScope())
+                val compacted = bucket.compacted()
                 compacted.variables should haveSize(3)
                 compacted[Variable("A")] shouldBe Variable("B")
                 compacted[Variable("C")] shouldBe Variable("B")
@@ -121,7 +121,7 @@ class UnificationTest : FreeSpec({
                     Variable("C") to Atom("a"),
                 ))
 
-                val compacted = bucket.compacted(RandomVariableScope())
+                val compacted = bucket.compacted()
                 compacted.variables should haveSize(3)
                 compacted[Variable("A")] shouldBe Atom("a")
                 compacted[Variable("B")] shouldBe Variable("A")
@@ -136,7 +136,7 @@ class UnificationTest : FreeSpec({
                     Variable("D") to Variable("C"),
                 ))
 
-                val compacted = bucket.compacted(RandomVariableScope())
+                val compacted = bucket.compacted()
                 compacted.variables should haveSize(4)
                 compacted[Variable("A")] shouldBe Atom("a")
                 compacted[Variable("B")] shouldBe Variable("A")
@@ -152,7 +152,7 @@ class UnificationTest : FreeSpec({
                     Variable("X") to Variable("D"),
                 ))
 
-                val compacted = bucket.compacted(RandomVariableScope())
+                val compacted = bucket.compacted()
                 compacted.variables should haveSize(3)
                 compacted[Variable("A")] shouldBe Variable("B")
                 compacted[Variable("C")] shouldBe Variable("B")

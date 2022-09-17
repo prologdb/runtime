@@ -11,6 +11,7 @@ import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 
 /**
  * Defines boilerplate code for correctly handling [AndQuery]s and [OrQuery]s as well checking read access
@@ -40,25 +41,16 @@ abstract class AbstractProofSearchContext : ProofSearchContext {
                 val goalSequence = buildLazySequence<Unification>(principal) {
                     fulfillAttach(
                         query.goals[goalIndex].substituteVariables(stateBefore),
-                        stateBefore.createMutableCopy()
+                        stateBefore,
                     )
                 }
                 return@flatMapRemaining yieldAllFinal(goalSequence.mapRemainingNotNull { goalUnification ->
-                    val stateCombined = stateBefore.createMutableCopy()
-                    for ((variable, value) in goalUnification.values) {
-                        // substitute all instantiated variables for simplicity and performance
-                        val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
-                        if (stateCombined.isInstantiated(variable)) {
-                            if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
-                                // instantiated to different value => no unification
-                                return@mapRemainingNotNull null
-                            }
-                        }
-                        else {
-                            stateCombined.instantiate(variable, substitutedValue)
-                        }
+                    try {
+                        stateBefore.combinedWith(goalUnification, randomVariableScope, replaceInline = true)
                     }
-                    stateCombined
+                    catch (ex: VariableDiscrepancyException) {
+                        null
+                    }
                 })
             }
         }

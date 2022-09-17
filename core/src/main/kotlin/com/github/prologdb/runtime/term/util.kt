@@ -2,48 +2,40 @@
 package com.github.prologdb.runtime.term
 
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.unification.MutableUnification
+import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.UnificationBuilder
+import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Unifies the two arrays of terms as if the arguments to predicates with equal functors.
  * @return `Unification.FALSE` if the two arrays haf different lengths
  */
-fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableScope): MutableUnification? {
+fun Array<out Term>.unify(rhs: Array<out Term>, randomVarsScope: RandomVariableScope): Unification? {
     if (size != rhs.size) {
-        return MutableUnification.createFalse()
+        return Unification.FALSE
     }
 
-    if (size == 0) {
-        return MutableUnification.createTrue()
+    if (isEmpty()) {
+        return Unification.TRUE
     }
 
-    val vars = MutableUnification.createTrue()
+    val vars = UnificationBuilder()
     for (argIndex in 0..lastIndex) {
         val lhsArg = this[argIndex].substituteVariables(vars.asSubstitutionMapper())
         val rhsArg = rhs[argIndex].substituteVariables(vars.asSubstitutionMapper())
         val argUnification = lhsArg.unify(rhsArg, randomVarsScope)
+            ?: return Unification.FALSE
 
-        if (argUnification == null) {
-            // the arguments at place argIndex do not unify => the terms don't unify
-            return MutableUnification.createFalse()
+        try {
+            vars.incorporate(argUnification, randomVarsScope, replaceInline = true)
         }
-
-        for ((variable, value) in argUnification.values) {
-            // substitute all instantiated variables for simplicity
-            val substitutedValue = value.substituteVariables(vars.asSubstitutionMapper())
-            if (vars.isInstantiated(variable)) {
-                if (vars[variable] != substitutedValue && vars[variable] != value) {
-                    // instantiated to different value => no unification
-                    return MutableUnification.createFalse()
-                }
-            } else {
-                vars.instantiate(variable, substitutedValue)
-            }
+        catch (ex: VariableDiscrepancyException) {
+            return Unification.FALSE
         }
     }
 
-    return vars
+    return vars.build()
 }
 
 val Array<out Term>.variables: Iterable<Variable>

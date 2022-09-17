@@ -6,6 +6,7 @@ import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -13,8 +14,8 @@ import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.unify
 import com.github.prologdb.runtime.term.variables
-import com.github.prologdb.runtime.unification.MutableUnification
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.UnificationBuilder
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor
@@ -61,9 +62,14 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
      */
     override val fulfill: PrologCallableFulfill = { arguments, context ->
         prepareCall(arguments, context)?.let { preparation ->
-            yieldAllFinal(buildLazySequence<Unification>(context.principal) {
-                fulfillPreparedCall.invoke(this, preparation)
-            }.mapRemaining(preparation::untranslateResult))
+            yieldAllFinal(
+                buildLazySequence<Unification>(context.principal) {
+                    fulfillPreparedCall.invoke(this, preparation)
+                }
+                    .mapRemaining {
+                        preparation.untranslateResult(it, context.randomVariableScope)
+                    }
+            )
         }
     }
 
@@ -133,8 +139,8 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          *
          * thereby also dropping the clause-local variables.
          */
-        fun untranslateResult(solution: Unification): MutableUnification {
-            val solutionVars = MutableUnification.createTrue()
+        fun untranslateResult(solution: Unification, randomVariableScope: RandomVariableScope): Unification {
+            val solutionVars = UnificationBuilder()
 
             for (randomGoalVariable in randomArguments.variables)
             {
@@ -143,16 +149,16 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
                         .substituteVariables(solution.asSubstitutionMapper())
                         .substituteVariables(goalAndHeadUnification.asSubstitutionMapper())
 
-                    solutionVars.instantiate(randomGoalVariable, value)
+                    solutionVars.instantiate(randomGoalVariable, value, randomVariableScope)
                 }
                 else if (solution.isInstantiated(randomGoalVariable)) {
                     argumentsRandomVarsMapping.getOriginal(randomGoalVariable)?.let { originalVar ->
-                        solutionVars.instantiate(originalVar, solution[randomGoalVariable])
+                        solutionVars.instantiate(originalVar, solution[randomGoalVariable], randomVariableScope)
                     }
                 }
             }
 
-            return solutionVars.withVariablesResolvedFrom(argumentsRandomVarsMapping)
+            return solutionVars.build().withVariablesResolvedFrom(argumentsRandomVarsMapping, randomVariableScope)
         }
 
         fun untranslateResult(term: CompoundTerm): CompoundTerm? {

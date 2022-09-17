@@ -23,6 +23,7 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import io.kotest.assertions.fail
 import io.kotest.core.spec.IsolationMode
 import io.kotest.core.spec.style.FreeSpec
@@ -160,7 +161,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
 
     private suspend fun LazySequenceBuilder<Unification>.fulfillAllGoals(goals: List<Query>, context: ProofSearchContext,
                                                                          initialVariables: Unification = Unification.TRUE): Unification? {
-        var sequence = LazySequence.singleton(initialVariables.createMutableCopy())
+        var sequence = LazySequence.singleton(initialVariables)
 
         for (goalIndex in goals.indices) {
             sequence = sequence.flatMapRemaining { stateBefore ->
@@ -168,7 +169,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                     context.fulfillAttach(
                         this,
                         goals[goalIndex].substituteVariables(stateBefore),
-                        stateBefore.createMutableCopy()
+                        stateBefore
                     )
                 }
                 val firstSolution = goalSequence.tryAdvance()
@@ -184,22 +185,13 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
                         yieldAllFinal(goalSequence)
                     }
                     .mapRemainingNotNull { goalUnification ->
-                        val stateCombined = stateBefore.createMutableCopy()
-                        for ((variable, value) in goalUnification.values) {
-                            // substitute all instantiated variables for simplicity and performance
-                            val substitutedValue = value.substituteVariables(stateCombined.asSubstitutionMapper())
-                            if (stateCombined.isInstantiated(variable)) {
-                                if (stateCombined[variable] != substitutedValue && stateCombined[variable] != value) {
-                                    // instantiated to different value => no unification
-                                    failedGoal = goals[goalIndex]
-                                    return@mapRemainingNotNull null
-                                }
-                            }
-                            else {
-                                stateCombined.instantiate(variable, substitutedValue)
-                            }
+                        try {
+                            stateBefore.combinedWith(goalUnification, context.randomVariableScope, replaceInline = true)
                         }
-                        stateCombined
+                        catch (ex: VariableDiscrepancyException) {
+                            failedGoal = goals[goalIndex]
+                            null
+                        }
                     }
                 )
             }

@@ -3,8 +3,8 @@ package com.github.prologdb.runtime.term
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.unification.MutableUnification
 import com.github.prologdb.runtime.unification.Unification
+import com.github.prologdb.runtime.unification.UnificationBuilder
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import com.github.prologdb.runtime.util.OperatorRegistry
 import kotlin.math.min
@@ -39,7 +39,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                 return Unification.FALSE
             }
 
-            var carryUnification = MutableUnification.createTrue()
+            var carryUnification = UnificationBuilder()
             for (index in 0..this.elements.lastIndex) {
                 var iterationUnification: Unification?
 
@@ -47,8 +47,10 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                     // end of rhs is reached
                     // the rest of the elements in this becomes rhs' tail
                     val rhsTail = rhs.tail!! // should be caught earlier
+                    val tailUnification = rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope)
                     try {
-                        return carryUnification.combinedWith(rhsTail.unify(PrologList(this.elements.subList(index, elements.size), this.tail), randomVarsScope), randomVarsScope)
+                        carryUnification.incorporate(tailUnification, randomVarsScope)
+                        return carryUnification.build()
                     } catch (ex: VariableDiscrepancyException) {
                         return Unification.FALSE
                     }
@@ -87,7 +89,7 @@ open class PrologList(givenElements: List<Term>, givenTail: Term? = null) : Term
                 }
             }
 
-            return carryUnification
+            return carryUnification.build()
         } else {
             return Unification.FALSE
         }
