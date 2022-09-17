@@ -112,7 +112,7 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
     }
 
     /**
-     * A callalbe can be references in three ways:
+     * A callable can be references in three ways:
      * * a simple atom: refers to the `<name>/<arity>` predicate in the scope of [ctxt]
      * * an instance of `:/2` with the first argument being an atom: applies the logic of the other two options, but
      *   within the scope of the specified module
