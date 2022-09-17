@@ -162,8 +162,6 @@ class Unification internal constructor(
             return Unification.TRUE
         }
 
-        // TODO: can we optimize sensibly for the case variableMap.keys == retain?
-
         val newMap = HashMap<Variable, Term>(min(variableMap.size, retain.size))
         val removedToSubstitute = HashMap<Variable, Term>(max(variableMap.size - retain.size, 3))
         for ((variable, value) in variableMap) {
@@ -174,8 +172,10 @@ class Unification internal constructor(
             }
         }
 
-        for ((key, value) in newMap) {
-            newMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
+        if (removedToSubstitute.isNotEmpty()) {
+            for ((key, value) in newMap) {
+                newMap[key] = value.substituteVariables { variable -> removedToSubstitute[variable] ?: variable }
+            }
         }
 
         return Unification(newMap)
