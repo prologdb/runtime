@@ -3,7 +3,7 @@ package com.github.prologdb.runtime.stdlib.solution_sequences
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.numberVariables
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinDistinct2 = nativeRule("distinct", 2) { args, ctxt ->
     val goal = args.getQuery(1)
@@ -11,11 +11,11 @@ val BuiltinDistinct2 = nativeRule("distinct", 2) { args, ctxt ->
 
     yieldAllFinal(
         buildLazySequence(ctxt.principal) {
-            ctxt.fulfillAttach(this, goal, VariableBucket())
+            ctxt.fulfillAttach(this, goal, Unification.TRUE)
         }
             .distinctBy { unification ->
                 val witnessInstantiated = witness
-                    .substituteVariables(unification.variableValues.asSubstitutionMapper())
+                    .substituteVariables(unification.asSubstitutionMapper())
 
                 witnessInstantiated.numberVariables()
             }

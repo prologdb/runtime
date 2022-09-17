@@ -3,7 +3,16 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.module.*
+import com.github.prologdb.runtime.module.InvalidImportException
+import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleImport
+import com.github.prologdb.runtime.module.ModuleLoader
+import com.github.prologdb.runtime.module.ModuleNotFoundException
+import com.github.prologdb.runtime.module.ModuleNotLoadedException
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
+import com.github.prologdb.runtime.module.NoopModuleLoader
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
@@ -11,7 +20,6 @@ import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -51,18 +59,18 @@ interface PrologRuntimeEnvironment {
     /**
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
-    fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket, authorization: Authorization): LazySequence<Unification> {
+    fun fulfill(inModule: String, query: Query, initialVariables: Unification, authorization: Authorization): LazySequence<Unification> {
         val psc = newProofSearchContext(inModule, authorization)
         return buildLazySequence<Unification>(psc.principal) {
             psc.fulfillAttach(this, query, initialVariables)
         }
-            .mapRemaining { it.compact(psc.randomVariableScope) }
+            .mapRemaining { it.compacted(aggressive = true) }
     }
 
     /**
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
-    fun fulfill(inModule: String, query: Query, initialVariables: VariableBucket): LazySequence<Unification> {
+    fun fulfill(inModule: String, query: Query, initialVariables: Unification): LazySequence<Unification> {
         return fulfill(inModule, query, initialVariables, ReadWriteAuthorization)
     }
 
@@ -70,7 +78,7 @@ interface PrologRuntimeEnvironment {
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
     fun fulfill(inModule: String, query: Query): LazySequence<Unification> {
-        return fulfill(inModule, query, VariableBucket(), ReadWriteAuthorization)
+        return fulfill(inModule, query, Unification.TRUE, ReadWriteAuthorization)
     }
 
     companion object {

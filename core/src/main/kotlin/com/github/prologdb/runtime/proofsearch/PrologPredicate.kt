@@ -1,7 +1,17 @@
 package com.github.prologdb.runtime.proofsearch
 
-import com.github.prologdb.async.*
-import com.github.prologdb.runtime.*
+import com.github.prologdb.async.LazySequence
+import com.github.prologdb.async.LazySequenceBuilder
+import com.github.prologdb.async.buildLazySequence
+import com.github.prologdb.async.flatMapRemaining
+import com.github.prologdb.async.mapRemaining
+import com.github.prologdb.runtime.Clause
+import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
+import com.github.prologdb.runtime.PredicateNotDynamicException
+import com.github.prologdb.runtime.PrologInternalError
+import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.AndQuery
 import com.github.prologdb.runtime.query.OrQuery
@@ -11,7 +21,7 @@ import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.unify
 import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.UnificationBuilder
 import com.github.prologdb.runtime.unification.VariableDiscrepancyException
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -97,7 +107,7 @@ class ASTPrologPredicate(
 
         val lastClause = clauses.last()
         var arguments = initialArguments
-        val stateCarry = VariableBucket()
+        val stateCarry = UnificationBuilder()
         tailCallLoop@ while (true) {
             clauses@ for (clause in clauses) {
                 if (clause is CompoundTerm) {
@@ -106,26 +116,16 @@ class ASTPrologPredicate(
                         VariableMapping()
                     )
                     val unification = arguments.unify(randomizedClauseArgs, ctxt.randomVariableScope)
-                    try {
-                        unification?.variableValues?.incorporate(stateCarry, RandomVariableScope())
-                    }
-                    catch (ex: VariableDiscrepancyException) {
-                        throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
-                    }
-                    unification?.variableValues?.retainAll(initialArguments.variables)
+                        ?.subset(arguments.variables.toSet())
+                        ?.combinedWithCurrentStateOf(stateCarry, RandomVariableScope())
+
                     if (lastClause === clause) return@fulfill unification else {
                         unification?.let { yield(it) }
                     }
                 } else if (clause is Rule) {
                     if (lastClause !== clause) {
                         clause.fulfill(this, arguments, ctxt)?.let { unification ->
-                            try {
-                                unification.variableValues.incorporate(stateCarry, ctxt.randomVariableScope)
-                                yield(unification)
-                            }
-                            catch (ex: VariableDiscrepancyException) {
-                                throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the rule shouldn't have succeeded in this case - yet it has happened.", ex)
-                            }
+                            yield(unification.combinedWithCurrentStateOfExpectSuccess(stateCarry, ctxt.randomVariableScope))
                         }
                     } else {
                         val localTailCallData = tailCallData
@@ -150,7 +150,7 @@ class ASTPrologPredicate(
                                 arguments = tailCallArguments
                                 try {
                                     stateCarry.incorporate(
-                                        lastClauseCallPreparation.untranslateResult(firstPartialResult.variableValues),
+                                        lastClauseCallPreparation.untranslateResult(firstPartialResult, ctxt.randomVariableScope),
                                         ctxt.randomVariableScope
                                     )
                                     continue@tailCallLoop
@@ -165,40 +165,28 @@ class ASTPrologPredicate(
                             yield(firstPartialResult)
                             yieldAllFinal(lastClausePartialResults)
                         }
-                            .mapRemainingNotNull { result ->
-                                try {
-                                    result.variableValues.incorporate(stateCarry, ctxt.randomVariableScope)
-                                    result
-                                }
-                                catch (ex: VariableDiscrepancyException) {
-                                    throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
-                                }
+                            .mapRemaining { result ->
+                                result.combinedWithCurrentStateOfExpectSuccess(stateCarry, ctxt.randomVariableScope)
                             }
 
                         val fullSolutions = partialSolutions.flatMapRemaining<Unification, Unification> { partialResult ->
                             val tailCallConcrete = lastClauseCallPreparation.translateClausePart(localTailCallData.tailCallInvocation)
-                                .substituteVariables(partialResult.variableValues.asSubstitutionMapper())
+                                .substituteVariables(partialResult.asSubstitutionMapper())
 
                             return@flatMapRemaining yieldAllFinal(
                                 buildLazySequence(ctxt.principal) {
                                     ctxt.fulfillAttach.invoke(
                                         this,
                                         PredicateInvocationQuery(tailCallConcrete, tailCallConcrete.sourceInformation),
-                                        partialResult.variableValues,
+                                        partialResult,
                                     )
                                 }
                                     .mapRemaining {
-                                        try {
-                                            it.variableValues.incorporate(partialResult.variableValues, ctxt.randomVariableScope)
-                                        }
-                                        catch (ex: VariableDiscrepancyException) {
-                                            throw PrologInternalError("This should be unreachable. The variables should have been included in the arguments unified with the fact as necessary; the unification shouldn't have succeeded in this case - yet it has happened.", ex)
-                                        }
-                                        it
+                                        it.combinedWithExpectSuccess(partialResult, ctxt.randomVariableScope)
                                     }
                             )
                         }
-                        val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it) }
+                        val untranslatedSolutions = fullSolutions.mapRemaining { lastClauseCallPreparation.untranslateResult(it, ctxt.randomVariableScope) }
                         return@fulfill yieldAllFinal(untranslatedSolutions)
                     }
                 } else {
@@ -239,8 +227,7 @@ class ASTPrologPredicate(
                 if (unification != null) {
                     clauses.remove(clause)
                     invalidateTailCall()
-                    unification.variableValues.retainAll(matching.variables)
-                    yield(unification)
+                    yield(unification.subset(matching.variables))
                 }
             }
 

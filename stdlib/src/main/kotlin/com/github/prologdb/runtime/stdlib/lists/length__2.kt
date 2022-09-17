@@ -9,6 +9,7 @@ import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.PrologNumber
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.term.asIntegerInRange
+import com.github.prologdb.runtime.unification.Unification
 
 /**
  * length(++List, :Length)
@@ -29,9 +30,9 @@ val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                     val baseLength = arg0.elements.size
                     var tailLength = 0
                     while (true) {
-                        val result = arg0.tail!!.unify(listOfLength(tailLength, ctxt), ctxt.randomVariableScope)
-                        result.variableValues.instantiate(arg1,
-                            PrologNumber((baseLength + tailLength).toLong()))
+                        val result = arg0.tail!!
+                            .unify(listOfLength(tailLength, ctxt), ctxt.randomVariableScope)
+                            .combinedWithExpectSuccess(Unification.of(arg1, PrologNumber((baseLength + tailLength).toLong())), ctxt.randomVariableScope)
                         yield(result)
                         tailLength++
                     }
@@ -51,7 +52,7 @@ val BuiltinLength2 = nativeRule("length", 2) { args, ctxt ->
                     var length = 0
                     while (true) {
                         val result = arg0.unify(listOfLength(length, ctxt), ctxt.randomVariableScope)
-                        result.variableValues.instantiate(arg1, PrologNumber(length.toLong()))
+                            .combinedWithExpectSuccess(Unification.of(arg1, PrologNumber(length.toLong())), ctxt.randomVariableScope)
                         yield(result)
                         length++
                     }

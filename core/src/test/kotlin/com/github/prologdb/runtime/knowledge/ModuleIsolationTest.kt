@@ -63,7 +63,7 @@ class ModuleIsolationTest : FreeSpec({
         runtimeWithLoadedModules(module) shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
-                it.variableValues[R] == a
+                it[R] == a
             }
         }
     }
@@ -98,7 +98,7 @@ class ModuleIsolationTest : FreeSpec({
         runtimeWithLoadedModules(moduleA, userModule) shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
-                it.variableValues[R] == a
+                it[R] == a
             }
         }
     }
@@ -175,7 +175,7 @@ class ModuleIsolationTest : FreeSpec({
         runtimeEnv shouldProve foo(R) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("R = a") {
-                it.variableValues[R] == a
+                it[R] == a
             }
         }
 
@@ -258,14 +258,14 @@ class ModuleIsolationTest : FreeSpec({
                 runtimeEnv.shouldProveInContextOfModule(moduleA.declaration.moduleName, foo(R)) suchThat {
                     itHasExactlyOneSolution()
                     itHasASolutionSuchThat("R = a") {
-                        it.variableValues[R] == a
+                        it[R] == a
                     }
                 }
 
                 runtimeEnv.shouldProveInContextOfModule(moduleB.declaration.moduleName, foo(R)) suchThat {
                     itHasExactlyOneSolution()
                     itHasASolutionSuchThat("R = b") {
-                        it.variableValues[R] == b
+                        it[R] == b
                     }
                 }
             }
@@ -290,14 +290,14 @@ class ModuleIsolationTest : FreeSpec({
                 runtimeEnv shouldProve delegateA(R) suchThat {
                     itHasExactlyOneSolution()
                     itHasASolutionSuchThat("R = a") {
-                        it.variableValues[R] == a
+                        it[R] == a
                     }
                 }
 
                 runtimeEnv shouldProve delegateB(R) suchThat {
                     itHasExactlyOneSolution()
                     itHasASolutionSuchThat("R = b") {
-                        it.variableValues[R] == b
+                        it[R] == b
                     }
                 }
             }
@@ -340,7 +340,7 @@ class ModuleIsolationTest : FreeSpec({
         runtime shouldProve bar(X) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = a") {
-                it.variableValues[X] == a
+                it[X] == a
             }
         }
     }

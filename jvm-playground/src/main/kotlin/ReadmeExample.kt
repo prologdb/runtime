@@ -54,7 +54,7 @@ fun main() {
 
     val solutions: LazySequence<Unification> = runtime.fulfill(userModuleReference.moduleName, queryAST)
     val personsJealousOfMarcellus = solutions
-        .mapRemaining { it.variableValues[Variable("Person")] }
+        .mapRemaining { it[Variable("Person")] }
         .mapRemaining { (it as Atom).name }
         .remainingTo(::mutableSetOf)
 

@@ -14,7 +14,7 @@ class DictionaryUnificationTest : FreeSpec() { init {
         val b = PrologDictionary(emptyMap())
 
         a shouldUnifyWith b suchThat {
-            it.variableValues.isEmpty
+            it.isEmpty
         }
     }
 
@@ -24,7 +24,7 @@ class DictionaryUnificationTest : FreeSpec() { init {
         val dB = PrologDictionary(mapOf(a to a))
 
         dA shouldUnifyWith dB suchThat {
-            it.variableValues.isEmpty
+            it.isEmpty
         }
     }
 
@@ -56,7 +56,7 @@ class DictionaryUnificationTest : FreeSpec() { init {
                 val dB = PrologDictionary(mapOf(a to a, b to b))
 
                 dA shouldUnifyWith dB suchThat {
-                    it.variableValues[T] == PrologDictionary(mapOf(b to b))
+                    it[T] == PrologDictionary(mapOf(b to b))
                 }
             }
 
@@ -79,7 +79,7 @@ class DictionaryUnificationTest : FreeSpec() { init {
                 val dB = PrologDictionary(mapOf(a to a))
 
                 dA shouldUnifyWith dB suchThat {
-                    it.variableValues[T] == PrologDictionary.EMPTY
+                    it[T] == PrologDictionary.EMPTY
                 }
             }
 
@@ -116,7 +116,7 @@ class DictionaryUnificationTest : FreeSpec() { init {
                 val dB = PrologDictionary(mapOf(a to a), T)
 
                 dA shouldUnifyWith dB suchThat {
-                    it.variableValues[T] == PrologDictionary(mapOf(b to b))
+                    it[T] == PrologDictionary(mapOf(b to b))
                 }
             }
 
@@ -139,7 +139,7 @@ class DictionaryUnificationTest : FreeSpec() { init {
                 val dB = PrologDictionary(mapOf(a to a), T)
 
                 dA shouldUnifyWith dB suchThat {
-                    it.variableValues[T] == PrologDictionary.EMPTY
+                    it[T] == PrologDictionary.EMPTY
                 }
             }
 
@@ -175,9 +175,9 @@ class DictionaryUnificationTest : FreeSpec() { init {
                 val dB = PrologDictionary(mapOf(a to a), TB)
 
                 dA shouldUnifyWith dB suchThat {
-                    it.variableValues[TA] == PrologDictionary.EMPTY
+                    it[TA] == PrologDictionary.EMPTY
                     &&
-                    it.variableValues[TB] == PrologDictionary.EMPTY
+                    it[TB] == PrologDictionary.EMPTY
                 }
             }
 
@@ -204,9 +204,9 @@ class DictionaryUnificationTest : FreeSpec() { init {
                     val dB = PrologDictionary(mapOf(a to a), TB)
 
                     dA shouldUnifyWith dB suchThat {
-                        it.variableValues[TB] == PrologDictionary(mapOf(b to b))
+                        it[TB] == PrologDictionary(mapOf(b to b))
                         &&
-                        it.variableValues[TA] == PrologDictionary.EMPTY
+                        it[TA] == PrologDictionary.EMPTY
                     }
                 }
 
@@ -233,9 +233,9 @@ class DictionaryUnificationTest : FreeSpec() { init {
                     val dB = PrologDictionary(mapOf(a to a, c to c), TB)
 
                     dA shouldUnifyWith dB suchThat {
-                        it.variableValues[TA] == PrologDictionary(mapOf(c to c))
+                        it[TA] == PrologDictionary(mapOf(c to c))
                         &&
-                        it.variableValues[TB] == PrologDictionary(mapOf(b to b))
+                        it[TB] == PrologDictionary(mapOf(b to b))
                     }
                 }
 

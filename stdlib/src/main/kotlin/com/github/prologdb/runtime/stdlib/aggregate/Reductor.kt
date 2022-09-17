@@ -5,7 +5,7 @@ import com.github.prologdb.parser.parser.ParseResult
 import com.github.prologdb.parser.parser.ParseResultCertainty
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 
 /**
  * Implements a reduction (e.g. count, sum, average, ...).
@@ -34,7 +34,7 @@ interface Reductor<Specification, Accumulator, Result> {
      * Accumulates the given [element] into the [accumulator].
      * @return the result of the accumulation. If the reducer uses a mutable accumulator, then [accumulator] should be returned.
      */
-    fun accumulate(ctxt: ProofSearchContext, accumulator: Accumulator, element: VariableBucket): WorkableFuture<Accumulator>
+    fun accumulate(ctxt: ProofSearchContext, accumulator: Accumulator, element: Unification): WorkableFuture<Accumulator>
 
     /**
      * Is called after all elements have been accumulated.

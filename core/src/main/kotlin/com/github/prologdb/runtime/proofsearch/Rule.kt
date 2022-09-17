@@ -6,11 +6,16 @@ import com.github.prologdb.async.mapRemaining
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
+import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
-import com.github.prologdb.runtime.term.*
+import com.github.prologdb.runtime.term.CompoundTerm
+import com.github.prologdb.runtime.term.Term
+import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.unify
+import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.UnificationBuilder
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor
@@ -27,7 +32,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
         return if (goalAndHeadUnification != null) {
             val randomQuery = query
                 .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
-                .substituteVariables(goalAndHeadUnification.variableValues)
+                .substituteVariables(goalAndHeadUnification)
 
             this.PreparedCall(
                 context,
@@ -42,7 +47,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
 
     val fulfillPreparedCall: suspend LazySequenceBuilder<Unification>.(PreparedCall) -> Unification? = { preparation ->
         val (context, randomQuery) = preparation
-        context.fulfillAttach(this, randomQuery, VariableBucket())
+        context.fulfillAttach(this, randomQuery, Unification.TRUE)
     }
 
     /**
@@ -57,9 +62,14 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
      */
     override val fulfill: PrologCallableFulfill = { arguments, context ->
         prepareCall(arguments, context)?.let { preparation ->
-            yieldAllFinal(buildLazySequence<Unification>(context.principal) {
-                fulfillPreparedCall.invoke(this, preparation)
-            }.mapRemaining(preparation::untranslateResult))
+            yieldAllFinal(
+                buildLazySequence<Unification>(context.principal) {
+                    fulfillPreparedCall.invoke(this, preparation)
+                }
+                    .mapRemaining {
+                        preparation.untranslateResult(it, context.randomVariableScope)
+                    }
+            )
         }
     }
 
@@ -96,7 +106,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          */
         fun translateClausePart(term: CompoundTerm): CompoundTerm {
             return context.randomVariableScope.withRandomVariables(term, ruleRandomVarsMapping)
-                .substituteVariables(goalAndHeadUnification.variableValues.asSubstitutionMapper())
+                .substituteVariables(goalAndHeadUnification.asSubstitutionMapper())
         }
 
         /**
@@ -129,30 +139,26 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          *
          * thereby also dropping the clause-local variables.
          */
-        fun untranslateResult(solution: VariableBucket): VariableBucket {
-            val solutionVars = VariableBucket()
+        fun untranslateResult(solution: Unification, randomVariableScope: RandomVariableScope): Unification {
+            val solutionVars = UnificationBuilder()
 
             for (randomGoalVariable in randomArguments.variables)
             {
-                if (goalAndHeadUnification.variableValues.isInstantiated(randomGoalVariable)) {
-                    val value = goalAndHeadUnification.variableValues[randomGoalVariable]
+                if (goalAndHeadUnification.isInstantiated(randomGoalVariable)) {
+                    val value = goalAndHeadUnification[randomGoalVariable]
                         .substituteVariables(solution.asSubstitutionMapper())
-                        .substituteVariables(goalAndHeadUnification.variableValues.asSubstitutionMapper())
+                        .substituteVariables(goalAndHeadUnification.asSubstitutionMapper())
 
-                    solutionVars.instantiate(randomGoalVariable, value)
+                    solutionVars.instantiate(randomGoalVariable, value, randomVariableScope)
                 }
                 else if (solution.isInstantiated(randomGoalVariable)) {
                     argumentsRandomVarsMapping.getOriginal(randomGoalVariable)?.let { originalVar ->
-                        solutionVars.instantiate(originalVar, solution[randomGoalVariable])
+                        solutionVars.instantiate(originalVar, solution[randomGoalVariable], randomVariableScope)
                     }
                 }
             }
 
-            return solutionVars.withVariablesResolvedFrom(argumentsRandomVarsMapping)
-        }
-
-        fun untranslateResult(solution: Unification): Unification {
-            return Unification(untranslateResult(solution.variableValues))
+            return solutionVars.build().withVariablesResolvedFrom(argumentsRandomVarsMapping, randomVariableScope)
         }
 
         fun untranslateResult(term: CompoundTerm): CompoundTerm? {
@@ -166,8 +172,8 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          */
         fun getTailCallArguments(stackFrameAfterLastGoal: Unification, tailCall: CompoundTerm): Array<out Term>? {
             val stepsForHeadUnificationRequired = randomArguments.flatMap { it.variables }.any { headVar ->
-                if (goalAndHeadUnification.variableValues.isInstantiated(headVar)) {
-                    val value = goalAndHeadUnification.variableValues[headVar]
+                if (goalAndHeadUnification.isInstantiated(headVar)) {
+                    val value = goalAndHeadUnification[headVar]
                     value !is Variable && value.variables.isNotEmpty()
                 } else {
                     false
@@ -179,7 +185,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
             }
 
             val tailCallConcrete = translateClausePart(tailCall)
-                .substituteVariables(stackFrameAfterLastGoal.variableValues.asSubstitutionMapper())
+                .substituteVariables(stackFrameAfterLastGoal.asSubstitutionMapper())
             return untranslateResult(tailCallConcrete)?.arguments
         }
     }

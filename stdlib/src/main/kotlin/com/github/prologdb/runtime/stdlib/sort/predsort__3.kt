@@ -34,11 +34,11 @@ val BuiltinPredsort3 = nativeRule("predsort", 3) { args, ctxt ->
             throw PrologInvocationContractViolationException("Comparator predicate did not yield a solution.")
         }
 
-        if (!firstResult.variableValues.isInstantiated(Delta)) {
+        if (!firstResult.isInstantiated(Delta)) {
             throw PrologInvocationContractViolationException("Comparator predicate did not instantiate first argument")
         }
 
-        val delta = firstResult.variableValues[Delta] as? Atom
+        val delta = firstResult[Delta] as? Atom
             ?: throw PrologInvocationContractViolationException("Comparator predicate must instantiate first argument to either <, = or >")
 
         when (delta.name) {

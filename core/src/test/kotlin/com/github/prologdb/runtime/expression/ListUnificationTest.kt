@@ -29,31 +29,31 @@ class ListUnificationTest : FreeSpec() {init {
 
     "[a] = [X]" {
         PrologList(listOf(a)) shouldUnifyWith PrologList(listOf(X)) suchThat {
-            it.variableValues[X] == a
+            it[X] == a
         }
     }
 
     "[H|T] = [a]" {
         PrologList(listOf(H), T) shouldUnifyWith PrologList(listOf(a)) suchThat {
-            it.variableValues[H] == a
+            it[H] == a
             &&
-            it.variableValues[T] == PrologList(emptyList())
+            it[T] == PrologList(emptyList())
         }
     }
 
     "[a] = [H|T]" {
         PrologList(listOf(a)) shouldUnifyWith PrologList(listOf(H), T) suchThat {
-            it.variableValues[H] == a
+            it[H] == a
             &&
-            it.variableValues[T] == PrologList(emptyList())
+            it[T] == PrologList(emptyList())
         }
     }
 
     "[H|T] = [a,b]" {
         PrologList(listOf(H), T) shouldUnifyWith PrologList(listOf(a,b)) suchThat {
-            it.variableValues[H] == a
+            it[H] == a
             &&
-            it.variableValues[T] == PrologList(listOf(b))
+            it[T] == PrologList(listOf(b))
         }
     }
 

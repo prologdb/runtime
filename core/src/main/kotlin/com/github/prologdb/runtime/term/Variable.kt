@@ -4,16 +4,13 @@ import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 @PrologTypeName("variable")
 open class Variable(val name: String) : Term {
     override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification {
         if (rhs is Variable && rhs == this) return Unification.TRUE
 
-        val vars = VariableBucket()
-        vars.instantiate(this, rhs)
-        return Unification(vars)
+        return Unification.of(this, rhs)
     }
 
     override val variables: Set<Variable>

@@ -36,10 +36,10 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv shouldProve f(X) suchThat {
             itHasExactlyNSolutions(2)
             itHasASolutionSuchThat("X is instantiated to a") {
-                it.variableValues[X] == a
+                it[X] == a
             }
             itHasASolutionSuchThat("X is instantiated to b") {
-                it.variableValues[X] == b
+                it[X] == b
             }
         }
     }
@@ -59,7 +59,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv shouldProve f(a(m, n), X) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = a(n, m)") {
-                it.variableValues[X] == a(n, m)
+                it[X] == a(n, m)
             }
         }
     }
@@ -104,14 +104,14 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv shouldProve horizontal(line(point(a, a), point(b, Y))) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("Y = a") {
-                it.variableValues[Y] == a
+                it[Y] == a
             }
         }
 
         runtimeEnv shouldProve horizontal(line(point(b, c), P)) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("P = point(_R,c)") {
-                val valP = it.variableValues[P]
+                val valP = it[P]
 
                 valP is CompoundTerm && valP.arguments.size == 2 && valP.arguments[0] is RandomVariable && valP.arguments[1] == c
             }
@@ -131,7 +131,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv shouldProve g(A, B) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("A = B") {
-                it.variableValues[A] == B || it.variableValues[A] == it.variableValues[B]
+                it[A] == B || it[A] == it[B]
             }
         }
     }
@@ -152,7 +152,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv shouldProve f(a, V) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("V = a") {
-                it.variableValues[V] == a
+                it[V] == a
             }
         }
     }
@@ -183,7 +183,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve app(PrologList(listOf(a, b)), PrologList(listOf(c, d)), R) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("R = [a,b,c,d]") {
-                    it.variableValues[R] == PrologList(listOf(a,b,c,d))
+                    it[R] == PrologList(listOf(a,b,c,d))
                 }
             }
         }
@@ -192,7 +192,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve app(PrologList(listOf(a, b)), L, PrologList(listOf(a, b, c, d))) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("L = [c, d]") {
-                    it.variableValues[L] == PrologList(listOf(c, d))
+                    it[L] == PrologList(listOf(c, d))
                 }
             }
         }
@@ -201,7 +201,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve app(L, PrologList(listOf(c, d)), PrologList(listOf(a, b, c, d))) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("L = [a, b]") {
-                    it.variableValues[L] == PrologList(listOf(a, b))
+                    it[L] == PrologList(listOf(a, b))
                 }
             }
         }
@@ -214,21 +214,21 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
                 itHasExactlyNSolutions(3)
 
                 itHasASolutionSuchThat("A = [], B = [a, b]") {
-                    it.variableValues[A] == PrologList(emptyList())
+                    it[A] == PrologList(emptyList())
                     &&
-                    it.variableValues[B] == PrologList(listOf(a, b))
+                    it[B] == PrologList(listOf(a, b))
                 }
 
                 itHasASolutionSuchThat("A = [a], B = [b]") {
-                    it.variableValues[A] == PrologList(listOf(a))
+                    it[A] == PrologList(listOf(a))
                     &&
-                    it.variableValues[B] == PrologList(listOf(b))
+                    it[B] == PrologList(listOf(b))
                 }
 
                 itHasASolutionSuchThat("A = [a, b], B = []") {
-                    it.variableValues[A] == PrologList(listOf(a, b))
+                    it[A] == PrologList(listOf(a, b))
                     &&
-                    it.variableValues[B] == PrologList(emptyList())
+                    it[B] == PrologList(emptyList())
                 }
             }
         }
@@ -250,7 +250,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
         runtimeEnv shouldProve a(X, PrologList(listOf(u, v))) suchThat {
             itHasExactlyOneSolution()
             itHasASolutionSuchThat("X = [u,v]") {
-                val valX = it.variableValues[X] as PrologList
+                val valX = it[X] as PrologList
 
                 valX.elements[0] == u
                 &&
@@ -274,7 +274,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve f(a) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("it is empty") {
-                    it.variableValues.isEmpty
+                    it.isEmpty
                 }
             }
         }
@@ -287,7 +287,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve f(a, b) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("it is empty") {
-                    it.variableValues.isEmpty
+                    it.isEmpty
                 }
             }
         }
@@ -300,7 +300,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve f(a, X) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("X = b") {
-                    it.variableValues[X] == b
+                    it[X] == b
                 }
             }
         }
@@ -313,7 +313,7 @@ class DefaultPrologRuntimeEnvironmentTest : FreeSpec() {init {
             runtimeEnv shouldProve f(X) suchThat {
                 itHasExactlyOneSolution()
                 itHasASolutionSuchThat("X = _") {
-                    it.variableValues[X] is Variable
+                    it[X] is Variable
                 }
             }
         }

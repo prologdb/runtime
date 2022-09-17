@@ -15,7 +15,7 @@ import java.util.concurrent.Future
  * Calling [tryAdvance] will perform **all** necessary steps to calculate the next result (or determine
  * that there are no more). For more fine grained control and information use [step] and [state].
  */
-interface LazySequence<T : Any> {
+interface LazySequence<out T : Any> {
     /**
      * The concurrency principal. Instead of [Thread], this is used to obtain locks and mutexes in the
      * name of the coroutine. Traditional [synchronized] blocks are still used to prevent multiple threads
@@ -81,7 +81,7 @@ interface LazySequence<T : Any> {
      *
      * @return the least element, according to [comparator] or `null` if there are no elements in this sequence
      */
-    fun minWith(comparator: Comparator<T>): T? {
+    fun minWith(comparator: Comparator<in T>): T? {
         var pivot: T = tryAdvance() ?: return null
 
         forEachRemaining {
@@ -139,7 +139,7 @@ interface LazySequence<T : Any> {
      *
      * @return the greatest element, according to [comparator] or `null` if there are no elements in this sequence
      */
-    fun maxWith(comparator: Comparator<T>): T? {
+    fun maxWith(comparator: Comparator<in T>): T? {
         var pivot: T = tryAdvance() ?: return null
 
         forEachRemaining {

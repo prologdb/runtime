@@ -8,7 +8,7 @@ import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 import com.github.prologdb.runtime.util.OperatorRegistry
 import mapToArray
 
@@ -18,7 +18,7 @@ sealed class Query {
 
     abstract fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query
 
-    abstract fun substituteVariables(variableValues: VariableBucket): Query
+    abstract fun substituteVariables(variableValues: Unification): Query
 
     /** From where this term was parsed. Set to [com.github.prologdb.runtime.NullSourceInformation] if unavailable. */
     var sourceInformation: PrologSourceInformation = NullSourceInformation
@@ -33,7 +33,7 @@ class AndQuery(val goals: Array<out Query>) : Query() {
         )
     }
 
-    override fun substituteVariables(variableValues: VariableBucket): Query {
+    override fun substituteVariables(variableValues: Unification): Query {
         return AndQuery(
             goals.mapToArray { it.substituteVariables(variableValues) }
         )
@@ -62,7 +62,7 @@ class OrQuery(val goals: Array<out Query>) : Query() {
         )
     }
 
-    override fun substituteVariables(variableValues: VariableBucket): Query {
+    override fun substituteVariables(variableValues: Unification): Query {
         return OrQuery(
             goals.mapToArray { it.substituteVariables(variableValues) }
         )
@@ -93,7 +93,7 @@ class PredicateInvocationQuery(
         )
     }
 
-    override fun substituteVariables(variableValues: VariableBucket): Query {
+    override fun substituteVariables(variableValues: Unification): Query {
         return PredicateInvocationQuery(
             goal.substituteVariables(variableValues.asSubstitutionMapper()),
             sourceInformation,

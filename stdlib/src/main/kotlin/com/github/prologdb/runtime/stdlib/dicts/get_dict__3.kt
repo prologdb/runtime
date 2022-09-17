@@ -7,6 +7,7 @@ import com.github.prologdb.runtime.stdlib.nativeRule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.PrologDictionary
 import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
     val keyArg = args[0]
@@ -19,19 +20,8 @@ val BuiltinGetDict3 = nativeRule("get_dict", 3) { args, ctxt ->
 
     if (keyArg is Variable) {
         return@nativeRule yieldAllFinal(LazySequence.ofIterable(dictArg.pairs.entries, principal).mapRemainingNotNull { (dictKey, dictValue) ->
-            val valueUnification = valueArg.unify(dictValue, ctxt.randomVariableScope)
-            if (valueUnification != null) {
-                if (valueUnification.variableValues.isInstantiated(keyArg)) {
-                    if (valueUnification.variableValues[keyArg] == dictKey) {
-                        return@mapRemainingNotNull valueUnification
-                    }
-                } else {
-                    valueUnification.variableValues.instantiate(keyArg, dictKey)
-                    return@mapRemainingNotNull valueUnification
-                }
-            }
-
-            return@mapRemainingNotNull null
+            valueArg.unify(dictValue, ctxt.randomVariableScope)
+                ?.combinedWith(Unification.of(keyArg, dictKey), ctxt.randomVariableScope)
         })
     } else {
         keyArg as Atom

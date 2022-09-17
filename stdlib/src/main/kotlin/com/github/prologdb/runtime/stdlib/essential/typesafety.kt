@@ -15,7 +15,6 @@ import com.github.prologdb.runtime.term.PrologString
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 val BuiltinTypeof2 = nativeRule("typeof", 2) { args, ctxt ->
     val arg0 = args[0]
@@ -71,7 +70,7 @@ val BuiltinRequire2 = nativeRule("require", 2) { args, ctxt ->
     val hadResults = await(launchWorkableFuture(ctxt.principal) {
         return@launchWorkableFuture foldRemaining(
             buildLazySequence(ctxt.principal) {
-                ctxt.fulfillAttach(this, goal, VariableBucket())
+                ctxt.fulfillAttach(this, goal, Unification.TRUE)
             }
                 .limitRemaining(1),
             false,

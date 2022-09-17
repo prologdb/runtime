@@ -13,7 +13,6 @@ import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.VariableBucket
 
 typealias UnificationGenerator = () -> Unification
 typealias UnificationSequenceGenerator = () -> LazySequence<Unification>
@@ -104,7 +103,7 @@ fun DefaultPrologRuntimeEnvironment.shouldProveInContextOfModule(moduleName: Str
     val generator: UnificationSequenceGenerator = {
         val psc = this@shouldProveInContextOfModule.newProofSearchContext(moduleName)
         buildLazySequence(psc.principal) {
-            psc.fulfillAttach(this, PredicateInvocationQuery(query), VariableBucket())
+            psc.fulfillAttach(this, PredicateInvocationQuery(query), Unification.TRUE)
         }
     }
 

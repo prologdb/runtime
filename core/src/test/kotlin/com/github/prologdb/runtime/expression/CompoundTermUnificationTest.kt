@@ -20,7 +20,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
 
         // ASSERT
         fact1 shouldUnifyWith fact2 suchThat {
-            it.variableValues.isEmpty
+            it.isEmpty
         }
     }
 
@@ -36,7 +36,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
 
         // ASSERT
         fact1 shouldUnifyWith fact2 suchThat {
-            it.variableValues.isEmpty
+            it.isEmpty
         }
     }
 
@@ -110,7 +110,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
         val X = Variable("X")
 
         f(a) shouldUnifyWith f(X) suchThat {
-            it.variableValues[X] == a
+            it[X] == a
         }
     }
 
@@ -121,7 +121,7 @@ class CompoundTermUnificationTest : FreeSpec(){init {
         val B = Variable("B")
 
         g(X, X) shouldUnifyWith g(A, B) suchThat {
-            it.variableValues[A] == B
+            it[A] == B
         }
     }
 
@@ -150,9 +150,9 @@ class CompoundTermUnificationTest : FreeSpec(){init {
         val rhs = k(X, t(w))
 
         lhs shouldUnifyWith rhs suchThat {
-            it.variableValues[X] == s(g)
+            it[X] == s(g)
             &&
-            it.variableValues[Y] == t(w)
+            it[Y] == t(w)
         }
     }
 }}

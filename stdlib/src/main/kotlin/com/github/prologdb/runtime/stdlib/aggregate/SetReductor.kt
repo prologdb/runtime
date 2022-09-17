@@ -10,7 +10,7 @@ import com.github.prologdb.runtime.proofsearch.ProofSearchContext
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologList
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.unification.VariableBucket
+import com.github.prologdb.runtime.unification.Unification
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
@@ -45,7 +45,7 @@ class SetReductor : Reductor<Term, SetReductor.Accumulator, PrologList> {
     override fun accumulate(
         ctxt: ProofSearchContext,
         accumulator: Accumulator,
-        element: VariableBucket
+        element: Unification
     ): WorkableFuture<Accumulator> {
         val instantiatedTemplate = accumulator.template.substituteVariables(element.asSubstitutionMapper())
         if (instantiatedTemplate.variables.isNotEmpty()) {
