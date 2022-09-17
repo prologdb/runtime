@@ -2,6 +2,7 @@ package com.github.prologdb.runtime.term
 
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.property.checkAll
 import org.junit.jupiter.api.assertThrows
 import kotlin.random.Random
 
@@ -65,6 +66,16 @@ class PrologNumberTest : FreeSpec({
 
                 deserialized shouldBe number
             }
+        }
+    }
+
+    "long impl and arbitrary-precision impl equals and hashCode" {
+        checkAll<Long>(1000) { longValue ->
+            val longImpl = PrologLongInteger(longValue)
+            val arbitraryPrecisionImpl = PrologBigNumber(longValue.toString(10), 10)
+
+            longImpl.hashCode() shouldBe arbitraryPrecisionImpl.hashCode()
+            longImpl shouldBe arbitraryPrecisionImpl
         }
     }
 })

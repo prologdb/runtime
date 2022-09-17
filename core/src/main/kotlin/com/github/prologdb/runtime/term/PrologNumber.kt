@@ -15,6 +15,9 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.absoluteValue
 import kotlin.math.max
 
+private val LONG_MAX_APFLOAT = Apfloat(Long.MAX_VALUE)
+private val LONG_MIN_APFLOAT = Apfloat(Long.MIN_VALUE)
+
 /**
  * Numbers in prolog.
  *
@@ -77,7 +80,7 @@ sealed class PrologNumber : Term {
         else -> -1
     }
 
-    final override fun equals(other: Any?): Boolean {
+    override fun equals(other: Any?): Boolean {
         if (this === other) {
             return true
         }
@@ -92,8 +95,6 @@ sealed class PrologNumber : Term {
     final override fun substituteVariables(mapper: (Variable) -> Term): Term = this
 
     companion object {
-        private val LONG_MAX_APFLOAT = Apfloat(Long.MAX_VALUE)
-
         /* The integers 0 through 65536 are cached: these are used for
            strings and this avoids a lot of memory overhead. Also, this
            likely applies to other uses-cases where small numbers are used.
@@ -268,7 +269,6 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
     override val isInteger = this.value.isInteger
     override fun toInteger() = this.value.longValueExact()
     override fun toDecimal() = this.value.toDouble().takeUnless { it.isInfinite() || it.isNaN() } ?: throw ArithmeticException("overflow")
-    override fun hashCode() = this.value.hashCode()
     override fun toString(): String = this.value.toString(true)
 
     /**
@@ -283,6 +283,32 @@ class PrologBigNumber internal constructor(internal val value: Apfloat) : Prolog
 
         val significantDigitsAsInt = ApintMath.abs(ApfloatMath.scale(value, -value.scale() + value.size()).toRadix(16).truncate())
         return Triple(significantDigitsAsInt.toByteArray(), value.signum(), value.scale() - value.size())
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other is PrologLongInteger) {
+            return this.value == Apfloat(other.value)
+        }
+
+        if (other is PrologBigNumber) {
+            return this.value == other.value
+        }
+
+        return false
+    }
+
+    private var hashCode: Int = -1
+    override fun hashCode(): Int {
+        if (hashCode == -1) {
+            hashCode = try {
+                this.value.longValueExact().hashCode()
+            }
+            catch (ex: ArithmeticException) {
+                this.value.hashCode()
+            }
+        }
+
+        return hashCode
     }
 
     private inline fun combineSimple(other: PrologNumber, crossinline operation: (Apfloat, Apfloat) -> Apfloat): PrologNumber {
