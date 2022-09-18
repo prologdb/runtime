@@ -10,6 +10,7 @@ import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.stdlib.aggregate.BuiltinReduce2
+import com.github.prologdb.runtime.stdlib.dicts.BuiltinDictPairs2
 import com.github.prologdb.runtime.stdlib.dicts.BuiltinGetDict3
 import com.github.prologdb.runtime.stdlib.essential.*
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
@@ -112,7 +113,8 @@ object StandardLibraryModuleLoader : ModuleLoader {
             BuiltinError1,
         ),
         "library(dicts)" to listOf(
-            BuiltinGetDict3
+            BuiltinGetDict3,
+            BuiltinDictPairs2,
         ),
         "library(lists)" to listOf(
             BuiltinLength2,

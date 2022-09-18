@@ -39,3 +39,15 @@ test "destructuring" by [
     C = 3,
     D = e
 ].
+
+test "dict_pairs/2 form dict to list" by [
+    dict_pairs({a: 1, b: 2|Tail}, Pairs),
+    var(Tail),
+    Pairs == [a-1, b-2|Tail]
+].
+
+test "dict_pairs/2 form list to dict" by [
+    dict_pairs(Dict, [a-1, b-2|Tail]),
+    var(Tail),
+    Dict == {a: 1, b: 2|Tail}
+].
