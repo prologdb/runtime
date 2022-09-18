@@ -15,7 +15,7 @@ import java.util.function.Consumer
 abstract class PrologException(message: String, cause: Throwable? = null) : RuntimeException(message, cause) {
     private val _prologStackTrace = mutableListOf<PrologStackTraceElement>()
 
-    fun addPrologStackFrame(frameInfo: PrologStackTraceElement) {
+    open fun addPrologStackFrame(frameInfo: PrologStackTraceElement) {
         _prologStackTrace.add(frameInfo)
     }
 

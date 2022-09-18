@@ -8,11 +8,12 @@ import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.stdlib.NativeCodeRule
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.stdlib.aggregate.BuiltinReduce2
 import com.github.prologdb.runtime.stdlib.dicts.BuiltinGetDict3
 import com.github.prologdb.runtime.stdlib.essential.*
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinAssert1
+import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinError1
 import com.github.prologdb.runtime.stdlib.essential.clauses.BuiltinRetract1
 import com.github.prologdb.runtime.stdlib.essential.dynamic.*
 import com.github.prologdb.runtime.stdlib.essential.math.*
@@ -47,7 +48,7 @@ object StandardLibraryModuleLoader : ModuleLoader {
         )
     }
 
-    private val nativeImplementationsByModuleRef: Map<String, Map<ClauseIndicator, NativeCodeRule>> = mapOf(
+    private val nativeImplementationsByModuleRef: Map<String, Map<ClauseIndicator, Rule>> = mapOf(
         "essential(\$equality)" to listOf(
             BuiltinUnity,
             BuiltinNegatedUnity,
@@ -107,14 +108,13 @@ object StandardLibraryModuleLoader : ModuleLoader {
         ),
         "essential(\$clauses)" to listOf(
             BuiltinAssert1,
-            BuiltinRetract1
+            BuiltinRetract1,
+            BuiltinError1,
         ),
         "library(dicts)" to listOf(
             BuiltinGetDict3
         ),
         "library(lists)" to listOf(
-            BuiltinIota3,
-            BuiltinIota4,
             BuiltinLength2,
             BuiltinMember2,
             BuiltinSet2,

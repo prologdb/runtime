@@ -1,6 +1,5 @@
 :- module(lists, [
-    iota/3,
-    iota/4,
+    between/3,
     length/2,
     member/2,
     reverse/2,
@@ -11,9 +10,6 @@
     append/3,
     index_unifying/3
 ]).
-
-:- native iota/3.
-:- native iota/4.
 
 :- native length/2.
 :- native member/2.
@@ -42,3 +38,27 @@ index_unifying([Sample|Rest], Index, Sample, Index).
 index_unifying([_|Rest], Index, Element, IndexCarry) :-
     NextIndex is IndexCarry + 1,
     index_unifying(Rest, Index, Element, NextIndex).
+
+between(_, _, Value) :- nonvar(Value), \+ integer(Value), error("The value must be unbound or an integer").
+between(Low, High, _) :- (\+ integer(Low) ; \+ integer(High)), error("Both bounds must be integers").
+between(Low, High, Value) :- number(Value), High >= Value, Low =< Value.
+between(Low, High, Value) :-
+    var(Value),
+    (
+        (Low =< High, between_iterate_up(Low, 1, High, Value))
+        ;
+        (Low > High, between_iterate_down(High, 1, Low, Value))
+    )
+    .
+
+between_iterate_up(Current, _, _, Current).
+between_iterate_up(Current, Step, Until, Value) :-
+     Next is Current + Step,
+     Next =< Until,
+     between_iterate_up(Next, Step, Until, Value).
+
+between_iterate_down(Current, _, _, Current).
+between_iterate_down(Current, Step, Until, Value) :-
+     Next is Current - Step,
+     Next >= Until,
+     between_iterate_up(Next, Step, Until, Value).

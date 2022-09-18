@@ -8,7 +8,7 @@ import com.github.prologdb.parser.source.SourceLocation
 import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.stdlib.NativeCodeRule
+import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.PrologNumber
@@ -29,7 +29,7 @@ import com.github.prologdb.runtime.term.PrologNumber
  */
 class NativeCodeSourceFileVisitorDecorator<Result : Any>(
     private val delegate: SourceFileVisitor<Result>,
-    private val availableNativeCode: Map<ClauseIndicator, NativeCodeRule>,
+    private val availableNativeCode: Map<ClauseIndicator, Rule>,
     private val parser: PrologParser = PrologParser()
 ) : SourceFileVisitor<Result> by delegate {
     private val clausesWithPrologSource = mutableSetOf<ClauseIndicator>()
