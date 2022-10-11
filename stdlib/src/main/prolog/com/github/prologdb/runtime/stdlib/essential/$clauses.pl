@@ -3,6 +3,7 @@
 
 :- native assert/1.
 :- native retract/1.
+:- native error/1.
 
 :- module_transparent(assert/1).
 :- module_transparent(retract/1).

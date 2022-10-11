@@ -1,6 +1,6 @@
 :- use_module(essential($equality)).
 :- use_module(library(lists)).
-:- use_module(essential($dynamic), [findall/3]).
+:- use_module(essential($dynamic), [findall/3, findnsols/4]).
 
 test "index_unifying/2 find by index - exists" by [
     index_unifying([a, b, c], 1, Value),
@@ -27,4 +27,14 @@ test "index_unifying/2 iterating" by [
         [1, b],
         [2, c]
     ]
+].
+
+test "between/3 range test" by [
+    between(1, 5, 2),
+    \+ between(1, 5, 6)
+].
+
+test "between/3 range iteration" by [
+    findall(N, between(-3, 4, N), Ns),
+    Ns == [-3, -2, -1, 0, 1, 2, 3, 4]
 ].

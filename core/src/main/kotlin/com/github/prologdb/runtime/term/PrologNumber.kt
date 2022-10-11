@@ -4,11 +4,7 @@ import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
 import com.github.prologdb.runtime.unification.Unification
-import org.apfloat.Apfloat
-import org.apfloat.ApfloatMath
-import org.apfloat.Apint
-import org.apfloat.ApintMath
-import org.apfloat.InfiniteExpansionException
+import org.apfloat.*
 import java.io.Writer
 import java.math.BigInteger
 import java.util.concurrent.ConcurrentHashMap
@@ -105,15 +101,38 @@ sealed class PrologNumber : Term {
         private val CACHEABLE_RANGE_LONG = LongRange(0.toLong(), UShort.MAX_VALUE.toLong())
         private val CACHEABLE_RANGE_ULONG = ULongRange(0.toULong(), UShort.MAX_VALUE.toULong())
 
+        @JvmStatic
+        @JvmName("of")
         operator fun invoke(value: Byte): PrologNumber = PrologLongInteger(value.toLong())
+
+        @JvmStatic
+        @JvmName("ofUnsigned")
         operator fun invoke(value: UByte): PrologNumber = PrologLongInteger(value.toLong())
+
+        @JvmStatic
+        @JvmName("of")
         operator fun invoke(value: Short): PrologNumber = PrologLongInteger(value.toLong())
+
+        @JvmStatic
+        @JvmName("ofUnsigned")
         operator fun invoke(value: UShort): PrologNumber {
             return CACHE.getOrPut(value) { PrologLongInteger(value.toLong()) }
         }
+
+        @JvmStatic
+        @JvmName("of")
         operator fun invoke(value: Int): PrologNumber = if (value in CACHEABLE_RANGE_INT) PrologNumber(value.toUShort()) else PrologLongInteger(value.toLong())
+
+        @JvmStatic
+        @JvmName("ofUnsigned")
         operator fun invoke(value: UInt): PrologNumber = if (value in CACHEABLE_RANGE_UINT) PrologNumber(value.toUShort()) else PrologLongInteger(value.toLong())
+
+        @JvmStatic
+        @JvmName("of")
         operator fun invoke(value: Long): PrologNumber = if (value in CACHEABLE_RANGE_LONG) PrologNumber(value.toUShort()) else PrologLongInteger(value)
+
+        @JvmStatic
+        @JvmName("ofUnsigned")
         operator fun invoke(value: ULong): PrologNumber {
             if (value in CACHEABLE_RANGE_ULONG) {
                 return PrologNumber(value.toUShort())
@@ -134,12 +153,20 @@ sealed class PrologNumber : Term {
             asApfloat = asApfloat.add(Apfloat(remainder.toLong()))
             return PrologBigNumber(asApfloat)
         }
+
+        @JvmStatic
+        @JvmName("of")
         operator fun invoke(value: Float): PrologNumber = PrologBigNumber(Apfloat(value))
+
+        @JvmStatic
+        @JvmName("of")
         operator fun invoke(value: Double): PrologNumber = PrologBigNumber(Apfloat(value))
 
         /**
          * @throws NumberFormatException
          */
+        @JvmStatic
+        @JvmName("parse")
         operator fun invoke(value: String): PrologNumber {
             return try {
                 PrologLongInteger(value.toLong())
