@@ -61,10 +61,11 @@ interface ProofSearchContext {
     fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>?
 
     /**
+     * @param restrictAuthorization if not null, operations are **additionally** restricted by this authorization.
      * @return a [ProofSearchContext] where [resolveCallable] and [resolveHead] work in the context of the
      * module with the given name. The module must already have been loaded.
      */
-    fun deriveForModuleContext(moduleName: String): ProofSearchContext
+    fun deriveForModuleContext(moduleName: String, restrictAuthorization: Authorization = PermitAllAuthorization): ProofSearchContext
 
     /**
      * If `head` is an instance of `:/2` (module-qualified), the explicitly

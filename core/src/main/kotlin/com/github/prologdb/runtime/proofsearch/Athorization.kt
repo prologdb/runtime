@@ -18,12 +18,22 @@ interface Authorization {
      * @return whether the clause may be added.
      */
     fun mayWrite(predicate: FullyQualifiedClauseIndicator): Boolean
+
+    /**
+     * @return an authorization that only allows an operation if the original receiver
+     * authorization and [other] allow it.
+     */
+    fun restrictWith(other: Authorization): Authorization = when(other) {
+        PermitAllAuthorization -> this
+        NoopAuthorization -> NoopAuthorization
+        else -> RestrictingAuthorization(this, other)
+    }
 }
 
 /**
  * Allows all read&write actions.
  */
-object ReadWriteAuthorization : Authorization {
+object PermitAllAuthorization : Authorization {
     override fun mayRead(predicate: FullyQualifiedClauseIndicator) = true
 
     override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = true
@@ -42,4 +52,9 @@ object NoopAuthorization : Authorization {
     override fun mayRead(predicate: FullyQualifiedClauseIndicator) = false
 
     override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = false
+}
+
+private class RestrictingAuthorization(val base: Authorization, val restriction: Authorization) : Authorization {
+    override fun mayRead(predicate: FullyQualifiedClauseIndicator) = base.mayRead(predicate) && restriction.mayRead(predicate)
+    override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = base.mayWrite(predicate) && restriction.mayWrite(predicate)
 }

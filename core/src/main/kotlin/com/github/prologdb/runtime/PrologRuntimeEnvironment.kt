@@ -16,7 +16,7 @@ import com.github.prologdb.runtime.module.NoopModuleLoader
 import com.github.prologdb.runtime.proofsearch.Authorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.proofsearch.ReadWriteAuthorization
+import com.github.prologdb.runtime.proofsearch.PermitAllAuthorization
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.unification.Unification
@@ -24,8 +24,12 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 interface PrologRuntimeEnvironment {
-    fun newProofSearchContext(moduleName: String, authorization: Authorization = ReadWriteAuthorization): ProofSearchContext
-    fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext
+    fun newProofSearchContext(moduleName: String, authorization: Authorization = PermitAllAuthorization): ProofSearchContext
+
+    /**
+     * @param restrictAuthorization if not null, operations are **additionally** restricted by this authorization.
+     */
+    fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String, restrictAuthorization: Authorization): ProofSearchContext
 
     /**
      * Module loading is a two-step process due to exported operators and cyclic imports.
@@ -71,14 +75,14 @@ interface PrologRuntimeEnvironment {
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
     fun fulfill(inModule: String, query: Query, initialVariables: Unification): LazySequence<Unification> {
-        return fulfill(inModule, query, initialVariables, ReadWriteAuthorization)
+        return fulfill(inModule, query, initialVariables, PermitAllAuthorization)
     }
 
     /**
      * Convenience method for Java to do a proof search with the [ProofSearchContext.fulfillAttach] coroutine
      */
     fun fulfill(inModule: String, query: Query): LazySequence<Unification> {
-        return fulfill(inModule, query, Unification.TRUE, ReadWriteAuthorization)
+        return fulfill(inModule, query, Unification.TRUE, PermitAllAuthorization)
     }
 
     companion object {
@@ -324,7 +328,7 @@ open class DefaultPrologRuntimeEnvironment @JvmOverloads constructor(
         )
     }
 
-    override fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String): ProofSearchContext {
+    override fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String, restrictAuthorization: Authorization): ProofSearchContext {
         if (deriveFrom.module.declaration.moduleName == moduleName) {
             return deriveFrom
         }
@@ -336,7 +340,7 @@ open class DefaultPrologRuntimeEnvironment @JvmOverloads constructor(
             moduleLookupTables.getValue(module.declaration.moduleName),
             deriveFrom.principal,
             deriveFrom.randomVariableScope,
-            deriveFrom.authorization,
+            deriveFrom.authorization.restrictWith(restrictAuthorization),
             mathContext,
         )
     }

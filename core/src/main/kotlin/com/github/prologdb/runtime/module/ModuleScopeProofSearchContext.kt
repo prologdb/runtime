@@ -107,8 +107,8 @@ class ModuleScopeProofSearchContext(
         throw PredicateNotDefinedException(simpleIndicator, module)
     }
 
-    override fun deriveForModuleContext(moduleName: String): ProofSearchContext {
-        return runtimeEnvironment.deriveProofSearchContextForModule(this, moduleName)
+    override fun deriveForModuleContext(moduleName: String, restrictAuthorization: Authorization): ProofSearchContext {
+        return runtimeEnvironment.deriveProofSearchContextForModule(this, moduleName, restrictAuthorization)
     }
 
     override fun toString() = "context of module ${module.declaration.moduleName}"
