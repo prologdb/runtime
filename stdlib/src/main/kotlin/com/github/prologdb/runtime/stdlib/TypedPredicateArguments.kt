@@ -4,6 +4,7 @@ import com.github.prologdb.parser.lexer.Operator
 import com.github.prologdb.runtime.ArgumentError
 import com.github.prologdb.runtime.ArgumentTypeError
 import com.github.prologdb.runtime.ClauseIndicator
+import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
 import com.github.prologdb.runtime.builtin.getInvocationStackFrame
 import com.github.prologdb.runtime.builtin.prologSourceInformation
 import com.github.prologdb.runtime.proofsearch.CurryingCallable
@@ -148,6 +149,73 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
         }
     }
 
+    /**
+     * If the term at index [index] is a qualified indicator (of the form `module:functor/arity`), returns
+     * that data as it is. If its an unqualified indicator, attempts to resolve the contextual reference through
+     * [ctxt] and returns the true indicator of the referred callable.
+     *
+     * Unlike [getCallable], this method does not guarantee that the returned predicate exists.
+     */
+    fun getQualifiedIndicator(index: Int, ctxt: ProofSearchContext): FullyQualifiedClauseIndicator {
+        val termAtIndex = this[index]
+        val expected = "an indicator (as an instance of '/'/2, optionally qualified with ':'/2)"
+
+        if (termAtIndex !is CompoundTerm) {
+            throw ArgumentTypeError(index, termAtIndex, CompoundTerm::class.java)
+        }
+
+        val givenModuleName: String?
+        val simpleIndicator: Term
+
+        when (termAtIndex.functor) {
+            ":" -> {
+                if (termAtIndex.arity != 2) {
+                    throw ArgumentError(index, "must be $expected, got ${ClauseIndicator.of(termAtIndex)}")
+                }
+                val moduleNameTerm = termAtIndex.arguments[0]
+                simpleIndicator = termAtIndex.arguments[1]
+
+                if (moduleNameTerm !is Atom) {
+                    throw ArgumentError(
+                        index,
+                        "must be $expected, but the module name is a ${moduleNameTerm.prologTypeName}"
+                    )
+                }
+
+                givenModuleName = moduleNameTerm.name
+            }
+            "/" -> {
+                givenModuleName = null
+                simpleIndicator = termAtIndex
+            }
+            else -> {
+                throw ArgumentError(index, "must be $expected, got ${ClauseIndicator.of(termAtIndex)}")
+            }
+        }
+
+        if (simpleIndicator !is CompoundTerm) {
+            throw ArgumentError(index, "must be $expected, but got ${simpleIndicator.prologTypeName} instead of '/'/2")
+        }
+        if (simpleIndicator.functor != "/" || simpleIndicator.arity != 2) {
+            throw ArgumentError(index, "must be $expected, but got ${ClauseIndicator.of(simpleIndicator)} instead of '/'/2")
+        }
+
+        val functorTerm = simpleIndicator.arguments[0]
+        val arityTerm = simpleIndicator.arguments[1]
+        if (functorTerm !is Atom || arityTerm !is PrologNumber || !arityTerm.isInteger || arityTerm < PrologNumber(0)) {
+            throw ArgumentError(index, "must be $expected")
+        }
+        if (arityTerm > PrologNumber(Integer.MAX_VALUE)) {
+            throw ArgumentError(index, "The arity cannot be greater than ${Int.MAX_VALUE}")
+        }
+
+        if (givenModuleName != null) {
+            return FullyQualifiedClauseIndicator(givenModuleName, ClauseIndicator.of(functorTerm.name, arityTerm.toInteger().toInt()))
+        }
+
+        return ctxt.resolveCallable(ClauseIndicator.of(functorTerm.name, arityTerm.toInteger().toInt())).first
+    }
+
     private fun compoundToQuery(compoundTerm: CompoundTerm, argumentIndex: Int): Query {
         val sourceInformation = compoundTerm.sourceInformation.orElse { getInvocationStackFrame().prologSourceInformation }
 
@@ -171,4 +239,12 @@ class TypedPredicateArguments(val indicator: ClauseIndicator, val raw: Array<out
         // else:
         return PredicateInvocationQuery(compoundTerm, sourceInformation)
     }
+
+    private val FQI_INDICATOR_TEMPLATE = CompoundTerm(":", arrayOf(
+        Variable("Module"),
+        CompoundTerm("/", arrayOf(
+            Variable("Functor"),
+            Variable("Arity")
+        ))
+    ))
 }
