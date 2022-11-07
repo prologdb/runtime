@@ -16,7 +16,8 @@ class ClasspathPrologSourceModuleLoader(
     private val classLoader: ClassLoader = ClassLoader.getSystemClassLoader(),
     private val moduleReferenceToClasspathPath: (ModuleReference) -> String = { reference ->
         "${reference.pathAlias}/${reference.moduleName}.pl"
-    }
+    },
+    private val charset: Charset = Charsets.UTF_8,
 ) : ModuleLoader {
     override fun initiateLoading(reference: ModuleReference, runtime: PrologRuntimeEnvironment): PrologParser.PrimedStage {
         val classpathPath = moduleReferenceToClasspathPath(reference)
@@ -30,7 +31,7 @@ class ClasspathPrologSourceModuleLoader(
                 )
             )
 
-        val sourceText = sourceFileUrl.readText(Charsets.UTF_8)
+        val sourceText = sourceFileUrl.readText(charset)
         val sourceUnit = SourceUnit(sourceFileUrl.toString())
         return parser.parseSourceFile(
             Lexer(sourceUnit, LineEndingNormalizer(sourceText.iterator())),
