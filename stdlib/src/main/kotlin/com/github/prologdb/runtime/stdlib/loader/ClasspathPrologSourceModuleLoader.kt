@@ -7,8 +7,13 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.parser.SourceFileVisitor
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
-import com.github.prologdb.runtime.module.*
-import java.util.*
+import com.github.prologdb.runtime.module.ModuleDeclaration
+import com.github.prologdb.runtime.module.ModuleLoader
+import com.github.prologdb.runtime.module.ModuleNotFoundException
+import com.github.prologdb.runtime.module.ModuleReference
+import com.github.prologdb.runtime.module.Module
+import java.nio.charset.Charset
+import java.util.MissingResourceException
 
 class ClasspathPrologSourceModuleLoader(
     private val sourceFileVisitorSupplier: (ModuleReference, PrologRuntimeEnvironment) -> SourceFileVisitor<Module> = { _, runtime -> DefaultModuleSourceFileVisitor(runtime) },
