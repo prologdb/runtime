@@ -97,7 +97,11 @@ val personsJealousOfMarcellus = solutions
 * core
   * defines the structure of the core elements: terms, modules, queries
   * all semantics necessary to interpret ASTs (unification, proof search)
-  * builtins: predicates (e.g. `=/2`, `append/3`, ...), operators, maths (`is/2`)
 * parser: parses prolog source into an AST as defined in the core module
+* stdlib: 
+  * builtin predicates (e.g. `=/2`, `append/3`, ...)
+  * operators
+  * maths (`is/2`),
+  * ...
 * jvm-playground: a simple visual prompt. Used mainly for testing during development.
 * tests: end-to-end tests for all builtin functionality
