@@ -1,0 +1,13 @@
+make dependabot ignore jackson in jvm-playground and all dev dependencies
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Fri Apr 28 11:15:09 2023 +0200
+#
+# On branch dependabot-config
+# Your branch is up to date with 'origin/dependabot-config'.
+#
+# Changes to be committed:
+#	new file:   .github/dependabot.yml
+#

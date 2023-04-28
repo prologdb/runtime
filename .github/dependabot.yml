@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+      - dependency-type: "production"
+      # development is excluded
+    schedule:
+      interval: "weekly"
+      day: "friday"
+  - package-ecosystem: "maven"
+    directory: "jvm-playground"
+    ignore:
+      # only used to read trusted files from users home directory
+      - dependency-name: "com.fasterxml.jackson.core:jackson-databind"
+    schedule:
+      interval: "weekly"
+      day: "friday"
