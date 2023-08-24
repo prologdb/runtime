@@ -26,7 +26,7 @@ import com.github.prologdb.runtime.unification.Unification
  * * the third argument is a list and does not have a tail. Looks for `N+1` solutions where `N` is
  *   the number of elements in the list.
  *   This works because the lack of a tail requires the number of solutions to the query to be exactly
- *   the number of elements in the list. To disprove that, it suffices to proove that there are strictly
+ *   the number of elements in the list. To disprove that, it suffices to prove that there are strictly
  *   less or more solutions than elements (regardless of how many solutions there actually are).
  *   If the number of solutions found exactly matches the number of elements, unification can proceed
  *   as usual; exposing the same behaviour as `findall/3`.

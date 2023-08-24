@@ -1,6 +1,7 @@
 :- use_module(essential($equality)).
 :- use_module(essential($dynamic)).
 :- use_module(essential($typesafety)).
+:- use_module(essential($clauses)).
 
 testPred(X, Y) :- X = abc, Y = def.
 
@@ -72,4 +73,17 @@ test "qualify_callable/3 with qualified compound" by [
 test "qualify_callable/3 with unqualified compound" by [
     qualify_callable(foo(1), some_module, Q),
     Q = some_module:foo(1)
+].
+
+unique_single().
+unique_multi().
+unique_multi().
+test "unique should fail on no solutions" by [
+    findall(a, unique(false()), [])
+].
+test "unique should succeed on single solution" by [
+    findall(a, unique(unique_single()), [a])
+].
+test "unique should fail on multiple solutions" by [
+    findall(a, unique(unique_multi()), [])
 ].
