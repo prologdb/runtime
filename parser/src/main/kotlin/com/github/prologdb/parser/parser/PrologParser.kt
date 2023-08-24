@@ -222,7 +222,7 @@ class PrologParser {
 
         val functorToken = tokens.next()
 
-        if (functorToken !is IdentifierToken) {
+        if (functorToken !is IdentifierToken && functorToken !is AtomLiteralToken) {
             tokens.rollback()
             return ParseResult(null, NOT_RECOGNIZED, setOf(UnexpectedTokenError(functorToken, "identifier")))
         }
@@ -250,7 +250,7 @@ class PrologParser {
             return ParseResult(null, NOT_RECOGNIZED, setOf(SyntaxError("Whitespace between functor and opening parenthesis not allowed", functorToken.location.end..parentOpenToken.location.start)))
         }
 
-        val functor = functorToken.textContent
+        val functor = functorToken.textContent!!
 
         // detect predicate/0 invocations
         if (!tokens.hasNext()) {
@@ -1373,6 +1373,7 @@ private val Token.textContent: String?
     get() = when(this) {
         is IdentifierToken -> textContent
         is OperatorToken -> operator.text
+        is AtomLiteralToken -> name
         else -> null
     }
 

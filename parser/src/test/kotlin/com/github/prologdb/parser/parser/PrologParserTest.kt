@@ -176,6 +176,15 @@ class PrologParserTest : FreeSpec({
             result.reportings shouldNot beEmpty()
         }
 
+        "quoted functor" {
+            val result = parseTerm("'functor'()")
+            result.reportings should beEmpty()
+            result.item!! should beInstanceOf<CompoundTerm>()
+
+            (result.item as CompoundTerm).functor shouldBe "functor"
+            (result.item as CompoundTerm).arguments.size shouldBe 0
+        }
+
         "infix" {
             val result = parseTerm("a infixOpXFX500 b")
             result.certainty shouldBe MATCHED
