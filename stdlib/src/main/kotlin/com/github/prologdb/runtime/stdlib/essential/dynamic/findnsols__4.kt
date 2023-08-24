@@ -44,10 +44,6 @@ val BuiltinFindNSols4 = nativeRule("findnsols", 4) { args, context ->
         foldRemaining(resultSequence, mutableListOf<Term>()) { l, t -> l.add(t); l }
     })
 
-    if (resultList.size != nSolutions.toInt()) {
-        return@nativeRule Unification.FALSE
-    }
-
     return@nativeRule solutionInput.unify(PrologList(resultList), context.randomVariableScope)
         ?.subset(templateInput.variables + solutionInput.variables)
 }
