@@ -107,7 +107,8 @@ interface WorkableFutureBuilder {
      * Logically like [LazySequence.foldRemaining] with these differences in
      * technical behaviour:
      * * if this future is cancelled, the sequence is closed.
-     * * calls to [WorkableFuture.step] are deferred to the sequence
+     * * calls to [WorkableFuture.step] are deferred to the sequence. This means suspension is transparent, whereas
+     *   calling [LazySequence.foldRemaining] would block even on suspension of the underlying sequence.
      * @throws PrincipalConflictException If the given sequence belongs to another principal.
      */
     suspend fun <Element : Any, Carry> foldRemaining(sequence: LazySequence<Element>, initial: Carry, accumulator: (Carry, Element) -> Carry): Carry

@@ -1,11 +1,15 @@
 package com.github.prologdb.async
 
-internal class GeneratorLazySequence<T : Any>(
+/**
+ * Emits results of [generator] until that returns `null`; then, the
+ * sequence switches to [LazySequence.State.DEPLETED].
+ */
+internal class GeneratorLazySequence<out T : Any>(
     override val principal: Principal,
     private val generator: () -> T?
 ) : LazySequence<T> {
     var closed = false
-    var cached: T? = null
+    var cached: Any? = null
 
     override fun step(): LazySequence.State {
         if (closed) return LazySequence.State.DEPLETED
@@ -28,7 +32,7 @@ internal class GeneratorLazySequence<T : Any>(
 
         when (step()) {
             LazySequence.State.RESULTS_AVAILABLE -> {
-                val result = cached
+                val result: T? = cached as T?
                 cached = null
                 return result
             }

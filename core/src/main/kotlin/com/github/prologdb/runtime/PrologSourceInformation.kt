@@ -19,4 +19,5 @@ object NullSourceInformation : PrologSourceInformation {
     override val sourceFileName: String? = null
     override fun orElse(other: () -> PrologSourceInformation) = other()
     override fun orElse(other: PrologSourceInformation) = other
+    override fun toString(): String = "unknown location"
 }

@@ -40,7 +40,7 @@ open class SourceLocation (
 
     companion object {
         val EOF = object : SourceLocation(SourceUnit(""), -1, -1, -1) {
-        override fun toString() = "EOF"
+            override fun toString() = "EOF"
         }
     }
 }
