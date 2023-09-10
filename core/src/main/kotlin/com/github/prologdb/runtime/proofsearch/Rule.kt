@@ -7,47 +7,23 @@ import com.github.prologdb.runtime.Clause
 import com.github.prologdb.runtime.NullSourceInformation
 import com.github.prologdb.runtime.PrologSourceInformation
 import com.github.prologdb.runtime.RandomVariableScope
-import com.github.prologdb.runtime.VariableMapping
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.Term
-import com.github.prologdb.runtime.term.Variable
-import com.github.prologdb.runtime.term.unify
-import com.github.prologdb.runtime.term.variables
 import com.github.prologdb.runtime.unification.Unification
-import com.github.prologdb.runtime.unification.UnificationBuilder
 
 open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallable {
     override val functor = head.functor
     override val arity = head.arity
 
     fun prepareCall(arguments: Array<out Term>, context: ProofSearchContext): PreparedCall? {
-        val argumentsRandomVarsMapping = VariableMapping()
-        val randomArgs = context.randomVariableScope.withRandomVariables(arguments, argumentsRandomVarsMapping)
-
-        val ruleRandomVarsMapping = VariableMapping()
-        val randomHeadArgs = context.randomVariableScope.withRandomVariables(head.arguments, ruleRandomVarsMapping)
-
-        val goalAndHeadUnification = randomHeadArgs.unify(randomArgs, context.randomVariableScope)
-        return if (goalAndHeadUnification != null) {
-            val randomQuery = query
-                .withRandomVariables(context.randomVariableScope, ruleRandomVarsMapping)
-                .substituteVariables(goalAndHeadUnification)
-
-            this.PreparedCall(
-                context,
-                randomQuery,
-                argumentsRandomVarsMapping,
-                randomArgs,
-                ruleRandomVarsMapping,
-                goalAndHeadUnification
-            )
-        } else null
+        val mediator = VariableScopeMediator.tryCreate(arguments, head.arguments, context) ?: return null
+        val sharedScopeQuery = mediator.innerToShared(query)
+        return PreparedCall(mediator, sharedScopeQuery, context)
     }
 
     val fulfillPreparedCall: suspend LazySequenceBuilder<Unification>.(PreparedCall) -> Unification? = { preparation ->
-        val (context, randomQuery) = preparation
-        context.fulfillAttach(this, randomQuery, Unification.TRUE)
+        preparation.proofSearchContext.fulfillAttach(this, preparation.sharedQuery, Unification.TRUE)
     }
 
     /**
@@ -78,16 +54,10 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
     var sourceInformation: PrologSourceInformation = NullSourceInformation
 
     inner class PreparedCall internal constructor(
-        val context: ProofSearchContext,
-        val randomQuery: Query,
-        private val argumentsRandomVarsMapping: VariableMapping,
-        private val randomArguments: Array<out Term>,
-        private val ruleRandomVarsMapping: VariableMapping,
-        private val goalAndHeadUnification: Unification
+        val mediator: VariableScopeMediator,
+        val sharedQuery: Query,
+        val proofSearchContext: ProofSearchContext,
     ) {
-        operator fun component1() = context
-        operator fun component2() = randomQuery
-
         /**
          * Adjusts variables in the given term as if that term had been part of the clause body when the call
          * was prepared. For example:
@@ -105,8 +75,7 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          * In the above example, this method would convert `>(X, 2)` into `>(_G2, 2)`.
          */
         fun translateClausePart(term: CompoundTerm): CompoundTerm {
-            return context.randomVariableScope.withRandomVariables(term, ruleRandomVarsMapping)
-                .substituteVariables(goalAndHeadUnification.asSubstitutionMapper())
+            return mediator.innerToShared(term)
         }
 
         /**
@@ -140,53 +109,25 @@ open class Rule(val head: CompoundTerm, val query: Query) : Clause, PrologCallab
          * thereby also dropping the clause-local variables.
          */
         fun untranslateResult(solution: Unification, randomVariableScope: RandomVariableScope): Unification {
-            val solutionVars = UnificationBuilder()
-
-            for (randomGoalVariable in randomArguments.variables)
-            {
-                if (goalAndHeadUnification.isInstantiated(randomGoalVariable)) {
-                    val value = goalAndHeadUnification[randomGoalVariable]
-                        .substituteVariables(solution.asSubstitutionMapper())
-                        .substituteVariables(goalAndHeadUnification.asSubstitutionMapper())
-
-                    solutionVars.instantiate(randomGoalVariable, value, randomVariableScope)
-                }
-                else if (solution.isInstantiated(randomGoalVariable)) {
-                    argumentsRandomVarsMapping.getOriginal(randomGoalVariable)?.let { originalVar ->
-                        solutionVars.instantiate(originalVar, solution[randomGoalVariable], randomVariableScope)
-                    }
-                }
-            }
-
-            return solutionVars.build().withVariablesResolvedFrom(argumentsRandomVarsMapping, randomVariableScope)
+            return mediator.sharedToOuter(solution)
         }
 
-        fun untranslateResult(term: CompoundTerm): CompoundTerm? {
-            return term.substituteVariables {
-                argumentsRandomVarsMapping.getOriginal(it) ?: ruleRandomVarsMapping.getOriginal(it) ?: it
-            }
+        fun untranslateResult(term: CompoundTerm): CompoundTerm {
+            return mediator.sharedToOuter(term)
         }
 
         /**
          * @param tailCall the tail call, as given in the original code.
+         * @return The arguments for a subsequent tail-recursive call, provided that's possible (null othwerise)
          */
         fun getTailCallArguments(stackFrameAfterLastGoal: Unification, tailCall: CompoundTerm): Array<out Term>? {
-            val stepsForHeadUnificationRequired = randomArguments.flatMap { it.variables }.any { headVar ->
-                if (goalAndHeadUnification.isInstantiated(headVar)) {
-                    val value = goalAndHeadUnification[headVar]
-                    value !is Variable && value.variables.isNotEmpty()
-                } else {
-                    false
-                }
-            }
-
-            if (stepsForHeadUnificationRequired) {
+            if (mediator.isUntranslateOperationStateful) {
                 return null
             }
 
             val tailCallConcrete = translateClausePart(tailCall)
                 .substituteVariables(stackFrameAfterLastGoal.asSubstitutionMapper())
-            return untranslateResult(tailCallConcrete)?.arguments
+            return untranslateResult(tailCallConcrete).arguments
         }
     }
 }

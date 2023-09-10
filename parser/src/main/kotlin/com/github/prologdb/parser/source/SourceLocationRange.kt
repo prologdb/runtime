@@ -22,6 +22,8 @@ class SourceLocationRange(val start: SourceLocation, val end: SourceLocation) : 
         }
     }
 
+    override fun toString() = start.toString()
+
     override val sourceFileName: String = unit.identifier
     override val sourceFileLine: Int? = start.line
 
