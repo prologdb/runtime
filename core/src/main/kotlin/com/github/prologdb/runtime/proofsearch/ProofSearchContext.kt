@@ -2,11 +2,7 @@ package com.github.prologdb.runtime.proofsearch
 
 import com.github.prologdb.async.LazySequenceBuilder
 import com.github.prologdb.async.Principal
-import com.github.prologdb.runtime.Clause
-import com.github.prologdb.runtime.ClauseIndicator
-import com.github.prologdb.runtime.FullyQualifiedClauseIndicator
-import com.github.prologdb.runtime.PredicateNotDefinedException
-import com.github.prologdb.runtime.RandomVariableScope
+import com.github.prologdb.runtime.*
 import com.github.prologdb.runtime.module.Module
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.CompoundTerm
@@ -61,7 +57,13 @@ interface ProofSearchContext {
     fun resolveModuleScopedCallable(goal: Clause): Triple<FullyQualifiedClauseIndicator, PrologCallable, Array<out Term>>?
 
     /**
-     * @param restrictAuthorization if not null, operations are **additionally** restricted by this authorization.
+     * See the `(String, Authorization)` overload. Uses [PermitAllAuthorization] as the default for the `restrictAuthorization` parameter.
+     */
+    fun deriveForModuleContext(moduleName: String): ProofSearchContext = deriveForModuleContext(moduleName, PermitAllAuthorization)
+
+    /**
+     * @param restrictAuthorization Actions from code running in the returned context must be granted by this'
+     * authorization **and** [restrictAuthorization]
      * @return a [ProofSearchContext] where [resolveCallable] and [resolveHead] work in the context of the
      * module with the given name. The module must already have been loaded.
      */

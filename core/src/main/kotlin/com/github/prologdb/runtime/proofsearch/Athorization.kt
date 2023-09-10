@@ -20,13 +20,13 @@ interface Authorization {
     fun mayWrite(predicate: FullyQualifiedClauseIndicator): Boolean
 
     /**
-     * @return an authorization that only allows an operation if the original receiver
-     * authorization and [other] allow it.
+     * @return an authorization that requires both `this` and [other]
+     * to approve any action.
      */
     fun restrictWith(other: Authorization): Authorization = when(other) {
-        PermitAllAuthorization -> this
-        NoopAuthorization -> NoopAuthorization
-        else -> RestrictingAuthorization(this, other)
+        is PermitAllAuthorization -> this
+        is DenyAllAuthorization -> DenyAllAuthorization
+        else -> CombinedAuthorization(listOf(this, other))
     }
 }
 
@@ -37,6 +37,8 @@ object PermitAllAuthorization : Authorization {
     override fun mayRead(predicate: FullyQualifiedClauseIndicator) = true
 
     override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = true
+
+    override fun restrictWith(other: Authorization) = other
 }
 
 object ReadOnlyAuthorization : Authorization {
@@ -45,16 +47,28 @@ object ReadOnlyAuthorization : Authorization {
     override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = false
 }
 
-/**
- * Allows no action.
- */
-object NoopAuthorization : Authorization {
+object DenyAllAuthorization : Authorization {
     override fun mayRead(predicate: FullyQualifiedClauseIndicator) = false
 
     override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = false
+
+    override fun restrictWith(other: Authorization): Authorization = this
 }
 
-private class RestrictingAuthorization(val base: Authorization, val restriction: Authorization) : Authorization {
-    override fun mayRead(predicate: FullyQualifiedClauseIndicator) = base.mayRead(predicate) && restriction.mayRead(predicate)
-    override fun mayWrite(predicate: FullyQualifiedClauseIndicator) = base.mayWrite(predicate) && restriction.mayWrite(predicate)
+class CombinedAuthorization(val constituents: Iterable<Authorization>): Authorization {
+    override fun mayRead(predicate: FullyQualifiedClauseIndicator): Boolean {
+        return constituents.all { it.mayRead(predicate) }
+    }
+
+    override fun mayWrite(predicate: FullyQualifiedClauseIndicator): Boolean {
+        return constituents.all { it.mayWrite(predicate) }
+    }
+
+    override fun restrictWith(other: Authorization): Authorization {
+        return if (other is CombinedAuthorization) {
+            CombinedAuthorization(constituents + other.constituents)
+        } else {
+            CombinedAuthorization(constituents + listOf(other))
+        }
+    }
 }
