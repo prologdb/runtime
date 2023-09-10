@@ -63,7 +63,7 @@ sealed class PrologNumber : Term {
 
     final override fun unify(rhs: Term, randomVarsScope: RandomVariableScope): Unification? {
         return when (rhs) {
-            is PrologNumber -> Unification.whether(this.compareTo(rhs as PrologNumber) == 0)
+            is PrologNumber -> Unification.whether(this.compareTo(rhs) == 0)
             else -> rhs.unify(this, randomVarsScope)
         }
     }
@@ -71,7 +71,7 @@ sealed class PrologNumber : Term {
     final override fun compareTo(other: Term): Int = when(other) {
         // Variables are, by category, lesser than numbers
         is Variable -> 1
-        is PrologNumber -> compareTo(other as PrologNumber)
+        is PrologNumber -> compareTo(other)
         // everything else is, by category, greater than numbers
         else -> -1
     }
@@ -82,7 +82,7 @@ sealed class PrologNumber : Term {
         }
 
         if (other is PrologNumber) {
-            return this.compareTo(other as PrologNumber) == 0
+            return this.compareTo(other) == 0
         }
 
         return false
