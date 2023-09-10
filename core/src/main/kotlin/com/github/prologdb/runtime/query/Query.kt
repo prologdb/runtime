@@ -18,6 +18,9 @@ sealed class Query {
 
     abstract fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query
 
+    /**
+     * TODO: Make [com.github.prologdb.runtime.term.Term.substituteVariables] the same signature as this.
+     */
     abstract fun substituteVariables(variableValues: Unification): Query
 
     /** From where this term was parsed. Set to [com.github.prologdb.runtime.NullSourceInformation] if unavailable. */
@@ -40,7 +43,11 @@ class AndQuery(val goals: Array<out Query>) : Query() {
     }
 
     override fun toString(): String {
-        return goals.mapToArray { it.toString() }.joinToString(", ")
+        return goals
+            .mapToArray { it.toString() }
+            .joinToString(", ")
+            .takeUnless { it.isBlank() }
+            ?: "<empty conjunction>"
     }
 
     override val variables: Set<Variable> by lazy { goals.flatMap { it.variables }.toSet() }
@@ -49,11 +56,30 @@ class AndQuery(val goals: Array<out Query>) : Query() {
             transform = { it.toStringUsingOperatorNotation(operators, "$indent  ") },
             separator = "\n$indent,\n"
         )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as AndQuery
+
+        if (!goals.contentEquals(other.goals)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return goals.contentHashCode()
+    }
 }
 
 class OrQuery(val goals: Array<out Query>) : Query() {
     override fun toString(): String {
-        return goals.mapToArray { it.toString() }.joinToString(" ; ")
+        return goals
+            .mapToArray { it.toString() }
+            .joinToString(" ; ")
+            .takeUnless { it.isBlank() }
+            ?: "<empty disjunction>"
     }
 
     override fun withRandomVariables(randomVarsScope: RandomVariableScope, mapping: VariableMapping): Query {
@@ -74,6 +100,21 @@ class OrQuery(val goals: Array<out Query>) : Query() {
         transform = { it.toStringUsingOperatorNotation(operators, "$indent  ") },
         separator = "\n$indent;\n"
     )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as OrQuery
+
+        if (!goals.contentEquals(other.goals)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return goals.contentHashCode()
+    }
 }
 
 class PredicateInvocationQuery(
@@ -108,4 +149,19 @@ class PredicateInvocationQuery(
         get() = goal.variables
 
     override fun toStringUsingOperatorNotation(operators: OperatorRegistry, indent: String): String = indent + goal.toStringUsingOperatorNotations(operators)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as PredicateInvocationQuery
+
+        if (goal != other.goal) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return goal.hashCode()
+    }
 }
