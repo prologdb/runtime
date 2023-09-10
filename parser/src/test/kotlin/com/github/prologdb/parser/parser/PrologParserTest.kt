@@ -1,27 +1,18 @@
 package com.github.prologdb.parser.parser
 
-import com.github.prologdb.parser.Reporting
-import com.github.prologdb.parser.SemanticWarning
-import com.github.prologdb.parser.SyntaxError
+import com.github.prologdb.parser.*
 import com.github.prologdb.parser.lexer.Lexer
 import com.github.prologdb.parser.lexer.Token
 import com.github.prologdb.parser.parser.ParseResultCertainty.MATCHED
 import com.github.prologdb.parser.sequence.TransactionalSequence
 import com.github.prologdb.parser.source.SourceUnit
-import com.github.prologdb.parser.withMockSourceLocation
 import com.github.prologdb.runtime.ClauseIndicator
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
-import com.github.prologdb.runtime.term.Atom
-import com.github.prologdb.runtime.term.CompoundTerm
-import com.github.prologdb.runtime.term.PrologDictionary
-import com.github.prologdb.runtime.term.PrologList
-import com.github.prologdb.runtime.term.PrologNumber
-import com.github.prologdb.runtime.term.PrologString
-import com.github.prologdb.runtime.term.Variable
+import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
 import com.github.prologdb.runtime.util.OperatorDefinition
 import com.github.prologdb.runtime.util.OperatorType
@@ -959,7 +950,7 @@ class PrologParserTest : FreeSpec({
         innerGoal.arity shouldBe 0
     }
 
-    "module" {
+    "module" - {
         fun parseModule(tokens: TransactionalSequence<Token>): ParseResult<com.github.prologdb.runtime.module.Module> {
             val runtime = DefaultPrologRuntimeEnvironment()
             val primedStage = PrologParser().parseSourceFile(
@@ -972,36 +963,50 @@ class PrologParserTest : FreeSpec({
         }
         fun parseModule(code: String) = parseModule(tokensOf(code))
 
-        val result = parseModule("""
-            :- module(test).
-    
-            :- op(200,xf,isDead).
-            :- op(200,fx,kill).
-    
-            X isDead :- kill X, X = kenny; X = cartman.
-    
-            kill kenny.
-        """)
+        "happy path with custom operators" {
+            val result = parseModule(
+                """
+                :- module(test).
+        
+                :- op(200,xf,isDead).
+                :- op(200,fx,kill).
+        
+                X isDead :- kill X, X = kenny; X = cartman.
+        
+                kill kenny.
+            """
+            )
 
-        result.certainty shouldBe MATCHED
-        result.reportings should beEmpty()
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
 
-        val module = result.item!!
-        module.declaration.moduleName shouldBe "test"
+            val module = result.item!!
+            module.declaration.moduleName shouldBe "test"
 
-        module.exportedPredicates.size shouldBe 2
-        module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
-        module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
+            module.exportedPredicates.size shouldBe 2
+            module.exportedPredicates should haveKey(ClauseIndicator.of("isDead", 1))
+            module.exportedPredicates should haveKey(ClauseIndicator.of("kill", 1))
 
-        val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
-        isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
-        isDead1 as ASTPrologPredicate
-        isDead1.functor shouldBe "isDead"
-        isDead1.arity shouldBe 1
-        isDead1.clauses should haveSize(1)
-        isDead1.clauses[0] shouldBe instanceOf(Rule::class)
+            val isDead1 = module.exportedPredicates[ClauseIndicator.of("isDead", 1)]!!
+            isDead1 shouldBe instanceOf(ASTPrologPredicate::class)
+            isDead1 as ASTPrologPredicate
+            isDead1.functor shouldBe "isDead"
+            isDead1.arity shouldBe 1
+            isDead1.clauses should haveSize(1)
+            isDead1.clauses[0] shouldBe instanceOf(Rule::class)
 
-        isDead1.clauses[0].toString() shouldBe "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+            isDead1.clauses[0].toString() shouldBe "isDead(X) :- kill(X), =(X, kenny) ; =(X, cartman)"
+        }
+
+        "syntax error: last token is an unclosed parenthesis" {
+            val ex = shouldThrow<ParseException> {
+                parseModule("""
+                    foo(
+                """.trimIndent())
+            }
+
+            ex.message shouldBe "Unexpected EOF. You are likely missing operator . in testcode:1, column 3"
+        }
     }
 
     "query" - {

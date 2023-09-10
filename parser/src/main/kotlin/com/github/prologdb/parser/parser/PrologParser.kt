@@ -254,8 +254,9 @@ class PrologParser {
 
         // detect predicate/0 invocations
         if (!tokens.hasNext()) {
-            tokens.rollback() // peek of PARENT_OPEN
-            tokens.rollback() // mark() at start of method
+            // committing because its MATCHED certainty
+            tokens.commit() // peek of PARENT_OPEN
+            tokens.commit() // mark() at start of method
             return ParseResult(
                 CompoundTerm(
                     functor,
