@@ -3,20 +3,11 @@ package com.github.prologdb.runtime
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.async.buildLazySequence
 import com.github.prologdb.async.mapRemaining
-import com.github.prologdb.runtime.module.InvalidImportException
-import com.github.prologdb.runtime.module.Module
-import com.github.prologdb.runtime.module.ModuleDeclaration
-import com.github.prologdb.runtime.module.ModuleImport
-import com.github.prologdb.runtime.module.ModuleLoader
-import com.github.prologdb.runtime.module.ModuleNotFoundException
-import com.github.prologdb.runtime.module.ModuleNotLoadedException
-import com.github.prologdb.runtime.module.ModuleReference
-import com.github.prologdb.runtime.module.ModuleScopeProofSearchContext
-import com.github.prologdb.runtime.module.NoopModuleLoader
+import com.github.prologdb.runtime.module.*
 import com.github.prologdb.runtime.proofsearch.Authorization
+import com.github.prologdb.runtime.proofsearch.PermitAllAuthorization
 import com.github.prologdb.runtime.proofsearch.PrologCallable
 import com.github.prologdb.runtime.proofsearch.ProofSearchContext
-import com.github.prologdb.runtime.proofsearch.PermitAllAuthorization
 import com.github.prologdb.runtime.query.Query
 import com.github.prologdb.runtime.term.MathContext
 import com.github.prologdb.runtime.unification.Unification
@@ -32,21 +23,20 @@ interface PrologRuntimeEnvironment {
     fun deriveProofSearchContextForModule(deriveFrom: ProofSearchContext, moduleName: String, restrictAuthorization: Authorization): ProofSearchContext
 
     /**
-     * Module loading is a two-step process due to exported operators and cyclic imports.
-     * This method assures that the first step (parsing the [ModuleDeclaration]) of a module has
-     * taken place.
+     * See [ModuleLoader] for internals on the module loading process.
      * @throws ModuleNotFoundException
      */
     fun assureModulePrimed(moduleReference: ModuleReference): ModuleDeclaration
 
     /**
-     * This method assures that the module is fully parsed (but maybe not linked!).
+     * See [ModuleLoader] for internals on the module loading process.
      * @throws ModuleNotFoundException
      */
     fun assureModuleParsed(moduleReference: ModuleReference): Module
 
     /**
-     * Completely loads the given module, if not loaded already.
+     * When this function returns normally, it is guaranteed that the given
+     * module has been loaded completely and its code is ready to be called.
      */
     fun assureModuleLoaded(moduleReference: ModuleReference): Module {
         assureModulePrimed(moduleReference)
@@ -54,9 +44,9 @@ interface PrologRuntimeEnvironment {
     }
 
     /**
-     * If a module of the given name is loaded or primed (see [assureModulePrimed], [assureModuleLoaded]),
-     * returns that module.
-     * @throws ModuleNotLoadedException
+     * If a module of the given name is at least primed (see [assureModulePrimed]),
+     * finishes the loading of that module through [assureModuleLoaded] and returns the final [Module].
+     * @throws ModuleNotLoadedException if the module hasn't been primed yet or cannot be loaded.
      */
     fun getLoadedModule(name: String): Module
 
