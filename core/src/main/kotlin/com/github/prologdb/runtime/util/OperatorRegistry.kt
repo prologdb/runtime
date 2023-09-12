@@ -63,14 +63,31 @@ data class OperatorDefinition (
     override fun toString() = "op($precedence, ${type.name.lowercase()}, $name)"
 }
 
+/**
+ * Syntax of operator names:
+ *
+ * | symbol | meaning                                                             |
+ * |--------|---------------------------------------------------------------------|
+ * |F       | the operator (functor)                                              |
+ * |X       | an argument. Must have equal or lesser precedence than the operator |
+ * |Y       | an argument. Must have strictly lesser precedence than the operator |
+ */
 enum class OperatorType {
+    /** prefix, argument must have equal or less precedence than the operator */
     FX,
+    /** prefix, argument must have strictly less precedence than the operator */
     FY,
+    /** infix, both arguments must have equal or less precedence than the operator */
     XFX,
+    /** infix, left-hand-side must have equal or less precedence than the operator, right-hand-side strictly less */
     XFY,
+    /** infix, left-hand-side must have strictly less precedence than the operator, right-hand-side equal or lesser */
     YFX,
+    /** postfix, argument must have equal or less precedence than the operator */
     XF,
-    YF;
+    /** postfix, argument must have strictly less precedence than the operator */
+    YF,
+    ;
 
     val isPrefix by lazy { this == FX || this == FY }
     val isInfix by lazy { this == XFX || this == XFY || this == YFX }
@@ -97,11 +114,11 @@ enum class OperatorType {
 /**
  * A simple implementation of [MutableOperatorRegistry].
  */
-class DefaultOperatorRegistry : MutableOperatorRegistry {
+class DefaultOperatorRegistry(definitions: Set<OperatorDefinition> = emptySet()) : MutableOperatorRegistry {
 
     private val operators: OperatorMap = mutableMapOf()
 
-    constructor(definitions: Set<OperatorDefinition> = emptySet()) {
+    init {
         definitions.forEach(this::defineOperator)
     }
 
