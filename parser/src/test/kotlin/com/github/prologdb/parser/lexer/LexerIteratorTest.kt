@@ -23,6 +23,7 @@ class LexerIteratorTest : FreeSpec() {init{
             foo =@= bar
             bar \=@= foo
             922337203685477581000000000
+            1.0000000000000000000000005
         """
         val lexer = LexerIterator(source.asIterable().iterator(), SourceLocation(SourceUnit("testcode"), 1, 1, 0))
 
@@ -496,6 +497,16 @@ class LexerIteratorTest : FreeSpec() {init{
             next.location.start.line shouldBe 15
             next.location.start.column shouldBe 13
             next.location.end.line shouldBe 15
+            next.location.end.column shouldBe 39
+        }
+
+        "line 16" {
+            next = lexer.next()
+            assert(next is NumericLiteralToken)
+            (next as NumericLiteralToken).number shouldBe PrologNumber("1.0000000000000000000000005")
+            next.location.start.line shouldBe 16
+            next.location.start.column shouldBe 13
+            next.location.end.line shouldBe 16
             next.location.end.column shouldBe 39
         }
 
