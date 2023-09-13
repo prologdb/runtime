@@ -31,10 +31,17 @@ test "index_unifying/2 iterating" by [
 
 test "between/3 range test" by [
     between(1, 5, 2),
-    \+ between(1, 5, 6)
+    between(5, 1, 2),
+    \+ between(1, 5, 6),
+    \+ between(5, 1, 6)
 ].
 
-test "between/3 range iteration" by [
+test "between/3 range iteration ascending" by [
     findall(N, between(-3, 4, N), Ns),
     Ns == [-3, -2, -1, 0, 1, 2, 3, 4]
+].
+
+test "between/3 range iteration descending" by [
+    findall(N, between(4, -3, N), Ns),
+    Ns == [4, 3, 2, 1, 0, -1, -2, -3]
 ].

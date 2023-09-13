@@ -41,13 +41,19 @@ index_unifying([_|Rest], Index, Element, IndexCarry) :-
 
 between(_, _, Value) :- nonvar(Value), \+ integer(Value), error("The value must be unbound or an integer").
 between(Low, High, _) :- (\+ integer(Low) ; \+ integer(High)), error("Both bounds must be integers").
-between(Low, High, Value) :- number(Value), High >= Value, Low =< Value.
+between(Low, High, Value) :-
+    number(Value),
+    once(
+        (High >= Value, Low =< Value)
+        ;
+        (High =< Value, Low >= Value)
+    ).
 between(Low, High, Value) :-
     var(Value),
     (
         (Low =< High, between_iterate_up(Low, 1, High, Value))
         ;
-        (Low > High, between_iterate_down(High, 1, Low, Value))
+        (Low > High, between_iterate_down(Low, 1, High, Value))
     )
     .
 
@@ -61,4 +67,4 @@ between_iterate_down(Current, _, _, Current).
 between_iterate_down(Current, Step, Until, Value) :-
      Next is Current - Step,
      Next >= Until,
-     between_iterate_up(Next, Step, Until, Value).
+     between_iterate_down(Next, Step, Until, Value).
