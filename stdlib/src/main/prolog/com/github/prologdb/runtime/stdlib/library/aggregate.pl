@@ -22,7 +22,11 @@
     stddev/4,
     stddev/5,
     list/4,
-    list/5
+    list/5,
+    boolean_and/4,
+    boolean_and/5,
+    boolean_or/4,
+    boolean_or/5
 ]).
 
 :- native reduce/2.
@@ -97,6 +101,35 @@ stddev(reductor, finalize, stddev(Of), Acc, StandardDeviation) :-
 sum(reductor, initialize, sum(_), 0).
 sum(reductor, accumulate, sum(Of), Acc, NAcc) :- NAcc is Acc + Of.
 sum(reductor, finalize, sum(_), Sum, Sum).
+
+boolean_and(reductor, initialize, boolean_and(_, TrueTerm, FalseTerm), {}) :-
+    require(ground(TrueTerm), "The true term must be ground"),
+    require(ground(FalseTerm), "The false term must be ground"),
+    require(TrueTerm \== FalseTerm, "The true and false terms must be different").
+boolean_and(reductor, accumulate, boolean_and(V, _, _), {}, V).
+boolean_and(reductor, accumulate, boolean_and(FalseTerm, _, FalseTerm), _, FalseTerm).
+boolean_and(reductor, accumulate, boolean_and(TrueTerm, TrueTerm, _), TrueTerm, TrueTerm).
+boolean_and(reductor, accumulate, boolean_and(TrueTerm, TrueTerm, FalseTerm), FalseTerm, FalseTerm).
+boolean_and(reductor, finalize, boolean_and(_, _, FalseTerm), {}, FalseTerm).
+boolean_and(reductor, finalize, boolean_and(_, _, _), V, V) :- \+ V == {}.
+
+boolean_and(reductor, initialize, boolean_and(E), Acc) :- boolean_and(reductor, initialize, boolean_and(E, true, false), Acc).
+boolean_and(reductor, accumulate, boolean_and(E), Acc, NAcc) :- boolean_and(reductor, accumulate, boolean_and(E, true, false), Acc, NAcc).
+boolean_and(reductor, finalize, boolean_and(E), Acc, Result) :- boolean_and(reductor, finalize, boolean_and(E, true, false), Acc, Result).
+
+boolean_or(reductor, initialize, boolean_or(_, TrueTerm, FalseTerm), {}) :-
+    require(ground(TrueTerm), "The true term must be ground"),
+    require(ground(FalseTerm), "The false term must be ground"),
+    require(TrueTerm \== FalseTerm, "The true and false terms must be different").
+boolean_or(reductor, accumulate, boolean_or(V, _, _), {}, V).
+boolean_or(reductor, accumulate, boolean_or(TrueTerm, TrueTerm, _), _, TrueTerm).
+boolean_or(reductor, accumulate, boolean_or(FalseTerm, _, FalseTerm), Carry, Carry).
+boolean_or(reductor, finalize, boolean_or(_, _, FalseTerm), {}, FalseTerm).
+boolean_or(reductor, finalize, boolean_or(_, _, _), V, V) :- \+ V == {}.
+
+boolean_or(reductor, initialize, boolean_or(E), Acc) :- boolean_or(reductor, initialize, boolean_or(E, true, false), Acc).
+boolean_or(reductor, accumulate, boolean_or(E), Acc, NAcc) :- boolean_or(reductor, accumulate, boolean_or(E, true, false), Acc, NAcc).
+boolean_or(reductor, finalize, boolean_or(E), Acc, Result) :- boolean_or(reductor, finalize, boolean_or(E, true, false), Acc, Result).
 
 percentile_discrete(reductor, initialize, percentile_discrete(P, _), Accumulator) :-
     percentile_discrete(reductor, initialize, percentile_discrete(P, _, asc), Accumulator).

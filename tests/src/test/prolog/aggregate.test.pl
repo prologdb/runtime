@@ -166,3 +166,82 @@ test "standard deviation and variance" by [
     Variance == 2.9166666666666666666666666666666,
     StdDev == 1.7078251276599330638701731134201
 ].
+
+test "boolean_and all false" by [
+    reduce([boolean_and(V) as R], member(V, [false, false, false])),
+    R == false
+].
+
+test "boolean_and all true" by [
+    reduce([boolean_and(V) as R], member(V, [true, true, true])),
+    R == true
+].
+
+test "boolean_and mixed true first" by [
+    reduce([boolean_and(V) as R], member(V, [true, false, true, false])),
+    R == false
+].
+
+test "boolean_and mixed false first" by [
+    reduce([boolean_and(V) as R], member(V, [false, true, false, true])),
+    R == false
+].
+
+test "boolean_and mixed with custom atoms" by [
+    reduce([boolean_and(V, truthy, falsy) as R], member(V, [truthy, falsy])),
+    R == falsy
+].
+
+test "boolean_and all true with custom atoms" by [
+    reduce([boolean_and(V, truthy, falsy) as R], member(V, [truthy, truthy, truthy])),
+    R == truthy
+].
+
+test "boolean_and defaults to false" by [
+    reduce([boolean_and(V) as R], member(V, [])),
+    R == false
+].
+
+test "boolean_or all false" by [
+    reduce([boolean_or(V) as R], member(V, [false, false, false])),
+    R == false
+].
+
+test "boolean_or all true" by [
+    reduce([boolean_or(V) as R], member(V, [true, true, true])),
+    R == true
+].
+
+test "boolean_or mixed true first" by [
+    reduce([boolean_or(V) as R], member(V, [true, false, true, false])),
+    R == true
+].
+
+test "boolean_or mixed false first" by [
+    reduce([boolean_or(V) as R], member(V, [false, true, false, true])),
+    R == true
+].
+
+test "boolean_or mixed with custom atoms" by [
+    reduce([boolean_or(V, truthy, falsy) as R], member(V, [truthy, falsy])),
+    R == truthy
+].
+
+test "boolean_or all true with custom atoms" by [
+    reduce([boolean_or(V, truthy, falsy) as R], member(V, [truthy, truthy, truthy])),
+    R == truthy
+].
+
+test "boolean_or defaults to false" by [
+    reduce([boolean_or(V) as R], member(V, [])),
+    R == false
+].
+
+dummy_reductor(reductor, initialize, dummy_reductor(), bla).
+dummy_reductor(reductor, accumulate, dummy_reductor(), C, C).
+dummy_reductor(reductor, finalize, dummy_reductor(), C, C).
+
+test "reduce/2 should instantiate results even when generator has zero solutions" by [
+    reduce([dummy_reductor() as R], 1 = 2),
+    R == bla
+].
