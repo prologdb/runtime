@@ -242,6 +242,11 @@ test "any" by [
     nonvar(R)
 ].
 
+test "single" by [
+    reduce([single(V) as R], once(pred(V))),
+    R == 1
+].
+
 dummy_reductor(reductor, initialize, dummy_reductor(), bla).
 dummy_reductor(reductor, accumulate, dummy_reductor(), C, C).
 dummy_reductor(reductor, finalize, dummy_reductor(), C, C).

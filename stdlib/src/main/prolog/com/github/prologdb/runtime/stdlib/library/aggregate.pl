@@ -28,7 +28,9 @@
     boolean_or/4,
     boolean_or/5,
     any/4,
-    any/5
+    any/5,
+    single/4,
+    single/5
 ]).
 
 :- native reduce/2.
@@ -138,6 +140,12 @@ any(reductor, accumulate, any(V), {}, {value: V}).
 any(reductor, accumulate, any(_), Carry, Carry) :- Carry \== {}.
 any(reductor, finalize, any(_), {}, _).
 any(reductor, finalize, any(_), {value: R}, R).
+
+single(reductor, initialize, single(V), {}).
+single(reductor, accumulate, single(V), {}, {value: V}).
+single(reductor, accumulate, single(V), {value: _}, _) :- error("Expected exactly one solution/element, got more than one.").
+single(reductor, finalize, single(_), {}, _) :- error("Expected exactly one solution/element, got none.").
+single(reductor, finalize, single(_), {value: V}, V).
 
 percentile_discrete(reductor, initialize, percentile_discrete(P, _), Accumulator) :-
     percentile_discrete(reductor, initialize, percentile_discrete(P, _, asc), Accumulator).
