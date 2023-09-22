@@ -71,9 +71,19 @@ val BuiltinReduce2 = nativeRule("reduce", 2) { args, ctxt ->
     )
 
     val resultOutTerms = reductionFactories.map { it.resultTerm }.toTypedArray()
+    val groupingsIterable: Iterable<Map.Entry<Unification, List<Reduction>>> = if (grouping.size > 0) grouping else {
+        val purelyInitializedReductions = mutableListOf<Reduction>()
+        for (factory in reductionFactories) {
+            purelyInitializedReductions.add(await(factory.reductionFactory.create(ctxt)))
+        }
+        listOf(object : Map.Entry<Unification, List<Reduction>> {
+            override val key = Unification.TRUE
+            override val value = purelyInitializedReductions
+        })
+    }
 
     yieldAllFinal(
-        LazySequence.ofIterable(grouping, principal)
+        LazySequence.ofIterable(groupingsIterable, principal)
             .flatMapRemaining { (groupKey, reductions) ->
                 val actualResultTerms = reductions.map { await(it.finalize()) }.toTypedArray()
                 val resultUnification = resultOutTerms.unify(actualResultTerms, ctxt.randomVariableScope)

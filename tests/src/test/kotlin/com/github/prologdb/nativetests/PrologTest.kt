@@ -212,7 +212,7 @@ private class TestExecution(private val runtime: DefaultPrologRuntimeEnvironment
             } else {
                 var stateStr = ""
                 for ((variable, value) in stateBeforeFailedGoal!!.entries) {
-                    val entryTerm = CompoundTerm("=", arrayOf(variable, value))
+                    val entryTerm = CompoundTerm("==", arrayOf(variable, value))
                     stateStr += entryTerm.toStringUsingOperatorNotations(runtime.getLoadedModule(moduleName).localOperators)
                     stateStr += ",\n"
                 }

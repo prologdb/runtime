@@ -1,5 +1,6 @@
 :- use_module(essential($equality)).
 :- use_module(essential($dynamic)).
+:- use_module(essential($typesafety), [var/1]).
 :- use_module(library(aggregate)).
 :- use_module(library(lists), [member/2, sort/2, msort/2]).
 
@@ -29,9 +30,19 @@ test "min" by [
     Min == 1
 ].
 
+test "min of empty input" by [
+    reduce([min(V) as Min], 1 = 2),
+    var(Min)
+].
+
 test "max" by [
     reduce([max(V) as Max], pred(V)),
     Max == 6
+].
+
+test "max of empty input" by [
+    reduce([max(V) as Max], 1 = 2),
+    var(Max)
 ].
 
 test "avg" by [
@@ -39,9 +50,19 @@ test "avg" by [
     Avg == 3.5
 ].
 
+test "avg of empty input" by [
+    reduce([avg(V) as Avg], 1 = 2),
+    var(Avg)
+].
+
 test "sum" by [
-    reduce([sum(V) as Avg], pred(V)),
-    Avg == 21
+    reduce([sum(V) as Sum], pred(V)),
+    Sum == 21
+].
+
+test "sum of empty input" by [
+    reduce([sum(V) as Sum], 1 = 2),
+    Sum == 0
 ].
 
 test "set" by [

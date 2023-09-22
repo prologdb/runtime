@@ -195,8 +195,8 @@ class PredicateReductor : Reductor<PredicateReductor.Specification, PredicateRed
                             Unification.TRUE,
                         )
                     },
-                    { PrologReductorDefinitionException(specification, "accumulate yielded zero solutions") },
-                    { PrologReductorDefinitionException(specification, "accumulate yielded more than one solution") },
+                    { PrologReductorDefinitionException(specification, "accumulate yielded zero solutions, carry == $accumulatorTermIn") },
+                    { PrologReductorDefinitionException(specification, "accumulate yielded more than one solution, carry == $accumulatorTermIn") },
                 )
                 .map {
                     val newAccumulatorTerm = it[accumulatorTermOutVariable].substituteVariables(it.asSubstitutionMapper())
