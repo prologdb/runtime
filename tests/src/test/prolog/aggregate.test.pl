@@ -1,6 +1,6 @@
 :- use_module(essential($equality)).
 :- use_module(essential($dynamic)).
-:- use_module(essential($typesafety), [var/1]).
+:- use_module(essential($typesafety), [var/1, nonvar/1]).
 :- use_module(library(aggregate)).
 :- use_module(library(lists), [member/2, sort/2, msort/2]).
 
@@ -235,6 +235,11 @@ test "boolean_or all true with custom atoms" by [
 test "boolean_or defaults to false" by [
     reduce([boolean_or(V) as R], member(V, [])),
     R == false
+].
+
+test "any" by [
+    reduce([any(V) as R], pred(V)),
+    nonvar(R)
 ].
 
 dummy_reductor(reductor, initialize, dummy_reductor(), bla).
