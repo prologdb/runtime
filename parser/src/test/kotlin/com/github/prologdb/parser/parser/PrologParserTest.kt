@@ -11,6 +11,8 @@ import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry
 import com.github.prologdb.runtime.proofsearch.ASTPrologPredicate
 import com.github.prologdb.runtime.proofsearch.Rule
+import com.github.prologdb.runtime.query.AndQuery
+import com.github.prologdb.runtime.query.OrQuery
 import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.term.*
 import com.github.prologdb.runtime.util.DefaultOperatorRegistry
@@ -24,6 +26,8 @@ import io.kotest.inspectors.forOne
 import io.kotest.matchers.collections.beEmpty
 import io.kotest.matchers.collections.haveSize
 import io.kotest.matchers.maps.haveKey
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNot
@@ -31,6 +35,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.contain
 import io.kotest.matchers.types.beInstanceOf
 import io.kotest.matchers.types.instanceOf
+import io.kotest.matchers.types.shouldBeInstanceOf
 
 class PrologParserTest : FreeSpec({
     val operators = DefaultOperatorRegistry().apply {
@@ -151,6 +156,24 @@ class PrologParserTest : FreeSpec({
 
             assert(compound.arguments[1] is Variable)
             (compound.arguments[1] as Variable).name shouldBe "X"
+
+            assert(compound.arguments[2] is Atom)
+            (compound.arguments[2] as Atom).name shouldBe "bar"
+        }
+
+        "with three arguments, trailing comma" {
+            val result = parseTerm("predicate(foo, baz, bar, )")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            val compound = result.item!! as CompoundTerm
+            compound.functor shouldBe "predicate"
+            compound.arguments.size shouldBe 3
+
+            assert(compound.arguments[0] is Atom)
+            (compound.arguments[0] as Atom).name shouldBe "foo"
+
+            assert(compound.arguments[1] is Atom)
+            (compound.arguments[1] as Atom).name shouldBe "baz"
 
             assert(compound.arguments[2] is Atom)
             (compound.arguments[2] as Atom).name shouldBe "bar"
@@ -351,6 +374,48 @@ class PrologParserTest : FreeSpec({
             assert(result.item!!.tail is Variable)
             (result.item!!.tail as Variable).name shouldBe "T"
         }
+
+        "empty list with just a comma, no tail" {
+            val result = parseList("[,]")
+
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item should beInstanceOf<PrologList>()
+            (result.item as PrologList).tail shouldBe null
+            (result.item as PrologList).elements should beEmpty()
+        }
+
+        "empty list with just a comma, with tail" {
+            val result = parseList("[,|T]")
+
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item should beInstanceOf<PrologList>()
+            (result.item as PrologList).tail shouldBe Variable("T")
+            (result.item as PrologList).elements should beEmpty()
+        }
+
+        "list, no tail, trailing comma" {
+            val result = parseList("[1,2,]")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item.shouldBeInstanceOf<PrologList>()
+            result.item!!.elements.size shouldBe 2
+            result.item!!.elements[0] shouldBe PrologNumber(1)
+            result.item!!.elements[0] shouldBe PrologNumber(2)
+        }
+
+        "list, with tail, trailing comma" {
+            val result = parseList("[1,2,|T]")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item.shouldBeInstanceOf<PrologList>()
+            result.item!!.elements.size shouldBe 2
+            result.item!!.elements[0] shouldBe PrologNumber(1)
+            result.item!!.elements[0] shouldBe PrologNumber(2)
+            result.item!!.tail.shouldNotBeNull()
+            (result.item!!.tail as Variable).name shouldBe "T"
+        }
     }
 
     "dict" - {
@@ -440,6 +505,50 @@ class PrologParserTest : FreeSpec({
             result.reportings.forAll {
                 it shouldBe instanceOf(SemanticWarning::class)
             }
+        }
+
+        "without tail, trailing comma" {
+            val result = parseDict("{a : 1, b : 2, }")
+
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is PrologDictionary)
+            result.item!!.pairs.size shouldBe 2
+            result.item!!.tail.shouldBeNull()
+
+            result.item!!.pairs[Atom("a")]!! shouldBe PrologNumber(1)
+            result.item!!.pairs[Atom("b")]!! shouldBe PrologNumber(2)
+        }
+
+        "with tail, trailing comma" {
+            val result = parseDict("{a : 1, b : 2, | T}")
+
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            assert(result.item is PrologDictionary)
+            result.item!!.pairs.size shouldBe 2
+            result.item!!.tail shouldBe Variable("T")
+
+            result.item!!.pairs[Atom("a")]!! shouldBe PrologNumber(1)
+            result.item!!.pairs[Atom("b")]!! shouldBe PrologNumber(2)
+        }
+
+        "empty dict with just a comma, no tail" {
+            val result = parseDict("{,}")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item should beInstanceOf<PrologDictionary>()
+            (result.item as PrologDictionary).pairs.size shouldBe 0
+            (result.item as PrologDictionary).tail shouldBe null
+        }
+
+        "empty dict with just a comma, with tail" {
+            val result = parseDict("{,|T}")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item should beInstanceOf<PrologDictionary>()
+            (result.item as PrologDictionary).pairs.size shouldBe 0
+            (result.item as PrologDictionary).tail shouldBe Variable("T")
         }
     }
 
@@ -1047,6 +1156,58 @@ class PrologParserTest : FreeSpec({
             result.reportings.single().level shouldBe Reporting.Level.ERROR
             result.reportings.single().message should contain("missing operator )")
             result.item shouldBe null
+        }
+
+        "trailing comma after conjunction" {
+            val result = parseQuery("a(), b(),.")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item.shouldNotBeNull()
+            result.item!! should beInstanceOf<AndQuery>()
+            (result.item as AndQuery).goals.size shouldBe 2
+            (result.item as AndQuery).goals[0] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as AndQuery).goals[0] as PredicateInvocationQuery).goal shouldBe CompoundTerm("a", emptyArray())
+            (result.item as AndQuery).goals[1] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as AndQuery).goals[1] as PredicateInvocationQuery).goal shouldBe CompoundTerm("b", emptyArray())
+        }
+
+        "trailing semicolon after conjunction" {
+            val result = parseQuery("a(), b();.")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item.shouldNotBeNull()
+            result.item!! should beInstanceOf<AndQuery>()
+            (result.item as AndQuery).goals.size shouldBe 2
+            (result.item as AndQuery).goals[0] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as AndQuery).goals[0] as PredicateInvocationQuery).goal shouldBe CompoundTerm("a", emptyArray())
+            (result.item as AndQuery).goals[1] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as AndQuery).goals[1] as PredicateInvocationQuery).goal shouldBe CompoundTerm("b", emptyArray())
+        }
+
+        "trailing comma after disjunction" {
+            val result = parseQuery("a() ; b(),.")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item.shouldNotBeNull()
+            result.item!! should beInstanceOf<OrQuery>()
+            (result.item as OrQuery).goals.size shouldBe 2
+            (result.item as OrQuery).goals[0] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as OrQuery).goals[0] as PredicateInvocationQuery).goal shouldBe CompoundTerm("a", emptyArray())
+            (result.item as OrQuery).goals[1] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as OrQuery).goals[1] as PredicateInvocationQuery).goal shouldBe CompoundTerm("b", emptyArray())
+        }
+
+        "trailing semicolon after disjunction" {
+            val result = parseQuery("a() ; b();.")
+            result.certainty shouldBe MATCHED
+            result.reportings should beEmpty()
+            result.item.shouldNotBeNull()
+            result.item!! should beInstanceOf<OrQuery>()
+            (result.item as OrQuery).goals.size shouldBe 2
+            (result.item as OrQuery).goals[0] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as OrQuery).goals[0] as PredicateInvocationQuery).goal shouldBe CompoundTerm("a", emptyArray())
+            (result.item as OrQuery).goals[1] should beInstanceOf<PredicateInvocationQuery>()
+            ((result.item as OrQuery).goals[1] as PredicateInvocationQuery).goal shouldBe CompoundTerm("b", emptyArray())
         }
 
         "zero arity goal without parenthesis" - {
