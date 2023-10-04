@@ -2,12 +2,15 @@ package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.runtime.term.CompoundTerm;
 import com.github.prologdb.runtime.term.Term;
+import com.github.prologdb.runtime.term.Variable;
 import com.github.prologdb.runtime.unification.Unification;
 import com.github.prologdb.runtime.util.OperatorRegistry;
+import kotlin.Pair;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.util.Map;
 
 public class SolutionPanel {
 
@@ -19,9 +22,12 @@ public class SolutionPanel {
     private final Unification solution;
     private final OperatorRegistry displayOperators;
 
-    public SolutionPanel(Unification solution, OperatorRegistry displayOperators) {
+    private final boolean showVariablesStartingWithUnderscore;
+
+    public SolutionPanel(Unification solution, OperatorRegistry displayOperators, boolean showVariablesStartingWithUnderscore) {
         this.solution = solution;
         this.displayOperators = displayOperators;
+        this.showVariablesStartingWithUnderscore = showVariablesStartingWithUnderscore;
 
         initComponents();
     }
@@ -49,11 +55,27 @@ public class SolutionPanel {
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-        solution.getEntries().forEach(varAndValue -> {
+        boolean anyVariablesVisible = false;
+
+        for (Pair<Variable, Term> varAndValue : solution.getEntries()) {
+            if (!showVariablesStartingWithUnderscore && varAndValue.getFirst().getName().startsWith("_")) {
+                continue;
+            }
+
             String text = (new CompoundTerm("=", new Term[]{ varAndValue.getFirst(), varAndValue.getSecond() })).toStringUsingOperatorNotations(displayOperators);
             JLabel label = new JLabel(text);
             label.setFont(FONT);
             panel.add(label);
-        });
+            anyVariablesVisible = true;
+        }
+
+        if (!anyVariablesVisible) {
+            JLabel label = new JLabel("true");
+            label.setForeground(new Color(0x30, 0xB4, 0x40));
+            label.setFont(label.getFont().deriveFont(Font.BOLD));
+            label.setAlignmentX(Component.LEFT_ALIGNMENT);
+            label.setBorder(new EmptyBorder(5, 5, 5, 5));
+            panel.add(label);
+        }
     }
 }

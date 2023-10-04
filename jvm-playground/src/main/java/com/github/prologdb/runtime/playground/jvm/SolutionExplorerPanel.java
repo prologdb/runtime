@@ -30,6 +30,8 @@ public class SolutionExplorerPanel {
     private boolean currentSolutionsDepleated = true;
     private int currentSolutionIndex = -1;
 
+    private boolean showVariablesStartingWithUnderscore = false;
+
     public SolutionExplorerPanel() {
         initComponents();
     }
@@ -43,6 +45,9 @@ public class SolutionExplorerPanel {
         showAllRemainingBT.addActionListener(evt -> showAllRemainingSolutions());
         showAllRemainingBT.setEnabled(false);
 
+        JCheckBox showUnderscoreVariablesCB = new JCheckBox("show variables starting with _", showVariablesStartingWithUnderscore);
+        showUnderscoreVariablesCB.addChangeListener((cb) -> setShowVariablesStartingWithUnderscore(showUnderscoreVariablesCB.isSelected()));
+
         JPanel actionsToolbarLeft = new JPanel();
         actionsToolbarLeft.setLayout(new BoxLayout(actionsToolbarLeft, BoxLayout.X_AXIS));
         actionsToolbarLeft.add(new JLabel("  load time: "));
@@ -53,6 +58,8 @@ public class SolutionExplorerPanel {
         JPanel actionsToolbarRight = new JPanel();
         actionsToolbarRight.setLayout(new BoxLayout(actionsToolbarRight, BoxLayout.X_AXIS));
         actionsToolbarRight.add(Box.createHorizontalGlue());
+        actionsToolbarRight.add(showUnderscoreVariablesCB);
+        actionsToolbarRight.add(Box.createRigidArea(new Dimension(10, 0)));
         actionsToolbarRight.add(showAllRemainingBT);
         actionsToolbarRight.add(Box.createRigidArea(new Dimension(10, 0)));
         actionsToolbarRight.add(showNextBT);
@@ -79,16 +86,6 @@ public class SolutionExplorerPanel {
         panel.setLayout(new BorderLayout());
         panel.add(actionsToolbar, BorderLayout.NORTH);
         panel.add(solutionsScrollPane, BorderLayout.CENTER);
-    }
-
-    private JComponent createTrueComponent() {
-        JLabel label = new JLabel("true");
-        label.setForeground(new Color(0x30, 0xB4, 0x40));
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(5, 5, 5, 5));
-
-        return label;
     }
 
     private JComponent createFalseComponent() {
@@ -130,13 +127,9 @@ public class SolutionExplorerPanel {
     }
 
     private void addSolution(Unification solution) {
-        if (solution.isEmpty()) {
-            addSolutionComponent(createTrueComponent());
-        } else {
-            SolutionPanel solutionPanel = new SolutionPanel(solution, currentSolutionDisplayOperators);
-            solutionPanel.setIndex(currentSolutionIndex);
-            addSolutionComponent(solutionPanel.asJPanel());
-        }
+        SolutionPanel solutionPanel = new SolutionPanel(solution, currentSolutionDisplayOperators, showVariablesStartingWithUnderscore);
+        solutionPanel.setIndex(currentSolutionIndex);
+        addSolutionComponent(solutionPanel.asJPanel());
 
         currentSolutionIndex++;
     }
@@ -245,6 +238,11 @@ public class SolutionExplorerPanel {
 
     public void setLoadTime(Duration parseTime) {
         loadTimeOutput.setText(formatMillis(parseTime.toMillis()));
+    }
+
+    public void setShowVariablesStartingWithUnderscore(boolean show) {
+        this.showVariablesStartingWithUnderscore = show;
+
     }
 
     private static final BigDecimal THOUSAND = new BigDecimal("1000");
