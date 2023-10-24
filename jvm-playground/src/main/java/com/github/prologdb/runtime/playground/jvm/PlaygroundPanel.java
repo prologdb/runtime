@@ -47,7 +47,7 @@ public class PlaygroundPanel {
      */
     private boolean knowledgeBaseChangeIndicator = false;
 
-    private final ModuleLoader moduleLoader = new CascadingModuleLoader(new PlaygroundModuleLoader(), StandardLibraryModuleLoader.INSTANCE);
+    private final ModuleLoader moduleLoader = new CascadingModuleLoader(new PlaygroundModuleLoader(), ModuleLoader.Companion.discoverOnClasspath());
 
     private DefaultPrologRuntimeEnvironment runtimeEnvironment = null;
 

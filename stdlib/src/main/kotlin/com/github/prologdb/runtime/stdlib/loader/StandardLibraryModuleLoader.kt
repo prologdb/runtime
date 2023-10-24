@@ -25,6 +25,8 @@ import com.github.prologdb.runtime.stdlib.lists.*
 import com.github.prologdb.runtime.stdlib.solution_sequences.*
 import com.github.prologdb.runtime.stdlib.sort.BuiltinPredsort3
 
+class StandardLibraryModuleLoaderServiceLoaderProxy : ModuleLoader by StandardLibraryModuleLoader
+
 object StandardLibraryModuleLoader : ModuleLoader {
     private val _parser = PrologParser()
     private val classpathPrefix = "com/github/prologdb/runtime/stdlib"
