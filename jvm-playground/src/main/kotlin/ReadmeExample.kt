@@ -8,9 +8,9 @@ import com.github.prologdb.parser.parser.PrologParser
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.DefaultPrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.CascadingModuleLoader
+import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleReference
 import com.github.prologdb.runtime.playground.jvm.CharacterIterable
-import com.github.prologdb.runtime.stdlib.loader.StandardLibraryModuleLoader
 import com.github.prologdb.runtime.term.Atom
 import com.github.prologdb.runtime.term.Variable
 import com.github.prologdb.runtime.unification.Unification
@@ -35,7 +35,7 @@ fun main() {
     }
 
     // this adds the standard library to the runtime
-    val moduleLoader = CascadingModuleLoader(userModuleLoader, StandardLibraryModuleLoader)
+    val moduleLoader = CascadingModuleLoader(userModuleLoader, ModuleLoader.discoverOnClasspath())
 
     // this initializes the runtime
     val runtime = DefaultPrologRuntimeEnvironment(moduleLoader)

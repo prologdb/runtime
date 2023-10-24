@@ -1,6 +1,7 @@
 package com.github.prologdb.runtime.module
 
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
+import java.util.ServiceLoader
 
 /**
  * Module loading is a three-step process due to exported operators and cyclic imports.
@@ -23,6 +24,24 @@ interface ModuleLoader {
 
     interface ParsedStage {
         val module: Module
+    }
+
+    companion object {
+        /**
+         * Uses the [ServiceLoader] mechanism to find instances of [ModuleLoader] on the classpath. The discovered
+         * loaders will be packed into a [CascadingModuleLoader], in the order defined by [comparator].
+         * @param comparator defines the priority of the loaders in the combined loader. Sort lower = higher priority
+         */
+        @JvmOverloads
+        fun discoverOnClasspath(
+            classLoader: ClassLoader = Thread.currentThread().contextClassLoader,
+            comparator: Comparator<ModuleLoader> = Comparator.comparing { it.javaClass.canonicalName },
+        ) : ModuleLoader {
+            return CascadingModuleLoader(
+                ServiceLoader.load(ModuleLoader::class.java, classLoader)
+                    .sortedWith(comparator)
+            )
+        }
     }
 }
 

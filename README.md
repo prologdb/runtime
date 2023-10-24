@@ -53,7 +53,7 @@ Make sure to import all modules you need; have a look at the playground.
 
 ```kotlin
 // this adds the standard library to the runtime
-val moduleLoader = CascadingModuleLoader(userModuleLoader, StandardLibraryModuleLoader)
+val moduleLoader = CascadingModuleLoader(userModuleLoader, ModuleLoader.discoverOnClasspath())
 
 // this initializes the runtime
 val runtime = DefaultPrologRuntimeEnvironment(moduleLoader)
