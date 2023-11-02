@@ -8,7 +8,7 @@ data class MathContext(val fractionalPrecision: Long, val roundingMode: Rounding
         HALF_DOWN(JavaRoundingMode.HALF_DOWN),
         HALF_EVEN(JavaRoundingMode.HALF_EVEN),
         UP(JavaRoundingMode.UP),
-        DOWN(JavaRoundingMode.UP),
+        DOWN(JavaRoundingMode.DOWN),
         CEILING(JavaRoundingMode.CEILING),
         FLOORING(JavaRoundingMode.FLOOR),
     }
