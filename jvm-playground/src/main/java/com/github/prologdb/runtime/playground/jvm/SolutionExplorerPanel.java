@@ -150,6 +150,15 @@ public class SolutionExplorerPanel {
         System.out.println("-------");
     }
 
+    private void refreshUI() {
+        SwingUtilities.invokeLater(() -> {
+            solutionsPanel.revalidate();
+            solutionsPanel.repaint();
+            panel.revalidate();
+            panel.repaint();
+        });
+    }
+
     public void showNextSolution()
     {
         if (currentSolutionsDepleated) {
@@ -182,10 +191,7 @@ public class SolutionExplorerPanel {
                 setDepleted();
             }
 
-            solutionsPanel.revalidate();
-            solutionsPanel.repaint();
-            panel.revalidate();
-            panel.repaint();
+            refreshUI();
         });
     }
 
@@ -197,14 +203,18 @@ public class SolutionExplorerPanel {
 
         ForkJoinPool.commonPool().execute(() -> {
             long duration = 0;
+            long nSolutions = 0;
             try {
                 while (true) {
                     long solutionStart = System.currentTimeMillis();
                     Unification solution = currentSolutions.tryAdvance();
                     duration += System.currentTimeMillis() - solutionStart;
+                    nSolutions++;
 
                     if (solution != null) {
                         addSolution(solution);
+                        solutionTimeOutput.setText(formatMillis(duration) + " (" + nSolutions + " solutions)");
+                        refreshUI();
                     } else {
                         break;
                     }
@@ -222,10 +232,7 @@ public class SolutionExplorerPanel {
             setDepleted();
             solutionTimeOutput.setText(formatMillis(duration) + " (all)");
 
-            solutionsPanel.revalidate();
-            solutionsPanel.repaint();
-            panel.revalidate();
-            panel.repaint();
+            refreshUI();
         });
     }
 
