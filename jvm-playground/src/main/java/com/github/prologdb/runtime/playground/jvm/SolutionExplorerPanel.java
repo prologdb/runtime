@@ -2,6 +2,9 @@ package com.github.prologdb.runtime.playground.jvm;
 
 import com.github.prologdb.async.LazySequence;
 import com.github.prologdb.runtime.PrologException;
+import com.github.prologdb.runtime.builtin.ISOOpsOperatorRegistry;
+import com.github.prologdb.runtime.term.CompoundTerm;
+import com.github.prologdb.runtime.term.Term;
 import com.github.prologdb.runtime.unification.Unification;
 import com.github.prologdb.runtime.util.OperatorRegistry;
 
@@ -139,6 +142,12 @@ public class SolutionExplorerPanel {
         }
 
         currentSolutionIndex++;
+
+        solution.getEntries().forEach(e -> {
+            var entryTerm = new CompoundTerm("=", new Term[] { e.getFirst(), e.getSecond() });
+            System.out.println(entryTerm.toStringUsingOperatorNotations(currentSolutionDisplayOperators));
+        });
+        System.out.println("-------");
     }
 
     public void showNextSolution()
