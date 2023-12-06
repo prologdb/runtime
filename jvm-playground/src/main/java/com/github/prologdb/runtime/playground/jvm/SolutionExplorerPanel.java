@@ -165,6 +165,8 @@ public class SolutionExplorerPanel {
             return;
         }
 
+        showNextBT.setEnabled(false);
+        showAllRemainingBT.setEnabled(false);
         ForkJoinPool.commonPool().execute(() -> {
             try {
                 long solutionStart = System.currentTimeMillis();
@@ -178,6 +180,9 @@ public class SolutionExplorerPanel {
                 if (solution == null || currentSolutions.getState() == LazySequence.State.DEPLETED) {
                     addSolutionComponent(createFalseComponent());
                     setDepleted();
+                } else {
+                    showNextBT.setEnabled(true);
+                    showAllRemainingBT.setEnabled(true);
                 }
             } catch (NoSuchElementException ex) {
                 addSolutionComponent(createFalseComponent());
@@ -201,6 +206,8 @@ public class SolutionExplorerPanel {
             return;
         }
 
+        showNextBT.setEnabled(false);
+        showAllRemainingBT.setEnabled(false);
         ForkJoinPool.commonPool().execute(() -> {
             long duration = 0;
             long nSolutions = 0;
