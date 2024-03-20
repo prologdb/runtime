@@ -1,6 +1,9 @@
 package com.github.prologdb.async
 
-import com.github.prologdb.async.LazySequence.State.*
+import com.github.prologdb.async.LazySequence.State.DEPLETED
+import com.github.prologdb.async.LazySequence.State.FAILED
+import com.github.prologdb.async.LazySequence.State.PENDING
+import com.github.prologdb.async.LazySequence.State.RESULTS_AVAILABLE
 
 /**
  * Assures that the wrapped [LazySequence] returns exactly one result and that the state is [LazySequence.State.DEPLETED]
@@ -153,7 +156,7 @@ class DeterministicLazySequence<T : Any>(
                         }
                     }
                 }
-                PENDING -> error("logically unreachable. IntelliJ realizes this but Kotlin 1.7.10 doesn't allow me to omit this branch.")
+                PENDING -> error("logically unreachable. IntelliJ realizes this but Kotlin 1.9.0 doesn't allow me to omit this branch.")
             }
         }
     }

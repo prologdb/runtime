@@ -75,8 +75,8 @@ val BuiltinReverse2 = nativeRule("reverse", 2) { args, ctxt ->
         }
     }
 
+    // this return is necessary to make the Kotlin compiler happy
     @Suppress("UNREACHABLE_CODE")
-    // this return is necessary to make the Kotlin 1.7.10 compiler happy
     return@nativeRule Unification.FALSE
 }
 
