@@ -25,6 +25,7 @@
         <module>stdlib</module>
         <module>tests</module>
         <module>jvm-playground</module>
+        <module>interpreter-cli</module>
     </modules>
 
     <properties>
