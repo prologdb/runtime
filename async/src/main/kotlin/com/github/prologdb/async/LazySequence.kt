@@ -504,3 +504,13 @@ fun <T : Any, R> LazySequence<T>.foldRemaining(initial: R, accumulator: (R, T) -
  * Adds the remaining elements to a list and returns that list.
  */
 fun <T : Any> LazySequence<T>.remainingToList(): WorkableFuture<out List<T>> = remainingTo(::ArrayList)
+
+/**
+ * See [Sequence.windowed]
+ * @param size number of elements in each window
+ * @param step number of elements to move the window forward by
+ * @param partialWindows if true, at the end of the sequence windows of smaller size than [size] will be yielded
+ */
+fun <T : Any> LazySequence<T>.windowed(size: Int, step: Int = 1, partialWindows: Boolean = false): LazySequence<List<T>>  {
+    return WindowedLazySequence(this, size, step, partialWindows)
+}
