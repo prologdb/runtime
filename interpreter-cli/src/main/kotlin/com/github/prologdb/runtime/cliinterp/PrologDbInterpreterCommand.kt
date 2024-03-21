@@ -93,7 +93,7 @@ internal class PrologDbInterpreterCommand(
             solutions.consumeAll().get()
         }
         catch (ex: ModuleNotFoundException) {
-            echo("Module ${ex.reference} not found" + ex.message?.let { " ($it)" } ?: "", err = true)
+            echo("Module ${ex.reference} not found" + (ex.message?.let { " ($it)" } ?: ""), err = true)
             exitProcess(1)
         }
         catch (ex: ParseException) {
