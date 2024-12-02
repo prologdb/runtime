@@ -30,7 +30,7 @@
     <properties>
         <kotlin.version>1.7.10</kotlin.version>
         <kotlin.plugin.version>${kotlin.version}</kotlin.plugin.version>
-        <kotest.version>5.4.1</kotest.version>
+        <kotest.version>5.6.1</kotest.version>
         <apfloat.version>1.10.1</apfloat.version>
     </properties>
 
