@@ -58,20 +58,24 @@ private val ADDITIONAL_DEFAULT_IMPORTS: Set<ModuleImport.Full> = listOf(
 
 internal class PrologDbInterpreterCommand(
     private val invokedInDir: Path,
-) : CliktCommand() {
-    private val givenLibraryPaths by option(metavar = "alias=path", names = arrayOf("--library", "-p"))
+) : CliktCommand(
+    help = """
+        Executes prolog files from the filesystem. 
+    """.trimIndent()
+) {
+    private val givenLibraryPaths: Map<String, Path> by option(metavar = "alias=path", names = arrayOf("--library", "-p"))
         .help("""
             register a library search path, e.g.
-              given -p=foo=/my-pl-sources
+              given -p=foo=/my-pl-sources,
               when :- use_module(foo(test)) is executed
-              then /my-pl-sources/test.pl will be consulted
-            An entry for app=<working directory> will always be present
+              then /my-pl-sources/test.pl will be consulted.
+            An entry for app=<working directory> will always be present.
         """.trimIndent())
         .libraryPath()
         .multiple(default = listOf(LibraryPath(APP_LIBRARY_PATH_ALIAS, invokedInDir)), required = false)
         .associateAllUnique(keyName = "alias") { it.name to it.path }
 
-    private val entrypoint by argument("entrypoint", "The predicate to call. Must have arity 1, for arity 1 will be given a list of the input arguments on the command line.")
+    private val entrypoint by argument("entrypoint", "The predicate to call. Must have arity 1, the single argument will be a list of the input arguments on the command line.")
         .fullyQualifiedPredicateIndicator()
         .transformAll(1, false, DEFAULT_ENTRYPOINT.toString()) { it.firstOrNull() ?: DEFAULT_ENTRYPOINT }
 
