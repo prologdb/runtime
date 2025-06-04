@@ -61,7 +61,10 @@ internal class PrologDbInterpreterCommand(
 ) : CliktCommand() {
     private val givenLibraryPaths by option(metavar = "alias=path", names = arrayOf("--library", "-p"))
         .help("""
-            register a library search path, e.g. library=/my-pl-sources to look for sources in /my-pl-sources/test.pl when library(test) is imported.
+            register a library search path, e.g.
+              given -p=foo=/my-pl-sources
+              when :- use_module(foo(test)) is executed
+              then /my-pl-sources/test.pl will be consulted
             An entry for app=<working directory> will always be present
         """.trimIndent())
         .libraryPath()
