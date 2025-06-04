@@ -7,6 +7,7 @@ import com.github.prologdb.parser.parser.SourceFileVisitor
 import com.github.prologdb.parser.source.SourceUnit
 import com.github.prologdb.runtime.PrologRuntimeEnvironment
 import com.github.prologdb.runtime.module.Module
+import com.github.prologdb.runtime.module.ModuleDeclaration
 import com.github.prologdb.runtime.module.ModuleLoader
 import com.github.prologdb.runtime.module.ModuleNotFoundException
 import com.github.prologdb.runtime.module.ModuleReference
@@ -34,6 +35,7 @@ class FilesystemModuleLoader(
         return parser.parseSourceFile(
             Lexer(SourceUnit(file.toAbsolutePath().toString()), LineEndingNormalizer(code.iterator())),
             sourceFileVisitorSupplier(),
+            ModuleDeclaration(reference.moduleName),
         )
     }
 }

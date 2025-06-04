@@ -60,7 +60,8 @@ internal class PrologDbInterpreterCommand(
     private val invokedInDir: Path,
 ) : CliktCommand(
     help = """
-        Executes prolog files from the filesystem. 
+        Executes prolog files from the filesystem. By default, will consult $(pwd)/main.pl and execute main:main/1,
+        but this can be configured.
     """.trimIndent()
 ) {
     private val givenLibraryPaths: Map<String, Path> by option(metavar = "alias=path", names = arrayOf("--library", "-p"))
