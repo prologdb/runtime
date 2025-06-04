@@ -56,6 +56,8 @@ private val ADDITIONAL_DEFAULT_IMPORTS: Set<ModuleImport.Full> = listOf(
     ModuleReference("script", "io")
 ).map(ModuleImport::Full).toSet()
 
+private const val NEL = "\u0085"
+
 internal class PrologDbInterpreterCommand(
     private val invokedInDir: Path,
 ) : CliktCommand(
@@ -66,10 +68,10 @@ internal class PrologDbInterpreterCommand(
 ) {
     private val givenLibraryPaths: Map<String, Path> by option(metavar = "alias=path", names = arrayOf("--library", "-p"))
         .help("""
-            register a library search path, e.g.
-              given -p=foo=/my-pl-sources,
-              when :- use_module(foo(test)) is executed
-              then /my-pl-sources/test.pl will be consulted.
+            register a library search path, e.g.$NEL
+              given -p=foo=/my-pl-sources,$NEL
+              when :- use_module(foo(test)) is executed$NEL
+              then /my-pl-sources/test.pl will be consulted.$NEL
             An entry for app=<working directory> will always be present.
         """.trimIndent())
         .libraryPath()
