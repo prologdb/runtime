@@ -1,17 +1,15 @@
 package com.github.prologdb.runtime.stdlib.essential
 
 import com.github.prologdb.async.buildLazySequence
-import com.github.prologdb.runtime.query.PredicateInvocationQuery
 import com.github.prologdb.runtime.stdlib.nativeRule
-import com.github.prologdb.runtime.term.CompoundTerm
 import com.github.prologdb.runtime.term.equalsStructurally
 import com.github.prologdb.runtime.unification.Unification
 
 val BuiltinNot = nativeRule("not", 1) { args, context ->
-    val arg0 = args[0] as? CompoundTerm ?: return@nativeRule null
+    val goal = args.getQuery(0)
 
     val proofSequence = buildLazySequence<Unification>(context.principal) {
-        context.fulfillAttach(this, PredicateInvocationQuery(arg0), Unification.TRUE)
+        context.fulfillAttach(this, goal, Unification.TRUE)
     }
 
     val hasProof = proofSequence.tryAdvance() != null
