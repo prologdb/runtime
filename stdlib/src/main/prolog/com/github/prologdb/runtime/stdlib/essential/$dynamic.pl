@@ -15,6 +15,8 @@
 :- native current_op/3.
 :- native current_module/1.
 :- native qualify_callable/3.
+:- native if/2.
+:- native if_else/3.
 
 :- module_transparent(findall/3).
 :- module_transparent(findall_o/3).
@@ -26,6 +28,8 @@
 :- module_transparent(qualify_callable/3).
 :- module_transparent(once/1).
 :- module_transparent(unique/1).
+:- module_transparent(if/2).
+:- module_transparent(if_else/3).
 
 once(Goal) :- $dynamic:findnsols(1, Goal, Goal, [Goal]).
 
