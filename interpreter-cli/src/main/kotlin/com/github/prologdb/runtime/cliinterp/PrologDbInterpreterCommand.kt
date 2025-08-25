@@ -72,7 +72,7 @@ internal class PrologDbInterpreterCommand(
               given -p=foo=/my-pl-sources,$NEL
               when :- use_module(foo(test)) is executed$NEL
               then /my-pl-sources/test.pl will be consulted.$NEL
-            An entry for app=<working directory> will always be present.
+            An entry for app=<working directory> will always be present, unless overridden by an explicit entry for app=.
         """.trimIndent())
         .libraryPath()
         .multiple(default = listOf(LibraryPath(APP_LIBRARY_PATH_ALIAS, invokedInDir)), required = false)
@@ -94,8 +94,8 @@ internal class PrologDbInterpreterCommand(
         )
 
         runtime = DefaultPrologRuntimeEnvironment(moduleLoader)
+        assureEntrypointModuleLoaded(runtime, libraryPaths)
         try {
-            runtime.assureModuleLoaded(ModuleReference(APP_LIBRARY_PATH_ALIAS, DEFAULT_ENTRYPOINT.moduleName))
             val solutions = runtime.fulfill(entrypoint.moduleName, PredicateInvocationQuery(CompoundTerm(
                 entrypoint.indicator.functor,
                 arrayOf(PrologList(appArguments.map { PrologString(it) })),
@@ -114,6 +114,25 @@ internal class PrologDbInterpreterCommand(
             echo(ex.formattedPrologStackTrace, err = true)
             exitProcess(2)
         }
+    }
+
+    private fun assureEntrypointModuleLoaded(runtime: PrologRuntimeEnvironment, libraryPaths: Map<String, Path>) {
+        val loadingExByPathAlias = mutableMapOf<String, ModuleNotFoundException>()
+        for ((alias, _)  in libraryPaths) {
+            try {
+                runtime.assureModuleLoaded(ModuleReference(alias, entrypoint.moduleName))
+                return
+            }
+            catch (ex: ModuleNotFoundException) {
+                loadingExByPathAlias[alias] = ex
+            }
+        }
+
+        echo("Couldn't load module ${entrypoint.moduleName} from any of the provided library paths:")
+        for ((alias, ex) in loadingExByPathAlias) {
+            echo("  $alias: ${ex.message}")
+        }
+        exitProcess(1)
     }
 }
 
