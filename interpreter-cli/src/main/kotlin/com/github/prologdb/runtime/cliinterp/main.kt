@@ -5,7 +5,7 @@ import com.github.ajalt.clikt.output.MordantHelpFormatter
 import java.nio.file.Paths
 
 fun main(args: Array<String>) {
-    PrologDbInterpreterCommand(Paths.get("."))
+    ToplevelCommand(Paths.get("."))
         .context {
             helpFormatter = { ctx -> MordantHelpFormatter(ctx, showRequiredTag = true, showDefaultValues = true) }
         }
