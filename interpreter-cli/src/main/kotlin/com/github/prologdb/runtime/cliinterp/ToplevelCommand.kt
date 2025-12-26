@@ -17,6 +17,12 @@ import com.github.ajalt.clikt.parameters.options.help
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.splitPair
+import com.github.ajalt.mordant.input.KeyboardEvent
+import com.github.ajalt.mordant.input.MouseTracking
+import com.github.ajalt.mordant.input.enterRawMode
+import com.github.ajalt.mordant.input.isCtrlC
+import com.github.ajalt.mordant.terminal.Terminal
+import com.github.ajalt.mordant.terminal.prompt
 import com.github.prologdb.async.LazySequence
 import com.github.prologdb.parser.ParseException
 import com.github.prologdb.parser.Reporting
@@ -66,6 +72,7 @@ private val ADDITIONAL_DEFAULT_IMPORTS: Set<ModuleImport.Full> = listOf(
 ).map(ModuleImport::Full).toSet()
 
 private const val NEL = "\u0085"
+private const val HISTORY_MAX_SIZE = 200
 
 
 internal class ToplevelCommand(
@@ -148,9 +155,13 @@ internal class ToplevelCommand(
 
     private fun repl(runtime: DefaultPrologRuntimeEnvironment, toplevelModule: Module) {
         runtime.assureModuleLoaded(ModuleReference("toplevel", toplevelModule.declaration.moduleName))
+        val history = ArrayList<String>()
 
         read@while (true) {
-            val query = promptQuery(toplevelModule.localOperators)
+            val query = promptQuery(toplevelModule.localOperators, history)
+            while (history.size > HISTORY_MAX_SIZE) {
+                history.removeFirst()
+            }
 
             val solutions = runtime.fulfill(toplevelModule.declaration.moduleName, query)
             evalAndPrint@while (true) {
@@ -197,17 +208,9 @@ internal class ToplevelCommand(
         }
     }
 
-    private fun promptQuery(operators: OperatorRegistry): Query {
+    private fun promptQuery(operators: OperatorRegistry, inputHistory: MutableList<String>): Query {
         while (true) {
-            var query = ""
-            do {
-                query += terminal.prompt(
-                    prompt = "",
-                    showDefault = false,
-                    promptSuffix = if (query.isEmpty()) "?- " else "",
-                )
-            } while (!query.endsWith('.'))
-
+            val query = terminal.promptWithHistory(inputHistory)
             val queryResult = parser.parseQuery(lex(SourceUnit("user input"), query), operators)
             if (queryResult.isSuccess) {
                 return queryResult.item!!
@@ -333,3 +336,179 @@ private fun <ValueT, EachT, K, V> OptionWithValues<List<EachT>, EachT, ValueT>.a
         { },
     )
 }
+
+/**
+ * Like [Terminal.prompt] plus the following features:
+ * * the user can navigate the [history] using ArrowUp + ArrowDown
+ * * if the user modifies a history entry before confirming, it gets added to the history
+ * * if the user enters a novel input not from history, it gets added to the history
+ *
+ * @param addToHistory is given novel inputs or modified history entries. If this function returns false, the new/modified
+ *                     input will silently _not_ be added to [history]. Use to filter e.g. blank inputs.
+ */
+fun Terminal.promptWithHistory(
+    history: MutableList<String>,
+    addToHistory: (String) -> Boolean = String::isNotBlank,
+): String {
+    enterRawMode(mouseTracking = MouseTracking.Off).use { rawMode ->
+        var nextInput = ""
+        var historyIndex = history.size
+        var currentInput = StringBuilder(nextInput)
+        var currentInputModified = false
+        var cursorIndex = 0
+        cursor.show()
+
+        while (true) {
+            val event = rawMode.readKey()
+            when {
+                event.isEnter -> {
+                    rawPrint("\n")
+                    break
+                }
+                event.isCtrlC -> throw InputAbortedException()
+                event.isArrowLeft -> {
+                    if (cursorIndex == 0) {
+                        continue
+                    }
+                    cursorIndex--
+                    cursor.move {
+                        left(1)
+                    }
+                }
+                event.isArrowRight -> {
+                    if (cursorIndex >= currentInput.length - 1) {
+                        continue
+                    }
+                    cursorIndex++
+                    cursor.move {
+                        right(1)
+                    }
+                }
+                event.isHome -> {
+                    cursor.move {
+                        left(cursorIndex)
+                    }
+                    cursorIndex = 0
+                }
+                event.isEnd -> {
+                    cursor.move {
+                        right(currentInput.length - cursorIndex)
+                        cursorIndex = currentInput.length
+                    }
+                }
+                event.isBackspace -> {
+                    if (cursorIndex == 0) {
+                        continue
+                    }
+
+                    currentInput.deleteCharAt(cursorIndex - 1)
+                    currentInputModified = true
+                    cursorIndex--
+                    cursor.move {
+                        left(1)
+                    }
+                    rawPrint(" ")
+                    cursor.move {
+                        left(1)
+                    }
+                }
+                event.isDelete -> {
+                    if (cursorIndex >= currentInput.length) {
+                        continue
+                    }
+                    currentInput.deleteCharAt(cursorIndex)
+                    currentInputModified = true
+
+                    val tailLength = currentInput.length - cursorIndex
+                    rawPrint(currentInput.substring(cursorIndex, currentInput.length))
+                    rawPrint(" ")
+                    cursor.move {
+                        left(tailLength + 1)
+                    }
+                }
+                event.isArrowUp -> {
+                    if (historyIndex <= 0) {
+                        continue
+                    }
+
+                    // clear line
+                    cursor.move {
+                        left(cursorIndex)
+                    }
+                    rawPrint(" ".repeat(currentInput.length))
+                    cursor.move {
+                        left(currentInput.length)
+                    }
+
+                    if (historyIndex == history.size) {
+                        // so it can be restored if the user navigates back to after the history
+                        nextInput = currentInput.toString()
+                    }
+
+                    historyIndex--
+                    currentInput = StringBuilder(history[historyIndex])
+                    currentInputModified = false
+                    rawPrint(currentInput.toString())
+                    cursorIndex = currentInput.length
+                }
+                event.isArrowDown -> {
+                    if (historyIndex >= history.size) {
+                        continue
+                    }
+
+                    cursor.move {
+                        left(cursorIndex)
+                    }
+                    rawPrint(" ".repeat(currentInput.length))
+                    cursor.move {
+                        left(currentInput.length)
+                    }
+
+                    historyIndex++
+                    val nextCurrentInput = if (historyIndex < history.size) {
+                        history[historyIndex]
+                    } else {
+                        nextInput
+                    }
+
+                    currentInput = StringBuilder(nextCurrentInput)
+                    currentInputModified = false
+                    rawPrint(currentInput.toString())
+                    cursorIndex = currentInput.length
+                }
+                else -> {
+                    currentInput.insert(cursorIndex, event.key)
+                    currentInputModified = true
+                    cursorIndex += event.key.length
+                    rawPrint(event.key)
+                    if (cursorIndex < currentInput.length) {
+                        val tailLength = currentInput.length - cursorIndex
+                        rawPrint(currentInput.substring(cursorIndex, currentInput.length))
+                        cursor.move {
+                            left(tailLength)
+                        }
+                    }
+                }
+            }
+        }
+
+        val resultAsString = currentInput.toString()
+        if ((historyIndex == history.size || currentInputModified) && addToHistory(resultAsString)) {
+            history.add(resultAsString)
+        }
+
+        return resultAsString
+    }
+}
+
+class InputAbortedException : RuntimeException()
+
+val KeyboardEvent.isEnter: Boolean get()= key == "Enter" && !ctrl && !alt && !shift;
+val KeyboardEvent.isBackspace: Boolean get()= key == "Backspace" && !ctrl && !alt && !shift;
+val KeyboardEvent.isArrowLeft: Boolean get()= key == "ArrowLeft" && !ctrl && !alt && !shift;
+val KeyboardEvent.isArrowRight: Boolean get()= key == "ArrowRight" && !ctrl && !alt && !shift;
+val KeyboardEvent.isArrowUp: Boolean get()= key == "ArrowUp" && !ctrl && !alt && !shift;
+val KeyboardEvent.isArrowDown: Boolean get()= key == "ArrowDown" && !ctrl && !alt && !shift;
+val KeyboardEvent.isDelete: Boolean get()= key == "Delete" && !ctrl && !alt && !shift;
+val KeyboardEvent.isHome: Boolean get()= key == "Home" && !ctrl && !alt && !shift;
+val KeyboardEvent.isEnd: Boolean get()= key == "End" && !ctrl && !alt && !shift;

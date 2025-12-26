@@ -29,6 +29,11 @@
             <artifactId>clikt-jvm</artifactId>
             <version>4.2.2</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.ajalt.mordant</groupId>
+            <artifactId>mordant-jvm</artifactId>
+            <version>3.0.2</version>
+        </dependency>
     </dependencies>
 
     <build>
